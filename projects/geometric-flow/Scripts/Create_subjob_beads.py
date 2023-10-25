@@ -102,6 +102,9 @@ f.write('echo $PATH\n')
 # f.write("#printf ' \n'\n")
 
 
+
+f.write('pwd\n')
+
 f.write('srun time -v ../build/bin/main_cluster_beads {} {} {} {} {}\n'.format(v,c0,KA,KB,Strength))
 
 
