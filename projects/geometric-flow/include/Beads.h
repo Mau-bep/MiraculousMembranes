@@ -26,6 +26,7 @@ class Bead {
 
 
     VertexData<Vector3> Gradient();
+    void Set_Force(Vector3 Force);
     double Energy();
     void Reset_bead(Vector3 Actual_pos);
     void Move_bead(double dt, Vector3 center);

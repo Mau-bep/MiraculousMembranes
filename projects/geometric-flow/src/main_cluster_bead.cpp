@@ -80,7 +80,7 @@ Vector3 CoM;                   // original center of mass
 
 
 Mem3DG M3DG;
-
+Bead Bead_1;
 
 std::array<double, 3> BLUE = {0.11, 0.388, 0.89};
 // glm::vec<3, float> ORANGE_VEC = {1, 0.65, 0};
@@ -118,7 +118,7 @@ void showSelected() {
 void Save_mesh(std::string basic_name, size_t current_t) {
    // Build member variables: mesh, geometry
     Vector3 Pos;
-    std::ofstream o(basic_name+std::to_string(current_t)+".obj");
+    std::ofstream o(basic_name+"membrane_"+std::to_string(current_t)+".obj");
     o << "#This is a meshfile from a saved state\n" ;
 
     for(Vertex v : mesh->vertices()) {
@@ -167,7 +167,7 @@ int main(int argc, char** argv) {
     std::cout<< "Current path is " << argv[0];
 
     // std::string filepath = "../../../input/sphere.obj";
-    std::string filepath = "../../../input/sphere.obj";
+    std::string filepath = "../../../input/sphere_dense_40k.obj";
     // Load mesh
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
     mesh = mesh_uptr.release();
@@ -205,7 +205,8 @@ int main(int argc, char** argv) {
     // WF2 = WillmoreFlow2(mesh,geometry);
     // WFS = WillmoreFlowScho(mesh,geometry);
     // M3DG = Mem3DG(mesh,geometry);
-    Bead_1 = Bead(mesh,geometry,Vector3({3.4,3.7,-5.6}),1.0,Interaction_str);
+    double radius=3.0;
+    Bead_1 = Bead(mesh,geometry,Vector3({10.0,0.0,0.0}),radius,Interaction_str);
     M3DG = Mem3DG(mesh,geometry,Bead_1);
     // Add visualization options.
     // psMesh->setSmoothShade(false);
@@ -239,21 +240,28 @@ int main(int argc, char** argv) {
     Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
     Min_rel_lengthstream << std::fixed << std::setprecision(2) <<Min_rel_length;
     
-    std::string first_dir="./Mem3DG_IMG_serial/";
+    
+    std::string first_dir="./Mem3DG_Beads_40k_frenkel_areaint_big/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
-    first_dir="./Mem3DG_IMG_serial/Curv_adap_"+Curv_adapstream.str()+"Min_rel_length_"+Min_rel_lengthstream.str();
+    first_dir="./Mem3DG_Beads_40k_frenkel_areaint_big/Curv_adap_"+Curv_adapstream.str()+"Min_rel_length_"+Min_rel_lengthstream.str();
     status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"\nIf this name is 0 the directory was created succesfully "<< status ;
     
-    std::string basic_name ="./Mem3DG_Beads/Curv_adap_"+Curv_adapstream.str()+"Min_rel_length_"+Min_rel_lengthstream.str()+ "/nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"_Inter_"+ Interactionstrstream.str()+"/";
+    std::string basic_name ="./Mem3DG_Beads_40k_frenkel_areaint_big/Curv_adap_"+Curv_adapstream.str()+"Min_rel_length_"+Min_rel_lengthstream.str()+ "/nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"_Inter_"+ Interactionstrstream.str()+"/";
     status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     std::cout<<"\nIf this number is 0 the directory was created succesfully "<< status<<"\n" ;
 
-    std::string filename = basic_name+"Output_data.txt";
 
+    std::string filename = basic_name + "Output_data.txt";
+    std::string filename2 = basic_name + "Bead_data.txt";
     std::ofstream Sim_data(filename);
+    std::ofstream Bead_data(filename2);
+
+    bool Save_bead_data=false;
+    Bead_data<<"####### This data is taken every 250 steps just like the mesh radius is " << radius<<" \n";
+    
     // Here i want to run my video
     size_t n_vert;
     size_t n_vert_old;
@@ -269,7 +277,7 @@ int main(int argc, char** argv) {
     double dt_sim=0.0;
 
     start = chrono::steady_clock::now();
-    for(size_t current_t=0;current_t<10000000;current_t++ ){
+    for(size_t current_t=0;current_t<=500000;current_t++ ){
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
         if(true){
@@ -304,8 +312,9 @@ int main(int argc, char** argv) {
         // psMesh->setEdgeWidth(1.0);
 
         
-        if(current_t%1000==0){
+        if(current_t%250==0){
             Save_mesh(basic_name,current_t);
+            Save_bead_data=true;
 
         }
         
@@ -340,8 +349,9 @@ int main(int argc, char** argv) {
         }
         nu_evol= time<50 ? nu_0 + (nu-nu_0)*time/50 : nu; 
         
-
-        dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,true);
+        dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save_bead_data,Bead_data);
+        
+        Save_bead_data=false;
         if(dt_sim==-1){
             std::cout<<"Sim broke or timestep very small\n";
             break;
@@ -357,7 +367,7 @@ int main(int argc, char** argv) {
 
     }
     Sim_data.close();
-
+    Bead_data.close();
 
     Vector3 Pos;
     std::ofstream o(basic_name+"Final_state.obj");

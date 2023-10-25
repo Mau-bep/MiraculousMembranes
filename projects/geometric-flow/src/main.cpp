@@ -6,6 +6,7 @@
 
 #include <omp.h>
 
+
 #include <sys/stat.h>
 #include <iostream>
 #include <fstream>
@@ -29,8 +30,6 @@
 
 
 #include "Mem-3dg.h"
-#include "mem-3dg_implicit.h"
-#include "Beads.h"
 
 using namespace geometrycentral;
 using namespace geometrycentral::surface;
@@ -42,7 +41,6 @@ std::unique_ptr<VertexPositionGeometry> geometry_uptr;
 // so we can more easily pass these to different classes
 ManifoldSurfaceMesh* mesh;
 VertexPositionGeometry* geometry;
-
 
 
 
@@ -60,7 +58,7 @@ float V_bar= (4/3)*PI*10;
 
 
 float nu;
-float Interaction_str;
+
 float c0;
 
 
@@ -79,9 +77,6 @@ VertexData<Vector3> ORIG_VPOS; // original vertex positions
 Vector3 CoM;                   // original center of mass
 
 Mem3DG M3DG;
-IMem3DG IM3DG;
-Bead Bead_1;
-
 
 
 std::array<double, 3> BLUE = {0.11, 0.388, 0.89};
@@ -273,9 +268,9 @@ int main(int argc, char** argv) {
     c0=std::stod(argv[2]);
     KA=std::stod(argv[3]);
     KB=std::stod(argv[4]);
-    Interaction_str=std::stod(argv[5]);
+  
     // I will do it so i can give this values
-    std::cout<<Interaction_str<<"\n";
+ 
     auto start = chrono::steady_clock::now();
     auto end = chrono::steady_clock::now();
     
@@ -287,14 +282,12 @@ int main(int argc, char** argv) {
     std::cout<< "Current path is " << argv[0];
 
     // std::string filepath = "../../../input/deformed_sphere_2.obj";
-    std::string filepath = "../../../input/sphere.obj";
+    std::string filepath = "../../../input/Simple_cil_regular.obj";
     // Load mesh
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
     mesh = mesh_uptr.release();
     geometry = geometry_uptr.release();
     
-
-
     trgt_len=geometry->meanEdgeLength();
     V_bar=geometry->totalVolume();
     polyscope::options::autocenterStructures = true;
@@ -309,6 +302,7 @@ int main(int argc, char** argv) {
     psMesh = polyscope::registerSurfaceMesh(polyscope::guessNiceNameFromPath(filepath), geometry->inputVertexPositions,
                                             mesh->getFaceVertexList(), polyscopePermutations(*mesh));
     psMesh->setSurfaceColor({0.9607, 0.6627, 0.7215});    
+
     
     // Initialize operators.
     flipZ();
@@ -324,10 +318,7 @@ int main(int argc, char** argv) {
     // WF = WillmoreFlow(mesh,geometry);
     // WF2 = WillmoreFlow2(mesh,geometry);
     // WFS = WillmoreFlowScho(mesh,geometry);
-    Bead_1 = Bead(mesh,geometry,Vector3({3.4,3.7,-5.6}),1.0,Interaction_str);
-    M3DG = Mem3DG(mesh,geometry,Bead_1);
-    IM3DG = IMem3DG(mesh,geometry);
-    
+    M3DG = Mem3DG(mesh,geometry);
 
     // Add visualization options.
     psMesh->setSmoothShade(false);
@@ -341,7 +332,6 @@ int main(int argc, char** argv) {
     std::stringstream c0stream;
     std::stringstream KAstream;
     std::stringstream KBstream;
-    std::stringstream Interactionstrstream;
     
     
     // std::stringstream H0stream;
@@ -355,33 +345,27 @@ int main(int argc, char** argv) {
     c0stream << std::fixed << std::setprecision(3) << c0;
     KAstream << std::fixed << std::setprecision(3) << KA;
     KBstream << std::fixed << std::setprecision(6) << KB;
-    Interactionstrstream << std::fixed << std::setprecision(6) << Interaction_str;
 
 
 
     Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
     Min_rel_lengthstream << std::fixed << std::setprecision(2) <<Min_rel_length;
     
-    std::string first_dir="./Mem3DG_Beads/";
+    std::string first_dir="./Mem3DG_IMG_serial/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
-    first_dir="./Mem3DG_Beads/Curv_adap_"+Curv_adapstream.str()+"Min_rel_length_"+Min_rel_lengthstream.str();
+    first_dir="./Mem3DG_IMG_serial/Curv_adap_"+Curv_adapstream.str()+"Min_rel_length_"+Min_rel_lengthstream.str();
     status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"\nIf this name is 0 the directory was created succesfully "<< status ;
     
-    std::string basic_name ="./Mem3DG_Beads/Curv_adap_"+Curv_adapstream.str()+"Min_rel_length_"+Min_rel_lengthstream.str()+ "/nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"_Inter_"+ Interactionstrstream.str()+"/";
+    std::string basic_name ="./Mem3DG_IMG_serial/Curv_adap_"+Curv_adapstream.str()+"Min_rel_length_"+Min_rel_lengthstream.str()+ "/nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"/";
     status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     std::cout<<"\nIf this number is 0 the directory was created succesfully "<< status<<"\n" ;
 
     std::string filename = basic_name+"Output_data.txt";
-    std::string filename2 =basic_name + "Bead_data.txt";
 
     std::ofstream Sim_data(filename);
-    std::ofstream Bead_data(filename2);
-
-    bool Save_bead_data=false;
-    Bead_data<<"####### This data is taken every 1000 steps just like the mesh\n";
     // Here i want to run my video
     size_t n_vert;
     size_t n_vert_old;
@@ -398,7 +382,7 @@ int main(int argc, char** argv) {
     double nu_step;
 
     start = chrono::steady_clock::now();
-    for(size_t current_t=0;current_t<100000;current_t++ ){ //I took two zeros
+    for(size_t current_t=0;current_t<1000000;current_t++ ){
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
         if(true){
@@ -435,7 +419,7 @@ int main(int argc, char** argv) {
         
 
         
-        if(current_t%500==0) {
+        if(current_t%1000==0) {
             end=chrono::steady_clock::now();
             n_vert=mesh->nVertices();
             std::cout<< "THe number of vertices is "<< n_vert <<"\n";    
@@ -457,7 +441,7 @@ int main(int argc, char** argv) {
             }
 
             std::cout<< "The spontaneous curvature is " << H0<< "\n";
-            // std::cout << "The system time is " << M3DG.system_time <<"\n\n";
+            std::cout << "The system time is " << M3DG.system_time <<"\n\n";
             
             std::cout<<"A thousand iterations took "<<chrono::duration_cast<chrono::milliseconds>(end-start).count()<<" miliseconds\n";
 
@@ -469,17 +453,7 @@ int main(int argc, char** argv) {
         nu_evol= time<50 ? nu_0 + (nu-nu_0)*time/50 : nu; 
         // nu_evol=nu;
 
-        // dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time);
-        // dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,true);
-        dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save_bead_data,Bead_data);
-       
-        // IM3DG.integrate(TS,nu_evol,V_bar,P0,KA,KB);
-        // dt_sim=TS;
-        Vector3 center =geometry->centerOfMass();
-        
-        geometry->normalize(Vector3({0.0,0.0,0.0}),false);
-        geometry->refreshQuantities();
-        
+        dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time);
         if(dt_sim==-1){
             std::cout<<"Sim broke\n";
             break;

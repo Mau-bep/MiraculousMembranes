@@ -54,7 +54,7 @@ float kappa = 1.0;
 
 float H0 = 1.0;
 float V_bar= (4/3)*PI*10; 
-bool Save=false;
+
 
 
 float nu;
@@ -231,14 +231,12 @@ int main(int argc, char** argv) {
 
     std::string filepath = "../../../input/Simple_cil_regular.obj";
     // std::string filepath = "../../../input/sphere.obj";
-
-    // std::string filepath = "../../../input/sphere.obj";
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
     mesh = mesh_uptr.release();
     geometry = geometry_uptr.release();
     
     trgt_len=geometry->meanEdgeLength();
-    V_bar=geometry->totalVolume()*1.5;
+    V_bar=geometry->totalVolume();
     // polyscope::options::autocenterStructures = true;
 
     // Initialize polyscope
@@ -287,7 +285,7 @@ int main(int argc, char** argv) {
     Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
     Min_rel_lengthstream << std::fixed << std::setprecision(2) <<Min_rel_length;
     
-    std::string first_dir="./Tests_cil_regular_sept/";
+    std::string first_dir="./Tests_cil_regular/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
@@ -295,13 +293,13 @@ int main(int argc, char** argv) {
     // status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"\nIf this name is 0 the directory was created succesfully "<< status ;
     
-    std::string basic_name ="./Tests_cil_regular_sept/nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"/";
+    std::string basic_name ="./Tests_cil_regular/nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"/";
     status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     std::cout<<"\nIf this number is 0 the directory was created succesfully "<< status<<"\n" ;
 
     std::string filename_basic = basic_name+"Output_data.txt";
 
-    
+    std::ofstream Sim_data;
     
     // Here i want to run my video
     size_t n_vert;
@@ -320,132 +318,113 @@ int main(int argc, char** argv) {
 
     // Here i have loaded the mesh and i am ready to start testing
 
-    std::ofstream Sim_data;
+
     // I may need to run this and save things so i can se the evolution...
-    std::ofstream Gradient_data_vol;
+    std::ofstream Gradient_data;
     std::ofstream Gradient_data_area;
     std::ofstream Gradient_data_bending;
     std::ofstream Gradient_data_bending_norms;
     
-
-    // for(size_t current_t=0; current_t <300000;current_t++){
-    // if(current_t==0){
+    for(size_t current_t=0; current_t <300000;current_t++){
+    if(current_t==0){
     Sim_data.open(filename_basic);
+    }
+    else{
+    Sim_data.open(filename_basic,std::ios_base::app);
+    }
+
+    if(true){
+        // if(current_t%10==0 ){
+        n_vert_old=mesh->nVertices();
+        n_vert_new=1;
+
+        counter=0;
+        while(n_vert_new!=n_vert_old && counter<10){
+        // std::cout<<"Remeshing\n";
+        n_vert_old=n_vert_new;
+        RemeshOptions Options;
+        Options.targetEdgeLength=trgt_len;
+        Options.curvatureAdaptation=Curv_adap;
+        Options.maxIterations=10;
+        Options.minRelativeLength=Min_rel_length;
+        Options.smoothStyle=RemeshSmoothStyle::Circumcentric;
+        Options.boundaryCondition=RemeshBoundaryCondition::Tangential;
+        MutationManager Mutation_manager(*mesh,*geometry);
+        remesh(*mesh,*geometry,Mutation_manager,Options);
+        n_vert_new=mesh->nVertices();
+        counter=counter+1; 
+        }
+        }
+
+    if(current_t%1000==0){
+            Save_mesh(basic_name,current_t);
+        }
+
     
-    // }
-    // else{
-    // Sim_data.open(filename_basic,std::ios_base::app);
-    // }
-   
-    
-    // if(true){
-    //     // if(current_t%10==0 ){
-    //     n_vert_old=mesh->nVertices();
-    //     n_vert_new=1;
+    if(current_t%1000==0){
+        std::string filename = basic_name+"Vol_Gradient_evaluation_"+std::to_string(current_t) + ".txt";
+        // std::ofstream Gradient_data(filename);
+        Gradient_data.open(filename);
+        // std::ofstream o(basic_name+std::to_string(current_t)+".obj");
+        Gradient_data<< "Volume grad\n";
+        M3DG.Grad_Vol(Gradient_data,P0,V_bar,true);
 
-    //     counter=0;
-    //     while(n_vert_new!=n_vert_old && counter<10){
-    //     // std::cout<<"Remeshing\n";
-    //     n_vert_old=n_vert_new;
-    //     RemeshOptions Options;
-    //     Options.targetEdgeLength=trgt_len;
-    //     Options.curvatureAdaptation=Curv_adap;
-    //     Options.maxIterations=10;
-    //     Options.minRelativeLength=Min_rel_length;
-    //     Options.smoothStyle=RemeshSmoothStyle::Circumcentric;
-    //     Options.boundaryCondition=RemeshBoundaryCondition::Tangential;
-    //     MutationManager Mutation_manager(*mesh,*geometry);
-    //     remesh(*mesh,*geometry,Mutation_manager,Options);
-    //     n_vert_new=mesh->nVertices();
-    //     counter=counter+1; 
-    //     }
-    //     }
+        Gradient_data.close();
+        double A_bar=4*PI*pow(3*V_bar/(4*PI*nu_evol),2.0/3.0);
 
-    // if(current_t%1000==0){
-            // Save_mesh(basic_name,current_t);
-        // }
-    Volume= geometry->totalVolume();
-    Area=geometry->totalArea();
-    nu_obs=3*Volume/(4*PI*pow( Area/(4*PI) ,1.5 ));
-    // if(current_t==0){
-    nu_0=nu_obs;
-        // }
-    
-    nu_evol= time<50 ? nu_0 + (nu-nu_0)*time/50 : nu; 
-    // nu_evol=nu;
-    // if(current_t%1000==0){
-    Save=true;
-    std::cout<< "The nu_evol is"<< nu_obs<<"\n";
+        filename = basic_name+"Area_Gradient_evaluation_"+std::to_string(current_t) + ".txt";
+        Gradient_data_area.open(filename);
+        Gradient_data_area<< "Area grad\n";
+        M3DG.Grad_Area(Gradient_data_area,A_bar,KA,true);
+
+        Gradient_data_area.close();
+
+        filename = basic_name+"Bending_Gradient_evaluation_"+std::to_string(current_t) + ".txt";
+        Gradient_data_bending.open(filename);
+        Gradient_data_bending<< "Bending grad\n";
+        double H_bar=sqrt(4*PI/A_bar)*c0/2.0;
+        M3DG.Grad_Bending(Gradient_data_bending,H_bar,KB,true);
+        Gradient_data_bending.close();
 
 
-    // So here i will be calling my beloved functions
-    
-    n_vert=mesh->nVertices();
-    
-
-    std::string filename = basic_name+"Vol_Gradient_evaluation_" +std::to_string(n_vert) +".txt";
-    Gradient_data_vol.open(filename);
-    Gradient_data_vol<< "Volume grad\n";
-    M3DG.Grad_Vol(Gradient_data_vol,P0,V_bar,Save);
-
-    double A_bar=4*PI*pow(3*V_bar/(4*PI*nu_evol),2.0/3.0);
-    std::cout<<"THe value of A_bar is "<<A_bar <<" \n";
-    filename = basic_name+"Area_Gradient_evaluation_"+std::to_string(n_vert) + ".txt";
-    Gradient_data_area.open(filename);
-    Gradient_data_area<< "Area grad\n";
-    M3DG.Grad_Area(Gradient_data_area,A_bar,KA,Save);
-    
-
-    filename = basic_name+"Bending_Gradient_evaluation_"+std::to_string(n_vert) +".txt";
-    Gradient_data_bending.open(filename);
-    Gradient_data_bending<< "Bending grad\n";
-
-
-
-    M3DG.Grad_Bending(Gradient_data_bending,0,KB,Save);
-
-    // dt_sim=M3DG.integrate_finite(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Gradient_data_vol,Gradient_data_area,Gradient_data_bending,Save);
-    // Save=false;
-    // // Sim_data<<"Hi,";
-    // Gradient_data_bending.close();
-    // Gradient_data_vol.close();
-    // Gradient_data_area.close();
+        filename = basic_name+"Bending_Gradient_evaluation_2_"+std::to_string(current_t) + ".txt";
+        Gradient_data_bending_norms.open(filename);
+        Gradient_data_bending_norms<< "Bending grad norm diff\n";
+        // double H_bar=sqrt(4*PI/A_bar)*c0/2.0;
+        M3DG.Grad_Bending_2(Gradient_data_bending_norms,H_bar,KB);
+        Gradient_data_bending_norms.close();
         
+        Volume= geometry->totalVolume();
+        Area=geometry->totalArea();
+        nu_obs=3*Volume/(4*PI*pow( Area/(4*PI) ,1.5 ));
+        H0=sqrt(4*PI/Area)*c0/2.0;
+        
+        if(current_t==0){
+            nu_0=nu_obs;
+        }
    
 
-    // }
-    // else{
-    //     Gradient_data_vol.open("HI1.txt");
-    //     Gradient_data_area.open("HI2.txt");
-    //     Gradient_data_bending.open("HI3.txt");
-    //     Gradient_data_area<<current_t<<"\n";
-    //     Gradient_data_vol<<current_t<<"\n";
-    //     Gradient_data_bending<<current_t<<"\n";
-        
-    //     dt_sim=M3DG.integrate_finite(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Gradient_data_vol,Gradient_data_area,Gradient_data_bending,Save);
-    //     Gradient_data_bending.close();
-    //     Gradient_data_vol.close();
-    //     Gradient_data_area.close();
-    // }
+    }
      
+    nu_evol= time<50 ? nu_0 + (nu-nu_0)*time/50 : nu; 
+    
+    dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time);
 
-        
 
-
-    // if(dt_sim==-1)
-    //     {
-    //     std::cout<<"Sim broke or timestep very small\n";
-    //     break;
-    //     }
-    // else{
-    //     time+=dt_sim;
+    if(dt_sim==-1)
+        {
+        std::cout<<"Sim broke or timestep very small\n";
+        break;
+        }
+    else{
+        time+=dt_sim;
             
-    //     }
+        }
 
+    
 
     Sim_data.close();
 
-    
     // filename = basic_name+"Bending_Gradient_analitical_terms.txt";
     // std::ofstream Gradient_data_bending_2(filename);
     // Gradient_data_bending_2<< "Bending gradients per component\n";
@@ -457,7 +436,7 @@ int main(int argc, char** argv) {
     
     
     
-    // }
+    }
 
 
 

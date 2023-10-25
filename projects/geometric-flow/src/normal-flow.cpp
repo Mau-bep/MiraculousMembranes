@@ -19,53 +19,19 @@ NormalFlow::NormalFlow(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* i
 SparseMatrix<double> NormalFlow::buildFlowOperator(const SparseMatrix<double>& M, double h) const {
 
     SparseMatrix<double> FlowMat=geometry->NormalFlowMat();
-    size_t nvert=mesh->nVertices();
-    SparseMatrix<double> resulting_op(3*nvert,3*nvert);
-    size_t j;
-    size_t k;
+    size_t nvert=3*mesh->nVertices();
+    SparseMatrix<double> resulting_op(nvert,nvert);
+    
     typedef Eigen::Triplet<double> T;
     std::vector<T> tripletList;
-    Vector3 fj;
-    Vector3 fk;
-    for(size_t index; index<3*nvert;index++)
+
+    for(size_t index; index<nvert;index++)
     {
-        // Vertex vi= mesh->vertex[index];
-        // for(Halfedge he : vi.outgoingHalfedges()){
-        //     // Here i can have  j and k 
-        //     j=he.tipVertex().getIndex();
-        //     k=he.next().tipVertex().getIndex();
-        //     fj=geometry->inputVertexPositions[j];
-        //     fk=geometry->inputVertexPositions[k]
-        //     // This is the first component
-        //     tripletList.push_back(T(3*index,3*j+1,fk.z/12))
-        //     tripletList.push_back(T(3*index,3*k+2,fj.y/12))
-            
-        //     tripletList.push_back(T(3*index,3*j+2,-1*fk.y/12))
-        //     tripletList.push_back(T(3*index,3*k+1,-1*fj.z/12))
-            
-        //     //Now is the second component
-
-        //     tripletList.push_back(T(3*index+1,3*j+2,fk.x/12))
-        //     tripletList.push_back(T(3*index+1,3*k,fj.z/12))
-
-        //     tripletList.push_back(T(3*index+1,3*j,-1*fk.z/12))
-        //     tripletList.push_back(T(3*index+1,3*k+2,-1*fj.x/12))
-
-        //     // Now the third component
-
-        //     tripletList.push_back(T(3*index+1,3*j,fk.y/12))
-        //     tripletList.push_back(T(3*index+1,3*k+1,fj.x/12))
-
-        //     tripletList.push_back(T(3*index+1,3*j+1,-1*fk.x/12))
-        //     tripletList.push_back(T(3*index+1,3*k,-1*fj.y/12))
-            
-
-        // }
         tripletList.push_back(T(index,index,1.0) );
     }
     resulting_op.setFromTriplets(tripletList.begin(),tripletList.end());
     
-    resulting_op=(resulting_op+h*FlowMat);
+    resulting_op=(resulting_op-h*FlowMat);
     // TODO
     return resulting_op; // placeholder
 }
@@ -209,30 +175,29 @@ void NormalFlow::integrate(double h) {
 
     // Note: Update positions via geometry->inputVertexPositions
     Vector3 Update={0,0,0};
-    Vector3 Update2={0,0,0};
     size_t index_actual;
     for (Vertex v : mesh->vertices()) {
-        // Vector3 Update={0,0,0};
-        // Update={0,0,0};
-        // Vector3 Position =geometry->inputVertexPositions[v.getIndex()];
+        Vector3 Update={0,0,0};
+        Vector3 Update2={0,0,0};
+        Vector3 Position =geometry->inputVertexPositions[v.getIndex()];
         
-        // for(Halfedge he : v.incomingHalfedges()){
-        //     Update+= (1/6.0)*cross(geometry->inputVertexPositions[he.tailVertex()] ,geometry->inputVertexPositions[he.next().tipVertex()] );
+        for(Halfedge he : v.incomingHalfedges()){
+            Update+= (1/6.0)*cross(geometry->inputVertexPositions[he.tailVertex()] ,geometry->inputVertexPositions[he.next().tipVertex()] );
 
-        // }   
+        }
+
+       
         index_actual=v.getIndex();
-        Update2={new_X[index_actual],new_X[index_actual+nvert],new_X[index_actual+2*nvert]};
+        Update2={X_vect[index_actual],X_vect[index_actual+nvert],X_vect[index_actual+2*nvert]};
 
-        // if(index_actual==2){
-        //     // std::cout << "The position was "<< ","<<Position[0]<< ","<<Position[1]<< ","<<Position[2] << ","<<"and now the position will be "<< new_x[index_actual]<< ","<< new_y[index_actual] <<  ","<<new_z[index_actual] <<    "\n \n";
-        //     // std::cout<<"THe difference between the exact product and the matrix is:" << (geometry->inputVertexPositions[v]+h*Update-Update2).norm()<<"\n" ;
-        //     // std::cout<<"The vectors are "<< geometry->inputVertexPositions[v]+h*Update <<"And the other vector "<< Update2<<"\n";
-        //     // std::cout<<"THe difference between the actual and the new vector is "<< geometry->inputVertexPositions[v]-Update2<<"\n";
-        // }
+        if(index_actual==2){
+            // std::cout << "The position was "<< ","<<Position[0]<< ","<<Position[1]<< ","<<Position[2] << ","<<"and now the position will be "<< new_x[index_actual]<< ","<< new_y[index_actual] <<  ","<<new_z[index_actual] <<    "\n \n";
+            std::cout<<"THe difference between the exact product and the matrix is:" << (geometry->inputVertexPositions[v]+h*Update-Update2).norm()<<"\n" ;
+
+        }
 
         // Update= { new_x[index_actual],new_y[index_actual],new_z[index_actual]  };
         geometry->inputVertexPositions[v] = Update2 ; // placeholder
-        geometry->refreshQuantities();
     }
 
 }

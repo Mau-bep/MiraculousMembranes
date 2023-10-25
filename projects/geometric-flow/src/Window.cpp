@@ -28,14 +28,14 @@
 
 #include "mean-curvature-flow.h"
 // #include "modified-mean-curvature-flow.h"
-#include "normal-flow.h"
+// #include "normal-flow.h"
 // #include "gauss-curvature-flow.h"
 // #include "willmore-flow.h"
 // #include "willmore-flow-2.h"
 // #include "willmore-flow-scho.h"
 #include "Mem-3dg.h"
 // #include "membrane-flow.h"
-#include "mem-3dg_implicit.h"
+
 
 using namespace geometrycentral;
 using namespace geometrycentral::surface;
@@ -59,17 +59,17 @@ float kappa = 1.0;
 
 
 float H0 = 1.0;
-float V_bar; 
-double init_vol;
+float V_bar= (4/3)*PI*10; 
+
 
 
 float nu;
 float c0;
 
-float P0=10000.0;
-float KA=10.0;
-float KB=0.01;
-// float Kd=1.0;
+float P0=100000.0;
+float KA=1.0;
+float KB=1.0;
+float Kd=1.0;
 
 double TS=0.0001;
 
@@ -82,7 +82,7 @@ VertexData<Vector3> ORIG_VPOS; // original vertex positions
 Vector3 CoM;                   // original center of mass
 MeanCurvatureFlow MCF;
 // ModifiedMeanCurvatureFlow ModMCF;
-NormalFlow NF;
+// NormalFlow NF;
 // GaussCurvatureFlow GCF;
 
 
@@ -90,7 +90,6 @@ NormalFlow NF;
 // WillmoreFlow2 WF2;
 // WillmoreFlowScho WFS;
 Mem3DG M3DG;
-IMem3DG IM3DG;
 
 
 std::array<double, 3> BLUE = {0.11, 0.388, 0.89};
@@ -166,33 +165,20 @@ void functionCallback() {
         
         MCF.integrate(TS);
         geometry->normalize(CoM, false);
-        geometry->refreshQuantities();
         redraw();
         // Save_mesh();
     }
-    if (ImGui::Button("Implicit M3DG")) {
-        
-        
-        // std::cout<< "The mean edge length is = "<< geometry->meanEdgeLength()<<"\n";
-        // std::cout<< "The number of vertices is = "<< mesh->nVertices()<<"\n";
-        
-        IM3DG.integrate(TS,nu,V_bar,P0,KA,KB);
-        geometry->normalize(CoM, false);
-        geometry->refreshQuantities();
-        redraw();
-        std::cout<<"The new volume is"<<geometry->totalVolume()<<"\n";
-        // Save_mesh();
-    }
+   
     if (ImGui::Button("Remesh " )) {
 
         std::cout<< "The mean edge length is = "<< geometry->meanEdgeLength()<<"\n";
         std::cout<< "The number of vertices is = "<< mesh->nVertices()<<"\n";
                 
         RemeshOptions Options;
-        Options.targetEdgeLength=trgt_len;
-        Options.curvatureAdaptation=0.1;
-        Options.maxIterations=10;
-        Options.minRelativeLength=0.5;
+        Options.targetEdgeLength=geometry->meanEdgeLength();
+        Options.curvatureAdaptation=0.01;
+        Options.maxIterations=5;
+        Options.minRelativeLength=0.2;
         Options.smoothStyle=RemeshSmoothStyle::Circumcentric;
         Options.boundaryCondition=RemeshBoundaryCondition::Tangential;
 
@@ -218,13 +204,11 @@ void functionCallback() {
 
     
     
-    if (ImGui::Button("Normal Flow")) {
-        NF.integrate(TS);
-        geometry->normalize(CoM, false);
-        geometry->refreshQuantities();
-        redraw();
-        std::cout<<"The new volume is"<<geometry->totalVolume()<<"\n";
-    }
+    // if (ImGui::Button("Normal Flow")) {
+    //     NF.integrate(TS);
+    //     geometry->normalize(CoM, false);
+    //     redraw();
+    // }
     if (ImGui::Button("Mem 3DG")) {
         // for(int m =0; m<100 ; m++){
         // M3DG.integrate(TS,V_bar,nu,c0,P0,KA,KB,Kd);
@@ -291,8 +275,7 @@ int main(int argc, char** argv) {
     // Min_rel_length = std::stod(argv[4]);
     // Curv_adap= std::stod(argv[5]);
     nu=std::stod(argv[1]);
-    // c0=std::stod(argv[2]);
-    c0=0.0;
+    c0=std::stod(argv[2]);
     
 
 
@@ -324,9 +307,9 @@ int main(int argc, char** argv) {
     //this is for debugging   
     // std::string filepath = "./ddg-exercises/input/sphere.obj";
     
-    // std::string filepath = "../../../input/bunny.obj";
-    std::string filepath = "../../../input/Simple_cil_regular.obj";
-    // std::string filepath = "../../../../Cluster_Folders/Results/projects/geometric-flow/build/Mem3DG_IMG_parallel/Curv_adap_0.10Min_rel_length_0.50/nu_0.800_c0_0.000_KA_11.000_KB_0.001000/150000.obj";
+    // std::string filepath = "../../../input/Simple_cil_x2.obj";
+    // std::string filepath = "../../../input/Simple_cil_regular.obj";
+    std::string filepath = "../../../../Cluster_Folders/Results/projects/geometric-flow/build/Mem3DG_IMG_parallel/Curv_adap_0.10Min_rel_length_0.50/nu_0.800_c0_0.000_KA_11.000_KB_0.001000/150000.obj";
 
     // if (inputFilename) {
     //     filepath = args::get(inputFilename);
@@ -337,7 +320,7 @@ int main(int argc, char** argv) {
     mesh = mesh_uptr.release();
     geometry = geometry_uptr.release();
     
-    trgt_len=geometry->meanEdgeLength();
+    trgt_len=0.5*geometry->meanEdgeLength();
     V_bar=geometry->totalVolume();
     // Initialize polyscope
     polyscope::init();
@@ -360,13 +343,13 @@ int main(int argc, char** argv) {
     CoM = geometry->centerOfMass();
     MCF = MeanCurvatureFlow(mesh, geometry);
     // ModMCF = ModifiedMeanCurvatureFlow(mesh, geometry);
-    NF =NormalFlow(mesh, geometry);
+    // NF =NormalFlow(mesh, geometry);
     // GCF = GaussCurvatureFlow(mesh, geometry);
 
     // WF2 = WillmoreFlow2(mesh,geometry);
     // WFS = WillmoreFlowScho(mesh,geometry);
     M3DG = Mem3DG(mesh,geometry);
-    IM3DG = IMem3DG(mesh,geometry);
+    
 
     // Add visualization options.
     psMesh->setSmoothShade(false);

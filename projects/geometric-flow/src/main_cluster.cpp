@@ -4,7 +4,7 @@
 #include <unistd.h>
 
 
-// #include <omp.h>
+#include <omp.h>
 
 
 #include <sys/stat.h>
@@ -166,7 +166,7 @@ int main(int argc, char** argv) {
     std::cout<< "Current path is " << argv[0];
 
     // std::string filepath = "../../../input/sphere.obj";
-    std::string filepath = "../../../input/Simple_cil_regular.obj";
+    std::string filepath = "../../../input/bloodcell.obj";
     // Load mesh
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
     mesh = mesh_uptr.release();
@@ -236,15 +236,15 @@ int main(int argc, char** argv) {
     Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
     Min_rel_lengthstream << std::fixed << std::setprecision(2) <<Min_rel_length;
     
-    std::string first_dir="./Mem3DG_IMG_serial/";
+    std::string first_dir="./Mem3DG_IMG_correct/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
-    first_dir="./Mem3DG_IMG_serial/Curv_adap_"+Curv_adapstream.str()+"Min_rel_length_"+Min_rel_lengthstream.str();
+    first_dir="./Mem3DG_IMG_correct/Curv_adap_"+Curv_adapstream.str()+"Min_rel_length_"+Min_rel_lengthstream.str();
     status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"\nIf this name is 0 the directory was created succesfully "<< status ;
     
-    std::string basic_name ="./Mem3DG_IMG_serial/Curv_adap_"+Curv_adapstream.str()+"Min_rel_length_"+Min_rel_lengthstream.str()+ "/nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"/";
+    std::string basic_name ="./Mem3DG_IMG_correct/Curv_adap_"+Curv_adapstream.str()+"Min_rel_length_"+Min_rel_lengthstream.str()+ "/nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"/";
     status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     std::cout<<"\nIf this number is 0 the directory was created succesfully "<< status<<"\n" ;
 
@@ -266,7 +266,7 @@ int main(int argc, char** argv) {
     double dt_sim=0.0;
 
     start = chrono::steady_clock::now();
-    for(size_t current_t=0;current_t<10000000;current_t++ ){
+    for(size_t current_t=0;current_t<8000000;current_t++ ){
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
         if(true){
@@ -319,6 +319,7 @@ int main(int argc, char** argv) {
             H0=sqrt(4*PI/Area)*c0/2.0;
 
 
+
             // c_null=2*H0 *pow(Area/(4*PI),0.5);
             std::cout<< "The reduced volume is "<< nu_obs << "\n";
             if(current_t==0){
@@ -335,7 +336,7 @@ int main(int argc, char** argv) {
             start = chrono::steady_clock::now();
 
         }
-        nu_evol= time<50 ? nu_0 + (nu-nu_0)*time/50 : nu; 
+        nu_evol= time<100 ? nu_0 + (nu-nu_0)*time/100 : nu; 
         
 
         dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time);

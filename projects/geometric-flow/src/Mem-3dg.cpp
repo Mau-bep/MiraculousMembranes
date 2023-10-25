@@ -391,12 +391,12 @@ double E_Vol = E_Pressure(D_P,V,V_bar);
 double E_Sur = E_Surface(KA,A,A_bar);
 double E_Ben = E_Bending(H_bar,KB);
 double E_Bead = Bead_1.Energy();
-double previousE=E_Vol+E_Sur+E_Ben;
+double previousE=E_Vol+E_Sur+E_Ben+E_Bead;
 double NewE;
 VertexData<Vector3> initial_pos(*mesh);
 initial_pos= geometry->inputVertexPositions;
 Vector3 Bead_init = this->Bead_1.Pos;
-
+// std::cout<<"THe current energy is "<<previousE <<"Is this awful?\n";
 // Zeroth iteration
 double Projection=0;
 Vector3 center; 
@@ -447,7 +447,7 @@ if(std::isnan(E_Ben)){
 size_t counter=0;
 while(true){
   // if(true){
-  if( NewE<= previousE - c1*alpha*Projection ) {
+  if( NewE<= previousE - c1*alpha*Projection && Bead_1.Total_force.norm()*alpha<0.1  ) {
     break;
 
     }
@@ -460,6 +460,9 @@ while(true){
   if(std::isnan(E_Ben)){
       std::cout<<"E ben is nan\n";
     }
+  if(std::isnan(E_Bead)){
+      std::cout<<"E bead is nan\n";
+    }
 
   if(std::isnan(NewE)){
       alpha=-1.0;
@@ -468,7 +471,7 @@ while(true){
 
 
   alpha*=rho;
-  if(alpha<1e-7){
+  if(alpha<1e-10){
     std::cout<<"THe timestep got small so the simulation will end \n";
     alpha=-1.0;
     // continue;
@@ -518,7 +521,7 @@ return alpha;
 
 double Mem3DG::Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar) {
 double c1=5e-4;
-double rho=0.7;
+double rho=0.5;
 double alpha=1e-3;
 double positionProjection = 0;
 double A=geometry->totalArea();
@@ -534,7 +537,7 @@ initial_pos= geometry->inputVertexPositions;
 // Zeroth iteration
 double Projection=0;
 
-
+std::cout<<"THe initial E is "<<previousE<<"\n";
 geometry->inputVertexPositions+=alpha * Force;
 // std::cout<< geometry->inputVertexPositions[0]<<"and the other "<< initial_pos[0]<<"\n";
 
@@ -569,6 +572,7 @@ if(std::isnan(E_Ben)){
 size_t counter=0;
 while(true){
   // if(true){
+  std::cout<<"THe new energy is "<<NewE <<"\n";
   if( NewE<= previousE - c1*alpha*Projection ) {
     break;
 
@@ -637,10 +641,12 @@ VertexData<Vector3> Mem3DG::Project_force(VertexData<Vector3> Force) const{
 
   VertexData<Vector3> Projected_Force(*mesh,Vector3({0,0,0}));
   Vector3 Normal_v;
-
+  double projection=0;
   for (Vertex v : mesh->vertices()){
     Normal_v=geometry->vertexNormalAreaWeighted(v);
-    Projected_Force[v]= dot(Force[v],Normal_v)*Normal_v;
+    projection=dot(Force[v],Normal_v);
+    // std::cout<<"The projection is negative?"<< (projection<0) <<" \n";
+    Projected_Force[v]= (projection>0)*projection*Normal_v;
 
   }
 
@@ -662,10 +668,10 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
     }
     // Vector<double> Total_force=buildFlowOperator(h,V_bar,nu,c0,P0,KA,KB,Kd);
     VertexData<Vector3> Force(*mesh);
-    Force=buildFlowOperator(h,V_bar,nu,c0,P0,KA,KB,Kd)+Bead_1.Gradient();
+    Force=buildFlowOperator(h,V_bar,nu,c0,P0,KA,KB,Kd);//+Bead_1.Gradient();
     // VertexData<Vector3> Bead_force = Bead_1.Gradient();
     VertexData<Vector3> Bead_force=Project_force(Bead_1.Gradient());
-
+    Force+=Bead_force;
 
 
 

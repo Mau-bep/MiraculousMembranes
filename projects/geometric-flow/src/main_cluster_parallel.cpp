@@ -148,10 +148,10 @@ void Save_mesh(std::string basic_name, size_t current_t) {
 
 int main(int argc, char** argv) {
 
-    // const int desired_num_threads = 8; // Set the desired number of threads
+    const int desired_num_threads = 4; // Set the desired number of threads
 
     // Set the number of threads to be used in the parallel region
-    // omp_set_num_threads(desired_num_threads);
+    //omp_set_num_threads(desired_num_threads);
 
     #pragma omp parallel
     {
@@ -277,7 +277,7 @@ int main(int argc, char** argv) {
     double dt_sim=0.0;
 
     start = chrono::steady_clock::now();
-    for(size_t current_t=0;current_t<1000000;current_t++ ){
+    for(size_t current_t=0;current_t<10000000;current_t++ ){
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
         if(true){
