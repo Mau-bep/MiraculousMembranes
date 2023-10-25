@@ -241,15 +241,15 @@ int main(int argc, char** argv) {
     Min_rel_lengthstream << std::fixed << std::setprecision(2) <<Min_rel_length;
     
     
-    std::string first_dir="./Mem3DG_Beads_40k_frenkel_areaint_big/";
+    std::string first_dir="../Results/Mem3DG_Beads_40k_frenkel_areaint_big/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
-    first_dir="./Mem3DG_Beads_40k_frenkel_areaint_big/Curv_adap_"+Curv_adapstream.str()+"Min_rel_length_"+Min_rel_lengthstream.str();
+    first_dir="../Results/Mem3DG_Beads_40k_frenkel_areaint_big/Curv_adap_"+Curv_adapstream.str()+"Min_rel_length_"+Min_rel_lengthstream.str();
     status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"\nIf this name is 0 the directory was created succesfully "<< status ;
     
-    std::string basic_name ="./Mem3DG_Beads_40k_frenkel_areaint_big/Curv_adap_"+Curv_adapstream.str()+"Min_rel_length_"+Min_rel_lengthstream.str()+ "/nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"_Inter_"+ Interactionstrstream.str()+"/";
+    std::string basic_name ="../Results/Mem3DG_Beads_40k_frenkel_areaint_big/Curv_adap_"+Curv_adapstream.str()+"Min_rel_length_"+Min_rel_lengthstream.str()+ "/nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"_Inter_"+ Interactionstrstream.str()+"/";
     status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     std::cout<<"\nIf this number is 0 the directory was created succesfully "<< status<<"\n" ;
 

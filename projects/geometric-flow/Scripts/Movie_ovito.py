@@ -17,7 +17,7 @@ from ovito.qt_compat import QtCore
 nu=0.3
 dir='nu_{:.3f}_c0_0.000_KA_10.000_KB_0.005000'.format(nu)
 
-pipeline = import_file('/nfs/scistore16/wojtgrp/mrojasve/Cluster_Folders/projects/geometric-flow/build/Mem3DG_IMG_correct/Curv_adap_0.10Min_rel_length_0.50/'+dir+'/*.obj')
+pipeline = import_file('/nfs/scistore16/wojtgrp/mrojasve/Cluster_Folders/projects/geometric-flow/Results/Mem3DG_IMG_correct/Curv_adap_0.10Min_rel_length_0.50/'+dir+'/*.obj')
 # pipeline = import_file('/nfs/scistore16/wojtgrp/mrojasve/')
 # Manual modifications of the imported data objects:
 def modify_pipeline_input(frame: int, data: DataCollection):
@@ -77,4 +77,4 @@ renderer = TachyonRenderer(
     ambient_occlusion = False)
 
 # Rendering:
-vp.render_anim(filename='/nfs/scistore16/wojtgrp/mrojasve/Cluster_Folders/projects/geometric-flow/build/Mem3DG_IMG_correct/Curv_adap_0.10Min_rel_length_0.50/'+dir+'.mp4', size=(600, 600),  renderer=renderer,layout=viewport_layout, fps=10.0, range=(0, 400))
+vp.render_anim(filename='/nfs/scistore16/wojtgrp/mrojasve/Cluster_Folders/projects/geometric-flow/Results/Mem3DG_IMG_correct/Curv_adap_0.10Min_rel_length_0.50/'+dir+'.mp4', size=(600, 600),  renderer=renderer,layout=viewport_layout, fps=10.0, range=(0, 400))

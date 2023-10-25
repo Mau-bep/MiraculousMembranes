@@ -18,7 +18,7 @@ dir='nu_{:.3f}_c0_0.000_KA_10.000_KB_{:.6f}'.format(nu,KB)
 
 # Data=np.loadtxt('./Curv_adap_0.10Min_rel_length_0.50/nu_1.00_c0_0.00_KA_1.00_KB_2.00/Output_data.txt',delimiter=" ")
 # f=open('./Mem3DG_IMG/Curv_adap_0.10Min_rel_length_0.50/'+dir+'/Output_data.txt')
-folder_path='./Mem3DG_IMG_correct/Curv_adap_0.10Min_rel_length_0.50/'
+folder_path='../Results/Mem3DG_IMG_correct/Curv_adap_0.10Min_rel_length_0.50/'
 #folder_path='./Tests_cil_regular_finite/'
 file_path=folder_path+dir+'/Output_data.txt'
 

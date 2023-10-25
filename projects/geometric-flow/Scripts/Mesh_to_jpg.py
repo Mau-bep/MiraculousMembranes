@@ -17,7 +17,6 @@ nu=float(sys.argv[1])
 KB=float(sys.argv[2])
 
 
-file_path='Simple_cil_regular.obj'
 
 def Get_img(file_path,img_path):
     X_coord=[]
@@ -79,13 +78,6 @@ def Get_img(file_path,img_path):
     #fig.canvas.draw()
     
     plt.close()
-
-    #img = np.frombuffer(fig.canvas.tostring_rgb(),dtype=np.unit8)
-    #img = img.reshape(fig.canvas.get_idth_height()[::-1]+(3,))
-    # plt.show()
-    #process.communicate(input=img.tobytes())
-
-# Get_img(file_path,'./Mesh_screenshot.jpg')
 
 
 
@@ -192,10 +184,6 @@ output_video = pre_folder+dir+".mp4"
 output_file = pre_folder+dir+"_2.mp4"
 
 
-#out = ffmpeg.output('pipe:', output_file, pix_fmt='yuv420p')
-#process = ffmpeg.run(out, input='pipe:', pipe_stdin=True)
-
-
 
 
 
@@ -209,13 +197,6 @@ print('Now creating gif')
 # Uncomment when ready
 create_gif(folder_path,'Animation_overmeshed_short.mp4',0.1)
 video_writer.release()
-
-
-#cv2.destroyAllWindows()
-#process.stdin.close()
-#process.wait()
-
-
 
 
 

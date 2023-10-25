@@ -17,7 +17,7 @@ nu=float(sys.argv[1])
 KB=float(sys.argv[2])
 strg=float(sys.argv[3])
 
-file_path='Simple_cil_regular.obj'
+
 
 
 def Get_img(file_path,img_path):
@@ -187,7 +187,7 @@ def create_gif(directory_path, duration):
 
 
 
-pre_folder='Mem3DG_Beads/Curv_adap_0.10Min_rel_length_0.50/'
+pre_folder='../Results/Mem3DG_Beads/Curv_adap_0.10Min_rel_length_0.50/'
 #pre_folder='Mem3DG_IMG_blood_correct_ini/Curv_adap_0.10Min_rel_length_0.50/'
 #pre_folder='Tests_cil_regular/'
 dir='nu_{:.3f}_c0_0.000_KA_10.000_KB_{:.6f}_Inter_{:.6f}'.format(nu,KB,strg)

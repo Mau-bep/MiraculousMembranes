@@ -1,5 +1,5 @@
 import sys 
-
+import os
 #I want to create a script that ask for the step size and creates a subjob that uses it
 
 #Lets assume we are on the directory where i can store all the data 
@@ -22,16 +22,17 @@ KB=float(sys.argv[4])
 Strength=sys.argv[5]
 
 
+os.makedirs('../Subjobs/',exist_ok=True)
+os.makedirs('../Outputs/',exist_ok=True)
 
 
-
-f=open('./subjob_serial_bead_frenkel_v_{}_c0_{}_KA_{}_KB_{}_Strg_{}'.format(v,c0,KA,KB,Strength),'w')
+f=open('../Subjobs/subjob_serial_bead_frenkel_v_{}_c0_{}_KA_{}_KB_{}_Strg_{}'.format(v,c0,KA,KB,Strength),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')
 
 f.write('#SBATCH --job-name=Mem3DGpa\n')
-f.write('#SBATCH --output=output_serial_bead_frenkel_v_{}_c0_{}_KA_{}_KB_{}_Strg_{}\n'.format(v,c0,KA,KB,Strength))
+f.write('#SBATCH --output=../Outputs/output_serial_bead_frenkel_v_{}_c0_{}_KA_{}_KB_{}_Strg_{}\n'.format(v,c0,KA,KB,Strength))
 f.write('#\n')
 f.write('#number of CPUs to be used\n')
 f.write('#SBATCH --ntasks=1\n')
@@ -101,7 +102,7 @@ f.write('echo $PATH\n')
 # f.write("#printf ' \n'\n")
 
 
-f.write('srun time -v bin/main_cluster_beads {} {} {} {} {}\n'.format(v,c0,KA,KB,Strength))
+f.write('srun time -v ../build/bin/main_cluster_beads {} {} {} {} {}\n'.format(v,c0,KA,KB,Strength))
 
 
 

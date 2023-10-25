@@ -3,3 +3,6 @@ projects/geometric-flow/Test_obj/
 projects/geometric-flow/build/
 projects/geometric-flow/debug/
 projects/geometric-flow/Results/
+projects/geometric-flow/Subjobs/
+projects/geometric-flow/Outputs/
+projects/geometric-flow/.vscode/
