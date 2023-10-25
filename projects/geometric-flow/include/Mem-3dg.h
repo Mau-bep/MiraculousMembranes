@@ -61,7 +61,7 @@ class Mem3DG {
     virtual void Grad_Bending_2(std::ofstream& Gradient_file, double H_bar,double KB);
 
     virtual void Bending_test(std::ofstream& Analysis_file, double H_bar,double KB);
-    virtual VertexData<Vector3> Grad_Bead(std::ofstream& Gradient_file,double strg,bool Save) const;
+    virtual VertexData<Vector3> Grad_Bead(std::ofstream& Gradient_file,double strg,bool Save,bool Projection) const;
 
 
     double Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar,bool bead) ;
