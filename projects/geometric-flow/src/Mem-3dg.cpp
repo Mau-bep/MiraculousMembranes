@@ -1386,3 +1386,89 @@ double Mem3DG::integrate_finite(double h, double V_bar, double nu, double c0,dou
   
   return backtrackstep;
 }
+
+
+
+
+VertexData<Vector3> Mem3DG::Grad_Bead(std::ofstream& Gradient_file,bool Save) const{
+// I want to calculate the gradient of the volume
+VertexData<Vector3> initial_pos(*mesh);
+VertexData<Vector3> Finite_grad(*mesh);
+initial_pos= geometry->inputVertexPositions;
+// VertexData<Vector3> Gradients(*mesh,0.0);
+// double V=geometry->totalVolume();
+double E_bead=0.0;
+double E_vol_back=0.0;
+double E_vol_front=0.0;
+double dr;
+// double D_P=-P0*(V-V_bar)/V_bar/V_bar;
+double total_grad_finite=0;
+double total_grad_theory=0;
+
+Vector3 grad{0.0,0.0,0.0};
+Vector3 grad_theory;
+Vector3 difference;
+
+E_bead=Bead_1.Energy();
+
+// E_vol=E_Pressure(D_P,V,V_bar);
+
+VertexData<Vector3> Calc_grad=Bead_1.Gradient();
+
+dr=1e-6;
+
+size_t N_vert = mesh->nVertices();
+// for(size_t index=0; index<N_vert; index++){
+size_t index;
+for(Vertex v : mesh->vertices()){
+  index=v.getIndex();E_bead_back
+  grad_theory=Calc_grad[v];
+ 
+  geometry->inputVertexPositions[v]=initial_pos[v]+ Vector3{dr,0,0};
+  geometry->refreshQuantities();
+  E_bead_front=Bead_1.Energy();
+
+  geometry->inputVertexPositions[v]=initial_pos[v]- Vector3{dr,0,0};
+  geometry->refreshQuantities();
+  E_bead_back=Bead_1.Energy();
+  
+  grad.x=(E_bead_front-E_bead_back)/(2*dr);
+
+  geometry->inputVertexPositions[v]=initial_pos[v]- Vector3{0,dr,0};
+  geometry->refreshQuantities();
+  E_bead_back=Bead_1.Energy();
+  
+  geometry->inputVertexPositions[v]=initial_pos[v]+ Vector3{0,dr,0};
+  geometry->refreshQuantities();
+  E_bead_front=Bead_1.Energy();
+  
+  grad.y=(E_bead_front-E_bead_back)/(2*dr);
+
+  geometry->inputVertexPositions[v]=initial_pos[v]- Vector3{0,0,dr};
+  geometry->refreshQuantities();
+  E_bead_back=Bead_1.Energy();
+
+  geometry->inputVertexPositions[v]=initial_pos[v]+ Vector3{0,0,dr};
+  geometry->refreshQuantities();
+  E_bead_front=Bead_1.Energy();
+  
+  grad.z=(E_bead_front-E_bead_back)/(2*dr);
+  
+  if(Save){
+  difference= grad+grad_theory;
+  Gradient_file<< difference.x <<" "<<difference.y<<" "<< difference.z<<" "<<difference.norm()/grad.norm() <<" " << grad.norm()/grad_theory.norm() <<" \n" ;
+  // difference= grad_theory;
+  // Gradient_file<< difference.x <<" "<<difference.y<<" "<< difference.z<<" "<<grad_theory.norm()<<" \n" ;
+  total_grad_theory+=grad_theory.norm2();
+  total_grad_finite+=grad.norm2();
+  }
+  Finite_grad[v]=-1*grad;
+  geometry->inputVertexPositions[v]=initial_pos[v];
+  geometry->refreshQuantities();
+}
+if(Save){
+  Gradient_file<< sqrt(total_grad_theory)<<" "<< sqrt(total_grad_finite)<<"\n";
+}
+
+return Finite_grad;
+}
