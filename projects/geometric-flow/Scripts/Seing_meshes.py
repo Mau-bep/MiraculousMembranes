@@ -50,7 +50,7 @@ def create_gif(directory_path, gif_name, duration):
 
 
 # nu=0.8
-pre_folder='projects/geometric-flow/build/Mem3DG_IMG_parallel/Curv_adap_0.10Min_rel_length_0.50/'
+pre_folder='../Results/Mem3DG_IMG_parallel/Curv_adap_0.10Min_rel_length_0.50/'
 dir='nu_{:.3f}_c0_0.000_KA_11.000_KB_{:.6f}'.format(nu,KB)
 folder_path= pre_folder+dir+'/'
 # filename='100000.obj'

@@ -65,7 +65,7 @@ radius=0.625
 Center=np.array([0,0,0])
 
 
-pre_folder='./Mem3DG_Beads_40k/Curv_adap_0.10Min_rel_length_0.50/nu_1.000_c0_0.000_KA_10.000_KB_0.005000_Inter_{:.6f}/'.format(strg)
+pre_folder='../Results/Mem3DG_Beads_40k/Curv_adap_0.10Min_rel_length_0.50/nu_1.000_c0_0.000_KA_10.000_KB_0.005000_Inter_{:.6f}/'.format(strg)
 
 Bead_orig_data=open(pre_folder+'Bead_data.txt')
 line_bead=Bead_orig_data.readline()

@@ -80,77 +80,51 @@ endif()
 # Edit files to build here.
 set(SRCS 
   src/main.cpp
-  src/Mem-3dg.cpp
-  src/mem-3dg_implicit.cpp
   src/Beads.cpp
+  src/Mem-3dg.cpp
+
   ../../utils/src/colormap.cpp
 )
 
-set(SRCSparallel 
-  src/main_parallel.cpp
-  src/Beads.cpp
-  src/Mem-3dg_parallel.cpp
-  ../../utils/src/colormap.cpp
-)
+
 
 set(SRCScluster 
-  src/main_cluster.cpp
+  src/main_cluster.cpp  
   src/Mem-3dg.cpp
-  src/Beads.cpp
+    src/Beads.cpp
   ../../utils/src/colormap.cpp
 )
 
-set(SRCSclusterparallel 
-  src/Beads.cpp
-  src/main_cluster_parallel.cpp
-
-  src/Mem-3dg_parallel.cpp
-  ../../utils/src/colormap.cpp
+set(SRCSclusterbeads 
+ src/main_cluster_bead.cpp
+ src/Mem-3dg.cpp
+ src/Beads.cpp
+ ../../utils/src/colormap.cpp
 )
 
 
 
-set(WindowSRCS 
-  src/Window.cpp
-  src/mean-curvature-flow.cpp
-  src/Mem-3dg.cpp
-  src/Beads.cpp
-  src/normal-flow.cpp
-  src/mem-3dg_implicit.cpp
-  ../../utils/src/colormap.cpp
-)
+
+# set(WindowSRCS 
+#   src/Window.cpp
+
+#   src/Mem-3dg.cpp
+#   ../../utils/src/colormap.cpp
+# )
 set(TEST_Grad_SRCS 
   src/E_tests.cpp
-  src/Beads.cpp
   # src/mean-curvature-flow.cpp
   src/Mem-3dg.cpp
+  src/Beads.cpp
   ../../utils/src/colormap.cpp
 )
 
 set(TEST_Grad_th_SRCS 
   src/E_test_2.cpp
-  src/Beads.cpp
-  # src/mean-curvature-flow.cpp
   src/Mem-3dg.cpp
+  src/Beads.cpp
   ../../utils/src/colormap.cpp
 )
-
-
-set(TEST_Grad_simple 
-  src/E_test_2.cpp
-  src/Beads.cpp
-  # src/mean-curvature-flow.cpp
-  src/Mem-3dg.cpp
-  ../../utils/src/colormap.cpp
-)
-
-# set(simple_SRCS
-#   src/Simple_script.cpp
-#   # src/mean-curvature-flow.cpp
-#   src/Mem-3dg.cpp
-#   ../../utils/src/colormap.cpp
-# )
-
 
 # set(TEST_SRCS
 #   src/mean-curvature-flow.cpp
@@ -203,23 +177,13 @@ target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../.
 target_link_libraries(main_cluster PUBLIC geometry-central polyscope)
 
 
-add_executable(main_parallel "${SRCSparallel}")
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT main_parallel)
-target_include_directories(main_parallel PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
-target_include_directories(main_parallel PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
+add_executable(main_cluster_beads "${SRCSclusterbeads}")
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT main_cluster_beads)
+target_include_directories(main_cluster_beads PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+target_include_directories(main_cluster_beads PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
 # add the args.hxx project which we use for command line args
-target_include_directories(main_parallel PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
-target_link_libraries(main_parallel PUBLIC geometry-central polyscope OpenMP::OpenMP_CXX)
-
-
-
-add_executable(main_cluster_parallel "${SRCSclusterparallel}")
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT main_cluster_parallel)
-target_include_directories(main_cluster_parallel PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
-target_include_directories(main_cluster_parallel PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
-# add the args.hxx project which we use for command line args
-target_include_directories(main_cluster_parallel PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
-target_link_libraries(main_cluster_parallel PUBLIC geometry-central polyscope OpenMP::OpenMP_CXX)
+target_include_directories(main_cluster_beads PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
+target_link_libraries(main_cluster_beads PUBLIC geometry-central polyscope)
 
 
 
@@ -231,13 +195,13 @@ target_link_libraries(main_cluster_parallel PUBLIC geometry-central polyscope Op
 # target_include_directories(mainbunny PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
 # target_link_libraries(mainbunny geometry-central polyscope)
 
-add_executable(Window "${WindowSRCS}")
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Window)
-target_include_directories(Window PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
-target_include_directories(Window PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
-# add the args.hxx project which we use for command line args
-target_include_directories(Window PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
-target_link_libraries(Window geometry-central polyscope)
+# add_executable(Window "${WindowSRCS}")
+# set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Window)
+# target_include_directories(Window PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+# target_include_directories(Window PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
+# # add the args.hxx project which we use for command line args
+# target_include_directories(Window PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
+# target_link_libraries(Window geometry-central polyscope)
 
 
 add_executable(Grad_tests "${TEST_Grad_SRCS}")
@@ -259,17 +223,6 @@ target_link_libraries(Grad_tests_th geometry-central polyscope)
 
 
 
-
-
-add_executable(Grad_tests_simple "${TEST_Grad_simple}")
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Grad_tests_simple)
-target_include_directories(Grad_tests_simple PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
-target_include_directories(Grad_tests_simple PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
-# add the args.hxx project which we use for command line args
-target_include_directories(Grad_tests_simple PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
-target_link_libraries(Grad_tests_simple geometry-central polyscope)
-
-
 # add_executable(test-flow "${TEST_SRCS}")
 # target_include_directories(test-flow PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
 # target_link_libraries(test-flow geometry-central polyscope gtest)
@@ -280,13 +233,6 @@ target_link_libraries(Grad_tests_simple geometry-central polyscope)
 
 
 
-# add_executable(Simple_script "${simple_SRCS}")
-# set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Simple_script)
-# target_include_directories(Simple_script PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
-# target_include_directories(Simple_script PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
-# # add the args.hxx project which we use for command line args
-# target_include_directories(Simple_script PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
-# target_link_libraries(Simple_script PUBLIC geometry-central polyscope OpenMP::OpenMP_CXX)
 
 
 

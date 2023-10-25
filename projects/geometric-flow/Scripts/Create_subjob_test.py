@@ -1,5 +1,5 @@
 import sys 
-
+import os
 #I want to create a script that ask for the step size and creates a subjob that uses it
 
 #Lets assume we are on the directory where i can store all the data 
@@ -22,16 +22,19 @@ KB=float(sys.argv[4])
 
 
 
+os.makedirs('../Subjobs/',exist_ok=True)
+os.makedirs('../Outputs/',exist_ok=True)
 
 
 
-f=open('./subjob_test_th_memshape_v_{}_c0_{}_KA_{}_KB_{}'.format(v,c0,KA,KB),'w')
+
+f=open('../Subjobs/subjob_test_th_memshape_v_{}_c0_{}_KA_{}_KB_{}'.format(v,c0,KA,KB),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')
 
 f.write('#SBATCH --job-name=TestMem\n')
-f.write('#SBATCH --output=output_test_th_Mem3DG_v_{}_c0_{}_KA_{}_KB_{}\n'.format(v,c0,KA,KB))
+f.write('#SBATCH --output=../Outputs/output_test_th_Mem3DG_v_{}_c0_{}_KA_{}_KB_{}\n'.format(v,c0,KA,KB))
 f.write('#\n')
 f.write('#number of CPUs to be used\n')
 f.write('#SBATCH --ntasks=1\n')
@@ -98,7 +101,7 @@ f.write('echo $PATH\n')
 # f.write("#printf ' \n'\n")
 
 
-f.write('srun time -v bin/Grad_tests_th {} {} {} {}\n'.format(v,c0,KA,KB))
+f.write('srun time -v ../build/bin/Grad_tests_th {} {} {} {}\n'.format(v,c0,KA,KB))
 
 
 
