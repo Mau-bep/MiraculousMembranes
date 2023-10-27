@@ -1390,7 +1390,7 @@ double Mem3DG::integrate_finite(double h, double V_bar, double nu, double c0,dou
 
 
 
-VertexData<Vector3> Mem3DG::Grad_Bead(std::ofstream& Gradient_file,bool Save,bool Projection) const{
+VertexData<Vector3> Mem3DG::Grad_Bead(std::ofstream& Gradient_file,bool Save,bool Projection) {
 // I want to calculate the gradient of the volume
 VertexData<Vector3> initial_pos(*mesh);
 VertexData<Vector3> Finite_grad(*mesh);
@@ -1398,8 +1398,8 @@ initial_pos= geometry->inputVertexPositions;
 // VertexData<Vector3> Gradients(*mesh,0.0);
 // double V=geometry->totalVolume();
 double E_bead=0.0;
-double E_vol_back=0.0;
-double E_vol_front=0.0;
+double E_bead_back=0.0;
+double E_bead_front=0.0;
 double dr;
 // double D_P=-P0*(V-V_bar)/V_bar/V_bar;
 double total_grad_finite=0;
@@ -1421,7 +1421,7 @@ size_t N_vert = mesh->nVertices();
 // for(size_t index=0; index<N_vert; index++){
 size_t index;
 for(Vertex v : mesh->vertices()){
-  index=v.getIndex();E_bead_back
+  index=v.getIndex();
   grad_theory=Calc_grad[v];
  
   geometry->inputVertexPositions[v]=initial_pos[v]+ Vector3{dr,0,0};

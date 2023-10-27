@@ -30,6 +30,8 @@
 
 
 #include "Mem-3dg.h"
+#include "Beads.h"
+
 
 using namespace geometrycentral;
 using namespace geometrycentral::surface;
@@ -77,7 +79,7 @@ VertexData<Vector3> ORIG_VPOS; // original vertex positions
 Vector3 CoM;                   // original center of mass
 
 Mem3DG M3DG;
-
+Bead Bead_1;
 
 std::array<double, 3> BLUE = {0.11, 0.388, 0.89};
 // glm::vec<3, float> ORANGE_VEC = {1, 0.65, 0};
@@ -222,6 +224,7 @@ int main(int argc, char** argv) {
     auto start = chrono::steady_clock::now();
     auto end = chrono::steady_clock::now();
     
+    bool with_bead=true;
 
     
     TS=pow(10,-3);
@@ -257,8 +260,13 @@ int main(int argc, char** argv) {
 
     ORIG_VPOS = geometry->inputVertexPositions;
     CoM = geometry->centerOfMass();
-    
-    M3DG = Mem3DG(mesh,geometry);
+    double radius=3.0;
+    double Interaction_str=0.1;
+    Bead_1 = Bead(mesh,geometry,Vector3({10.0,0.0,0.0}),radius,Interaction_str);
+    // M3DG = Mem3DG(mesh,geometry);
+    M3DG = Mem3DG(mesh,geometry,Bead_1);
+
+
 
     // Add visualization options.
     // psMesh->setSmoothShade(false);
@@ -285,7 +293,7 @@ int main(int argc, char** argv) {
     Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
     Min_rel_lengthstream << std::fixed << std::setprecision(2) <<Min_rel_length;
     
-    std::string first_dir="./Tests_cil_regular/";
+    std::string first_dir="../Results/Tests_cil_regular/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
@@ -293,7 +301,7 @@ int main(int argc, char** argv) {
     // status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"\nIf this name is 0 the directory was created succesfully "<< status ;
     
-    std::string basic_name ="./Tests_cil_regular/nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"/";
+    std::string basic_name ="../Results/Tests_cil_regular/nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"/";
     status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     std::cout<<"\nIf this number is 0 the directory was created succesfully "<< status<<"\n" ;
 
@@ -301,6 +309,17 @@ int main(int argc, char** argv) {
 
     std::ofstream Sim_data;
     
+
+    std::string filename2 = basic_name + "Bead_data.txt";
+    std::ofstream Bead_data(filename2);
+    bool Save_bead_data=false;
+        
+    if(with_bead){
+        
+        Bead_data<<"####### This data is taken every 250 steps just like the mesh radius is " << radius<<" \n";
+    
+    }
+
     // Here i want to run my video
     size_t n_vert;
     size_t n_vert_old;
@@ -324,8 +343,9 @@ int main(int argc, char** argv) {
     std::ofstream Gradient_data_area;
     std::ofstream Gradient_data_bending;
     std::ofstream Gradient_data_bending_norms;
+    std::ofstream Gradient_data_bead;
     
-    for(size_t current_t=0; current_t <300000;current_t++){
+    for(size_t current_t=0; current_t <1000;current_t++){
     if(current_t==0){
     Sim_data.open(filename_basic);
     }
@@ -356,12 +376,13 @@ int main(int argc, char** argv) {
         }
         }
 
-    if(current_t%1000==0){
+    if(current_t%100==0){
             Save_mesh(basic_name,current_t);
+            Save_bead_data=true;
         }
 
     
-    if(current_t%1000==0){
+    if(current_t%200==0){
         std::string filename = basic_name+"Vol_Gradient_evaluation_"+std::to_string(current_t) + ".txt";
         // std::ofstream Gradient_data(filename);
         Gradient_data.open(filename);
@@ -394,6 +415,15 @@ int main(int argc, char** argv) {
         M3DG.Grad_Bending_2(Gradient_data_bending_norms,H_bar,KB);
         Gradient_data_bending_norms.close();
         
+        filename = basic_name+"Bead_Gradient_evaluation_"+std::to_string(current_t) + ".txt";
+        Gradient_data_bead.open(filename);
+        Gradient_data_bead<< "Bead grad\n";
+        // double H_bar=sqrt(4*PI/A_bar)*c0/2.0;
+        M3DG.Grad_Bead(Gradient_data_bead,true,false);
+        Gradient_data_bead.close();
+
+
+
         Volume= geometry->totalVolume();
         Area=geometry->totalArea();
         nu_obs=3*Volume/(4*PI*pow( Area/(4*PI) ,1.5 ));
@@ -407,9 +437,13 @@ int main(int argc, char** argv) {
     }
      
     nu_evol= time<50 ? nu_0 + (nu-nu_0)*time/50 : nu; 
-    
+    if(with_bead){
+        dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save_bead_data,Bead_data);
+        
+    }
+    else{
     dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time);
-
+    }
 
     if(dt_sim==-1)
         {
