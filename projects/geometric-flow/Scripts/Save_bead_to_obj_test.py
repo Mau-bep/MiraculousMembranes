@@ -65,7 +65,7 @@ radius=0.625
 Center=np.array([0,0,0])
 
 
-pre_folder='../Results/Mem3DG_Beads_40k/Curv_adap_0.10Min_rel_length_0.50/nu_1.000_c0_0.251_KA_10.000_KB_0.005000_Inter_{:.6f}/'.format(strg)
+pre_folder='../Results/Tests_cil_regular/nu_1.000_c0_0.252_KA_1.000_KB_1.000000/'.format(strg)
 
 Bead_orig_data=open(pre_folder+'Bead_data.txt')
 line_bead=Bead_orig_data.readline()
@@ -76,7 +76,8 @@ while(line_bead):
     # I have the data here
     # print(line_bead.split(' '))
     Center=np.array(line_bead.split(' ')[:-1],dtype=float)
-    create_bead(Center,radius,i)
+    if(i%100==0):
+        create_bead(Center,radius,i)
     i+=1
 
     line_bead=Bead_orig_data.readline()
@@ -85,5 +86,4 @@ while(line_bead):
 
 
 #     create_bead(Center+dz*i,radius,i)
-
 

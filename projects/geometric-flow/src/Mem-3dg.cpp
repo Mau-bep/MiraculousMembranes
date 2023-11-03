@@ -1033,7 +1033,7 @@ for(Vertex v :mesh->vertices()){
   grad.z=(E_area_front-E_area_back)/(2*dr);
   if(Save){
   difference= grad+grad_theory;
-  Gradient_file<< difference.x/grad.norm() <<" "<<difference.y/grad.norm()<<" "<< difference.z/grad.norm()<<" "<<difference.norm()/grad.norm()<<" " << grad.norm()<<" " << grad_theory.norm() <<" \n" ;
+  Gradient_file<< difference.x/grad.norm() <<" "<<difference.y/grad.norm()<<" "<< difference.z/grad.norm()<<" "<<difference.norm()/grad.norm()<<" " << grad.norm()/grad_theory.norm() <<" \n" ;
   // difference= grad_theory;
   // Gradient_file<< difference.x <<" "<<difference.y<<" "<< difference.z<<" "<<grad_theory.norm()<<" \n" ;
   total_grad_theory+=grad_theory.norm2();

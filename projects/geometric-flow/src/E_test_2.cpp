@@ -260,9 +260,9 @@ int main(int argc, char** argv) {
 
     ORIG_VPOS = geometry->inputVertexPositions;
     CoM = geometry->centerOfMass();
-    double radius=3.0;
+    double radius=1.0;
     double Interaction_str=0.1;
-    Bead_1 = Bead(mesh,geometry,Vector3({10.0,0.0,0.0}),radius,Interaction_str);
+    Bead_1 = Bead(mesh,geometry,Vector3({2.0,0.0,0.0}),radius,Interaction_str);
     // M3DG = Mem3DG(mesh,geometry);
     M3DG = Mem3DG(mesh,geometry,Bead_1);
 

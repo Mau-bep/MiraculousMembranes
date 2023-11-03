@@ -19,7 +19,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
     Pos = Position;
     sigma = input_sigma;
     strength = strg;
-    interaction = "LJ";
+    interaction = "Shifted-LJ";
     // interaction = "Shifted-LJ";
     Total_force={0,0,0};
 }
@@ -33,8 +33,31 @@ VertexData<Vector3> Bead::Gradient(){
     Total_force={0,0,0};
     double r;
     
+
+    if(interaction=="Spring"){
+        double dual_area;
+        
+        for(Vertex v : mesh->vertices()){
+            
+            unit_r= this->Pos- geometry->inputVertexPositions[v];
+            r= unit_r.norm();
+            unit_r=unit_r.unit();
+            // dual_area=geometry->barycentricDualArea(v);
+
+            F=strength*( r-sigma)*unit_r;
+
+            Force[v]=F;
+            Total_force-=Force[v];
+
+        }
+        return Force;
+
+
+    }
+
+
     // Vector3 Normal_v;
-    double rc=6;
+    double rc=2;
     double dual_area=0;
     if(interaction=="Shifted-LJ"){
         double rc2=rc*rc;
@@ -45,13 +68,13 @@ VertexData<Vector3> Bead::Gradient(){
             if(r>rc){
                 continue;
             }
-            std::cout<<"Are we here at some point?\n";
+            // std::cout<<"Are we here at some point?\n";
 
             // Normal_v=geometry->vertexNormalAreaWeighted(v);
             unit_r=unit_r.unit();
             alpha=2*(rc2/(sigma*sigma))*pow( 3/(2*( (rc2/(sigma*sigma)) -1))  ,3.0 );
             dual_area=geometry->barycentricDualArea(v);
-            F=strength*alpha*(-2)*(  (sigma*sigma/(r*r*r))*pow(( (rc2/(r*r))-1),2.0 )+ 2*((sigma*sigma/(r*r))-1)*( (rc2/(r*r))-1 )*(rc2/(r*r*r)) )*dual_area*unit_r;
+            F=strength*alpha*(-2)*(  (sigma*sigma/(r*r*r))*pow(( (rc2/(r*r))-1),2.0 )+ 2*((sigma*sigma/(r*r))-1)*( (rc2/(r*r))-1 )*(rc2/(r*r*r)) )*unit_r;
 
 
             // F=(4*strength*( -12*pow(sigma/r,12)+6*pow(sigma/r,6))/r)*unit_r;
@@ -98,10 +121,30 @@ void Bead::Set_Force(Vector3 Force){
 double Bead::Energy() {
     double Total_E=0.0;
     double r;
+
+
+    if(interaction=="Spring"){
+        double dual_area;
+        
+        for(Vertex v : mesh->vertices()){
+            
+            r=(this->Pos-geometry->inputVertexPositions[v]).norm();
+
+            // dual_area=geometry->barycentricDualArea(v);
+            Total_E+=0.5*strength*(r-sigma)*(r-sigma);
+        }
+        return Total_E;
+
+
+    }
+
+
+
+
     if(interaction=="Shifted-LJ"){
     double dual_area;
     double alpha;
-    double rc2=4;
+    double rc2=4.0;
     double r2;
     for(Vertex v : mesh->vertices()){
         r2=(this->Pos-geometry->inputVertexPositions[v]).norm2();
@@ -112,12 +155,12 @@ double Bead::Energy() {
         dual_area=geometry->barycentricDualArea(v);
 
         
-        Total_E += strength*alpha* dual_area*( (sigma*sigma/r2)-1  )*pow( (rc2/r2)-1 ,2.0);
+        Total_E += strength*alpha*( (sigma*sigma/r2)-1  )*pow( (rc2/r2)-1 ,2.0);
 
         // Total_E+= 4*strength*(pow(sigma/r,12)-pow(sigma/r,6));
 
     }
-    std::cout<<"THe total energy is "<<Total_E <<" \n";
+    // std::cout<<"THe total energy is "<<Total_E <<" \n";
     return Total_E;
         
     }
