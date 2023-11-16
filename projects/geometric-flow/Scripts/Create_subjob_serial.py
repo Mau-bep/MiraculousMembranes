@@ -105,7 +105,7 @@ f.write('echo $PATH\n')
 # f.write("#printf ' \n'\n")
 
 
-f.write('srun time -v ../build/bin/main_cluster {} {} {} \n'.format(v,Init_cond,Nsim))
+f.write('srun time -v ../build/bin/main_cluster {} {} {}\n'.format(v,Init_cond,Nsim))
 
 
 
