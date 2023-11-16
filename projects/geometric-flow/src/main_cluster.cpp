@@ -147,12 +147,15 @@ void Save_mesh(std::string basic_name, size_t current_t) {
 
 int main(int argc, char** argv) {
 
-    
+    int Nsim;
     nu=std::stod(argv[1]);
-    c0=std::stod(argv[2]);
-    KA=std::stod(argv[3]);
-    KB=std::stod(argv[4]);
-  
+    // KB=std::stod(argv[2]);
+    int Init_cond = std::stoi(argv[2]);
+    Nsim = std::stoi(argv[3]);
+    c0=0.0;
+    KA=10.0;
+    KB=0.005;
+
     // I will do it so i can give this values
  
     auto start = chrono::steady_clock::now();
@@ -164,10 +167,16 @@ int main(int argc, char** argv) {
 
 
     std::cout<< "Current path is " << argv[0];
-
+    std::string filepath;
     // std::string filepath = "../../../input/sphere.obj";
-    std::string filepath = "../../../input/bloodcell.obj";
-    // Load mesh
+    if(Init_cond==1){
+        filepath = "../../../input/Simple_cil_regular.obj";
+    
+    }
+    if(Init_cond==2){
+        filepath = "../../../input/bloodcell.obj";
+    }
+    
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
     mesh = mesh_uptr.release();
     geometry = geometry_uptr.release();
@@ -236,21 +245,21 @@ int main(int argc, char** argv) {
     Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
     Min_rel_lengthstream << std::fixed << std::setprecision(2) <<Min_rel_length;
     
-    std::string first_dir="../Results/Mem3DG_IMG_correct/";
+    std::string first_dir="../Results/Mem3DG_Cell_Shape/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
-    first_dir="../Results/Mem3DG_IMG_correct/Curv_adap_"+Curv_adapstream.str()+"Min_rel_length_"+Min_rel_lengthstream.str();
-    status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    // std::cout<<"\nIf this name is 0 the directory was created succesfully "<< status ;
-    
-    std::string basic_name ="../Results/Mem3DG_IMG_correct/Curv_adap_"+Curv_adapstream.str()+"Min_rel_length_"+Min_rel_lengthstream.str()+ "/nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"/";
+    std::string basic_name=first_dir+"nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"_init_cond_"+std::to_string(Init_cond)+"_Nsim_"+std::to_string(Nsim)+"/";
     status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    
     std::cout<<"\nIf this number is 0 the directory was created succesfully "<< status<<"\n" ;
 
     std::string filename = basic_name+"Output_data.txt";
 
+
     std::ofstream Sim_data(filename);
+    Sim_data<<"T_Volume T_Area time Volume Area E_vol E_sur E_bend grad_norm backtrackstep\n";
+        
     // Here i want to run my video
     size_t n_vert;
     size_t n_vert_old;
@@ -301,7 +310,7 @@ int main(int argc, char** argv) {
         // psMesh->setEdgeWidth(1.0);
 
         
-        if(current_t%5000==0){
+        if(current_t%2500==0){
             Save_mesh(basic_name,current_t);
 
         }
@@ -338,7 +347,6 @@ int main(int argc, char** argv) {
         }
         nu_evol= time<100 ? nu_0 + (nu-nu_0)*time/100 : nu; 
         
-
         dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time);
         if(dt_sim==-1){
             std::cout<<"Sim broke or timestep very small\n";

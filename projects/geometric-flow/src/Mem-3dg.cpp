@@ -566,7 +566,7 @@ initial_pos= geometry->inputVertexPositions;
 // Zeroth iteration
 double Projection=0;
 
-std::cout<<"THe initial E is "<<previousE<<"\n";
+// std::cout<<"THe initial E is "<<previousE<<"\n";
 geometry->inputVertexPositions+=alpha * Force;
 // std::cout<< geometry->inputVertexPositions[0]<<"and the other "<< initial_pos[0]<<"\n";
 
@@ -601,7 +601,7 @@ if(std::isnan(E_Ben)){
 size_t counter=0;
 while(true){
   // if(true){
-  std::cout<<"THe new energy is "<<NewE <<"\n";
+  // std::cout<<"THe new energy is "<<NewE <<"\n";
   if( NewE<= previousE - c1*alpha*Projection ) {
     break;
 
@@ -806,7 +806,7 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
     //     geometry->inputVertexPositions[v] =geometry->inputVertexPositions[v]+ Update ; // placeholder
     // }
     // Force=MeshData<Vertex,Vector3>::fromVector(Delta_x);
-    geometry->inputVertexPositions=geometry->inputVertexPositions+backtrackstep*Force;
+    // geometry->inputVertexPositions=geometry->inputVertexPositions+backtrackstep*Force;
     
   
   return backtrackstep;

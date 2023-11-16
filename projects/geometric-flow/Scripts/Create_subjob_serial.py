@@ -16,9 +16,13 @@ import os
 # Target_val=float(sys.argv[4])
 
 v=float(sys.argv[1])
-c0=float(sys.argv[2])
-KA=float(sys.argv[3])
-KB=float(sys.argv[4])
+# c0=float(sys.argv[2])
+# KA=float(sys.argv[3])
+# KB=float(sys.argv[4])
+Init_cond=int(sys.argv[2])
+
+Nsim=int(sys.argv[3])
+
 
 
 os.makedirs('../Subjobs/',exist_ok=True)
@@ -26,13 +30,13 @@ os.makedirs('../Outputs/',exist_ok=True)
 
 
 
-f=open('../Subjobs/subjob_serial_correct_v_{}_c0_{}_KA_{}_KB_{}'.format(v,c0,KA,KB),'w')
+f=open('../Subjobs/subjob_serial_correct_v_{}_init_cond_{}_Nsim_{}'.format(v,Init_cond,Nsim),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')
 
 f.write('#SBATCH --job-name=Mem3DGpa\n')
-f.write('#SBATCH --output=../Outputs/output_serial_correct_Mem3DG_v_{}_c0_{}_KA_{}_KB_{}\n'.format(v,c0,KA,KB))
+f.write('#SBATCH --output=../Outputs/output_Mem3DG_v_{}_Init_cond_{}_Nsim_{}\n'.format(v,Init_cond))
 f.write('#\n')
 f.write('#number of CPUs to be used\n')
 f.write('#SBATCH --ntasks=1\n')
@@ -101,7 +105,7 @@ f.write('echo $PATH\n')
 # f.write("#printf ' \n'\n")
 
 
-f.write('srun time -v ../build/bin/main_cluster {} {} {} {}\n'.format(v,c0,KA,KB))
+f.write('srun time -v ../build/bin/main_cluster {} {} {} \n'.format(v,Init_cond,Nsim))
 
 
 
