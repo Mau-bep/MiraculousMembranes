@@ -6,6 +6,7 @@
 # set KA=10.0
 # set c0=0.0
 set KB=0.005
+set Nsim=1
 # foreach KB ( 0.005)
 foreach v ( 0.2 0.3 0.4 0.5 0.6 0.63 0.7 0.8 1.0 )
 foreach Init_cond ( 1 2 )
