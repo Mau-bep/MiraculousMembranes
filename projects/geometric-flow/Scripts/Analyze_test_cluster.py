@@ -7,7 +7,7 @@ import time
 
 nu=float(sys.argv[1])
 KB=float(sys.argv[2])
-prefolder='./../Results/Tests_cil_regular/'
+prefolder='./../Results/Tests_bead/'
 
 
 def Area_analisis(prefolder,nu,KB):
@@ -163,11 +163,48 @@ def Bending_analisis(prefolder,nu,KB):
     return 
 
 
-Area_analisis(prefolder,nu,KB)
-print('Finished area grad\n')
-Volume_analisis(prefolder,nu,KB)
-print('finished volume grad\n')
-Bending_analisis(prefolder,nu,KB)
-print('Finished bending grad\n')
+def Bead_analisis(prefolder,nu,KB):
+    dir=prefolder+'nu_{0:.3f}_c0_0.000_KA_1.000_KB_{1:.6f}/'.format(nu,KB)
+
+    filename=dir+'Bead_Gradient_evaluation_200.txt'
+    absolute_errors=[]
+    relative_errors=[]
+
+    with open(filename,'r') as file:
+        line=file.readline()
+        line=file.readline()
+        while(line):
+            print(line)
+            Arr=np.array(line.split(' '))
+            # So i have the array what do i want to save 
+            print(len(Arr))
+            if(len(Arr)<=4):
+                break
+            relative_errors.append(float(Arr[3]))
+            absolute_errors.append(float(Arr[4]))
+            line=file.readline()
+    plt.scatter(relative_errors,absolute_errors,edgecolors='b',marker='o',facecolors=None)
+    plt.xlabel('Relative error')
+    plt.ylabel('Absolute error')
+    plt.yscale('log')
+    plt.xscale('log')
+    plt.show()
+    print(np.argmax(relative_errors))
+
+
+# Area_analisis(prefolder,nu,KB)
+# print('Finished area grad\n')
+# Volume_analisis(prefolder,nu,KB)
+# print('finished volume grad\n')
+# Bending_analisis(prefolder,nu,KB)
+# print('Finished bending grad\n')
+
+Bead_analisis(prefolder,1.0,1.0)
+
+
+
+
+
+
 
 time.sleep(1)

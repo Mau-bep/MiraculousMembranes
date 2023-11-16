@@ -49,12 +49,16 @@ class Mem3DG {
     // virtual Vector3 cornerAngleGradient(Corner c, Vertex v) const;
     virtual VertexData<Vector3> OsmoticPressure(double D_P) const;
     virtual VertexData<Vector3> SurfaceTension(double lambda) const;
+    virtual VertexData<Vector3> SurfaceGrad() const;
+    
     virtual VertexData<Vector3> Bending(double H0,double KB) const;
     virtual double E_Pressure(double P0,double V ,double V_bar) const;
     virtual double E_Surface(double KA,double A, double A_bar) const;
     virtual double E_Bending(double H0, double KB) const;
     
     virtual void Grad_Vol_dx(std::ofstream& Gradient_file,double P0, double V_bar,size_t index) const;
+    void Grad_Bead_dx(std::ofstream& Gradient_file,bool Save);
+
     virtual VertexData<Vector3> Grad_Vol(std::ofstream& Gradient_file,double P0, double V_bar,bool Save) const;
     virtual VertexData<Vector3> Grad_Area(std::ofstream& Gradient_file, double A_bar,double KA, bool Save) const;
     virtual VertexData<Vector3> Grad_Bending(std::ofstream& Gradient_file, double H_bar,double KB,bool Save);
@@ -62,12 +66,13 @@ class Mem3DG {
 
     virtual void Bending_test(std::ofstream& Analysis_file, double H_bar,double KB);
     VertexData<Vector3> Grad_Bead(std::ofstream& Gradient_file,bool Save,bool Projection);
-
+    virtual VertexData<Vector3> Grad_tot_Area(std::ofstream& Gradient_file, bool Save) const;
+    
 
     double Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar,bool bead) ;
     double Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar) ;
     virtual VertexData<Vector3> Project_force(VertexData<Vector3> Force) const; 
-      
+    virtual bool Area_sanity_check();  
     
     double integrate(double h, double V_bar, double nu, double c0,double P0,double KA,double KB, double Kd ,std::ofstream& Sim_data, double time, bool bead,std::ofstream& Bead_data);
     

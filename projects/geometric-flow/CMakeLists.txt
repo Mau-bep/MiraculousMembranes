@@ -126,6 +126,14 @@ set(TEST_Grad_th_SRCS
   ../../utils/src/colormap.cpp
 )
 
+set(TEST_fan_SRCS 
+  src/Test_fan_basic.cpp
+  src/Mem-3dg.cpp
+  src/Beads.cpp
+  ../../utils/src/colormap.cpp
+)
+
+
 # set(TEST_SRCS
 #   src/mean-curvature-flow.cpp
 #   src/modified-mean-curvature-flow.cpp
@@ -222,6 +230,16 @@ target_include_directories(Grad_tests_th PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../
 target_link_libraries(Grad_tests_th geometry-central polyscope)
 
 
+add_executable(Test_fan "${TEST_fan_SRCS}")
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Test_fan)
+target_include_directories(Test_fan PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+target_include_directories(Test_fan PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
+# add the args.hxx project which we use for command line args
+target_include_directories(Test_fan PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
+target_link_libraries(Test_fan geometry-central polyscope)
+
+
+# TEST_fan_SRCS
 
 # add_executable(test-flow "${TEST_SRCS}")
 # target_include_directories(test-flow PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")

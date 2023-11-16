@@ -170,6 +170,35 @@ Vector3 Mem3DG::computeHalfedgeMeanCurvatureVector(Halfedge he) const {
 }
 
 
+
+
+VertexData<Vector3> Mem3DG::SurfaceGrad() const {
+
+    size_t index;
+    Vector3 Normal;
+    size_t N_vert=mesh->nVertices();
+    VertexData<Vector3> Force(*mesh);
+    Vector3 u;
+    Halfedge he_grad;
+        
+    for(Vertex v : mesh->vertices()) {
+            Normal={0,0,0};
+            Force[v]={0,0,0};
+            Force[v]=-1*2*geometry->vertexNormalMeanCurvature(v);
+            
+        }
+
+    // std::cout<< "THe surface tension force in magnitude is: "<< -1*lambda*sqrt(Force.transpose()*Force) <<"\n";
+    return Force;
+}
+
+
+
+
+
+
+
+
 Vector3 Mem3DG::computeHalfedgeGaussianCurvatureVector(Halfedge he) const {
   Vector3 gaussVec{0, 0, 0};
   if (!he.edge().isBoundary()) {
@@ -649,8 +678,8 @@ VertexData<Vector3> Mem3DG::Project_force(VertexData<Vector3> Force) const{
     Projected_Force[v]= (projection>0)*projection*Normal_v;
 
   }
-
-  return Projected_Force;
+  return Force;
+  // return Projected_Force;
 }
 
 /*
@@ -1391,16 +1420,20 @@ double Mem3DG::integrate_finite(double h, double V_bar, double nu, double c0,dou
 
 
 VertexData<Vector3> Mem3DG::Grad_Bead(std::ofstream& Gradient_file,bool Save,bool Projection) {
+
+std::cout<<"The interaction to consider is " <<Bead_1.interaction <<"\n";
 // I want to calculate the gradient of the volume
 VertexData<Vector3> initial_pos(*mesh);
 VertexData<Vector3> Finite_grad(*mesh);
 initial_pos= geometry->inputVertexPositions;
+
 // VertexData<Vector3> Gradients(*mesh,0.0);
 // double V=geometry->totalVolume();
 double E_bead=0.0;
 double E_bead_back=0.0;
 double E_bead_front=0.0;
 double dr;
+double r_dist;
 // double D_P=-P0*(V-V_bar)/V_bar/V_bar;
 double total_grad_finite=0;
 double total_grad_theory=0;
@@ -1408,14 +1441,15 @@ double total_grad_theory=0;
 Vector3 grad{0.0,0.0,0.0};
 Vector3 grad_theory;
 Vector3 difference;
-
+Vector3 Area_grad;
+Vector3 r;
 E_bead=Bead_1.Energy();
 
 // E_vol=E_Pressure(D_P,V,V_bar);
 
 VertexData<Vector3> Calc_grad=Bead_1.Gradient();
-
-dr=1e-6;
+VertexData<Vector3> Grad_area=SurfaceGrad();
+dr=1e-7;
 
 size_t N_vert = mesh->nVertices();
 // for(size_t index=0; index<N_vert; index++){
@@ -1454,9 +1488,28 @@ for(Vertex v : mesh->vertices()){
   
   grad.z=(E_bead_front-E_bead_back)/(2*dr);
   
+
+
+
   if(Save){
   difference= grad+grad_theory;
-  Gradient_file<< difference.x <<" "<<difference.y<<" "<< difference.z<<" "<<difference.norm()/grad.norm() <<" " << grad.norm()/grad_theory.norm() <<" \n" ;
+  
+  // I can do this i have grad and grad_theory so i can actually compare them 
+  
+
+  // I want to know a little more abt this direction.
+
+    // r= Bead_1.Pos- geometry->inputVertexPositions[v];
+    // r_dist=r.norm();
+    // r= r.unit();
+    // Area_grad=Grad_area[v].unit();
+    // // Area_grad= geometry->vertexNormalMeanCurvature(v).unit();
+    
+    // double E_v=4*1.0*(pow(1.0/r_dist,12)-pow(1.0/r_dist,6));
+    // Vector3 F2=E_v *-1*geometry->vertexNormalMeanCurvature(v);
+
+  
+  Gradient_file<< difference.x <<" "<<difference.y<<" "<< difference.z<<" "<<difference.norm()/grad.norm() <<" "<<difference.norm() << " " << grad.norm()/grad_theory.norm()<<" \n";//<< dot(r.unit(),difference.unit())<<" " << dot(Area_grad,difference.unit())<<" "<< dot(Area_grad,r.unit())<<" \n";//<< dot(r,HN) <<" \n" ;
   // difference= grad_theory;
   // Gradient_file<< difference.x <<" "<<difference.y<<" "<< difference.z<<" "<<grad_theory.norm()<<" \n" ;
   total_grad_theory+=grad_theory.norm2();
@@ -1467,8 +1520,186 @@ for(Vertex v : mesh->vertices()){
   geometry->refreshQuantities();
 }
 if(Save){
-  Gradient_file<< sqrt(total_grad_theory)<<" "<< sqrt(total_grad_finite)<<"\n";
+  Gradient_file<< sqrt(total_grad_theory)<<" "<< sqrt(total_grad_finite)<<" "<<sqrt(total_grad_theory/total_grad_finite) << " \n";
 }
 
 return Finite_grad;
+}
+
+
+
+
+
+
+VertexData<Vector3> Mem3DG::Grad_tot_Area(std::ofstream& Gradient_file,bool Save) const{
+// I want to calculate the gradient of the volume
+VertexData<Vector3> initial_pos(*mesh);
+VertexData<Vector3> Finite_grad(*mesh);
+initial_pos= geometry->inputVertexPositions;
+// VertexData<Vector3> Gradients(*mesh,0.0);
+double A=geometry->totalArea();
+
+
+double E_area=0.0;
+double E_tot_area=0.0;
+double E_area_back=0.0;
+double E_area_front=0.0;
+double dr;
+// double lambda=KA*(A-A_bar )/A_bar;
+double total_grad_finite=0;
+double total_grad_theory=0;
+
+Vector3 grad{0.0,0.0,0.0};
+Vector3 grad_theory;
+Vector3 difference;
+
+E_area=A;
+
+
+VertexData<Vector3> Calc_grad=SurfaceGrad();
+
+dr=1e-7;
+
+size_t N_vert = mesh->nVertices();
+// for(size_t index=0; index<N_vert; index++){
+size_t index;
+for(Vertex v :mesh->vertices()){
+  // A=geometry->totalArea();
+  
+  
+  // E_tot_area=E_Surface(KA,A,A_bar);
+  // std::cout<<"THe difference in energy is "<<E_tot_area-E_area<<" \n";
+  index=v.getIndex();
+  grad_theory=Calc_grad[v];
+  geometry->inputVertexPositions[v]=initial_pos[v]+ Vector3{dr,0,0};
+  geometry->refreshQuantities();
+  A=geometry->totalArea();
+  E_area_front=A;
+  geometry->inputVertexPositions[v]=initial_pos[v]- Vector3{dr,0,0};
+  geometry->refreshQuantities();
+  A=geometry->totalArea();
+  E_area_back=A;
+  grad.x=(E_area_front-E_area_back)/(2*dr);
+
+  geometry->inputVertexPositions[v]=initial_pos[v]- Vector3{0,dr,0};
+  geometry->refreshQuantities();
+  A=geometry->totalArea();
+
+  E_area_back=A;
+  geometry->inputVertexPositions[v]=initial_pos[v]+ Vector3{0,dr,0};
+  geometry->refreshQuantities();
+  A=geometry->totalArea();
+  E_area_front=A;
+  grad.y=(E_area_front-E_area_back)/(2*dr);
+
+  geometry->inputVertexPositions[v]=initial_pos[v]- Vector3{0,0,dr};
+  geometry->refreshQuantities();
+  A=geometry->totalArea();
+  E_area_back=A;
+  geometry->inputVertexPositions[v]=initial_pos[v]+ Vector3{0,0,dr};
+  geometry->refreshQuantities();
+  A=geometry->totalArea();
+  E_area_front=A;
+  grad.z=(E_area_front-E_area_back)/(2*dr);
+  if(Save){
+  difference= grad+grad_theory;
+  Gradient_file<< difference.x/grad.norm() <<" "<<difference.y/grad.norm()<<" "<< difference.z/grad.norm()<<" "<<difference.norm()/grad.norm()<<" " << grad.norm()/grad_theory.norm() <<" \n" ;
+  // difference= grad_theory;
+  // Gradient_file<< difference.x <<" "<<difference.y<<" "<< difference.z<<" "<<grad_theory.norm()<<" \n" ;
+  total_grad_theory+=grad_theory.norm2();
+  total_grad_finite+=grad.norm2();
+  }
+  Finite_grad[v]=-1*grad;
+  geometry->inputVertexPositions[v]=initial_pos[v];
+  geometry->refreshQuantities();
+}
+if(Save){
+  Gradient_file<< sqrt(total_grad_theory)<<" "<< sqrt(total_grad_finite)<< " "<< sqrt(total_grad_theory/total_grad_finite)<<" \n";
+}
+
+return Finite_grad ;
+}
+
+
+
+void Mem3DG::Grad_Bead_dx(std::ofstream& Gradient_file,bool Save){
+// I want to calculate the gradient of the volume
+VertexData<Vector3> initial_pos(*mesh);
+initial_pos= geometry->inputVertexPositions;
+// VertexData<Vector3> Gradients(*mesh,0.0);
+// double V=geometry->totalVolume();
+double E_bead=0.0;
+double E_bead_back=0.0;
+double E_bead_front=0.0;
+double dr;
+Vector3 grad{0.0,0.0,0.0};
+E_bead=Bead_1.Energy();
+int index=7333;
+
+VertexData<Vector3> Calc_grad=Bead_1.Gradient();
+
+Gradient_file<<Calc_grad[index].x <<" "<<Calc_grad[index].y<<" "<< Calc_grad[index].z<<" \n";
+
+Vector<Vector3> Gradients(20);
+dr=10.0;
+for(size_t exponent=0;exponent<20;exponent++){
+  dr=dr/10.0;
+  // dr=pow(10,-1*exponent);
+
+  // std::cout<<dr<<" ";
+  
+  geometry->inputVertexPositions[index]=initial_pos[index]+ Vector3{dr,0,0};
+  geometry->refreshQuantities();
+  // V=geometry->totalVolume();
+  // D_P=-P0*(V-V_bar)/V_bar/V_bar;
+  E_bead_front=Bead_1.Energy();
+  geometry->inputVertexPositions[index]=initial_pos[index]- Vector3{dr,0,0};
+  geometry->refreshQuantities();
+ 
+  E_bead_back=Bead_1.Energy();
+  grad.x=(E_bead_front-E_bead_back)/(2*dr);
+
+  geometry->inputVertexPositions[index]=initial_pos[index]- Vector3{0,dr,0};
+  geometry->refreshQuantities();
+  // V=geometry->totalVolume();
+  // D_P=-P0*(V-V_bar)/V_bar/V_bar;
+  E_bead_back=Bead_1.Energy();
+  geometry->inputVertexPositions[index]=initial_pos[index]+ Vector3{0,dr,0};
+  geometry->refreshQuantities();
+  // V=geometry->totalVolume();
+  // D_P=-P0*(V-V_bar)/V_bar/V_bar;
+  E_bead_front=Bead_1.Energy();
+  grad.y=(E_bead_front-E_bead_back)/(2*dr);
+
+  geometry->inputVertexPositions[index]=initial_pos[index]- Vector3{0,0,dr};
+  geometry->refreshQuantities();
+  E_bead_back=Bead_1.Energy();
+  geometry->inputVertexPositions[index]=initial_pos[index]+ Vector3{0,0,dr};
+  geometry->refreshQuantities();
+  // V=geometry->totalVolume();
+  // D_P=-P0*(V-V_bar)/V_bar/V_bar;
+  E_bead_front=Bead_1.Energy();
+  grad.z=(E_bead_front-E_bead_back)/(2*dr);
+
+
+  Gradients[exponent]=grad;
+  Gradient_file<< Gradients[exponent].x <<" " <<Gradients[exponent].y<<" "<<Gradients[exponent].z <<" \n";
+
+}
+
+
+}
+
+
+
+bool Mem3DG::Area_sanity_check(){
+  bool all_positive=true;
+  for(Vertex v : mesh->vertices()){
+    if(geometry->circumcentricDualArea(v)<0){
+      all_positive=false;
+    }
+
+  }
+
+  return all_positive;
 }

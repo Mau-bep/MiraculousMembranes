@@ -126,7 +126,7 @@ double VertexPositionGeometry::barycentricDualArea(Vertex v) const {
     
     double Dual_area=0.0;  
     for(Face f : v.adjacentFaces()) {
-        Dual_area=Dual_area+faceArea(f);
+        Dual_area+=faceArea(f);
 
     }
     
@@ -451,7 +451,7 @@ double VertexPositionGeometry::circumcentricDualArea(Vertex v) const {
     
 
     // TODO
-    return Area/8; // placeholder
+    return Area/4; // placeholder
 }
 
 /*
