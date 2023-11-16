@@ -7,7 +7,7 @@
 # set c0=0.0
 set KB=0.005
 # foreach KB ( 0.005)
-foreach v ( 0.4 )
+foreach v ( 0.2 0.3 0.4 0.5 0.6 0.63 0.7 0.8 1.0 )
 foreach Init_cond ( 1 2 )
 
 #python3 Create_subjob.py ${v} ${c0} ${KA} ${KB}
