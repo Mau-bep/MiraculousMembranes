@@ -11,6 +11,7 @@ import sys
 # strg=0.1
 nu=1.0
 
+dir='nu_{:.3f}_c0_0.000_KA_10.000_KB_0.005000_init_cond_{}_Nsim_{}'.format(nu,Init_cond,Nsim)
 
 Parent_dir='/nfs/scistore16/wojtgrp/mrojasve/Cluster_Folders/projects/geometric-flow/Results/Mem3DG_Beads_40k_frenkel_areaint_big/Curv_adap_0.10Min_rel_length_0.50/'
 
