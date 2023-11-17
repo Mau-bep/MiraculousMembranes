@@ -29,7 +29,7 @@ def main(strg):
     # Visual element initialization:
     data = pipeline.compute() # Evaluate new pipeline to gain access to visual elements associated with the imported data objects.
     data.particles.vis.radius = 1.0
-    data.particles.vis.scaling = 1.0
+    data.particles.vis.scaling = 0.5
     del data # Done accessing input DataCollection of pipeline.
     pipeline.add_to_scene()
 
