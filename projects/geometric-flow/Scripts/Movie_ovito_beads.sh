@@ -31,12 +31,14 @@ KB=0.005
 
 # conda activate ovito
 
-for Strg in 5.0 0.05 1.0 0.1 20.0 0.0005 0.0001 0.00001
+for Strg in 0.1 1.0 0.01 0.001 10.0
 # for Strg in 0.002 0.6 
 # foreach Strg (  )
 
 do
-    python Movie_ovito_beads.py ${Strg}
+    python Movie_ovito_beads.py 1.0 ${Strg} 1 1
+    python Movie_ovito_beads.py 1.0 ${Strg} 2 1
+    
 done
 #deactivate
 

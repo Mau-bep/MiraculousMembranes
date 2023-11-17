@@ -15,8 +15,8 @@ KB=0.005
 def main(strg,Init_cond,Nsim):
     
 
-    pre_folder='../Results/Mem3DG_Bead_Reciprocal/nu_1.000_c0_0.000_KA_10.000_KB_0.005000_strength_{:.5f}_Init_cond_{}_Nsim_{}/'.format(strg,Init_cond,Nsim)
-
+    pre_folder='../Results/Mem3DG_Bead_Reciprocal/nu_1.000_c0_0.000_KA_10.000_KB_0.005000_strength_{:.6f}_Init_cond_{}_Nsim_{}/'.format(strg,Init_cond,Nsim)
+                # ../Results/Mem3DG_Bead_Reciprocal/nu_1.000_c0_0.000_KA_10.000_KB_0.005000_strength_0.100000_Init_cond_1_Nsim_1/
     # dir='nu_{:.3f}_c0_0.000_KA_10.000_KB_{:.6f}_Inter_{:.6f}'.format(nu,KB,strg)
     # folder_path= pre_folder+dir+'/'
     folder_path = pre_folder

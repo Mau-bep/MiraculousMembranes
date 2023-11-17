@@ -9,14 +9,19 @@ import sys
 # Data import:
 
 # strg=0.1
-nu=1.0
+# nu=1.0
+nu=float(sys.argv[1])
+strg=float(sys.argv[2])
+Init_cond=int(sys.argv[3])
+Nsim=int(sys.argv[4])
 
-dir='nu_{:.3f}_c0_0.000_KA_10.000_KB_0.005000_init_cond_{}_Nsim_{}'.format(nu,Init_cond,Nsim)
 
-Parent_dir='/nfs/scistore16/wojtgrp/mrojasve/Cluster_Folders/projects/geometric-flow/Results/Mem3DG_Beads_40k_frenkel_areaint_big/Curv_adap_0.10Min_rel_length_0.50/'
+# dir='nu_{:.3f}_c0_0.000_KA_10.000_KB_0.005000_init_cond_{}_Nsim_{}'.format(nu,Init_cond,Nsim)
+
+Parent_dir='/nfs/scistore16/wojtgrp/mrojasve/MiraculousMembranes/projects/geometric-flow/Results/Mem3DG_Bead_Reciprocal/'
 
 def main(strg):
-    dir='nu_{:.3f}_c0_0.000_KA_10.000_KB_0.005000_Inter_{:.6f}'.format(nu,strg)
+    dir='nu_{:.3f}_c0_0.000_KA_10.000_KB_0.005000_strength_{:.6f}_Init_cond_{}_Nsim_{}/'.format(nu,strg,Init_cond,Nsim)
 
     print(Parent_dir+dir+'/Bead_data.xyz' )
     pipeline = import_file(Parent_dir+dir+'/Bead_data.xyz')
@@ -97,5 +102,5 @@ def main(strg):
 
 
 
-strg=float(sys.argv[1])
+# strg=float(sys.argv[1])
 main(strg)
