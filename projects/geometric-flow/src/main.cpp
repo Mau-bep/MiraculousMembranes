@@ -452,8 +452,8 @@ int main(int argc, char** argv) {
         }
         nu_evol= time<50 ? nu_0 + (nu-nu_0)*time/50 : nu; 
         // nu_evol=nu;
-
-        dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time);
+        bool Save_output_data=false;
+        dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save_output_data);
         if(dt_sim==-1){
             std::cout<<"Sim broke\n";
             break;

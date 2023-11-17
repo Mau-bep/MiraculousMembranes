@@ -74,7 +74,7 @@ double Min_rel_length=0.5;
 double trgt_len;
 double avg_remeshing;
 // bool edge_length_adj;
-bool Save=False;
+bool Save=false;
 VertexData<Vector3> ORIG_VPOS; // original vertex positions
 Vector3 CoM;                   // original center of mass
 
@@ -350,7 +350,7 @@ int main(int argc, char** argv) {
         nu_evol= time<100 ? nu_0 + (nu-nu_0)*time/100 : nu; 
         
         dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save);
-        if(Save=true)
+        if(Save==true)
         {
             Save=false;
         }

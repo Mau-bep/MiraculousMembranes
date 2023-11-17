@@ -173,8 +173,8 @@ int main(int argc, char** argv) {
 
     std::cout<< "Current path is " << argv[0];
 
-    // std::string filepath = "../../../input/sphere.obj";
-    std::string filepath = "../../../input/sphere_dense_40k.obj";
+    std::string filepath = "../../../input/sphere.obj";
+    // std::string filepath = "../../../input/sphere_dense_40k.obj";
     // Load mesh
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
     mesh = mesh_uptr.release();
@@ -212,8 +212,8 @@ int main(int argc, char** argv) {
     // WF2 = WillmoreFlow2(mesh,geometry);
     // WFS = WillmoreFlowScho(mesh,geometry);
     // M3DG = Mem3DG(mesh,geometry);
-    double radius=3.0;
-    Bead_1 = Bead(mesh,geometry,Vector3({10.0,0.0,0.0}),radius,Interaction_str);
+    double radius=1.0;
+    Bead_1 = Bead(mesh,geometry,Vector3({6.3,0.0,0.0}),radius,Interaction_str);
     M3DG = Mem3DG(mesh,geometry,Bead_1);
     // Add visualization options.
     // psMesh->setSmoothShade(false);
@@ -267,7 +267,7 @@ int main(int argc, char** argv) {
     
 
     std::string filename2 = basic_name + "Bead_data.txt";
-    std::ofstream Sim_data(filename);
+    
     std::ofstream Bead_data(filename2);
 
     bool Save_bead_data=false;
@@ -364,7 +364,7 @@ int main(int argc, char** argv) {
         nu_evol= time<50 ? nu_0 + (nu-nu_0)*time/50 : nu; 
         
         dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save_bead_data,Bead_data,Save_output_data);
-        
+        Save_output_data=false;
         Save_bead_data=false;
         if(dt_sim==-1){
             std::cout<<"Sim broke or timestep very small\n";

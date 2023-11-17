@@ -226,7 +226,7 @@ int main(int argc, char** argv) {
     
     bool with_bead=true;
 
-    
+    bool Save_data=false;
     TS=pow(10,-3);
 
 
@@ -475,11 +475,11 @@ int main(int argc, char** argv) {
      
     nu_evol= time<50 ? nu_0 + (nu-nu_0)*time/50 : nu; 
     if(with_bead){
-        dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save_bead_data,Bead_data);
+        dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save_bead_data,Bead_data,Save_data);
         
     }
     else{
-    dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time);
+    dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save_data);
     }
 
     if(dt_sim==-1)

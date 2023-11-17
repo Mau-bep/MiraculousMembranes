@@ -144,7 +144,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
 
         }    
 
-    std::cout<<"MODIFIED LJ";
+    // std::cout<<"MODIFIED LJ";
 
     return Force;
     }
