@@ -39,27 +39,28 @@ pipeline.add_to_scene()
 # Viewport setup:
 viewport_layout = []
 
+
 # Viewport "Top":
 vp = Viewport(
     type = Viewport.Type.Top, 
-    fov = 0.850306051459, 
-    camera_pos = (0.0, 4.599999999999049e-05, 3.849999999999687e-05))
+    fov = 1.64496320892, 
+    camera_pos = (-0.0004804999999999948, 0.5318455, 0.00022299999999997322))
 viewport_layout.append((vp, [0.0, 0.0, 0.5, 0.5]))  # [left,top,width,height]
 
 # Viewport "Left":
 vp = Viewport(
     type = Viewport.Type.Left, 
-    fov = 1.09775325, 
+    fov = 1.00334873867, 
     camera_dir = (1.0, -0.0, -0.0), 
-    camera_pos = (0.0, 4.599999999999049e-05, 3.849999999999687e-05))
+    camera_pos = (-0.0004804999999999948, 0.5318455, 0.00022299999999997322))
 viewport_layout.append((vp, [0.0, 0.5, 0.5, 0.5]))  # [left,top,width,height]
 
 # Viewport "Front":
 vp = Viewport(
     type = Viewport.Type.Front, 
-    fov = 1.39551788633, 
+    fov = 0.751487732073, 
     camera_dir = (-0.0, 1.0, -0.0), 
-    camera_pos = (0.0, 4.599999999999049e-05, 3.849999999999687e-05))
+    camera_pos = (-0.0004804999999999948, 0.5318455, 0.00022299999999997322))
 viewport_layout.append((vp, [0.5, 0.0, 0.5, 0.5]))  # [left,top,width,height]
 
 # Viewport "Perspective":
@@ -67,7 +68,7 @@ vp = Viewport(
     type = Viewport.Type.Perspective, 
     fov = 0.610865238198, 
     camera_dir = (-0.49923017660270624, 0.665640235470275, -0.5547001962252291), 
-    camera_pos = (2.368194171316368, -3.1575462284218236, 2.6313653570181867))
+    camera_pos = (1.8732217253055508, -1.9664241337407349, 2.0821143614506123))
 viewport_layout.append((vp, [0.5, 0.5, 0.5, 0.5]))  # [left,top,width,height]
 
 
