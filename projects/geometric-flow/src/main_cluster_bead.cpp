@@ -154,7 +154,8 @@ int main(int argc, char** argv) {
     // KA=std::stod(argv[3]);
     // KB=std::stod(argv[4]);
     Interaction_str=std::stod(argv[2]);
-    int Nsim = std::stoi(argv[3]);
+    int Init_cond = std::stoi(argv[3]);
+    int Nsim = std::stoi(argv[4]);
 
     c0=0.0;
     KA=10.0;
@@ -172,8 +173,13 @@ int main(int argc, char** argv) {
 
 
     std::cout<< "Current path is " << argv[0];
-
-    std::string filepath = "../../../input/sphere.obj";
+    std::string filepath;
+    if(Init_cond==1){
+        filepath = "../../../input/sphere.obj";
+    }
+    if(Init_cond==2){
+        filepath = "../../../input/sphere_dense_40k.obj"; 
+    }
     // std::string filepath = "../../../input/sphere_dense_40k.obj";
     // Load mesh
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
