@@ -549,7 +549,7 @@ return alpha;
 
 
 double Mem3DG::Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar) {
-double c1=5e-4;
+double c1=5e-3;
 double rho=0.5;
 double alpha=1e-3;
 double positionProjection = 0;
@@ -623,7 +623,7 @@ if(std::isnan(E_Ben)){
 
 
   alpha*=rho;
-  if(alpha<1e-7){
+  if(alpha<1e-8){
     std::cout<<"THe timestep got small so the simulation will end \n";
     alpha=-1.0;
     // continue;
