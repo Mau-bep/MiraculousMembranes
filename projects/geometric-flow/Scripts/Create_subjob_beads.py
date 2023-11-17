@@ -106,7 +106,7 @@ f.write('echo $PATH\n')
 
 f.write('pwd\n')
 
-f.write('srun time -v ../build/bin/main_cluster_beads {} {} {} {} {}\n'.format(v,Strength,Nsim))
+f.write('srun time -v ../build/bin/main_cluster_beads {} {} {}\n'.format(v,Strength,Nsim))
 
 
 
