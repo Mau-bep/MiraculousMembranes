@@ -150,10 +150,17 @@ int main(int argc, char** argv) {
 
     
     nu=std::stod(argv[1]);
-    c0=std::stod(argv[2]);
-    KA=std::stod(argv[3]);
-    KB=std::stod(argv[4]);
-    Interaction_str=std::stod(argv[5]);
+    // c0=std::stod(argv[2]);
+    // KA=std::stod(argv[3]);
+    // KB=std::stod(argv[4]);
+    Interaction_str=std::stod(argv[2]);
+    int Nsim = std::stoi(argv[3]);
+
+    c0=0.0;
+    KA=10.0;
+    KB=0.005;
+
+
     // I will do it so i can give this values
  
     auto start = chrono::steady_clock::now();
@@ -227,6 +234,7 @@ int main(int argc, char** argv) {
     // std::stringstream sigmastream;
     std::stringstream Curv_adapstream;
     std::stringstream Min_rel_lengthstream;
+    
 
 
     nustream << std::fixed << std::setprecision(3) << nu;
@@ -241,25 +249,29 @@ int main(int argc, char** argv) {
     Min_rel_lengthstream << std::fixed << std::setprecision(2) <<Min_rel_length;
     
     
-    std::string first_dir="../Results/Mem3DG_Beads_40k_frenkel_areaint_big/";
+
+    std::string first_dir="../Results/Mem3DG_Bead_Reciprocal/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
-    first_dir="../Results/Mem3DG_Beads_40k_frenkel_areaint_big/Curv_adap_"+Curv_adapstream.str()+"Min_rel_length_"+Min_rel_lengthstream.str();
-    status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    // std::cout<<"\nIf this name is 0 the directory was created succesfully "<< status ;
-    
-    std::string basic_name ="../Results/Mem3DG_Beads_40k_frenkel_areaint_big/Curv_adap_"+Curv_adapstream.str()+"Min_rel_length_"+Min_rel_lengthstream.str()+ "/nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"_Inter_"+ Interactionstrstream.str()+"/";
+    std::string basic_name=first_dir+"nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"_strength_"+Interactionstrstream.str()+"_Nsim_"+std::to_string(Nsim)+"/";
     status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    
     std::cout<<"\nIf this number is 0 the directory was created succesfully "<< status<<"\n" ;
 
+    std::string filename = basic_name+"Output_data.txt";
 
-    std::string filename = basic_name + "Output_data.txt";
+
+    std::ofstream Sim_data(filename);
+    Sim_data<<"T_Volume T_Area time Volume Area E_vol E_sur E_bend grad_norm backtrackstep\n";
+    
+
     std::string filename2 = basic_name + "Bead_data.txt";
     std::ofstream Sim_data(filename);
     std::ofstream Bead_data(filename2);
 
     bool Save_bead_data=false;
+    bool Save_output_data=false;
     Bead_data<<"####### This data is taken every 250 steps just like the mesh radius is " << radius<<" \n";
     
     // Here i want to run my video
@@ -315,10 +327,12 @@ int main(int argc, char** argv) {
         if(current_t%250==0){
             Save_mesh(basic_name,current_t);
             Save_bead_data=true;
+            Save_output_data=true;
 
         }
         
         if(current_t%1000==0) {
+
             end=chrono::steady_clock::now();
             n_vert=mesh->nVertices();
             std::cout<< "THe number of vertices is "<< n_vert <<"\n";    
@@ -349,7 +363,7 @@ int main(int argc, char** argv) {
         }
         nu_evol= time<50 ? nu_0 + (nu-nu_0)*time/50 : nu; 
         
-        dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save_bead_data,Bead_data);
+        dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save_bead_data,Bead_data,Save_output_data);
         
         Save_bead_data=false;
         if(dt_sim==-1){

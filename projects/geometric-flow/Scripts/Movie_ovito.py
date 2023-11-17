@@ -39,18 +39,17 @@ pipeline.add_to_scene()
 # Viewport setup:
 viewport_layout = []
 
-
 # Viewport "Top":
 vp = Viewport(
     type = Viewport.Type.Top, 
-    fov = 1.13377075144, 
+    fov = 1.83225788935, 
     camera_pos = (-0.0004895000000000316, 0.5363805, -0.0004250000000000087))
 viewport_layout.append((vp, [0.0, 0.0, 0.5, 0.5]))  # [left,top,width,height]
 
 # Viewport "Left":
 vp = Viewport(
     type = Viewport.Type.Left, 
-    fov = 1.11758951947, 
+    fov = 1.60187393166, 
     camera_dir = (1.0, -0.0, -0.0), 
     camera_pos = (-0.0004895000000000316, 0.5363805, -0.0004250000000000087))
 viewport_layout.append((vp, [0.0, 0.5, 0.5, 0.5]))  # [left,top,width,height]
@@ -58,7 +57,7 @@ viewport_layout.append((vp, [0.0, 0.5, 0.5, 0.5]))  # [left,top,width,height]
 # Viewport "Front":
 vp = Viewport(
     type = Viewport.Type.Front, 
-    fov = 0.721179261603, 
+    fov = 1.16547934407, 
     camera_dir = (-0.0, 1.0, -0.0), 
     camera_pos = (-0.0004895000000000316, 0.5363805, -0.0004250000000000087))
 viewport_layout.append((vp, [0.5, 0.0, 0.5, 0.5]))  # [left,top,width,height]
@@ -68,7 +67,7 @@ vp = Viewport(
     type = Viewport.Type.Perspective, 
     fov = 0.610865238198, 
     camera_dir = (-0.49923017660270624, 0.665640235470275, -0.5547001962252291), 
-    camera_pos = (1.992152237121446, -2.1204751494952614, 2.2136213745793847))
+    camera_pos = (2.3425997877639446, -2.587738550351927, 2.603007541959939))
 viewport_layout.append((vp, [0.5, 0.5, 0.5, 0.5]))  # [left,top,width,height]
 
 
@@ -80,4 +79,4 @@ renderer = TachyonRenderer(
     ambient_occlusion = False)
 
 # Rendering:
-vp.render_anim(filename='/nfs/scistore16/wojtgrp/mrojasve/MiraculousMembranes/projects/geometric-flow/Results/Mem3DG_Cell_Shape/'+dir+'.mp4', size=(600, 600),  renderer=renderer,layout=viewport_layout, fps=10.0, range=(0, 400))
+vp.render_anim(filename='/nfs/scistore16/wojtgrp/mrojasve/MiraculousMembranes/projects/geometric-flow/Results/Mem3DG_Cell_Shape/'+dir+'.mp4', size=(600, 600),  renderer=renderer,layout=viewport_layout, fps=10.0, range=(0, 50))

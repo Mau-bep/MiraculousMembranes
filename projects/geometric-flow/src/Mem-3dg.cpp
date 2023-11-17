@@ -688,7 +688,7 @@ VertexData<Vector3> Mem3DG::Project_force(VertexData<Vector3> Force) const{
  * Input: The timestep <h>.
  * Returns:
  */
-double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,double KA,double KB, double Kd,std::ofstream& Sim_data, double time, bool bead,std::ofstream& Bead_data) {
+double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,double KA,double KB, double Kd,std::ofstream& Sim_data, double time, bool bead,std::ofstream& Bead_data,bool Save_output_data) {
 //, Beads Bead_1 
 
     if(bead){
@@ -749,9 +749,9 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
 
     // Bead_1.Move_bead(backtrackstep,center);
 
-
+    if(Save_output_data){
     Sim_data << V_bar<<" "<< A_bar<<" "<< time <<" "<< V<<" " << A<<" " << E_Vol << " " << E_Sur << " " << E_Ben <<" " << E_bead << " "<< grad_norm<<" " << backtrackstep<< " "<< Bead_1.Pos.x << " "<< Bead_1.Pos.y << " "<< Bead_1.Pos.z <<" \n";
-
+    }
     system_time+=backtrackstep;
     
     

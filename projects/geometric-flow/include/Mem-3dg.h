@@ -74,7 +74,7 @@ class Mem3DG {
     virtual VertexData<Vector3> Project_force(VertexData<Vector3> Force) const; 
     virtual bool Area_sanity_check();  
     
-    double integrate(double h, double V_bar, double nu, double c0,double P0,double KA,double KB, double Kd ,std::ofstream& Sim_data, double time, bool bead,std::ofstream& Bead_data);
+    double integrate(double h, double V_bar, double nu, double c0,double P0,double KA,double KB, double Kd ,std::ofstream& Sim_data, double time, bool bead,std::ofstream& Bead_data,bool Save_output_data);
     
     double integrate(double h, double V_bar, double nu, double c0,double P0,double KA,double KB, double Kd ,std::ofstream& Sim_data, double time,bool Save);
     double integrate_finite(double h, double V_bar, double nu, double c0,double P0,double KA,double KB, double Kd,std::ofstream& Sim_data, double time,std::ofstream& Gradient_file_vol,std::ofstream& Gradient_file_area,std::ofstream& Gradient_file_bending,bool Save );
