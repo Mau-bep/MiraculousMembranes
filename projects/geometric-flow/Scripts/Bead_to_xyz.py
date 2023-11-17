@@ -21,7 +21,7 @@ def main(strg,Init_cond,Nsim):
     # folder_path= pre_folder+dir+'/'
     folder_path = pre_folder
     Bead_path=folder_path+"Bead_data.txt"
-
+    print(Bead_path)
     file_xyz = open(folder_path+'Bead_data.xyz','w')
 
 
