@@ -21,7 +21,7 @@ Nsim=int(sys.argv[4])
 Parent_dir='/nfs/scistore16/wojtgrp/mrojasve/MiraculousMembranes/projects/geometric-flow/Results/Mem3DG_Bead_Reciprocal/'
 
 def main(strg):
-    dir='nu_{:.3f}_c0_0.000_KA_10.000_KB_0.005000_strength_{:.6f}_Init_cond_{}_Nsim_{}/'.format(nu,strg,Init_cond,Nsim)
+    dir='nu_{:.3f}_c0_0.000_KA_10.000_KB_0.005000_strength_{:.6f}_Init_cond_{}_Nsim_{}'.format(nu,strg,Init_cond,Nsim)
 
     print(Parent_dir+dir+'/Bead_data.xyz' )
     pipeline = import_file(Parent_dir+dir+'/Bead_data.xyz')
