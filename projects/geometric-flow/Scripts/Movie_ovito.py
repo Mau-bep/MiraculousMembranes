@@ -4,7 +4,7 @@
 # app = PySide6.QtWidgets.QApplication() 
 
 # exit(0)
-
+import sys 
 from ovito.io import *
 from ovito.modifiers import *
 from ovito.data import *
@@ -13,11 +13,14 @@ from ovito.vis import *
 from ovito.qt_compat import QtCore
 # Data import:
 
+nu=float(sys.argv[1])
+Init_cond=int(sys.argv[2])
+Nsim=int(sys.argv[3])
+# nu=0.3
+dir='nu_{:.3f}_c0_0.000_KA_10.000_KB_0.005000_init_cond_{}_Nsim_{}'.format(nu,Init_cond,Nsim)
+# nu_0.200_c0_0.000_KA_10.000_KB_0.005000_init_cond_2_Nsim_1
 
-nu=0.3
-dir='nu_{:.3f}_c0_0.000_KA_10.000_KB_0.005000'.format(nu)
-
-pipeline = import_file('/nfs/scistore16/wojtgrp/mrojasve/Cluster_Folders/projects/geometric-flow/Results/Mem3DG_IMG_correct/Curv_adap_0.10Min_rel_length_0.50/'+dir+'/*.obj')
+pipeline = import_file('/nfs/scistore16/wojtgrp/mrojasve/MiraculousMembranes/projects/geometric-flow/Results/Mem3DG_Cell_Shape/'+dir+'/*.obj')
 # pipeline = import_file('/nfs/scistore16/wojtgrp/mrojasve/')
 # Manual modifications of the imported data objects:
 def modify_pipeline_input(frame: int, data: DataCollection):
@@ -77,4 +80,4 @@ renderer = TachyonRenderer(
     ambient_occlusion = False)
 
 # Rendering:
-vp.render_anim(filename='/nfs/scistore16/wojtgrp/mrojasve/Cluster_Folders/projects/geometric-flow/Results/Mem3DG_IMG_correct/Curv_adap_0.10Min_rel_length_0.50/'+dir+'.mp4', size=(600, 600),  renderer=renderer,layout=viewport_layout, fps=10.0, range=(0, 400))
+vp.render_anim(filename='/nfs/scistore16/wojtgrp/mrojasve/MiraculousMembranes/projects/geometric-flow/Results/Mem3DG_Cell_Shape'+dir+'.mp4', size=(600, 600),  renderer=renderer,layout=viewport_layout, fps=10.0, range=(0, 400))

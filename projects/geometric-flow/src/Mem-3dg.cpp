@@ -759,7 +759,7 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
   return backtrackstep;
 }
 
-double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,double KA,double KB, double Kd,std::ofstream& Sim_data, double time) {
+double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,double KA,double KB, double Kd,std::ofstream& Sim_data, double time,bool Save) {
 
 
     // Vector<double> Total_force=buildFlowOperator(h,V_bar,nu,c0,P0,KA,KB,Kd);
@@ -793,8 +793,9 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
 
 
     backtrackstep=Backtracking(Force,D_P,V_bar,A_bar,KA,KB,H_bar);
+    if(Save){
     Sim_data << V_bar<<" "<< A_bar<<" "<< time <<" "<< V<<" " << A<<" " << E_Vol << " " << E_Sur << " " << E_Ben << " "<< grad_norm<<" " << backtrackstep<<" \n";
-
+    }
     system_time+=backtrackstep;
     
     // for (Vertex v : mesh->vertices()) {

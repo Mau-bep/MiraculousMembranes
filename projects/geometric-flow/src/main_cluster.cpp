@@ -73,7 +73,8 @@ double Curv_adap=0.1;
 double Min_rel_length=0.5;
 double trgt_len;
 double avg_remeshing;
-bool edge_length_adj;
+// bool edge_length_adj;
+bool Save=False;
 VertexData<Vector3> ORIG_VPOS; // original vertex positions
 Vector3 CoM;                   // original center of mass
 
@@ -117,7 +118,7 @@ void showSelected() {
 void Save_mesh(std::string basic_name, size_t current_t) {
    // Build member variables: mesh, geometry
     Vector3 Pos;
-    std::ofstream o(basic_name+std::to_string(current_t)+".obj");
+    std::ofstream o(basic_name+"Membrane_"+std::to_string(current_t)+".obj");
     o << "#This is a meshfile from a saved state\n" ;
 
     for(Vertex v : mesh->vertices()) {
@@ -316,6 +317,7 @@ int main(int argc, char** argv) {
         }
         
         if(current_t%1000==0) {
+            Save=true;
             end=chrono::steady_clock::now();
             n_vert=mesh->nVertices();
             std::cout<< "THe number of vertices is "<< n_vert <<"\n";    
@@ -347,7 +349,11 @@ int main(int argc, char** argv) {
         }
         nu_evol= time<100 ? nu_0 + (nu-nu_0)*time/100 : nu; 
         
-        dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time);
+        dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save);
+        if(Save=true)
+        {
+            Save=false;
+        }
         if(dt_sim==-1){
             std::cout<<"Sim broke or timestep very small\n";
             break;
