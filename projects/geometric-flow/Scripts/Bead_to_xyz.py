@@ -12,13 +12,14 @@ import sys
 
 nu=1.0
 KB=0.005
-def main(strg):
+def main(strg,Init_cond,Nsim):
+    
 
+    pre_folder='../Results/Mem3DG_Bead_Reciprocal/nu_1.000_c0_0.000_KA_10.000_KB_0.005000_strength_{:.5f}_Init_cond_{}_Nsim_{}/'.format(strg,Init_cond,Nsim)
 
-    pre_folder='../Results/Mem3DG_Beads_40k_frenkel_areaint_big/Curv_adap_0.10Min_rel_length_0.50/'
-    dir='nu_{:.3f}_c0_0.000_KA_10.000_KB_{:.6f}_Inter_{:.6f}'.format(nu,KB,strg)
-    folder_path= pre_folder+dir+'/'
-
+    # dir='nu_{:.3f}_c0_0.000_KA_10.000_KB_{:.6f}_Inter_{:.6f}'.format(nu,KB,strg)
+    # folder_path= pre_folder+dir+'/'
+    folder_path = pre_folder
     Bead_path=folder_path+"Bead_data.txt"
 
     file_xyz = open(folder_path+'Bead_data.xyz','w')
@@ -55,7 +56,8 @@ def main(strg):
 
 
 # for strg in [0.002, 0.6]:
-for strg in [0.00001,0.0001,0.05, 0.0005, 0.1 ,1.0 ,5.0,20.0]:
-    main(strg)
+for strg in [0.1,1.0,0.01, 0.001,10.0]:
+    main(strg,1,1)
+    main(strg,2,1)
 
         

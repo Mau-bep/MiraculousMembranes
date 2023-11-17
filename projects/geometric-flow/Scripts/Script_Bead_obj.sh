@@ -29,9 +29,10 @@
 
 # conda activate ovito
 
-for Strg in 0.05 0.1 0.5 1.0 5.0 10.0
+for Strg in 0.1 1.0 0.01 0.001 10.0
 do
-    python Save_bead_to_obj.py ${Strg}
+    python Save_bead_to_obj.py ${Strg} 1 1
+    python Save_bead_to_obj.pu ${Strg} 2 1
 done
 #deactivate
 
