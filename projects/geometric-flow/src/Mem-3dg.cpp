@@ -549,8 +549,8 @@ return alpha;
 
 
 double Mem3DG::Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar) {
-double c1=5e-3;
-double rho=0.5;
+double c1=5e-4;
+double rho=0.7;
 double alpha=1e-3;
 double positionProjection = 0;
 double A=geometry->totalArea();

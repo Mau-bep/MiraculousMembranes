@@ -347,7 +347,7 @@ int main(int argc, char** argv) {
             start = chrono::steady_clock::now();
 
         }
-        nu_evol= time<100 ? nu_0 + (nu-nu_0)*time/100 : nu; 
+        nu_evol= time<50 ? nu_0 + (nu-nu_0)*time/50 : nu; 
         
         dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save);
         if(Save==true)
