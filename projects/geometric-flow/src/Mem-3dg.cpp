@@ -412,7 +412,7 @@ Returns:
 double Mem3DG::Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar,bool bead) {
 double c1=5e-4;
 double rho=0.7;
-double alpha=1e-3;
+double alpha=1e-2;
 double positionProjection = 0;
 double A=geometry->totalArea();
 double V=geometry->totalVolume();
@@ -551,7 +551,7 @@ return alpha;
 double Mem3DG::Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar) {
 double c1=5e-4;
 double rho=0.7;
-double alpha=1e-3;
+double alpha=1e-2;
 double positionProjection = 0;
 double A=geometry->totalArea();
 double V=geometry->totalVolume();
@@ -713,7 +713,7 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
     // std::cout<<Bead_1.Pos.x <<" \n";
 
     // This force is the gradient basically
-    double alpha=1e-3;
+    double alpha=h;
 
     // I have the forces for almost everything i just need the bead.
 

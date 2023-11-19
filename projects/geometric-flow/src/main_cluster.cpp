@@ -153,9 +153,11 @@ int main(int argc, char** argv) {
     // KB=std::stod(argv[2]);
     int Init_cond = std::stoi(argv[2]);
     Nsim = std::stoi(argv[3]);
+    KB=std::stod(argv[4]);
+    
     c0=0.0;
     KA=10.0;
-    KB=0.01;
+    // KB=0.01;
 
     // I will do it so i can give this values
  
