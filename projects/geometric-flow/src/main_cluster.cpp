@@ -155,7 +155,7 @@ int main(int argc, char** argv) {
     Nsim = std::stoi(argv[3]);
     c0=0.0;
     KA=10.0;
-    KB=0.005;
+    KB=0.01;
 
     // I will do it so i can give this values
  
