@@ -304,6 +304,8 @@ pre_folder='../Results/Mem3DG_Cell_Shape/'
 plt.axhline(nu,color='black',ls='dashed')
 plt.plot(data_1[0],data_1[1],color='purple',label='Prolate')
 plt.plot(data_2[0],data_2[1],color='magenta',label='Oblate')
+plt.legend()
+plt.xlim(0,np.min([data_1[0][-1],data_2[0][-1]]))
 plt.savefig(pre_folder+'Imgs/Reduced_vol_evol_nu_{}.jpg'.format(nu))
 
 
