@@ -112,10 +112,10 @@ void redraw() {
 
 
 
-void Save_mesh() {
+void Save_mesh(std::string basic_name, size_t current_t) {
    // Build member variables: mesh, geometry
     Vector3 Pos;
-    std::ofstream o("Mesh.obj");
+    std::ofstream o(basic_name+"Membrane_"+std::to_string(current_t)+".obj");
     o << "#This is a meshfile from a saved state\n" ;
 
     for(Vertex v : mesh->vertices()) {
@@ -264,11 +264,13 @@ void functionCallback() {
 int main(int argc, char** argv) {
 
     
-    nu=std::stod(argv[1]);
-    c0=std::stod(argv[2]);
-    KA=std::stod(argv[3]);
-    KB=std::stod(argv[4]);
-  
+    // nu=std::stod(argv[1]);
+    // c0=std::stod(argv[2]);
+    // KA=std::stod(argv[3]);
+    // KB=std::stod(argv[4]);
+    nu=0.0;
+    KA=10.0;
+    KB=0.0;
     // I will do it so i can give this values
  
     auto start = chrono::steady_clock::now();
@@ -282,7 +284,7 @@ int main(int argc, char** argv) {
     std::cout<< "Current path is " << argv[0];
 
     // std::string filepath = "../../../input/deformed_sphere_2.obj";
-    std::string filepath = "../../../input/Simple_cil_regular.obj";
+    std::string filepath = "../../../input/bunny.obj";
     // Load mesh
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
     mesh = mesh_uptr.release();
@@ -320,6 +322,7 @@ int main(int argc, char** argv) {
     // WFS = WillmoreFlowScho(mesh,geometry);
     M3DG = Mem3DG(mesh,geometry);
 
+
     // Add visualization options.
     psMesh->setSmoothShade(false);
     
@@ -351,15 +354,15 @@ int main(int argc, char** argv) {
     Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
     Min_rel_lengthstream << std::fixed << std::setprecision(2) <<Min_rel_length;
     
-    std::string first_dir="../Results/Mem3DG_IMG_serial/";
+    std::string first_dir="../Results/Bunny/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
-    first_dir="../Results/Mem3DG_IMG_serial/Curv_adap_"+Curv_adapstream.str()+"Min_rel_length_"+Min_rel_lengthstream.str();
-    status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    // first_dir="../Results/Mem3DG_IMG_serial/Curv_adap_"+Curv_adapstream.str()+"Min_rel_length_"+Min_rel_lengthstream.str();
+    // status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"\nIf this name is 0 the directory was created succesfully "<< status ;
     
-    std::string basic_name ="../Results/Mem3DG_IMG_serial/Curv_adap_"+Curv_adapstream.str()+"Min_rel_length_"+Min_rel_lengthstream.str()+ "/nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"/";
+    std::string basic_name ="../Results/Bunny/nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"/";
     status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     std::cout<<"\nIf this number is 0 the directory was created succesfully "<< status<<"\n" ;
 
@@ -382,7 +385,7 @@ int main(int argc, char** argv) {
     double nu_step;
 
     start = chrono::steady_clock::now();
-    for(size_t current_t=0;current_t<1000000;current_t++ ){
+    for(size_t current_t=0;current_t<10000;current_t++ ){
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
         if(true){
@@ -419,19 +422,19 @@ int main(int argc, char** argv) {
         
 
         
-        if(current_t%1000==0) {
+        if(current_t%10==0) {
             end=chrono::steady_clock::now();
             n_vert=mesh->nVertices();
             std::cout<< "THe number of vertices is "<< n_vert <<"\n";    
             std::cout<< "the avg edge lenghth is " <<geometry->meanEdgeLength()<<"\n";
             std::cout << "The avg edge length is = " << std::fixed << std::setprecision(10) << geometry->meanEdgeLength() << std::endl;
 
-            Volume= geometry->totalVolume();
-            Area=geometry->totalArea();
-            nu_obs=3*Volume/(4*PI*pow( Area/(4*PI) ,1.5 ));
-            H0=sqrt(4*PI/Area)*c0/2.0;
+            // Volume= geometry->totalVolume();
+            // Area=geometry->totalArea();
+            // nu_obs=3*Volume/(4*PI*pow( Area/(4*PI) ,1.5 ));
+            // H0=sqrt(4*PI/Area)*c0/2.0;
 
-
+            Save_mesh(basic_name,current_t);
 
             // c_null=2*H0 *pow(Area/(4*PI),0.5);
             std::cout<< "The reduced volume is "<< nu_obs << "\n";
@@ -440,28 +443,42 @@ int main(int argc, char** argv) {
                 // nu_= (nu-nu_0)/50;
             }
 
-            std::cout<< "The spontaneous curvature is " << H0<< "\n";
-            std::cout << "The system time is " << M3DG.system_time <<"\n\n";
+            // std::cout<< "The spontaneous curvature is " << H0<< "\n";
+            // std::cout << "The system time is " << M3DG.system_time <<"\n\n";
             
-            std::cout<<"A thousand iterations took "<<chrono::duration_cast<chrono::milliseconds>(end-start).count()<<" miliseconds\n";
+            std::cout<<"Ten iterations took "<<chrono::duration_cast<chrono::milliseconds>(end-start).count()<<" miliseconds\n";
 
 
-            polyscope::screenshot(basic_name+std::to_string(current_t)+".jpg",true);
+            // polyscope::screenshot(basic_name+std::to_string(current_t)+".jpg",true);
             start = chrono::steady_clock::now();
 
         }
-        nu_evol= time<50 ? nu_0 + (nu-nu_0)*time/50 : nu; 
+
+
+
+        // I just want to change this part.
+        double V = geometry->totalVolume();
+        double D_P=-P0*(V-V_bar)/V_bar/V_bar;
+        VertexData<Vector3> Surf_grad=M3DG.SurfaceGrad();
+        VertexData<Vector3> Volume_grad=M3DG.OsmoticPressure(D_P);
+
+        // Now i need to integrate 
+
+        geometry->inputVertexPositions+=1e-3*(KA*Surf_grad+Volume_grad);
+
+        time+=1e-3;
+        // nu_evol= time<50 ? nu_0 + (nu-nu_0)*time/50 : nu; 
         // nu_evol=nu;
-        bool Save_output_data=false;
-        dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save_output_data);
-        if(dt_sim==-1){
-            std::cout<<"Sim broke\n";
-            break;
-        }
-        else{
-            time+=dt_sim;
+        // bool Save_output_data=false;
+        // dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save_output_data);
+        // if(dt_sim==-1){
+            // std::cout<<"Sim broke\n";
+            // break;
+        // }
+        // else{
+            // time+=dt_sim;
             
-        }
+        // }
 
 
 
