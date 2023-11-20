@@ -256,8 +256,8 @@ def main_shape(Ini_cond):
     plt.title(r'Energy evolution',fontsize=22)
     plt.xlabel(r't',fontsize=20)
     plt.ylabel(r'E',fontsize=20)
-    plt.yscale('log')
-    plt.savefig(pre_folder+"/Imgs/Energy_nu_{}_init_cond_{}_log.jpg".format(nu,Ini_cond),bbox_inches='tight')
+    # plt.yscale('log')
+    plt.savefig(pre_folder+"/Imgs/Energy_nu_{}_init_cond_{}.jpg".format(nu,Ini_cond),bbox_inches='tight')
     plt.clf()
 
 
