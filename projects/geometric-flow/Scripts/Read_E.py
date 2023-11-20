@@ -256,8 +256,8 @@ def main_shape(Ini_cond):
     plt.title(r'Energy evolution',fontsize=22)
     plt.xlabel(r't',fontsize=20)
     plt.ylabel(r'E',fontsize=20)
-    # plt.yscale('log')
-    plt.savefig(pre_folder+"/Imgs/Energy_nu_{}_init_cond_{}.jpg".format(nu,Ini_cond),bbox_inches='tight')
+    plt.yscale('log')
+    plt.savefig(pre_folder+"/Imgs/Energy_nu_{}_init_cond_{}_log.jpg".format(nu,Ini_cond),bbox_inches='tight')
     plt.clf()
 
 
@@ -286,13 +286,23 @@ def main_shape(Ini_cond):
 
 
 
-
     Output_file.close()
 
+    return [time_evol,3*Volumes/(4*np.pi)/ ( Areas/(4*np.pi))**(3/2)]
 
 # for strg in [0.002, 0.6]:
 # for strg in [0.00001,0.0001,0.05, 0.0005, 0.1 ,1.0 ,5.0,20.0]:
     # main(strg)
 
-main_shape(1)
-main_shape(2)
+data_1=main_shape(1)
+data_2=main_shape(2)
+
+pre_folder='../Results/Mem3DG_Cell_Shape/'
+plt.axhline(nu,color='black',ls='dashed')
+plt.plot(data_1[0],data_1[1],color='purple',label='Prolate')
+plt.plot(data_2[0],data_2[1],color='magenta',label='Oblate')
+plt.savefig(pre_folder+'Imgs/Reduced_vol_evol_nu_{}.jpg'.format(nu))
+
+
+
+
