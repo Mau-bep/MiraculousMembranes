@@ -234,7 +234,7 @@ def main_shape(Ini_cond):
 
     plt.plot(time_evol,Bar_Areas,color='black',ls='dashed')
     plt.plot(time_evol,Areas,color='purple')
-    plt.axhline(A_bar,color='black',ls='dashed') 
+    # plt.axhline(A_bar,color='black',ls='dashed') 
     plt.title(r'Area evolution',fontsize=22)
     plt.xlabel(r't',fontsize=20)
     plt.ylabel(r'A',fontsize=20)
