@@ -179,7 +179,9 @@ int main(int argc, char** argv) {
     if(Init_cond==2){
         filepath = "../../../input/bloodcell.obj";
     }
-    
+    if(Init_cond==3){
+        filepath = "../../../input/Init_stomatocytes.obj";
+    }
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
     mesh = mesh_uptr.release();
     geometry = geometry_uptr.release();
