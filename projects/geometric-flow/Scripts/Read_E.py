@@ -196,7 +196,7 @@ def main_shape(Ini_cond):
     while line:
         # frame=counter*1000
         splitted_line=line.split(' ')
-        len(splitted_line)
+        print(len(splitted_line))
         if(len(splitted_line)<12):
             break
         time_evol.append(float(splitted_line[2]))
