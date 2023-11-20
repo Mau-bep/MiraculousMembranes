@@ -197,7 +197,7 @@ def main_shape(Ini_cond):
         # frame=counter*1000
         splitted_line=line.split(' ')
         print(len(splitted_line))
-        if(len(splitted_line)<12):
+        if(len(splitted_line)<11):
             break
         time_evol.append(float(splitted_line[2]))
         Volumes.append(float(splitted_line[3]))
