@@ -16,140 +16,140 @@ Initial_conds=[1,2]
 
 Nsim=1
 
-def main_bead(strg):
+# def main_bead(strg):
 
 
-    pre_folder='../Results/Mem3DG_Cell_Shape/'
-    dir='nu_{:.3f}_c0_0.000_KA_10.000_KB_{:.6f}_init_cond_{}_Nsim_{}'.format(nu,KB,Ini_cond,Nsim)
-        #   nu_1.000_c0_0.000_KA_10.000_KB_0.005000_init_cond_1_Nsim_2
-    dir_2='nu_{:.3f}_c0_0.000_KA_10.000_KB_{:.6f}_init_cond_{}_Nsim_{}'.format(nu,KB,Ini,Nsim)
+#     pre_folder='../Results/Mem3DG_Cell_Shape/'
+#     dir='nu_{:.3f}_c0_0.000_KA_10.000_KB_{:.6f}_init_cond_{}_Nsim_{}'.format(nu,KB,Ini_cond,Nsim)
+#         #   nu_1.000_c0_0.000_KA_10.000_KB_0.005000_init_cond_1_Nsim_2
+#     # dir_2='nu_{:.3f}_c0_0.000_KA_10.000_KB_{:.6f}_init_cond_{}_Nsim_{}'.format(nu,KB,Ini,Nsim)
     
-    folder_path= pre_folder+dir+'/'
+#     folder_path= pre_folder+dir+'/'
 
-    # Bead_path=folder_path+"Bead_data.txt"
-    Output_path=folder_path+"Output_data.txt"
-    # file_xyz = open(folder_path+'Bead_data.xyz','w')
+#     # Bead_path=folder_path+"Bead_data.txt"
+#     Output_path=folder_path+"Output_data.txt"
+#     # file_xyz = open(folder_path+'Bead_data.xyz','w')
 
-    # Bead_file = open(Bead_path)
-    Output_file= open(Output_path)
-    # line = Output_file.readline()
-    r = 1.0
+#     # Bead_file = open(Bead_path)
+#     Output_file= open(Output_path)
+#     # line = Output_file.readline()
+#     r = 1.0
 
-    counter=0
-    frame=0
-    line=Output_file.readline()
+#     counter=0
+#     frame=0
+#     line=Output_file.readline()
 
-    targ_vol=0.0
-    targ_area=0.0
-
-
-    # Sim_data << V_bar<<" "<< A_bar<<" "<< time <<" "<< V<<" " << A<<" " << E_Vol << " " << E_Sur << " " << E_Ben <<" " << E_bead << " "<< grad_norm<<" " << backtrackstep<< " "<< Bead_1.Pos.x << " "<< Bead_1.Pos.y << " "<< Bead_1.Pos.z <<" \n";
-
-    time_evol=[]
-    Volumes=[]
-    Areas=[]
-    E_vol=[]
-    E_sur=[]
-    E_ben=[]
-    E_bead=[]
-    grad_norm=[]
-    backtrackstep=[]
-    line=Output_file.readline()
-    print(line)
-    while line:
-        # frame=counter*1000
-        splitted_line=line.split(' ')
-        if(len(splitted_line)<13):
-            break
-        time_evol.append(float(splitted_line[2]))
-        Volumes.append(float(splitted_line[3]))
-        Areas.append(float(splitted_line[4]))
-        E_vol.append(float(splitted_line[5]))
-        E_sur.append(float(splitted_line[6]))
-        E_ben.append(float(splitted_line[7]))
-        E_bead.append(float(splitted_line[8]))
-        grad_norm.append(float(splitted_line[9]))
-        backtrackstep.append(float(splitted_line[10]))
-
-        line=Output_file.readline()
-
-    V_bar=float(splitted_line[0])
-    A_bar=float(splitted_line[1])
+#     targ_vol=0.0
+#     targ_area=0.0
 
 
-    # Ok so we have the data and its time to plot !
+#     # Sim_data << V_bar<<" "<< A_bar<<" "<< time <<" "<< V<<" " << A<<" " << E_Vol << " " << E_Sur << " " << E_Ben <<" " << E_bead << " "<< grad_norm<<" " << backtrackstep<< " "<< Bead_1.Pos.x << " "<< Bead_1.Pos.y << " "<< Bead_1.Pos.z <<" \n";
 
-    os.makedirs(pre_folder+"Imgs/",exist_ok=True)
+#     time_evol=[]
+#     Volumes=[]
+#     Areas=[]
+#     E_vol=[]
+#     E_sur=[]
+#     E_ben=[]
+#     E_bead=[]
+#     grad_norm=[]
+#     backtrackstep=[]
+#     line=Output_file.readline()
+#     print(line)
+#     while line:
+#         # frame=counter*1000
+#         splitted_line=line.split(' ')
+#         if(len(splitted_line)<13):
+#             break
+#         time_evol.append(float(splitted_line[2]))
+#         Volumes.append(float(splitted_line[3]))
+#         Areas.append(float(splitted_line[4]))
+#         E_vol.append(float(splitted_line[5]))
+#         E_sur.append(float(splitted_line[6]))
+#         E_ben.append(float(splitted_line[7]))
+#         E_bead.append(float(splitted_line[8]))
+#         grad_norm.append(float(splitted_line[9]))
+#         backtrackstep.append(float(splitted_line[10]))
+
+#         line=Output_file.readline()
+
+#     V_bar=float(splitted_line[0])
+#     A_bar=float(splitted_line[1])
+
+
+#     # Ok so we have the data and its time to plot !
+
+#     os.makedirs(pre_folder+"Imgs/",exist_ok=True)
     
 
-    plt.plot(time_evol,Volumes,color='purple')
-    plt.axhline(V_bar,color='black',ls='dashed') 
-    plt.title(r'Volume evolution',fontsize=22)
-    plt.xlabel(r't',fontsize=20)
-    plt.ylabel(r'V',fontsize=20)
-    plt.yscale('log')
-    plt.savefig(pre_folder+"/Imgs/Volume_str_{}.jpg".format(strg),bbox_inches='tight')
-    plt.clf()
+#     plt.plot(time_evol,Volumes,color='purple')
+#     plt.axhline(V_bar,color='black',ls='dashed') 
+#     plt.title(r'Volume evolution',fontsize=22)
+#     plt.xlabel(r't',fontsize=20)
+#     plt.ylabel(r'V',fontsize=20)
+#     plt.yscale('log')
+#     plt.savefig(pre_folder+"/Imgs/Volume_str_{}.jpg".format(strg),bbox_inches='tight')
+#     plt.clf()
 
 
 
-    plt.plot(time_evol,Areas,color='purple')
-    plt.axhline(A_bar,color='black',ls='dashed') 
-    plt.title(r'Area evolution',fontsize=22)
-    plt.xlabel(r't',fontsize=20)
-    plt.ylabel(r'A',fontsize=20)
-    plt.yscale('log')
-    plt.savefig(pre_folder+"/Imgs/Area_str_{}.jpg".format(strg),bbox_inches='tight')
-    plt.clf()
+#     plt.plot(time_evol,Areas,color='purple')
+#     plt.axhline(A_bar,color='black',ls='dashed') 
+#     plt.title(r'Area evolution',fontsize=22)
+#     plt.xlabel(r't',fontsize=20)
+#     plt.ylabel(r'A',fontsize=20)
+#     plt.yscale('log')
+#     plt.savefig(pre_folder+"/Imgs/Area_str_{}.jpg".format(strg),bbox_inches='tight')
+#     plt.clf()
 
 
-    E_vol=np.array(E_vol)
-    E_sur=np.array(E_sur)
-    E_ben=np.array(E_ben)
-    E_bead=np.array(E_bead)
+#     E_vol=np.array(E_vol)
+#     E_sur=np.array(E_sur)
+#     E_ben=np.array(E_ben)
+#     E_bead=np.array(E_bead)
 
-    plt.plot(time_evol,E_vol,color='cyan',label='volume')
-    plt.plot(time_evol,E_sur,color='green',label='surface',ls='dashed')
-    plt.plot(time_evol,E_ben,color='purple',label='bending')
-    plt.plot(time_evol,E_bead,color='red',label='bead')
-    plt.plot(time_evol,E_vol+E_sur+E_ben+E_bead,color='black',label='total')
-    # plt.axhline(V_bar,color='black',ls='dashed') 
-    plt.legend()
-    plt.title(r'Energy evolution',fontsize=22)
-    plt.xlabel(r't',fontsize=20)
-    plt.ylabel(r'E',fontsize=20)
-    # plt.yscale('log')
-    plt.savefig(pre_folder+"/Imgs/Energy_str_{}.jpg".format(strg),bbox_inches='tight')
-    plt.clf()
-
-
-
-    plt.scatter(time_evol,backtrackstep,color='purple')
-    # plt.axhline(A_bar,color='black',ls='dashed') 
-    plt.title(r'timestep evolution',fontsize=22)
-    plt.xlabel(r't',fontsize=20)
-    plt.ylabel(r'dt',fontsize=20)
-    plt.yscale('log')
-    plt.savefig(pre_folder+"/Imgs/Timestep_str_{}.jpg".format(strg),bbox_inches='tight')
-    plt.clf()
-
-
-    plt.scatter(time_evol,grad_norm,color='purple')
-    # plt.axhline(A_bar,color='black',ls='dashed') 
-    plt.title(r'gradient norm evolution',fontsize=22)
-    plt.xlabel(r't',fontsize=20)
-    plt.ylabel(r'D E',fontsize=20)
-    plt.yscale('log')
-    plt.savefig(pre_folder+"/Imgs/Gradient_norm_str_{}.jpg".format(strg),bbox_inches='tight')
-    plt.clf()
+#     plt.plot(time_evol,E_vol,color='cyan',label='volume')
+#     plt.plot(time_evol,E_sur,color='green',label='surface',ls='dashed')
+#     plt.plot(time_evol,E_ben,color='purple',label='bending')
+#     plt.plot(time_evol,E_bead,color='red',label='bead')
+#     plt.plot(time_evol,E_vol+E_sur+E_ben+E_bead,color='black',label='total')
+#     # plt.axhline(V_bar,color='black',ls='dashed') 
+#     plt.legend()
+#     plt.title(r'Energy evolution',fontsize=22)
+#     plt.xlabel(r't',fontsize=20)
+#     plt.ylabel(r'E',fontsize=20)
+#     # plt.yscale('log')
+#     plt.savefig(pre_folder+"/Imgs/Energy_str_{}.jpg".format(strg),bbox_inches='tight')
+#     plt.clf()
 
 
 
+#     plt.scatter(time_evol,backtrackstep,color='purple')
+#     # plt.axhline(A_bar,color='black',ls='dashed') 
+#     plt.title(r'timestep evolution',fontsize=22)
+#     plt.xlabel(r't',fontsize=20)
+#     plt.ylabel(r'dt',fontsize=20)
+#     plt.yscale('log')
+#     plt.savefig(pre_folder+"/Imgs/Timestep_str_{}.jpg".format(strg),bbox_inches='tight')
+#     plt.clf()
+
+
+#     plt.scatter(time_evol,grad_norm,color='purple')
+#     # plt.axhline(A_bar,color='black',ls='dashed') 
+#     plt.title(r'gradient norm evolution',fontsize=22)
+#     plt.xlabel(r't',fontsize=20)
+#     plt.ylabel(r'D E',fontsize=20)
+#     plt.yscale('log')
+#     plt.savefig(pre_folder+"/Imgs/Gradient_norm_str_{}.jpg".format(strg),bbox_inches='tight')
+#     plt.clf()
 
 
 
 
-    Output_file.close()
+
+
+
+#     Output_file.close()
 
 
 
@@ -185,6 +185,7 @@ def main_shape(Ini_cond):
 
     time_evol=[]
     Volumes=[]
+    Bar_Areas=[]
     Areas=[]
     E_vol=[]
     E_sur=[]
@@ -199,6 +200,7 @@ def main_shape(Ini_cond):
         # print(len(splitted_line))
         if(len(splitted_line)<11):
             break
+        Bar_Areas.append(float(splitted_line[1]))
         time_evol.append(float(splitted_line[2]))
         Volumes.append(float(splitted_line[3]))
         Areas.append(float(splitted_line[4]))
@@ -230,7 +232,7 @@ def main_shape(Ini_cond):
     plt.clf()
 
 
-
+    plt.plot(time_evol,Bar_Areas,color='black',ls='dashed')
     plt.plot(time_evol,Areas,color='purple')
     plt.axhline(A_bar,color='black',ls='dashed') 
     plt.title(r'Area evolution',fontsize=22)

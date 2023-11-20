@@ -32,7 +32,7 @@
 for Strg in 0.1 1.0
 do
     python Save_bead_to_obj.py ${Strg} 1 1
-    python Save_bead_to_obj.pu ${Strg} 2 1
+    python Save_bead_to_obj.py ${Strg} 2 1
 done
 #deactivate
 
