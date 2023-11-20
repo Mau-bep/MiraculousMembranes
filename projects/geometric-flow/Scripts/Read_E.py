@@ -55,6 +55,7 @@ def main_bead(strg):
     grad_norm=[]
     backtrackstep=[]
     line=Output_file.readline()
+    print(line)
     while line:
         # frame=counter*1000
         splitted_line=line.split(' ')
