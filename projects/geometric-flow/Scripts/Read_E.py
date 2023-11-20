@@ -283,7 +283,8 @@ def main_shape(Ini_cond):
 
 
 
-
+    Volumes=np.array(Volumes)
+    Areas=np.array(Areas)
 
 
     Output_file.close()
