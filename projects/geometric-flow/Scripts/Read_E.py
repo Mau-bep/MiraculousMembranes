@@ -6,11 +6,11 @@ import sys
 
 
 
-# nu=float(sys.argv[1])
+nu=float(sys.argv[1])
 # KB=float(sys.argv[2])
 # strg=float(sys.argv[3])
 
-nu=1.0
+# nu=1.0
 KB=0.005
 Initial_conds=[1,2]
 
