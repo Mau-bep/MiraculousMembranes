@@ -192,6 +192,7 @@ def main_shape(Ini_cond):
     E_bead=[]
     grad_norm=[]
     backtrackstep=[]
+    line=Output_file.readline()
     while line:
         # frame=counter*1000
         splitted_line=line.split(' ')
