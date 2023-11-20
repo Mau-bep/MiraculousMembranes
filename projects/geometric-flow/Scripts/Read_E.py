@@ -196,7 +196,7 @@ def main_shape(Ini_cond):
     while line:
         # frame=counter*1000
         splitted_line=line.split(' ')
-        print(len(splitted_line))
+        # print(len(splitted_line))
         if(len(splitted_line)<11):
             break
         time_evol.append(float(splitted_line[2]))
@@ -244,13 +244,13 @@ def main_shape(Ini_cond):
     E_vol=np.array(E_vol)
     E_sur=np.array(E_sur)
     E_ben=np.array(E_ben)
-    E_bead=np.array(E_bead)
+    # E_bead=np.array(E_bead)
 
     plt.plot(time_evol,E_vol,color='cyan',label='volume')
     plt.plot(time_evol,E_sur,color='green',label='surface',ls='dashed')
     plt.plot(time_evol,E_ben,color='purple',label='bending')
-    plt.plot(time_evol,E_bead,color='red',label='bead')
-    plt.plot(time_evol,E_vol+E_sur+E_ben+E_bead,color='black',label='total')
+    # plt.plot(time_evol,E_bead,color='red',label='bead')
+    plt.plot(time_evol,E_vol+E_sur+E_ben,color='black',label='total')
     # plt.axhline(V_bar,color='black',ls='dashed') 
     plt.legend()
     plt.title(r'Energy evolution',fontsize=22)
