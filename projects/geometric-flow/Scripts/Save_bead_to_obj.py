@@ -69,7 +69,7 @@ radius=0.5
 Center=np.array([0,0,0])
 
 
-pre_folder='../Results/Mem3DG_Bead_Reciprocal/nu_1.000_c0_0.000_KA_10.000_KB_0.005000_strength_{:.5f}_Init_cond_{}_Nsim_{}/'.format(strg,Init_cond,Nsim)
+pre_folder='../Results/Mem3DG_Bead_Reciprocal/nu_1.000_c0_0.000_KA_10.000_KB_0.005000_strength_{:.6f}_Init_cond_{}_Nsim_{}/'.format(strg,Init_cond,Nsim)
 
 Bead_orig_data=open(pre_folder+'Bead_data.txt')
 line_bead=Bead_orig_data.readline()
