@@ -67,7 +67,7 @@ float P0=10000.0;
 float KA=1.0000;
 float KB=0.0001;
 float Kd=0.0;
-double TS=0.0001;
+double TS=0.001;
 
 double Curv_adap=0.1;
 double Min_rel_length=0.5;
@@ -265,7 +265,6 @@ int main(int argc, char** argv) {
     std::ofstream Sim_data(filename);
     Sim_data<<"T_Volume T_Area time Volume Area E_vol E_sur E_bend grad_norm backtrackstep\n";
         
-    // Here i want to run my video
     size_t n_vert;
     size_t n_vert_old;
     size_t n_vert_new;
@@ -331,7 +330,7 @@ int main(int argc, char** argv) {
             Volume= geometry->totalVolume();
             Area=geometry->totalArea();
             nu_obs=3*Volume/(4*PI*pow( Area/(4*PI) ,1.5 ));
-            H0=sqrt(4*PI/Area)*c0/2.0;
+            // H0=sqrt(4*PI/Area)*c0/2.0;
 
 
 
@@ -341,17 +340,17 @@ int main(int argc, char** argv) {
                 nu_0=nu_obs;
             }
 
-            std::cout<< "The spontaneous curvature is " << H0<< "\n";
-            std::cout << "The system time is " << M3DG.system_time <<"\n\n";
+            // std::cout<< "The spontaneous curvature is " << H0<< "\n";
+            std::cout << "The system time is " << M3DG.system_time <<"\n";
             
-            std::cout<<"A thousand iterations took "<<chrono::duration_cast<chrono::milliseconds>(end-start).count()<<" miliseconds\n";
+            std::cout<<"A thousand iterations took "<<chrono::duration_cast<chrono::milliseconds>(end-start).count()<<" miliseconds\n\n\n";
 
 
             // polyscope::screenshot(basic_name+std::to_string(current_t)+".jpg",true);
             start = chrono::steady_clock::now();
 
         }
-        nu_evol= time<50 ? nu_0 + (nu-nu_0)*time/50 : nu; 
+        nu_evol= time<100 ? nu_0 + (nu-nu_0)*time/100 : nu; 
         
         dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save);
         if(Save==true)

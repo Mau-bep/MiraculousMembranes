@@ -75,16 +75,14 @@ VertexData<Vector3> Mem3DG::buildFlowOperator(double h, double V_bar, double nu,
     double V=geometry->totalVolume();
     double A_bar=4*PI*pow(3*V_bar/(4*PI*nu),2.0/3.0);
     double H_bar=sqrt(4*PI/A_bar)*c0/2.0; //Coment this with another comment
-    size_t index;
-    for(Vertex v : mesh->vertices()){
-      index=v.getIndex();
-      H_Vector_0[index]=geometry->scalarMeanCurvature(v)/geometry->barycentricDualArea(v);
-      dH_Vector[index]=(H_bar-H_Vector_0[index])/50.0;
+    
+    // size_t index;
+    // for(Vertex v : mesh->vertices()){
+    //   index=v.getIndex();
+    //   H_Vector_0[index]=geometry->scalarMeanCurvature(v)/geometry->barycentricDualArea(v);
+    //   dH_Vector[index]=(H_bar-H_Vector_0[index])/50.0;
 
-    }
-
-
-
+    // }
 
     double A=geometry->totalArea();
     double D_P=-P0*(V-V_bar)/V_bar/V_bar;
@@ -374,9 +372,7 @@ double Mem3DG::E_Pressure(double P0,double V, double V_bar) const {
 
 double Mem3DG::E_Surface(double KA,double A, double A_bar) const {
 
-
     // return 0.5*KA*A*A;
-  
     return 0.5*KA*(A-A_bar)*(A-A_bar)/A_bar;
 }
 
@@ -389,8 +385,6 @@ double Mem3DG::E_Bending(double H0,double KB) const{
     for(Vertex v : mesh->vertices()) {
         index=v.getIndex();
         // Scalar_MC.coeffRef(index)
-
-        
         H=abs(geometry->scalarMeanCurvature(v)/geometry->barycentricDualArea(v)-H0);
         Eb+=KB*H*H*geometry->barycentricDualArea(v);
         
@@ -549,9 +543,9 @@ return alpha;
 
 
 double Mem3DG::Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar) {
-double c1=5e-4;
+double c1=1e-4;
 double rho=0.7;
-double alpha=1e-2;
+double alpha=1e-3;
 double positionProjection = 0;
 double A=geometry->totalArea();
 double V=geometry->totalVolume();
@@ -617,13 +611,15 @@ if(std::isnan(E_Ben)){
     }
 
   if(std::isnan(NewE)){
+    std::cout<<"The energy got Nan\n";
+    
     alpha=-1.0;
     break;
   }
 
 
   alpha*=rho;
-  if(alpha<1e-8){
+  if(alpha<1e-9){
     std::cout<<"THe timestep got small so the simulation will end \n";
     alpha=-1.0;
     // continue;
@@ -698,8 +694,8 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
     // Vector<double> Total_force=buildFlowOperator(h,V_bar,nu,c0,P0,KA,KB,Kd);
     VertexData<Vector3> Force(*mesh);
     Force=buildFlowOperator(h,V_bar,nu,c0,P0,KA,KB,Kd);//+Bead_1.Gradient();
-    // VertexData<Vector3> Bead_force = Bead_1.Gradient();
-    VertexData<Vector3> Bead_force=Project_force(Bead_1.Gradient());
+    VertexData<Vector3> Bead_force = Bead_1.Gradient();
+    // VertexData<Vector3> Bead_force=Project_force(Bead_1.Gradient());
     Force+=Bead_force;
 
 
@@ -784,7 +780,6 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
     double lambda=KA*(A-A_bar )/A_bar;    
 
 
-
     double E_Vol=E_Pressure(D_P,V,V_bar);
     double E_Sur=E_Surface(KA,A,A_bar);
     double E_Ben=E_Bending(H_bar,KB);
@@ -793,6 +788,8 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
 
 
     backtrackstep=Backtracking(Force,D_P,V_bar,A_bar,KA,KB,H_bar);
+
+
     if(Save){
     Sim_data << V_bar<<" "<< A_bar<<" "<< time <<" "<< V<<" " << A<<" " << E_Vol << " " << E_Sur << " " << E_Ben << " "<< grad_norm<<" " << backtrackstep<<" \n";
     }
