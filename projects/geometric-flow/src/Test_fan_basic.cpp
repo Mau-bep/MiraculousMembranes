@@ -12,6 +12,9 @@
 #include <fstream>
 #include <string>
 
+
+# include <dirent.h>
+
 #include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/meshio.h"
 #include "geometrycentral/surface/vertex_position_geometry.h"
@@ -123,11 +126,13 @@ void Save_mesh(std::string basic_name, size_t current_t) {
 }
 
 
-
+// size_t get_init_state_index()
 
 int main(int argc, char** argv) {
 
-    
+
+
+
     nu=std::stod(argv[1]);
     c0=std::stod(argv[2]);
     KA=std::stod(argv[3]);
@@ -135,7 +140,50 @@ int main(int argc, char** argv) {
     
 
 
+    bool DoTest = false;
 
+
+
+
+
+    // std::string path = "/home/mrojasve/Documents/DDG/MiraculousMembranes/projects/geometric-flow/Results/Tests_cil_regular/Minus_sign_force";
+    DIR *dh;
+    struct dirent * contents; 
+    dh = opendir("/home/mrojasve/Documents/DDG/MiraculousMembranes/projects/geometric-flow/Results/Bunny/nu_0.000_c0_0.000_KA_10.000_KB_0.000000/");
+    int index_underscore;
+    int index_dot;
+    size_t max_index=0;
+    size_t current_index=0;
+    
+    if ( !dh )
+    {
+        std::cout << "The given directory is not found";
+        return 1;
+    }
+    while ( ( contents = readdir ( dh ) ) != NULL )
+    {
+        std::string name = contents->d_name;
+        // std::cout<<name.size()<<endl;
+        
+        if(name.size()>7 && name.find('t')>10){
+        index_underscore=name.find('_');
+        index_dot=name.find('.');
+        string str_index = name.substr(index_underscore+1,index_dot-index_underscore-1 );
+        std::cout << str_index << endl;
+        // I need to avoid the final state
+        current_index=stoi(str_index);
+        std::cout<<current_index<<endl;
+        if(current_index>max_index){
+            max_index=current_index;
+        }
+
+        // std::cout << name.substr(2) << endl;
+        }
+    }
+    std::cout<< "The biggest index is "<< max_index << endl;
+    closedir ( dh );
+    
+    if(DoTest){
 
 
     size_t target_index=120;
@@ -545,10 +593,11 @@ int main(int argc, char** argv) {
 
 
 
+    }
 
     delete mesh;
     delete geometry;
-
+    // return 1;
     return EXIT_SUCCESS;
 }
 

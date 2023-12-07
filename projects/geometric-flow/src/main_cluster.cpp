@@ -12,6 +12,10 @@
 #include <fstream>
 #include <string>
 
+
+# include <dirent.h>
+
+
 #include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/meshio.h"
 #include "geometrycentral/surface/vertex_position_geometry.h"
@@ -143,7 +147,52 @@ void Save_mesh(std::string basic_name, size_t current_t) {
     return ;
 }
 
+int Last_step(std::string base_dir){
 
+    DIR *dh;
+    struct dirent * contents;
+    dh = opendir(base_dir.c_str());
+
+    int index_underscore;
+    int index_dot;
+    string max_name;
+    size_t max_index=0;
+    size_t current_index=0;
+    
+    if ( !dh )
+    {
+        std::cout << "The given directory is not found";
+        return -1;
+    }
+    while ( ( contents = readdir ( dh ) ) != NULL )
+    {
+        std::string name = contents->d_name;
+        // std::cout<<name.size()<<endl;
+        
+        if(name.size()>7 && name.find('t')>10){
+        index_underscore=name.find('_');
+        index_dot=name.find('.');
+        string str_index = name.substr(index_underscore+1,index_dot-index_underscore-1 );
+        // std::cout << str_index << endl;
+        // I need to avoid the final state
+        current_index=stoi(str_index);
+        // std::cout<<current_index<<endl;
+        if(current_index>max_index){
+            max_index=current_index;
+            max_name= name;
+        }
+
+        // std::cout << name.substr(2) << endl;
+        }
+    }
+    std::cout<< "The biggest index is "<< max_index << endl;
+    closedir ( dh );
+    
+
+
+
+    return max_index;
+}
 
 
 int main(int argc, char** argv) {
@@ -155,6 +204,9 @@ int main(int argc, char** argv) {
     Nsim = std::stoi(argv[3]);
     KB=std::stod(argv[4]);
     
+
+
+    int init_step=0;
     c0=0.0;
     KA=10.0;
     // KB=0.01;
@@ -169,8 +221,57 @@ int main(int argc, char** argv) {
     TS=pow(10,-3);
 
 
+
+    std::stringstream nustream;
+    std::stringstream c0stream;
+    std::stringstream KAstream;
+    std::stringstream KBstream;
+    std::stringstream Curv_adapstream;
+    std::stringstream Min_rel_lengthstream;
+
+    nustream << std::fixed << std::setprecision(3) << nu;
+    c0stream << std::fixed << std::setprecision(3) << c0;
+    KAstream << std::fixed << std::setprecision(3) << KA;
+    KBstream << std::fixed << std::setprecision(6) << KB;
+
+
+    Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
+    Min_rel_lengthstream << std::fixed << std::setprecision(2) <<Min_rel_length;
+    
+    std::string first_dir="../Results/Mem3DG_Cell_Shape/";
+    int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
+
+    std::string basic_name=first_dir+"nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"_init_cond_"+std::to_string(Init_cond)+"_Nsim_"+std::to_string(Nsim)+"/";
+    status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    
+    std::cout<<"\nIf this number is 0 the directory was created succesfully "<< status<<"\n" ;
+
+
+
+
+    // Here we will decide if we want to import the previous mesh or we want to use the default initial conditions
+
+
+
+    bool Continue_sim=false;
+
+
+
     std::cout<< "Current path is " << argv[0];
     std::string filepath;
+    
+
+    if(Continue_sim){
+
+
+    init_step = Last_step(basic_name);
+    
+    filepath= "Membrane_"+std::to_string(init_step)+".obj";
+
+    }
+    else{
+
     // std::string filepath = "../../../input/sphere.obj";
     if(Init_cond==1){
         filepath = "../../../input/Simple_cil_regular.obj";
@@ -182,7 +283,12 @@ int main(int argc, char** argv) {
     if(Init_cond==3){
         filepath = "../../../input/Init_stomatocytes.obj";
     }
+    }
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
+    
+    
+    
+    
     mesh = mesh_uptr.release();
     geometry = geometry_uptr.release();
     
@@ -227,43 +333,20 @@ int main(int argc, char** argv) {
 
     // size_t counter=0;
     
-    std::stringstream nustream;
-    std::stringstream c0stream;
-    std::stringstream KAstream;
-    std::stringstream KBstream;
-    
-    
-    // std::stringstream H0stream;
-    // std::stringstream kappastream;
-    // std::stringstream sigmastream;
-    std::stringstream Curv_adapstream;
-    std::stringstream Min_rel_lengthstream;
 
-
-    nustream << std::fixed << std::setprecision(3) << nu;
-    c0stream << std::fixed << std::setprecision(3) << c0;
-    KAstream << std::fixed << std::setprecision(3) << KA;
-    KBstream << std::fixed << std::setprecision(6) << KB;
-
-
-
-    Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
-    Min_rel_lengthstream << std::fixed << std::setprecision(2) <<Min_rel_length;
-    
-    std::string first_dir="../Results/Mem3DG_Cell_Shape/";
-    int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
-
-    std::string basic_name=first_dir+"nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"_init_cond_"+std::to_string(Init_cond)+"_Nsim_"+std::to_string(Nsim)+"/";
-    status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    
-    std::cout<<"\nIf this number is 0 the directory was created succesfully "<< status<<"\n" ;
 
     std::string filename = basic_name+"Output_data.txt";
 
 
-    std::ofstream Sim_data(filename);
-    Sim_data<<"T_Volume T_Area time Volume Area E_vol E_sur E_bend grad_norm backtrackstep\n";
+    std::ofstream Sim_data;
+    if(Continue_sim){
+        Sim_data=std::ofstream(filename,std::ios_base::app);
+    }
+    else{
+        Sim_data=std::ofstream(filename);
+        Sim_data<<"T_Volume T_Area time Volume Area E_vol E_sur E_bend grad_norm backtrackstep\n";
+    
+    }
         
     size_t n_vert;
     size_t n_vert_old;

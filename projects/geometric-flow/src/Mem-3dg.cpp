@@ -736,8 +736,12 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
 
     // std::cout<<" The position of vertex 120 is "<<geometry->inputVertexPositions[120].x<<" "<<geometry->inputVertexPositions[120].y<< " "<<geometry->inputVertexPositions[120].z<<" \n"; 
 
-
+    if(system_time< 50){
+      backtrackstep=h;
+    }
+    else{
     backtrackstep=Backtracking(Force,D_P,V_bar,A_bar,KA,KB,H_bar,bead);
+    }
     // std::cout<<" The position of vertex 120 is "<<geometry->inputVertexPositions[120].x<<" "<<geometry->inputVertexPositions[120].y<< " "<<geometry->inputVertexPositions[120].z<<" \n";
     
         
@@ -786,9 +790,12 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
     double backtrackstep;
 
 
-
+    if(system_time< 50){
+      backtrackstep=h;
+    }
+    else{
     backtrackstep=Backtracking(Force,D_P,V_bar,A_bar,KA,KB,H_bar);
-
+    }
 
     if(Save){
     Sim_data << V_bar<<" "<< A_bar<<" "<< time <<" "<< V<<" " << A<<" " << E_Vol << " " << E_Sur << " " << E_Ben << " "<< grad_norm<<" " << backtrackstep<<" \n";
