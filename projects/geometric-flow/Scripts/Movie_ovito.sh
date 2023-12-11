@@ -34,7 +34,7 @@ for nu in 0.2 0.3 0.4 0.5 0.6 0.63 0.7 0.8 1.0
 # for Strg in 0.002 0.6 
 # foreach Strg (  )
 do
-for Init_cond in 1 2
+for Init_cond in 1 2 3
 do 
     python Movie_ovito.py ${nu} ${Init_cond} 1
 done 
