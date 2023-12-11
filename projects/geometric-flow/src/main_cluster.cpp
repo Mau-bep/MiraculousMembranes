@@ -209,7 +209,7 @@ int main(int argc, char** argv) {
     int init_step=0;
     c0=0.0;
     KA=10.0;
-    // KB=0.01;
+    // KB=0.001;
 
     // I will do it so i can give this values
  
@@ -362,7 +362,7 @@ int main(int argc, char** argv) {
     double dt_sim=0.0;
 
     start = chrono::steady_clock::now();
-    for(size_t current_t=0;current_t<8000000;current_t++ ){
+    for(size_t current_t=init_step;current_t<init_step + 8000000;current_t++ ){
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
         if(true){

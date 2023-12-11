@@ -18,7 +18,7 @@ import os
 v=float(sys.argv[1])
 # c0=float(sys.argv[2])
 # KA=float(sys.argv[3])
-# KB=float(sys.argv[4])
+KB=sys.argv[4]
 Init_cond=int(sys.argv[2])
 
 Nsim=int(sys.argv[3])
@@ -30,7 +30,7 @@ os.makedirs('../Outputs/',exist_ok=True)
 
 
 
-f=open('../Subjobs/subjob_serial_correct_v_{}_init_cond_{}_Nsim_{}'.format(v,Init_cond,Nsim),'w')
+f=open('../Subjobs/subjob_serial_correct_v_{}_KB_{}_init_cond_{}_Nsim_{}'.format(v,KB,Init_cond,Nsim),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')
@@ -42,7 +42,7 @@ f.write('#number of CPUs to be used\n')
 f.write('#SBATCH --ntasks=1\n')
 f.write('#Define the number of hours the job should run. \n')
 f.write('#Maximum runtime is limited to 10 days, ie. 240 hours\n')
-f.write('#SBATCH --time=60:00:00\n')
+f.write('#SBATCH --time=30:00:00\n')
 
 f.write('#\n')
 f.write('#Define the amount of system RAM used by your job in GigaBytes\n')
@@ -105,7 +105,7 @@ f.write('echo $PATH\n')
 # f.write("#printf ' \n'\n")
 
 
-f.write('srun time -v ../build/bin/main_cluster {} {} {}\n'.format(v,Init_cond,Nsim))
+f.write('srun time -v ../build/bin/main_cluster {} {} {} {}\n'.format(v,Init_cond,Nsim,KB))
 
 
 
