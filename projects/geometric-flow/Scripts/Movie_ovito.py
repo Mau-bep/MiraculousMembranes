@@ -20,7 +20,7 @@ Nsim=int(sys.argv[3])
 dir='nu_{:.3f}_c0_0.000_KA_10.000_KB_0.005000_init_cond_{}_Nsim_{}'.format(nu,Init_cond,Nsim)
 # nu_0.200_c0_0.000_KA_10.000_KB_0.005000_init_cond_2_Nsim_1
 
-pipeline = import_file('/nfs/scistore16/wojtgrp/mrojasve/MiraculousMembranes/projects/geometric-flow/Results/Mem3DG_Cell_Shape/'+dir+'/*.obj')
+pipeline = import_file('/nfs/scistore16/wojtgrp/mrojasve/MiraculousMembranes/projects/geometric-flow/Results/Mem3DG_Cell_Shape/'+dir+'/Membrane_*.obj')
 # pipeline = import_file('/nfs/scistore16/wojtgrp/mrojasve/')
 # Manual modifications of the imported data objects:
 def modify_pipeline_input(frame: int, data: DataCollection):
