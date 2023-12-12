@@ -620,10 +620,17 @@ if(std::isnan(E_Ben)){
 
   alpha*=rho;
   if(alpha<1e-9){
-    std::cout<<"THe timestep got small so the simulation will end \n";
+    std::cout<<"THe timestep got small\n";
+    if(system_time<50){
+      std::cout<<"But the area evolution is not complete yet\n";
+      break;
+    }
+    else{
+    std::cout<<"THe simulation will stop\n";
     alpha=-1.0;
     // continue;
     break;
+    }
   }
   for(Vertex vi : mesh->vertices()){
     geometry->inputVertexPositions[vi.getIndex()]= initial_pos[vi.getIndex()]+alpha*Force[vi.getIndex()];
@@ -790,12 +797,12 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
     double backtrackstep;
 
 
-    if(system_time< 50){
-      backtrackstep=h;
-    }
-    else{
+    // if(system_time< 50){
+    //   backtrackstep=h;
+    // }
+    // else{
     backtrackstep=Backtracking(Force,D_P,V_bar,A_bar,KA,KB,H_bar);
-    }
+    // }
 
     if(Save){
     Sim_data << V_bar<<" "<< A_bar<<" "<< time <<" "<< V<<" " << A<<" " << E_Vol << " " << E_Sur << " " << E_Ben << " "<< grad_norm<<" " << backtrackstep<<" \n";

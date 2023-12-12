@@ -224,7 +224,7 @@ int main(int argc, char** argv) {
     auto start = chrono::steady_clock::now();
     auto end = chrono::steady_clock::now();
     
-    bool with_bead=true;
+    bool with_bead=false;
 
     bool Save_data=false;
     TS=pow(10,-3);
@@ -232,11 +232,16 @@ int main(int argc, char** argv) {
 
     std::cout<< "Current path is " << argv[0]<<"\n";
 
-    // std::string filepath = "../../../input/Simple_cil_regular.obj";
-    std::string filepath = "../../../input/sphere.obj";
+    // std::string filepath = "../../../input/sphere.obj";
+    // std::string filepath = "../../../input/bloodcell_4k.obj";
+    std::string filepath = "../../../input/Simple_cil_regular.obj";
+    
+    // std::string filepath = "../../../input/bloodcell.obj";
     // std::string filepath = "../input/sphere.obj"; //this is for debug
     
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
+    std::cout<<"The mesh is correctly loaded\n";
+    
     mesh = mesh_uptr.release();
     geometry = geometry_uptr.release();
     
@@ -294,8 +299,12 @@ int main(int argc, char** argv) {
 
     Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
     Min_rel_lengthstream << std::fixed << std::setprecision(2) <<Min_rel_length;
-    
-    std::string first_dir="../Results/Tests_bead/";
+    std::string basic_name;
+    std::string first_dir;
+
+    if(with_bead){
+
+    first_dir="../Results/Tests_bead/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
@@ -303,9 +312,24 @@ int main(int argc, char** argv) {
     // status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"\nIf this name is 0 the directory was created succesfully "<< status ;
     
-    std::string basic_name ="../Results/Tests_bead/nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"/";
+    basic_name ="../Results/Tests_bead/nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"/";
     status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"\nIf this number is 0 the directory was created succesfully "<< status<<"\n" ;
+    }
+    else{
+
+    first_dir="../Results/Tests_general/";
+    int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
+
+    // first_dir="./Tests/";
+    // status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    // std::cout<<"\nIf this name is 0 the directory was created succesfully "<< status ;
+    
+    basic_name ="../Results/Tests_general/nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"/";
+    status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        
+    }
 
     std::string filename_basic = basic_name+"Output_data.txt";
 
@@ -345,11 +369,15 @@ int main(int argc, char** argv) {
     std::ofstream Gradient_data_area;
     std::ofstream Gradient_data_bending;
     std::ofstream Gradient_data_bending_norms;
-    std::ofstream Gradient_data_bead;
     std::ofstream Gradient_data_tot_area;
 
-    std::ofstream Gradient_data_bead_dx;
     std::string filename;
+
+    if(with_bead){
+    std::ofstream Gradient_data_bead;
+
+    std::ofstream Gradient_data_bead_dx;
+    
 
 
     filename = basic_name+"Bead_Gradient_evaluation_dx_"+std::to_string(0) + ".txt";
@@ -359,7 +387,7 @@ int main(int argc, char** argv) {
 
     Gradient_data_bead_dx.close();
 
-
+    }
 
 
     // Since this is the test secion, i want to check something
@@ -381,7 +409,7 @@ int main(int argc, char** argv) {
     else{
     Sim_data.open(filename_basic,std::ios_base::app);
     }
-
+   
     if(true){
         // if(current_t%10==0 ){
         n_vert_old=mesh->nVertices();
@@ -405,44 +433,48 @@ int main(int argc, char** argv) {
         }
         }
 
-    if(current_t%100==0){
-            Save_mesh(basic_name,current_t);
-            Save_bead_data=true;
-        }
 
+    if(current_t%100==0){
+
+            Save_mesh(basic_name,current_t);
+            if(with_bead)
+            {
+                Save_bead_data=false;
+            }
+        }
     
     if(current_t%200==0){
-        // filename = basic_name+"Vol_Gradient_evaluation_"+std::to_string(current_t) + ".txt";
-        // // std::ofstream Gradient_data(filename);
-        // Gradient_data.open(filename);
-        // // std::ofstream o(basic_name+std::to_string(current_t)+".obj");
-        // Gradient_data<< "Volume grad\n";
-        // M3DG.Grad_Vol(Gradient_data,P0,V_bar,true);
+        filename = basic_name+"Vol_Gradient_evaluation_"+std::to_string(current_t) + ".txt";
+        // std::ofstream Gradient_data(filename);
+        Gradient_data.open(filename);
+        // std::ofstream o(basic_name+std::to_string(current_t)+".obj");
+        Gradient_data<< "Volume grad\n";
+        M3DG.Grad_Vol(Gradient_data,P0,V_bar,true);
 
-        // Gradient_data.close();
-        // double A_bar=4*PI*pow(3*V_bar/(4*PI*nu_evol),2.0/3.0);
+        Gradient_data.close();
+        double A_bar=4*PI*pow(3*V_bar/(4*PI*nu_evol),2.0/3.0);
 
-        // filename = basic_name+"Area_Gradient_evaluation_"+std::to_string(current_t) + ".txt";
-        // Gradient_data_area.open(filename);
-        // Gradient_data_area<< "Area grad\n";
-        // M3DG.Grad_Area(Gradient_data_area,A_bar,KA,true);
+        filename = basic_name+"Area_Gradient_evaluation_"+std::to_string(current_t) + ".txt";
+        Gradient_data_area.open(filename);
+        Gradient_data_area<< "Area grad\n";
+        M3DG.Grad_Area(Gradient_data_area,A_bar,KA,true);
 
-        // Gradient_data_area.close();
+        Gradient_data_area.close();
 
-        // filename = basic_name+"Bending_Gradient_evaluation_"+std::to_string(current_t) + ".txt";
-        // Gradient_data_bending.open(filename);
-        // Gradient_data_bending<< "Bending grad\n";
+        filename = basic_name+"Bending_Gradient_evaluation_"+std::to_string(current_t) + ".txt";
+        Gradient_data_bending.open(filename);
+        Gradient_data_bending<< "Bending grad\n";
+        double H_bar=sqrt(4*PI/A_bar)*c0/2.0;
+        M3DG.Grad_Bending(Gradient_data_bending,H_bar,KB,true);
+        Gradient_data_bending.close();
+
+
+        filename = basic_name+"Bending_Gradient_evaluation_2_"+std::to_string(current_t) + ".txt";
+        Gradient_data_bending_norms.open(filename);
+        Gradient_data_bending_norms<< "Bending grad norm diff\n";
         // double H_bar=sqrt(4*PI/A_bar)*c0/2.0;
-        // M3DG.Grad_Bending(Gradient_data_bending,H_bar,KB,true);
-        // Gradient_data_bending.close();
-
-
-        // filename = basic_name+"Bending_Gradient_evaluation_2_"+std::to_string(current_t) + ".txt";
-        // Gradient_data_bending_norms.open(filename);
-        // Gradient_data_bending_norms<< "Bending grad norm diff\n";
-        // // double H_bar=sqrt(4*PI/A_bar)*c0/2.0;
-        // M3DG.Grad_Bending_2(Gradient_data_bending_norms,H_bar,KB);
-        // Gradient_data_bending_norms.close();
+        M3DG.Grad_Bending_2(Gradient_data_bending_norms,H_bar,KB);
+        Gradient_data_bending_norms.close();
         
 
 
@@ -453,12 +485,12 @@ int main(int argc, char** argv) {
         Gradient_data_tot_area.close();
 
 
-        filename = basic_name+"Bead_Gradient_evaluation_"+std::to_string(current_t) + ".txt";
-        Gradient_data_bead.open(filename);
-        Gradient_data_bead<< "Bead grad\n";
-        // double H_bar=sqrt(4*PI/A_bar)*c0/2.0;
-        M3DG.Grad_Bead(Gradient_data_bead,true,false);
-        Gradient_data_bead.close();
+        // filename = basic_name+"Bead_Gradient_evaluation_"+std::to_string(current_t) + ".txt";
+        // Gradient_data_bead.open(filename);
+        // Gradient_data_bead<< "Bead grad\n";
+        // // double H_bar=sqrt(4*PI/A_bar)*c0/2.0;
+        // M3DG.Grad_Bead(Gradient_data_bead,true,false);
+        // Gradient_data_bead.close();
 
 
         Volume= geometry->totalVolume();
