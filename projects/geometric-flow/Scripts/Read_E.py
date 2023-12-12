@@ -306,11 +306,11 @@ data_3=main_shape(3)
 pre_folder='../Results/Mem3DG_Cell_Shape/'
 plt.axhline(nu,color='black',ls='dashed')
 plt.plot(data_1[0],data_1[1],color=(255/256,51/256,109/256),label='Prolate')
-plt.plot(data_2[0],data_2[1],color=(255/256,166/256,48/256),label='Oblate')
+plt.plot(data_2[0],data_2[1],color=(123/256,40/256,125/256),label='Oblate')
 plt.plot(data_3[0],data_3[1],color=(255/256,166/256,48/256),label='Stomatocyte')
 
 plt.axhline(data_1[1][-1],ls='dashed',color=(255/256,51/256,109/256))
-plt.axhline(data_2[1][-1],ls='dashed',color=(255/256,166/256,48/256))
+plt.axhline(data_2[1][-1],ls='dashed',color=(123/256,40/256,125/256))
 plt.axhline(data_3[1][-1],ls='dashed',color=(255/256,166/256,48/256))
 plt.legend()
 # plt.xlim(0,np.min([data_1[0][-1],data_2[0][-1]]))
