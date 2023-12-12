@@ -210,11 +210,13 @@ def main_shape(Ini_cond):
         # E_bead.append(float(splitted_line[8]))
         grad_norm.append(float(splitted_line[8]))
         backtrackstep.append(float(splitted_line[9]))
-
+        
+        V_bar=float(splitted_line[0])
+        A_bar=float(splitted_line[1])
+        
         line=Output_file.readline()
 
-    V_bar=float(splitted_line[0])
-    A_bar=float(splitted_line[1])
+    
 
 
     # Ok so we have the data and its time to plot !
