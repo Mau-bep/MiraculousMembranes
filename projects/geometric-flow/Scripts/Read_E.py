@@ -255,6 +255,7 @@ def main_shape(Ini_cond):
     plt.plot(time_evol,E_vol+E_sur+E_ben,color='black',label='total')
     # plt.axhline(V_bar,color='black',ls='dashed') 
     plt.legend()
+    plt.ylim(0,0.25)
     plt.title(r'Energy evolution',fontsize=22)
     plt.xlabel(r't',fontsize=20)
     plt.ylabel(r'E',fontsize=20)
@@ -299,13 +300,18 @@ def main_shape(Ini_cond):
 
 data_1=main_shape(1)
 data_2=main_shape(2)
-
+data_3=main_shape(3)
 pre_folder='../Results/Mem3DG_Cell_Shape/'
 plt.axhline(nu,color='black',ls='dashed')
-plt.plot(data_1[0],data_1[1],color='purple',label='Prolate')
-plt.plot(data_2[0],data_2[1],color='magenta',label='Oblate')
+plt.plot(data_1[0],data_1[1],color=(255/256,51/256,109/256),label='Prolate')
+plt.plot(data_2[0],data_2[1],color=(255/256,166/256,48/256),label='Oblate')
+plt.plot(data_3[0],data_3[1],color=(255/256,166/256,48/256),label='Stomatocyte')
+
+plt.axhline(data_1[1][-1],ls='dashed',color=(255/256,51/256,109/256))
+plt.axhline(data_2[1][-1],ls='dashed',color=(255/256,166/256,48/256))
+plt.axhline(data_3[1][-1],ls='dashed',color=(255/256,166/256,48/256))
 plt.legend()
-plt.xlim(0,np.min([data_1[0][-1],data_2[0][-1]]))
+# plt.xlim(0,np.min([data_1[0][-1],data_2[0][-1]]))
 plt.savefig(pre_folder+'Imgs/Reduced_vol_evol_nu_{}.jpg'.format(nu))
 
 
