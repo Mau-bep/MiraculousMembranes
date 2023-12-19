@@ -26,6 +26,7 @@ Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo)
     system_time=0.0;
     grad_norm=0.0;
     is_test=false;
+    pulling=false;
 
 }
 Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, Bead input_Bead) {
@@ -43,6 +44,7 @@ Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,
     grad_norm=0.0;
     is_test=false;
     Bead_1=input_Bead;
+    pulling=false;
 }
 
 
@@ -61,7 +63,7 @@ Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,
     system_time=0.0;
     grad_norm=0.0;
     is_test=test;
-
+    pulling=false;
 }
 /* 
  * Build the mean curvature flow operator.
@@ -632,10 +634,10 @@ if(std::isnan(E_Ben)){
     break;
     }
   }
-  for(Vertex vi : mesh->vertices()){
-    geometry->inputVertexPositions[vi.getIndex()]= initial_pos[vi.getIndex()]+alpha*Force[vi.getIndex()];
-  }
-
+  // for(Vertex vi : mesh->vertices()){
+  //   geometry->inputVertexPositions[vi.getIndex()]= initial_pos[vi.getIndex()]+alpha*Force[vi.getIndex()];
+  // }
+  geometry->inputVertexPositions = initial_pos+alpha*Force;
   geometry->refreshQuantities();  
   // std::cout<<"THe old energy is "<< previousE <<"\n";
   // std::cout<<"Alpha is "<< alpha<<"and the new energy is"<< NewE << "\n";
@@ -643,6 +645,7 @@ if(std::isnan(E_Ben)){
   // // std::cout<<"THe energy changed to"<<NewE<<"\n";
   // std::cout<< "Volume E"<<E_Vol <<"Surface E" << E_Sur <<"\n";
 
+  
 
  
   
@@ -661,9 +664,11 @@ if(std::isnan(E_Ben)){
 
 
 }
-
-
-
+  if(pulling){
+  VertexData<Vector3> Horizontal_pull(*mesh,Vector3({1.0,0.0,0.0}));
+  geometry->inputVertexPositions+=alpha*pulling_force*No_remesh_list_v*Horizontal_pull;
+  geometry->refreshQuantities();
+  }
 return alpha;
 
 }
@@ -772,7 +777,21 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
     // Vector<double> Total_force=buildFlowOperator(h,V_bar,nu,c0,P0,KA,KB,Kd);
     VertexData<Vector3> Force(*mesh);
     Force=buildFlowOperator(h,V_bar,nu,c0,P0,KA,KB,Kd);
-  
+    // HeRE I SHOULD MASK THE OPERATOR
+    // Force=Force*( abs(1-No_remesh_list_v));
+    if(pulling){
+    for (Vertex v : mesh->vertices()){
+      if(No_remesh_list_v[v]==1){
+        Force[v]-=Force[v];
+      }
+      // else{
+      //   std::cout<<"This should be nonzero "<< Force[v]<<"\n";
+      // }
+    }
+    }
+    // SO the force will not modify the vert
+
+
     // This force is the gradient basically
     double alpha=1e-3;
 
@@ -823,6 +842,10 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
   
   return backtrackstep;
 }
+
+
+
+
 
 
 

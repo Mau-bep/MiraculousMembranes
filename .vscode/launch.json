@@ -6,8 +6,8 @@
             "type": "cppdbg",
             "request": "launch",
             // Resolved by CMake Tools:
-            "program": "${workspaceFolder}/build/bin/Test_fan",
-            "args": ["1.0","0.0","1.0","1.0"],
+            "program": "${workspaceFolder}/build/bin/Grad_test_th",
+            "args": ["1.0","0.0","10.0","0.005"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build/",
             "environment": [

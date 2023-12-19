@@ -102,7 +102,12 @@ set(SRCSclusterbeads
  ../../utils/src/colormap.cpp
 )
 
-
+set(SRCSclusterpulling 
+  src/main_cluster_pulling.cpp  
+  src/Mem-3dg.cpp
+    src/Beads.cpp
+  ../../utils/src/colormap.cpp
+)
 
 
 # set(WindowSRCS 
@@ -193,6 +198,13 @@ target_include_directories(main_cluster_beads PUBLIC "${CMAKE_CURRENT_SOURCE_DIR
 target_include_directories(main_cluster_beads PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
 target_link_libraries(main_cluster_beads PUBLIC geometry-central polyscope)
 
+add_executable(main_cluster_pulling "${SRCSclusterpulling}")
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT main_cluster_pulling)
+target_include_directories(main_cluster_pulling PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+target_include_directories(main_cluster_pulling PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
+# add the args.hxx project which we use for command line args
+target_include_directories(main_cluster_pulling PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
+target_link_libraries(main_cluster_pulling PUBLIC geometry-central polyscope)
 
 
 # add_executable(mainbunny "${SRCSfun}")

@@ -381,9 +381,22 @@ bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, 
   // queues of edges to CHECK to change
   std::vector<Edge> toSplit;
   std::vector<Edge> toCollapse;
-
+  // std::cout<<"The remesher is being called\n";
   for (Edge e : mesh.edges()) {
-    toSplit.push_back(e);
+    if(options.remesh_list){
+        if(options.No_remesh_list[e]==0){
+          toSplit.push_back(e);
+          
+        }
+        // else{
+        //   std::cout<<"This is only for the edge that is not remeshed\n";
+        // }
+    }
+    else{
+      toSplit.push_back(e);
+    }
+
+    
   }
 
   // actually splitting

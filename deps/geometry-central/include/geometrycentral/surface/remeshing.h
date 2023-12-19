@@ -21,9 +21,11 @@ struct RemeshOptions {
                                    // to 0 if you want lengths to be approximately targetEdgeLength everywhere
   double minRelativeLength = 0.05; // the minimum possible edge length allowed in the output mesh. Defined relative to
                                    // targetEdgeLength
+  bool remesh_list=false;
+  EdgeData<int> No_remesh_list;
   RemeshSmoothStyle smoothStyle = RemeshSmoothStyle::Circumcentric; // smoothing function to use
   RemeshBoundaryCondition boundaryCondition =
-      RemeshBoundaryCondition::Tangential; // allowed movement of boundary vertices
+  RemeshBoundaryCondition::Tangential; // allowed movement of boundary vertices
 };
 extern const RemeshOptions defaultRemeshOptions;
 

@@ -1793,6 +1793,7 @@ void SurfaceMesh::compressHalfedges() {
 void SurfaceMesh::compressEdges() {
 
   if (usesImplicitTwin()) {
+    // std::cout<<"Uses implicit twin\n";
     // In the implicit-twin case, all updates are handled in the halfedge function (see note there)
     return;
   }

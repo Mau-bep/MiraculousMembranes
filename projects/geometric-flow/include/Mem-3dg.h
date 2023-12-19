@@ -21,6 +21,10 @@ class Mem3DG {
     VertexData<double> H_Vector_0;
     VertexData<double> dH_Vector;
     Bead Bead_1;
+
+    // EdgeData<int> No_remesh_list;
+    VertexData<int> No_remesh_list_v;
+
     // VertexData<Vector3> PrevForce;
     // Vector<double> Delta_x;
     // Vector<double> Delta_y;
@@ -34,6 +38,9 @@ class Mem3DG {
     double system_time;
     double grad_norm;
     bool is_test;
+    bool pulling;
+    double pulling_force;
+    // double pulling_offset;
     // constructors
     Mem3DG() {};
     Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo);

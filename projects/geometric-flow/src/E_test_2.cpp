@@ -232,9 +232,9 @@ int main(int argc, char** argv) {
 
     std::cout<< "Current path is " << argv[0]<<"\n";
 
-    // std::string filepath = "../../../input/sphere.obj";
+    std::string filepath = "../../../input/sphere.obj";
     // std::string filepath = "../../../input/bloodcell_4k.obj";
-    std::string filepath = "../../../input/Simple_cil_regular.obj";
+    // std::string filepath = "../../../input/Simple_cil_regular.obj";
     
     // std::string filepath = "../../../input/bloodcell.obj";
     // std::string filepath = "../input/sphere.obj"; //this is for debug
@@ -242,35 +242,27 @@ int main(int argc, char** argv) {
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
     std::cout<<"The mesh is correctly loaded\n";
     
+
+
+
     mesh = mesh_uptr.release();
     geometry = geometry_uptr.release();
     
     trgt_len=geometry->meanEdgeLength();
     V_bar=geometry->totalVolume();
-    // polyscope::options::autocenterStructures = true;
-
-    // Initialize polyscope
-    // polyscope::init();
-
-    // Set the callback function
-    // polyscope::state::userCallback = functionCallback;
-
-    // Add mesh to GUI
-    // psMesh = polyscope::registerSurfaceMesh(polyscope::guessNiceNameFromPath(filepath), geometry->inputVertexPositions,
-    //                                         mesh->getFaceVertexList(), polyscopePermutations(*mesh));
-    // psMesh->setSurfaceColor({0.9607, 0.6627, 0.7215});    
-
     
-    // Initialize operators.
-    // flipZ();
-    
+    EdgeData<int> No_remesh(*mesh,0);
+    No_remesh[0]=1;
+
+
+
 
     ORIG_VPOS = geometry->inputVertexPositions;
     CoM = geometry->centerOfMass();
     double radius=1.0;
     double Interaction_str=1.0;
     Bead_1 = Bead(mesh,geometry,Vector3({5.8,0.0,0.0}),radius,Interaction_str);
-    // M3DG = Mem3DG(mesh,geometry);
+    
     M3DG = Mem3DG(mesh,geometry,Bead_1);
 
 
@@ -395,13 +387,24 @@ int main(int argc, char** argv) {
     double Total_A_dual_bar=0;
     double Total_A_dual_circ=0;
     Total_A=geometry->totalArea();
+    double max_x=0;
+    double max_y=0;
+    // double 
     for( Vertex v : mesh->vertices()){
+        if(max_x<geometry->inputVertexPositions[v].x){
+            max_x=geometry->inputVertexPositions[v].x;
+        }    
         Total_A_dual_bar+=geometry->barycentricDualArea(v);
         Total_A_dual_circ+=geometry->circumcentricDualArea(v);
     }
 
     std::cout<<"THe areas a are: Total "<<Total_A <<" Barycentric "<< Total_A_dual_bar <<" and Circumcentric "<< Total_A_dual_circ <<" \n";
     
+    Volume=geometry->totalVolume();
+    std::cout<<"The radius (according to area) is " << sqrt(Total_A/(4*PI))<<"\n";
+    std::cout<<"THe radius (according to volume) is" << pow(  3*Volume/(4*PI)   ,1.0/3.0)<<"\n"; 
+    std::cout<<"THe maximum x coordinate is "<< max_x <<"\n";
+
     for(size_t current_t=0; current_t <1000;current_t++){
     if(current_t==0){
     Sim_data.open(filename_basic);
@@ -426,6 +429,8 @@ int main(int argc, char** argv) {
         Options.minRelativeLength=Min_rel_length;
         Options.smoothStyle=RemeshSmoothStyle::Circumcentric;
         Options.boundaryCondition=RemeshBoundaryCondition::Tangential;
+        Options.remesh_list=true;
+        Options.No_remesh_list=No_remesh;
         MutationManager Mutation_manager(*mesh,*geometry);
         remesh(*mesh,*geometry,Mutation_manager,Options);
         n_vert_new=mesh->nVertices();
@@ -433,6 +438,9 @@ int main(int argc, char** argv) {
         }
         }
 
+        n_vert=mesh->nVertices();
+        std::cout<< "THe number of vertices is "<< n_vert <<"\n";    
+        std::cout << "The avg edge length is = " << std::fixed << std::setprecision(10) << geometry->meanEdgeLength() << std::endl;
 
     if(current_t%100==0){
 

@@ -204,7 +204,8 @@ int main(int argc, char** argv) {
     Nsim = std::stoi(argv[3]);
     KB=std::stod(argv[4]);
     
-
+    double pulling_offset=0.1;
+    double pulling_constant=0.02;
 
     int init_step=0;
     c0=0.0;
@@ -228,21 +229,23 @@ int main(int argc, char** argv) {
     std::stringstream KBstream;
     std::stringstream Curv_adapstream;
     std::stringstream Min_rel_lengthstream;
+    std::stringstream pulling_force_stream;
 
     nustream << std::fixed << std::setprecision(3) << nu;
     c0stream << std::fixed << std::setprecision(3) << c0;
     KAstream << std::fixed << std::setprecision(3) << KA;
     KBstream << std::fixed << std::setprecision(6) << KB;
 
+    pulling_force_stream << std::fixed << std::setprecision(3) << pulling_constant;
 
     Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
     Min_rel_lengthstream << std::fixed << std::setprecision(2) <<Min_rel_length;
     
-    std::string first_dir="../Results/Mem3DG_Cell_Shape/";
+    std::string first_dir="../Results/Mem3DG_pulling/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
-    std::string basic_name=first_dir+"nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"_init_cond_"+std::to_string(Init_cond)+"_Nsim_"+std::to_string(Nsim)+"/";
+    std::string basic_name=first_dir+"nu_"+nustream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"_pulling_force_"+pulling_force_stream.str()+"_init_cond_"+std::to_string(Init_cond)+"_Nsim_"+std::to_string(Nsim)+"/";
     status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     
     std::cout<<"\nIf this number is 0 the directory was created succesfully "<< status<<"\n" ;
@@ -283,6 +286,10 @@ int main(int argc, char** argv) {
     if(Init_cond==3){
         filepath = "../../../input/Init_stomatocytes.obj";
     }
+    if(Init_cond==4){
+        filepath = "../../../input/sphere.obj";
+    }
+
     }
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
     
@@ -308,31 +315,41 @@ int main(int argc, char** argv) {
     //                                         mesh->getFaceVertexList(), polyscopePermutations(*mesh));
     // psMesh->setSurfaceColor({0.9607, 0.6627, 0.7215});    
 
-    
-    // Initialize operators.
-    // flipZ();
-    
-
     ORIG_VPOS = geometry->inputVertexPositions;
     CoM = geometry->centerOfMass();
     
-    // MCF = MeanCurvatureFlow(mesh, geometry);
-    // ModMCF = ModifiedMeanCurvatureFlow(mesh, geometry);
-    // NF =NormalFlow(mesh, geometry);
-    // GCF = GaussCurvatureFlow(mesh, geometry);
-    // WF = WillmoreFlow(mesh,geometry);
-    // WF2 = WillmoreFlow2(mesh,geometry);
-    // WFS = WillmoreFlowScho(mesh,geometry);
     M3DG = Mem3DG(mesh,geometry);
     M3DG.pulling=true;
-    // Add visualization options.
-    // psMesh->setSmoothShade(false);
+    M3DG.pulling_force=pulling_constant;
     
-    // psMesh->setSurfaceColor({0.9607, 0.6627, 0.7215});// not orange
-    // polyscope::screenshot("./This_filename_is_nice_right.jpg",true);
+    // SO NOW I WANT TO GET ALL THE VERTICES BETWEEN 5.13366-OFFSET UNTIL INFINITY
+    EdgeData<int> No_remesh_edges(*mesh,0);
+    VertexData<int> No_remesh_vertices(*mesh,0);
+    Vertex v1;
+    Vertex v2;
+    double Position_x_1;
+    double Position_x_2;
 
-    // size_t counter=0;
-    
+    for( Edge e : mesh->edges()){
+        v1=e.firstVertex();
+        v2=e.firstVertex();
+        Position_x_1=geometry->inputVertexPositions[v1].x;
+        Position_x_2=geometry->inputVertexPositions[v2].x;
+        if(Position_x_1> 5.13366-pulling_offset){
+            No_remesh_vertices[v1]=1;
+        }
+        if(Position_x_2>5.133666-pulling_offset){
+            No_remesh_vertices[v2]=1;
+        }
+        if(No_remesh_vertices[v1]==1 && No_remesh_vertices[v2]==1 ){
+            No_remesh_edges[e]=1;
+        }
+
+    }
+    // M3DG.No_remesh_list=No_remesh_edges;
+    M3DG.No_remesh_list_v=No_remesh_vertices;
+
+
 
 
     std::string filename = basic_name+"Output_data.txt";
@@ -364,7 +381,7 @@ int main(int argc, char** argv) {
 
 
     start = chrono::steady_clock::now();
-    for(size_t current_t=init_step;current_t<init_step + 8000000;current_t++ ){
+    for(size_t current_t=init_step;current_t<init_step + 1000000;current_t++ ){
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
         if(true){
@@ -384,7 +401,7 @@ int main(int argc, char** argv) {
         Options.smoothStyle=RemeshSmoothStyle::Circumcentric;
         Options.boundaryCondition=RemeshBoundaryCondition::Tangential;
         Options.remesh_list=true;
-        Options.No_remesh_list=No_remesh;
+        Options.No_remesh_list=No_remesh_edges;
         MutationManager Mutation_manager(*mesh,*geometry);
         remesh(*mesh,*geometry,Mutation_manager,Options);
         n_vert_new=mesh->nVertices();
@@ -401,12 +418,12 @@ int main(int argc, char** argv) {
         // psMesh->setEdgeWidth(1.0);
 
         
-        if(current_t%2500==0){
+        if(current_t%500==0){
             Save_mesh(basic_name,current_t);
 
         }
         
-        if(current_t%1000==0) {
+        if(current_t%100==0) {
             Save=true;
             end=chrono::steady_clock::now();
             n_vert=mesh->nVertices();
@@ -437,8 +454,8 @@ int main(int argc, char** argv) {
             start = chrono::steady_clock::now();
 
         }
-        nu_evol= current_t <50000 ? nu_0 + (nu-nu_0)*current_t/50000 : nu; 
-        
+        // nu_evol= current_t <50000 ? nu_0 + (nu-nu_0)*current_t/50000 : nu; 
+        nu_evol=1.0;
         dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save);
         if(Save==true)
         {
