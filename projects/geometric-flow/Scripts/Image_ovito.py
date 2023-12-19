@@ -71,4 +71,4 @@ renderer = TachyonRenderer(
     ambient_occlusion = False)
 
 # Rendering:
-vp.render_image(filename='/nfs/scistore16/wojtgrp/mrojasve/MiraculousMembranes/projects/geometric-flow/Results/Mem3DG_Cell_Shape/'+dir+'.mp4', size=(600, 600), renderer=renderer, layout=viewport_layout, alpha=True)
+vp.render_image(filename='/nfs/scistore16/wojtgrp/mrojasve/MiraculousMembranes/projects/geometric-flow/Results/Mem3DG_Cell_Shape/'+dir+'.jpg', size=(600, 600), renderer=renderer, layout=viewport_layout, alpha=True)
