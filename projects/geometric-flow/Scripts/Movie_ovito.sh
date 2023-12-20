@@ -9,7 +9,7 @@
 
 
 #module load python/3.9.7
-#python3 -m venv MauEnv
+#python3 -m venv MauEnv 
 #source MauEnv/bin/activate
 #pip install ffmpeg-python
 #pip install ffmpeg
@@ -30,14 +30,15 @@ set Nsim=1
 
 # conda activate ovito
 
-for nu in 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 
-# for Strg in 0.002 0.6 
-# foreach Strg (  )
+for nu in 0.1 0.4 0.6 0.7 1.0 
+do
+for KB in 0.01 0.05 0.1 0.02
 do
 for Init_cond in 1 2 3
 do 
-    python Movie_ovito.py ${nu} ${Init_cond} 1
+    python Movie_ovito.py ${nu} ${Init_cond} 1 ${KB}
 done 
+done
 done
 #deactivate
 
