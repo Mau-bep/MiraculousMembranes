@@ -429,8 +429,8 @@ int main(int argc, char** argv) {
         Options.minRelativeLength=Min_rel_length;
         Options.smoothStyle=RemeshSmoothStyle::Circumcentric;
         Options.boundaryCondition=RemeshBoundaryCondition::Tangential;
-        Options.remesh_list=true;
-        Options.No_remesh_list=No_remesh;
+        // Options.remesh_list=true;
+        // Options.No_remesh_list=No_remesh;
         MutationManager Mutation_manager(*mesh,*geometry);
         remesh(*mesh,*geometry,Mutation_manager,Options);
         n_vert_new=mesh->nVertices();

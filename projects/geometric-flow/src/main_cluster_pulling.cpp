@@ -204,8 +204,8 @@ int main(int argc, char** argv) {
     Nsim = std::stoi(argv[3]);
     KB=std::stod(argv[4]);
     
-    double pulling_offset=0.1;
-    double pulling_constant=0.02;
+    double pulling_offset=0.05;
+    double pulling_constant=std::stod(argv[5]);
 
     int init_step=0;
     c0=0.0;
@@ -318,13 +318,11 @@ int main(int argc, char** argv) {
     ORIG_VPOS = geometry->inputVertexPositions;
     CoM = geometry->centerOfMass();
     
-    M3DG = Mem3DG(mesh,geometry);
-    M3DG.pulling=true;
-    M3DG.pulling_force=pulling_constant;
+   
     
     // SO NOW I WANT TO GET ALL THE VERTICES BETWEEN 5.13366-OFFSET UNTIL INFINITY
-    EdgeData<int> No_remesh_edges(*mesh,0);
-    VertexData<int> No_remesh_vertices(*mesh,0);
+    EdgeData<int> No_remesh_edges(*mesh,0.0);
+    VertexData<int> No_remesh_vertices(*mesh,0.0);
     Vertex v1;
     Vertex v2;
     double Position_x_1;
@@ -332,25 +330,35 @@ int main(int argc, char** argv) {
 
     for( Edge e : mesh->edges()){
         v1=e.firstVertex();
-        v2=e.firstVertex();
+        v2=e.secondVertex();
         Position_x_1=geometry->inputVertexPositions[v1].x;
         Position_x_2=geometry->inputVertexPositions[v2].x;
         if(Position_x_1> 5.13366-pulling_offset){
+        
             No_remesh_vertices[v1]=1;
         }
+
         if(Position_x_2>5.133666-pulling_offset){
             No_remesh_vertices[v2]=1;
+            // v2.pull=true;
+
         }
+        
         if(No_remesh_vertices[v1]==1 && No_remesh_vertices[v2]==1 ){
             No_remesh_edges[e]=1;
+           
         }
-
+        
     }
     // M3DG.No_remesh_list=No_remesh_edges;
+    // geometry->refreshQuantities();
+    
+
+    M3DG = Mem3DG(mesh,geometry);
+    M3DG.pulling=true;
+    M3DG.pulling_force=pulling_constant;
     M3DG.No_remesh_list_v=No_remesh_vertices;
-
-
-
+    size_t Not_remeshed_v=0;
 
     std::string filename = basic_name+"Output_data.txt";
 
@@ -377,10 +385,10 @@ int main(int argc, char** argv) {
     size_t counter=0;
     double time=0.0;
     double dt_sim=0.0;
-    EdgeData<int> No_remesh(*mesh,0);
-
-
+    // EdgeData<int> No_remesh(*mesh,0);
+    
     start = chrono::steady_clock::now();
+    // for(size_t current_t=init_step;current_t<init_step + 2;current_t++ ){
     for(size_t current_t=init_step;current_t<init_step + 1000000;current_t++ ){
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
@@ -402,7 +410,9 @@ int main(int argc, char** argv) {
         Options.boundaryCondition=RemeshBoundaryCondition::Tangential;
         Options.remesh_list=true;
         Options.No_remesh_list=No_remesh_edges;
+        Options.No_remesh_list_v=No_remesh_vertices;
         MutationManager Mutation_manager(*mesh,*geometry);
+        // std::cout<<"THe remeshed is called\n";
         remesh(*mesh,*geometry,Mutation_manager,Options);
         n_vert_new=mesh->nVertices();
         counter=counter+1; 
@@ -430,7 +440,11 @@ int main(int argc, char** argv) {
             std::cout<< "THe number of vertices is "<< n_vert <<"\n";    
             std::cout<< "the avg edge lenghth is " <<geometry->meanEdgeLength()<<"\n";
             std::cout << "The avg edge length is = " << std::fixed << std::setprecision(10) << geometry->meanEdgeLength() << std::endl;
-
+            Not_remeshed_v=0;
+            for(Vertex v : mesh->vertices()){
+                Not_remeshed_v+=No_remesh_vertices[v];
+            }
+            std::cout<< "THe number of vertices to not remesh is "<< Not_remeshed_v<< "\n";
             Volume= geometry->totalVolume();
             Area=geometry->totalArea();
             nu_obs=3*Volume/(4*PI*pow( Area/(4*PI) ,1.5 ));
@@ -456,6 +470,9 @@ int main(int argc, char** argv) {
         }
         // nu_evol= current_t <50000 ? nu_0 + (nu-nu_0)*current_t/50000 : nu; 
         nu_evol=1.0;
+
+        
+
         dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save);
         if(Save==true)
         {

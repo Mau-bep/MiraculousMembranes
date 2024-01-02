@@ -5,9 +5,9 @@
 
 
 # set KB=0.005
-foreach KB (0.01 0.05 0.1 0.02)
+foreach KB ( 0.1 )
 set Nsim=1
-foreach v ( 0.1 0.4 0.6 0.7 1.0)
+foreach v ( 0.1 0.4 0.6 0.63 0.7 1.0)
 foreach Init_cond ( 1 2 3 )
 
 #python3 Create_subjob.py ${v} ${c0} ${KA} ${KB}

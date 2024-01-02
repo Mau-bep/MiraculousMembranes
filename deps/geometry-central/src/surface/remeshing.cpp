@@ -382,23 +382,24 @@ bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, 
   std::vector<Edge> toSplit;
   std::vector<Edge> toCollapse;
   // std::cout<<"The remesher is being called\n";
+
+  if(options.remesh_list){
   for (Edge e : mesh.edges()) {
-    if(options.remesh_list){
-        if(options.No_remesh_list[e]==0){
-          toSplit.push_back(e);
-          
-        }
-        // else{
-        //   std::cout<<"This is only for the edge that is not remeshed\n";
-        // }
-    }
-    else{
+    
+    if(options.No_remesh_list[e]==0){
+      // std::cout<<"Not remeshing this edge "<<e.getIndex() <<"\n";
       toSplit.push_back(e);
     }
-
-    
+  }
+  }
+  else{
+      for(Edge e: mesh.edges())
+      {        
+        toSplit.push_back(e);
+      }
   }
 
+  size_t counter_vertex=0;
   // actually splitting
   while (!toSplit.empty()) {
     Edge e = toSplit.back();
@@ -425,10 +426,24 @@ bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, 
         didSplitOrCollapse = true;
       }
     } else {
-      toCollapse.push_back(e);
+      if(options.remesh_list){
+      
+      if(options.No_remesh_list_v[e.firstVertex()]==0 && options.No_remesh_list_v[e.secondVertex()]==0 ){
+        toCollapse.push_back(e);
+        }
+      else
+        {
+        counter_vertex+=1;
+        }
+
+     }
+     else
+        {
+        toCollapse.push_back(e);
+        }
     }
   }
-
+  // std::cout<<"THe number of edges that i shall not collapse are"<<counter_vertex<<" this number shouuld be constant?\n";
   // actually collapsing
 
   while (!toCollapse.empty()) {

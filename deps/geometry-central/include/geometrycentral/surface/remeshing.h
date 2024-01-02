@@ -23,6 +23,7 @@ struct RemeshOptions {
                                    // targetEdgeLength
   bool remesh_list=false;
   EdgeData<int> No_remesh_list;
+  VertexData<int> No_remesh_list_v;
   RemeshSmoothStyle smoothStyle = RemeshSmoothStyle::Circumcentric; // smoothing function to use
   RemeshBoundaryCondition boundaryCondition =
   RemeshBoundaryCondition::Tangential; // allowed movement of boundary vertices

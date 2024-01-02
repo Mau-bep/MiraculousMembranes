@@ -82,41 +82,12 @@ bool Save=false;
 VertexData<Vector3> ORIG_VPOS; // original vertex positions
 Vector3 CoM;                   // original center of mass
 
-
 Mem3DG M3DG;
 
-
-std::array<double, 3> BLUE = {0.11, 0.388, 0.89};
-// glm::vec<3, float> ORANGE_VEC = {1, 0.65, 0};
-std::array<double, 3> ORANGE = {1, 0.65, 0};
-
-// RemeshBoundaryCondition defaultRemeshOptions;
-    
-
-
-
-// void flipZ() {
-//     // Rotate mesh 180 deg about up-axis on startup
-//     glm::mat4x4 rot = glm::rotate(glm::mat4x4(1.0f), static_cast<float>(PI), glm::vec3(0, 1, 0));
-//     for (Vertex v : mesh->vertices()) {
-//         Vector3 vec = geometry->inputVertexPositions[v];
-//         glm::vec4 rvec = {vec[0], vec[1], vec[2], 1.0};
-//         rvec = rot * rvec;
-//         geometry->inputVertexPositions[v] = {rvec[0], rvec[1], rvec[2]};
-//     }
-//     psMesh->updateVertexPositions(geometry->inputVertexPositions);
-// }
 
 void showSelected() {
     // pass
 }
-
-// void redraw() {
-//     psMesh->updateVertexPositions(geometry->inputVertexPositions);
-//     polyscope::requestRedraw();
-// }
-
-
 
 
 void Save_mesh(std::string basic_name, size_t current_t) {
@@ -130,7 +101,6 @@ void Save_mesh(std::string basic_name, size_t current_t) {
     o << "v " << Pos.x <<" "<< Pos.y << " "<< Pos.z <<"\n";
 
     }
-
 
     // I need to save the faces now
 
@@ -199,12 +169,9 @@ int main(int argc, char** argv) {
 
     int Nsim;
     nu=std::stod(argv[1]);
-    // KB=std::stod(argv[2]);
     int Init_cond = std::stoi(argv[2]);
     Nsim = std::stoi(argv[3]);
     KB=std::stod(argv[4]);
-    
-
 
     int init_step=0;
     c0=0.0;
@@ -221,7 +188,6 @@ int main(int argc, char** argv) {
     TS=pow(10,-3);
 
 
-
     std::stringstream nustream;
     std::stringstream c0stream;
     std::stringstream KAstream;
@@ -233,7 +199,6 @@ int main(int argc, char** argv) {
     c0stream << std::fixed << std::setprecision(3) << c0;
     KAstream << std::fixed << std::setprecision(3) << KA;
     KBstream << std::fixed << std::setprecision(6) << KB;
-
 
     Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
     Min_rel_lengthstream << std::fixed << std::setprecision(2) <<Min_rel_length;
@@ -248,15 +213,11 @@ int main(int argc, char** argv) {
     std::cout<<"\nIf this number is 0 the directory was created succesfully "<< status<<"\n" ;
 
 
-
-
     // Here we will decide if we want to import the previous mesh or we want to use the default initial conditions
 
 
 
     bool Continue_sim=false;
-
-
 
     std::cout<< "Current path is " << argv[0];
     std::string filepath;
@@ -274,19 +235,17 @@ int main(int argc, char** argv) {
 
     // std::string filepath = "../../../input/sphere.obj";
     if(Init_cond==1){
-        filepath = "../../../input/Simple_cil_regular.obj";
+        filepath = "../../../input/Pill_regular.obj";
     
     }
     if(Init_cond==2){
         filepath = "../../../input/bloodcell.obj";
     }
     if(Init_cond==3){
-        filepath = "../../../input/Init_stomatocytes.obj";
+        filepath = "../../../input/Pushed_sphere_v_regular.obj";
     }
     }
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
-    
-    
     
     
     mesh = mesh_uptr.release();
@@ -294,47 +253,13 @@ int main(int argc, char** argv) {
     
     trgt_len=geometry->meanEdgeLength();
     V_bar=geometry->totalVolume();
-    
-    // polyscope::options::autocenterStructures = true;
-
-    // // Initialize polyscope
-    // polyscope::init();
-
-    // // Set the callback function
-    // polyscope::state::userCallback = functionCallback;
-
-    // // Add mesh to GUI
-    // psMesh = polyscope::registerSurfaceMesh(polyscope::guessNiceNameFromPath(filepath), geometry->inputVertexPositions,
-    //                                         mesh->getFaceVertexList(), polyscopePermutations(*mesh));
-    // psMesh->setSurfaceColor({0.9607, 0.6627, 0.7215});    
-
-    
-    // Initialize operators.
-    // flipZ();
-    
 
     ORIG_VPOS = geometry->inputVertexPositions;
     CoM = geometry->centerOfMass();
     
-    // MCF = MeanCurvatureFlow(mesh, geometry);
-    // ModMCF = ModifiedMeanCurvatureFlow(mesh, geometry);
-    // NF =NormalFlow(mesh, geometry);
-    // GCF = GaussCurvatureFlow(mesh, geometry);
-    // WF = WillmoreFlow(mesh,geometry);
-    // WF2 = WillmoreFlow2(mesh,geometry);
-    // WFS = WillmoreFlowScho(mesh,geometry);
     M3DG = Mem3DG(mesh,geometry);
-    M3DG.pulling=true;
-    // Add visualization options.
-    // psMesh->setSmoothShade(false);
+    M3DG.pulling=false;
     
-    // psMesh->setSurfaceColor({0.9607, 0.6627, 0.7215});// not orange
-    // polyscope::screenshot("./This_filename_is_nice_right.jpg",true);
-
-    // size_t counter=0;
-    
-
-
     std::string filename = basic_name+"Output_data.txt";
 
 
@@ -360,17 +285,15 @@ int main(int argc, char** argv) {
     size_t counter=0;
     double time=0.0;
     double dt_sim=0.0;
-    EdgeData<int> No_remesh(*mesh,0);
-
+    // EdgeData<int> No_remesh(*mesh,0);
 
     start = chrono::steady_clock::now();
     for(size_t current_t=init_step;current_t<init_step + 8000000;current_t++ ){
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
         if(true){
-        // if(current_t%10==0 ){
-        n_vert_old=mesh->nVertices();
-        n_vert_new=1;
+        n_vert_old=0;
+        n_vert_new=mesh->nVertices();
 
         counter=0;
         while(n_vert_new!=n_vert_old && counter<10){
@@ -383,22 +306,15 @@ int main(int argc, char** argv) {
         Options.minRelativeLength=Min_rel_length;
         Options.smoothStyle=RemeshSmoothStyle::Circumcentric;
         Options.boundaryCondition=RemeshBoundaryCondition::Tangential;
-        Options.remesh_list=true;
-        Options.No_remesh_list=No_remesh;
+        // 
+        Options.remesh_list=false;
+        // Options.No_remesh_list=No_remesh;
         MutationManager Mutation_manager(*mesh,*geometry);
         remesh(*mesh,*geometry,Mutation_manager,Options);
         n_vert_new=mesh->nVertices();
         counter=counter+1; 
         }
         }
-
-        // psMesh->remove();
-        
-        // psMesh = polyscope::registerSurfaceMesh(polyscope::guessNiceNameFromPath("dodecahedra"), geometry->inputVertexPositions,
-        //                                     mesh->getFaceVertexList(), polyscopePermutations(*mesh));
-
-        // psMesh->setSurfaceColor({0.9607, 0.6627, 0.7215});
-        // psMesh->setEdgeWidth(1.0);
 
         
         if(current_t%2500==0){
@@ -420,8 +336,6 @@ int main(int argc, char** argv) {
             // H0=sqrt(4*PI/Area)*c0/2.0;
 
 
-
-            // c_null=2*H0 *pow(Area/(4*PI),0.5);
             std::cout<< "The reduced volume is "<< nu_obs << "\n";
             if(current_t==0){
                 nu_0=nu_obs;
@@ -432,8 +346,6 @@ int main(int argc, char** argv) {
             
             std::cout<<"A thousand iterations took "<<chrono::duration_cast<chrono::milliseconds>(end-start).count()<<" miliseconds\n\n\n";
 
-
-            // polyscope::screenshot(basic_name+std::to_string(current_t)+".jpg",true);
             start = chrono::steady_clock::now();
 
         }

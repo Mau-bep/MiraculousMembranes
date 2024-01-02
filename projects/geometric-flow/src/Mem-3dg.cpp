@@ -664,8 +664,17 @@ if(std::isnan(E_Ben)){
 
 
 }
+
+// for (Edge e : mesh->edges()){
+//   std::cout<< e.remesh;
+
+// }
+// std::cout<<"\n";
   if(pulling){
+    // std::cout<<"THere is pulling right?\n";
   VertexData<Vector3> Horizontal_pull(*mesh,Vector3({1.0,0.0,0.0}));
+  
+    // std::cout<<"\n";
   geometry->inputVertexPositions+=alpha*pulling_force*No_remesh_list_v*Horizontal_pull;
   geometry->refreshQuantities();
   }
@@ -774,24 +783,11 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
 double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,double KA,double KB, double Kd,std::ofstream& Sim_data, double time,bool Save) {
 
 
-    // Vector<double> Total_force=buildFlowOperator(h,V_bar,nu,c0,P0,KA,KB,Kd);
+    
     VertexData<Vector3> Force(*mesh);
     Force=buildFlowOperator(h,V_bar,nu,c0,P0,KA,KB,Kd);
-    // HeRE I SHOULD MASK THE OPERATOR
-    // Force=Force*( abs(1-No_remesh_list_v));
-    if(pulling){
-    for (Vertex v : mesh->vertices()){
-      if(No_remesh_list_v[v]==1){
-        Force[v]-=Force[v];
-      }
-      // else{
-      //   std::cout<<"This should be nonzero "<< Force[v]<<"\n";
-      // }
-    }
-    }
-    // SO the force will not modify the vert
-
-
+    
+    
     // This force is the gradient basically
     double alpha=1e-3;
 
