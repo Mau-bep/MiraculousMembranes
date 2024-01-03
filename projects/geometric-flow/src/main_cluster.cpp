@@ -334,7 +334,7 @@ int main(int argc, char** argv) {
             Area=geometry->totalArea();
             nu_obs=3*Volume/(4*PI*pow( Area/(4*PI) ,1.5 ));
             // H0=sqrt(4*PI/Area)*c0/2.0;
-
+            std::cout<< "The volume is "<< Volume << "\n";
 
             std::cout<< "The reduced volume is "<< nu_obs << "\n";
             if(current_t==0){
