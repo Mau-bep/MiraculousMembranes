@@ -621,7 +621,7 @@ if(std::isnan(E_Ben)){
 
 
   alpha*=rho;
-  if(alpha<1e-9){
+  if(alpha<1e-8){
     std::cout<<"THe timestep got small\n";
     if(system_time<100){
       std::cout<<"But the area evolution is not complete yet\n";
