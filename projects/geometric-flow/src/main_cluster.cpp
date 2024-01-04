@@ -73,6 +73,8 @@ float KB=0.0001;
 float Kd=0.0;
 double TS=0.001;
 
+size_t Area_evol_steps=100000;
+
 double Curv_adap=0.1;
 double Min_rel_length=0.5;
 double trgt_len;
@@ -278,6 +280,7 @@ int main(int argc, char** argv) {
     size_t n_vert_new;
     double Volume;
     double Area;
+    double Area_bar;
     double nu_obs;
     double nu_evol;
     double nu_0;
@@ -349,7 +352,21 @@ int main(int argc, char** argv) {
             start = chrono::steady_clock::now();
 
         }
-        nu_evol= current_t <50000 ? nu_0 + (nu-nu_0)*current_t/50000 : nu; 
+
+
+        // I said i should add something that considers the change in area per timestep
+        // Cause i dont want to add more area that i can handle per ts
+        // I can estimate the target area
+
+        Area_bar=4*PI*pow(3*V_bar/(4*PI*nu),2.0/3.0);
+        
+        // and the idea is that i can only add a certain percent of area , i think linearly is the best
+        // I think a 1% pertime step should be alright
+        
+
+
+
+        nu_evol= current_t <Area_evol_steps ? nu_0 + (nu-nu_0)*current_t/Area_evol_steps : nu; 
         
         dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save);
         if(Save==true)

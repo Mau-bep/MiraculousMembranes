@@ -44,71 +44,71 @@ pipeline.add_to_scene()
 # Viewport setup:
 viewport_layout = []
 
-if(Init_cond==3):
+# if(Init_cond==3):
 
-    # Viewport "Ortho":
-    vp = Viewport(
-        type = Viewport.Type.Ortho, 
-        fov = 6.16148220655, 
-        camera_dir = (0.6673384261494844, -0.3160789497958617, -0.6743541521191032), 
-        camera_pos = (-0.2412404054283914, -0.11544750268053049, -0.019742166420756803))
-    viewport_layout.append((vp, [0.0, 0.0, 0.5, 0.5]))  # [left,top,width,height]
+#     # Viewport "Ortho":
+#     vp = Viewport(
+#         type = Viewport.Type.Ortho, 
+#         fov = 6.16148220655, 
+#         camera_dir = (0.6673384261494844, -0.3160789497958617, -0.6743541521191032), 
+#         camera_pos = (-0.2412404054283914, -0.11544750268053049, -0.019742166420756803))
+#     viewport_layout.append((vp, [0.0, 0.0, 0.5, 0.5]))  # [left,top,width,height]
 
-    # Viewport "Ortho":
-    vp = Viewport(
-        type = Viewport.Type.Ortho, 
-        fov = 6.94705178895, 
-        camera_dir = (-0.9998877082942144, 0.01348908445891606, -0.0065280473806786955), 
-        camera_pos = (-0.33320129107889906, 0.0022474163616999525, -0.0010876379740948656))
-    viewport_layout.append((vp, [0.0, 0.5, 0.5, 0.5]))  # [left,top,width,height]
+#     # Viewport "Ortho":
+#     vp = Viewport(
+#         type = Viewport.Type.Ortho, 
+#         fov = 6.94705178895, 
+#         camera_dir = (-0.9998877082942144, 0.01348908445891606, -0.0065280473806786955), 
+#         camera_pos = (-0.33320129107889906, 0.0022474163616999525, -0.0010876379740948656))
+#     viewport_layout.append((vp, [0.0, 0.5, 0.5, 0.5]))  # [left,top,width,height]
 
-    # Viewport "Ortho":
-    vp = Viewport(
-        type = Viewport.Type.Ortho, 
-        fov = 6.16148220655, 
-        camera_dir = (0.03362074738855362, 0.9981588316863456, 0.050483582198422444), 
-        camera_pos = (-9.443155489541333e-05, -0.005608704431834817, 0.0))
-    viewport_layout.append((vp, [0.5, 0.0, 0.5, 0.5]))  # [left,top,width,height]
+#     # Viewport "Ortho":
+#     vp = Viewport(
+#         type = Viewport.Type.Ortho, 
+#         fov = 6.16148220655, 
+#         camera_dir = (0.03362074738855362, 0.9981588316863456, 0.050483582198422444), 
+#         camera_pos = (-9.443155489541333e-05, -0.005608704431834817, 0.0))
+#     viewport_layout.append((vp, [0.5, 0.0, 0.5, 0.5]))  # [left,top,width,height]
 
-    # Viewport "Perspective":
-    vp = Viewport(
-        type = Viewport.Type.Perspective, 
-        fov = 0.610865238198, 
-        camera_dir = (-0.33593150219661067, 0.22601274750834596, -0.914367685231525), 
-        camera_pos = (7.325871783603468, -4.898702804731791, 20.00895412222746))
-    viewport_layout.append((vp, [0.5, 0.5, 0.5, 0.5]))  # [left,top,width,height]
+#     # Viewport "Perspective":
+#     vp = Viewport(
+#         type = Viewport.Type.Perspective, 
+#         fov = 0.610865238198, 
+#         camera_dir = (-0.33593150219661067, 0.22601274750834596, -0.914367685231525), 
+#         camera_pos = (7.325871783603468, -4.898702804731791, 20.00895412222746))
+#     viewport_layout.append((vp, [0.5, 0.5, 0.5, 0.5]))  # [left,top,width,height]
 
-else:
+# else:
     # Viewport "Top":
-    vp = Viewport(
-        type = Viewport.Type.Top, 
-        fov = 1.83225788935, 
-        camera_pos = (-0.0004895000000000316, 0.5363805, -0.0004250000000000087))
-    viewport_layout.append((vp, [0.0, 0.0, 0.5, 0.5]))  # [left,top,width,height]
+vp = Viewport(
+    type = Viewport.Type.Top, 
+    fov = 1.83225788935, 
+    camera_pos = (-0.0004895000000000316, 0.5363805, -0.0004250000000000087))
+viewport_layout.append((vp, [0.0, 0.0, 0.5, 0.5]))  # [left,top,width,height]
 
-    # Viewport "Left":
-    vp = Viewport(
-        type = Viewport.Type.Left, 
-        fov = 1.60187393166, 
-        camera_dir = (1.0, -0.0, -0.0), 
-        camera_pos = (-0.0004895000000000316, 0.5363805, -0.0004250000000000087))
-    viewport_layout.append((vp, [0.0, 0.5, 0.5, 0.5]))  # [left,top,width,height]
+# Viewport "Left":
+vp = Viewport(
+    type = Viewport.Type.Left, 
+    fov = 1.60187393166, 
+    camera_dir = (1.0, -0.0, -0.0), 
+    camera_pos = (-0.0004895000000000316, 0.5363805, -0.0004250000000000087))
+viewport_layout.append((vp, [0.0, 0.5, 0.5, 0.5]))  # [left,top,width,height]
 
-    # Viewport "Front":
-    vp = Viewport(
-        type = Viewport.Type.Front, 
-        fov = 1.16547934407, 
-        camera_dir = (-0.0, 1.0, -0.0), 
-        camera_pos = (-0.0004895000000000316, 0.5363805, -0.0004250000000000087))
-    viewport_layout.append((vp, [0.5, 0.0, 0.5, 0.5]))  # [left,top,width,height]
+# Viewport "Front":
+vp = Viewport(
+    type = Viewport.Type.Front, 
+    fov = 1.16547934407, 
+    camera_dir = (-0.0, 1.0, -0.0), 
+    camera_pos = (-0.0004895000000000316, 0.5363805, -0.0004250000000000087))
+viewport_layout.append((vp, [0.5, 0.0, 0.5, 0.5]))  # [left,top,width,height]
 
-    # Viewport "Perspective":
-    vp = Viewport(
-        type = Viewport.Type.Perspective, 
-        fov = 0.610865238198, 
-        camera_dir = (-0.49923017660270624, 0.665640235470275, -0.5547001962252291), 
-        camera_pos = (2.3425997877639446, -2.587738550351927, 2.603007541959939))
-    viewport_layout.append((vp, [0.5, 0.5, 0.5, 0.5]))  # [left,top,width,height]
+# Viewport "Perspective":
+vp = Viewport(
+    type = Viewport.Type.Perspective, 
+    fov = 0.610865238198, 
+    camera_dir = (-0.49923017660270624, 0.665640235470275, -0.5547001962252291), 
+    camera_pos = (2.3425997877639446, -2.587738550351927, 2.603007541959939))
+viewport_layout.append((vp, [0.5, 0.5, 0.5, 0.5]))  # [left,top,width,height]
 
 
 # Renderer setup:

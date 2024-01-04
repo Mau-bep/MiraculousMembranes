@@ -623,7 +623,7 @@ if(std::isnan(E_Ben)){
   alpha*=rho;
   if(alpha<1e-9){
     std::cout<<"THe timestep got small\n";
-    if(system_time<50){
+    if(system_time<100){
       std::cout<<"But the area evolution is not complete yet\n";
       break;
     }
@@ -757,12 +757,12 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
 
     // std::cout<<" The position of vertex 120 is "<<geometry->inputVertexPositions[120].x<<" "<<geometry->inputVertexPositions[120].y<< " "<<geometry->inputVertexPositions[120].z<<" \n"; 
 
-    if(system_time< 50){
-      backtrackstep=h;
-    }
-    else{
+    // if(system_time< 50){
+    //   backtrackstep=h;
+    // }
+    // else{
     backtrackstep=Backtracking(Force,D_P,V_bar,A_bar,KA,KB,H_bar,bead);
-    }
+    // }
     // std::cout<<" The position of vertex 120 is "<<geometry->inputVertexPositions[120].x<<" "<<geometry->inputVertexPositions[120].y<< " "<<geometry->inputVertexPositions[120].z<<" \n";
     
         
