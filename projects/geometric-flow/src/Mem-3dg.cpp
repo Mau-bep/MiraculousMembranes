@@ -497,7 +497,7 @@ while(true){
 
 
   alpha*=rho;
-  if(alpha<1e-8){
+  if(alpha<1e-7){
     std::cout<<"THe timestep got small so the simulation will end \n";
     alpha=-1.0;
     // continue;
