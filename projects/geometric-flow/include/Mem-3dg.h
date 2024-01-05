@@ -35,11 +35,12 @@ class Mem3DG {
 
     double Old_norm2;
     double Current_norm2;
-    double system_time;
+    size_t system_time;
     double grad_norm;
     bool is_test;
     bool pulling;
     double pulling_force;
+  
     // double pulling_offset;
     // constructors
     Mem3DG() {};
