@@ -366,7 +366,7 @@ int main(int argc, char** argv) {
 
 
 
-        nu_evol= current_t <Area_evol_steps ? nu_0 + (nu-nu_0)*current_t/Area_evol_steps : nu; 
+        nu_evol= (current_t-init_step) <Area_evol_steps ? nu_0 + (nu-nu_0)*(current_t-init_step)/Area_evol_steps : nu; 
         
         dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save);
         if(Save==true)
