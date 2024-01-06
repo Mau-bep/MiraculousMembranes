@@ -45,7 +45,6 @@ do
 for Init_cond in 1 
 do 
 python Movie_ovito.py ${nu} ${Init_cond} 1 ${KB}
-
 done 
 done
 
@@ -53,19 +52,20 @@ done
 
 for nu in 0.45 0.5 0.55 0.6 0.65 0.7 0.75
 do
-for Init_cond in 2 
+for Init_cond in 2
 do
-python Movie_ovito.py ${nu} ${Init_cond} 1 ${KB}
+    python Movie_ovito.py ${nu} ${Init_cond} 1 ${KB}
 
 done 
 done
 
 
-for nu 0.2 0.25 0.3 0.35 0.4 0.45 0.5 0.55 0.6 
+for nu in 0.2 0.25 0.3 0.35 0.4 0.45 0.5 0.55 0.6
 do
 for Init_cond in 3 
 do
-python Movie_ovito.py ${nu} ${Init_cond} 1 ${KB}
+
+    python Movie_ovito.py ${nu} ${Init_cond} 1 ${KB}
 
 done 
 done
