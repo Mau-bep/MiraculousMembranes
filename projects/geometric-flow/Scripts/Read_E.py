@@ -11,8 +11,8 @@ nu=float(sys.argv[1])
 # strg=float(sys.argv[3])
 
 # nu=1.0
-KB=0.005
-Initial_conds=[1,2]
+KB=0.1
+Initial_conds=float(sys.argv[2])
 
 Nsim=1
 
@@ -222,7 +222,14 @@ def main_shape(Ini_cond):
     # Ok so we have the data and its time to plot !
 
     os.makedirs(pre_folder+"Imgs/",exist_ok=True)
-    
+    os.makedirs(pre_folder+"Data/",exist_ok=True)
+
+
+    E_data = open(pre_folder+"Data/Final_energies.txt","a+")
+
+    E_data.write("{} {} {} {} {} {} \n".format(nu,Initial_conds,Nsim,E_vol[-1],E_sur[-1],E_ben[-1]))
+
+    E_data.close()
 
     plt.plot(time_evol,Volumes,color='purple')
     plt.axhline(V_bar,color='black',ls='dashed') 
@@ -300,21 +307,28 @@ def main_shape(Ini_cond):
 # for strg in [0.00001,0.0001,0.05, 0.0005, 0.1 ,1.0 ,5.0,20.0]:
     # main(strg)
 
-data_1=main_shape(1)
-data_2=main_shape(2)
-data_3=main_shape(3)
-pre_folder='../Results/Mem3DG_Cell_Shape/'
-plt.axhline(nu,color='black',ls='dashed')
-plt.plot(data_1[0],data_1[1],color=(255/256,51/256,109/256),label='Prolate')
-plt.plot(data_2[0],data_2[1],color=(123/256,40/256,125/256),label='Oblate')
-plt.plot(data_3[0],data_3[1],color=(255/256,166/256,48/256),label='Stomatocyte')
+# data_1=main_shape(1)
+# data_2=main_shape(2)
+# data_3=main_shape(3)
 
-plt.axhline(data_1[1][-1],ls='dashed',color=(255/256,51/256,109/256))
-plt.axhline(data_2[1][-1],ls='dashed',color=(123/256,40/256,125/256))
-plt.axhline(data_3[1][-1],ls='dashed',color=(255/256,166/256,48/256))
-plt.legend()
-# plt.xlim(0,np.min([data_1[0][-1],data_2[0][-1]]))
-plt.savefig(pre_folder+'Imgs/Reduced_vol_evol_nu_{}.jpg'.format(nu))
+
+main_shape(Initial_conds)
+
+
+# OK soo
+
+# pre_folder='../Results/Mem3DG_Cell_Shape/'
+# plt.axhline(nu,color='black',ls='dashed')
+# plt.plot(data_1[0],data_1[1],color=(255/256,51/256,109/256),label='Prolate')
+# plt.plot(data_2[0],data_2[1],color=(123/256,40/256,125/256),label='Oblate')
+# plt.plot(data_3[0],data_3[1],color=(255/256,166/256,48/256),label='Stomatocyte')
+
+# plt.axhline(data_1[1][-1],ls='dashed',color=(255/256,51/256,109/256))
+# plt.axhline(data_2[1][-1],ls='dashed',color=(123/256,40/256,125/256))
+# plt.axhline(data_3[1][-1],ls='dashed',color=(255/256,166/256,48/256))
+# plt.legend()
+# # plt.xlim(0,np.min([data_1[0][-1],data_2[0][-1]]))
+# plt.savefig(pre_folder+'Imgs/Reduced_vol_evol_nu_{}.jpg'.format(nu))
 
 
 
