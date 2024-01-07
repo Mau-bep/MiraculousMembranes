@@ -227,7 +227,7 @@ def main_shape(Ini_cond):
 
     E_data = open(pre_folder+"Data/Final_energies.txt","a+")
 
-    E_data.write("{} {} {} {} {} {} \n".format(nu,Initial_conds,Nsim,E_vol[-1],E_sur[-1],E_ben[-1]))
+    E_data.write("{} {} {} {} {} {} {} {} \n".format(nu,Initial_conds,Nsim,E_vol[-1],E_sur[-1],E_ben[-1],Areas[-1],Volumes[-1]))
 
     E_data.close()
 
