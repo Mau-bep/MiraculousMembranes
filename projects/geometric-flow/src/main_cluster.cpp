@@ -231,6 +231,19 @@ int main(int argc, char** argv) {
     init_step = Last_step(basic_name);
     
     filepath= basic_name+"Membrane_"+std::to_string(init_step)+".obj";
+    if(init_step==0){
+    if(Init_cond==1){
+        filepath = "../../../input/Pill_regular.obj";
+    
+    }
+    if(Init_cond==2){
+        filepath = "../../../input/bloodcell.obj";
+    }
+    if(Init_cond==3){
+        filepath = "../../../input/Pushed_sphere_v_regular.obj";
+    }
+        
+    }
 
     }
     else{
