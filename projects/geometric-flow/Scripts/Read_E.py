@@ -12,7 +12,7 @@ nu=float(sys.argv[1])
 
 # nu=1.0
 KB=0.1
-Initial_conds=float(sys.argv[2])
+Initial_conds=int(sys.argv[2])
 
 Nsim=1
 
