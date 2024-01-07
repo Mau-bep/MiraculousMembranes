@@ -497,7 +497,7 @@ while(true){
 
 
   alpha*=rho;
-  if(alpha<1e-7){
+  if(alpha<1e-8){
     std::cout<<"THe timestep got small so the simulation will end \n";
     alpha=-1.0;
     // continue;
@@ -622,14 +622,14 @@ if(std::isnan(E_Ben)){
 
 
   alpha*=rho;
-  if(alpha<1e-7){
+  if(alpha<1e-8){
     // std::cout<<"THe timestep got small\n";
     if(system_time<100000){
       // std::cout<<"But the area evolution is not complete yet\n";
       break;
     }
     else{
-    std::cout<<"THe simulation will stop because the timestep got smaller than 1e-7 \n";
+    std::cout<<"THe simulation will stop because the timestep got smaller than 1e-8 \n";
     alpha=-1.0;
     // continue;
     break;
@@ -771,7 +771,7 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
 
     // Bead_1.Move_bead(backtrackstep,center);
 
-    if(Save_output_data){
+    if(Save_output_data || backtrackstep<0){
     Sim_data << V_bar<<" "<< A_bar<<" "<< time <<" "<< V<<" " << A<<" " << E_Vol << " " << E_Sur << " " << E_Ben <<" " << E_bead << " "<< grad_norm<<" " << backtrackstep<< " "<< Bead_1.Pos.x << " "<< Bead_1.Pos.y << " "<< Bead_1.Pos.z <<" \n";
     }
     system_time+=1;
@@ -820,7 +820,7 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
     backtrackstep=Backtracking(Force,D_P,V_bar,A_bar,KA,KB,H_bar);
     // }
 
-    if(Save){
+    if(Save || backtrackstep<1){
     Sim_data << V_bar<<" "<< A_bar<<" "<< time <<" "<< V<<" " << A<<" " << E_Vol << " " << E_Sur << " " << E_Ben << " "<< grad_norm<<" " << backtrackstep<<" \n";
     }
     system_time+=1;

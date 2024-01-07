@@ -232,8 +232,8 @@ int main(int argc, char** argv) {
 
     std::cout<< "Current path is " << argv[0]<<"\n";
 
-    std::string filepath = "../../../input/sphere.obj";
-    // std::string filepath = "../../../input/bloodcell_4k.obj";
+    // std::string filepath = "../../../input/sphere.obj";
+    std::string filepath = "../../../input/Final_state_test.obj";
     // std::string filepath = "../../../input/Simple_cil_regular.obj";
     
     // std::string filepath = "../../../input/bloodcell.obj";
@@ -441,6 +441,17 @@ int main(int argc, char** argv) {
         n_vert=mesh->nVertices();
         std::cout<< "THe number of vertices is "<< n_vert <<"\n";    
         std::cout << "The avg edge length is = " << std::fixed << std::setprecision(10) << geometry->meanEdgeLength() << std::endl;
+
+        Volume= geometry->totalVolume();
+        Area=geometry->totalArea();
+        nu_obs=3*Volume/(4*PI*pow( Area/(4*PI) ,1.5 ));
+        // H0=sqrt(4*PI/Area)*c0/2.0;
+        std::cout<< "The volume is "<< Volume << "\n";
+
+        std::cout<< "The reduced volume is "<< nu_obs << "\n";
+        if(current_t==0){
+            nu_0=nu_obs;
+        }
 
     if(current_t%100==0){
 

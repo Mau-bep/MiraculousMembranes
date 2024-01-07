@@ -219,7 +219,7 @@ int main(int argc, char** argv) {
 
 
 
-    bool Continue_sim=false;
+    bool Continue_sim=true;
 
     std::cout<< "Current path is " << argv[0];
     std::string filepath;
@@ -230,7 +230,7 @@ int main(int argc, char** argv) {
 
     init_step = Last_step(basic_name);
     
-    filepath= "Membrane_"+std::to_string(init_step)+".obj";
+    filepath= basic_name+"Membrane_"+std::to_string(init_step)+".obj";
 
     }
     else{

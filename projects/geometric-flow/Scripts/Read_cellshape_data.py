@@ -25,8 +25,12 @@ while(line):
 
     splitted_line=line.split(' ')
     Init_cond = int(splitted_line[1])
-    nus[Init_cond-1].append(float(splitted_line[0]))
-    Ebs[Init_cond-1].append(float(splitted_line[5])+ float(splitted_line[4])+float(splitted_line[3]))
+    Volume=float(splitted_line[7])
+    Area=float(splitted_line[6])
+    nus[Init_cond-1].append( 3*Volume/(4*np.pi*pow( Area/(4*np.pi) ,1.5 ))  )
+    
+
+    Ebs[Init_cond-1].append(float(splitted_line[5]))
 
     line=Data_file.readline()
 
