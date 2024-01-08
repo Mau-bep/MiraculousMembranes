@@ -223,8 +223,13 @@ def main_shape(Ini_cond):
         
 
         # i can do a safety check 
+
+        if(splitted_line[1]=='3.558910.568273'):
+            print(len(splitted_line[1].split('.')))
         for i in range(8):
             if(len(splitted_line[i].split('.'))>2):
+
+
                 Output_file.readline()
                 continue
             
