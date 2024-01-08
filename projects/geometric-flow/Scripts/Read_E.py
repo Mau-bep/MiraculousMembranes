@@ -223,14 +223,17 @@ def main_shape(Ini_cond):
         
 
         # i can do a safety check 
-
-        # if(splitted_line[1]=='3.558910.568273'):
-        #     print(len(splitted_line[1].split('.')))
-        for i in range(8):
-            if(len(splitted_line[i].split('.'))>2):
-                line=Output_file.readline()
-                continue
-            
+        iftruecontinue=False
+        if(splitted_line[1]=='3.558910.568273'):
+            print(len(splitted_line[1].split('.')))
+        for k in range(8):
+            if(len(splitted_line[k].split('.'))>2):
+                iftruecontinue=True
+                # line=Output_file.readline()
+                # continue
+        if(iftruecontinue):
+            line=Output_file.readline()
+            continue
         Bar_Area=float(splitted_line[1])
         time=float(splitted_line[2])
         Volume=float(splitted_line[3])
