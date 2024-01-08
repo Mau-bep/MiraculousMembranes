@@ -195,7 +195,7 @@ def main_shape(Ini_cond):
     backtrackstep=[]
     line=Output_file.readline()
     counter=0
-    while line and counter<500000:
+    while line and counter<400000:
         # frame=counter*1000
         splitted_line=line.split(' ')
         # print(len(splitted_line))
@@ -228,7 +228,8 @@ def main_shape(Ini_cond):
         E_sur=float(splitted_line[6])
         E_ben=float(splitted_line[7])
         # E_bead.append(float(splitted_line[8]))
-        
+        if(counter%1000==0):
+            print("{} {} {} {} {} {} {} {}".format(nu,Initial_conds,Nsim,E_vol,E_sur,E_ben,Area,Volume))
 
         
         V_bar=float(splitted_line[0])
