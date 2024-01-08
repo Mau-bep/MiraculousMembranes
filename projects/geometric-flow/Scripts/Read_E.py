@@ -229,10 +229,6 @@ def main_shape(Ini_cond):
         E_sur=float(splitted_line[6])
         E_ben=float(splitted_line[7])
         # E_bead.append(float(splitted_line[8]))
-        if(counter%1000==0):
-            print("{} {} {} {} {} {} {} {}".format(nu,Initial_conds,Nsim,E_vol,E_sur,E_ben,Area,Volume))
-
-        
         V_bar=float(splitted_line[0])
         A_bar=float(splitted_line[1])
         
