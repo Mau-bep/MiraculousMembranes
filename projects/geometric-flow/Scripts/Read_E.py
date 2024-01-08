@@ -221,7 +221,13 @@ def main_shape(Ini_cond):
         # V_bar=float(splitted_line[0])
         # A_bar=float(splitted_line[1])
         
-        
+
+        # i can do a safety check 
+        for i in range(8):
+            if(len(splitted_line[i].split['.'])>2):
+                Output_file.readline()
+                continue
+            
         Bar_Area=float(splitted_line[1])
         time=float(splitted_line[2])
         Volume=float(splitted_line[3])
