@@ -224,7 +224,7 @@ def main_shape(Ini_cond):
 
         # i can do a safety check 
         for i in range(8):
-            if(len(splitted_line[i].split['.'])>2):
+            if(len(splitted_line[i].split('.'))>2):
                 Output_file.readline()
                 continue
             
