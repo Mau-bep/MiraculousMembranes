@@ -14,6 +14,7 @@ line=Data_file.readline()
 nu_1=[]
 nu_2=[]
 nu_3=[]
+nus_target=[[],[],[]]
 nus=[[],[],[]]
 Ebs=[[],[],[]]
 Eb_1=[]
@@ -28,7 +29,7 @@ while(line):
     Volume=float(splitted_line[7])
     Area=float(splitted_line[6])
     nus[Init_cond-1].append( 3*Volume/(4*np.pi*pow( Area/(4*np.pi) ,1.5 ))  )
-    
+    nus_target[Init_cond-1].append( float(splitted_line[0]))
 
     Ebs[Init_cond-1].append(float(splitted_line[5]))
 
@@ -47,7 +48,18 @@ while(line):
 plt.scatter(nus[0],Ebs[0],color='pink')
 plt.scatter(nus[1],Ebs[1],color='purple')
 plt.scatter(nus[2],Ebs[2],color='blue')
+plt.ylabel(r'$E_b$')
+plt.xlabel(r'$\nu$')
 plt.axvline(0.59,color='black',ls='dashed')
 plt.axvline(0.65,color='black',ls='dashed')
 plt.show()
 
+
+plt.scatter(nus_target[0],nus[0],color='pink')
+plt.scatter(nus_target[1],nus[1],color='purple')
+plt.scatter(nus_target[2],nus[2],color='blue')
+diag=np.linspace(0,1,10)
+plt.plot(diag,diag,color='black',ls='dashed')
+plt.ylabel(r'$\nu$')
+plt.xlabel(r'$\bar{\nu}$')
+plt.show()

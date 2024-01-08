@@ -8,7 +8,7 @@
 foreach KB ( 0.1 )
 set Nsim=1
 
-foreach v ( 0.5 0.55 0.6 0.65 0.7 0.75 0.85 0.9 0.95 1.0 )
+foreach v ( 0.5 0.55 0.6 0.65 0.7 0.75 0.8 0.85 0.9 0.95 1.0 )
 foreach Init_cond ( 1 )
 
 python3 Read_E.py ${v} ${Init_cond}
