@@ -200,7 +200,7 @@ def main_shape(Ini_cond):
         # print(len(splitted_line))
         if(len(splitted_line)<11):
             break
-        if(len(splitted_line>13)):
+        if(len(splitted_line)>13):
             continue
         Bar_Areas.append(float(splitted_line[1]))
         time_evol.append(float(splitted_line[2]))
