@@ -202,6 +202,7 @@ def main_shape(Ini_cond):
         if(len(splitted_line)<11):
             break
         if(len(splitted_line)>13):
+            line=Output_file.readline()
             continue
         # Bar_Areas.append(float(splitted_line[1]))
         # time_evol.append(float(splitted_line[2]))
