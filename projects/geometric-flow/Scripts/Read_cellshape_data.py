@@ -8,8 +8,8 @@ rc('font',**{'family':'serif','serif':['Palatino'], 'size':14})
 rc('text', usetex=True)
 
 
-KB=0.1
-Data_file = open("../Results/Mem3DG_Cell_Shape/Data/Final_energies.txt")
+KB=0.01
+Data_file = open("../Results/Mem3DG_Cell_Shape/Data/Final_energies_KB_{}.txt".format(KB))
 
 line=Data_file.readline()
 nu_1=[]
