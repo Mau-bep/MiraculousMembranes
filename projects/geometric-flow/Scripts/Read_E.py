@@ -11,8 +11,8 @@ nu=float(sys.argv[1])
 # strg=float(sys.argv[3])
 
 # nu=1.0
-KB=0.1
 Initial_conds=int(sys.argv[2])
+KB=float(sys.argv[3])
 
 Nsim=1
 
@@ -260,7 +260,7 @@ def main_shape(Ini_cond):
     os.makedirs(pre_folder+"Data/",exist_ok=True)
 
 
-    E_data = open(pre_folder+"Data/Final_energies.txt","a+")
+    E_data = open(pre_folder+"Data/Final_energies_KB_{}.txt".format(KB),"a+")
 
     E_data.write("{} {} {} {} {} {} {} {} \n".format(nu,Initial_conds,Nsim,E_vol,E_sur,E_ben,Area,Volume))
     # E_data.write("{} {} {} {} {} {} {} {} \n".format(nu,Initial_conds,Nsim,E_vol[-1],E_sur[-1],E_ben[-1],Areas[-1],Volumes[-1]))
