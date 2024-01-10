@@ -381,8 +381,12 @@ int main(int argc, char** argv) {
 
 
         nu_evol= (current_t-init_step) <Area_evol_steps ? nu_0 + (nu-nu_0)*(current_t-init_step)/Area_evol_steps : nu; 
-        KB_evol= (current_t-init_step) <Area_evol_steps ? 0.1 + (KB-0.1)*(current_t-init_step)/Area_evol_steps : KB; 
-        
+        if(current_t>=Area_evol_steps){
+        KB_evol= (current_t-init_step) <2*Area_evol_steps ? 0.1 + (KB-0.1)*(current_t-init_step-Area_evol_steps)/Area_evol_steps : KB; 
+        }
+        else{
+            KB_evol=0.1;
+        }
         dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB_evol,Kd,Sim_data,time,Save);
         if(Save==true)
         {
