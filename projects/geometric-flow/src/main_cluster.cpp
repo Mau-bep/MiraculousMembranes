@@ -205,7 +205,7 @@ int main(int argc, char** argv) {
     Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
     Min_rel_lengthstream << std::fixed << std::setprecision(2) <<Min_rel_length;
     
-    std::string first_dir="../Results/Mem3DG_Cell_Shape_KB_evol/    ";
+    std::string first_dir="../Results/Mem3DG_Cell_Shape_KB_evol/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 

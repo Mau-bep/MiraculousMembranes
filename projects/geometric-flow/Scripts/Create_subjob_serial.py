@@ -36,7 +36,7 @@ f.write('#!/bin/bash \n')
 f.write('# \n')
 
 f.write('#SBATCH --job-name=Mem3DGpa\n')
-f.write('#SBATCH --output=../Outputs/output_Mem3DG_v_{}_KB_{}_Init_cond_{}_Nsim_{}\n'.format(v,KB,Init_cond,Nsim))
+f.write('#SBATCH --output=../Outputs/output_Mem3DG_v_{}_KB_{}_evol_Init_cond_{}_Nsim_{}\n'.format(v,KB,Init_cond,Nsim))
 f.write('#\n')
 f.write('#number of CPUs to be used\n')
 f.write('#SBATCH --ntasks=1\n')
