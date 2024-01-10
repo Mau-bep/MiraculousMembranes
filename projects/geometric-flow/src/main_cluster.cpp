@@ -205,7 +205,7 @@ int main(int argc, char** argv) {
     Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
     Min_rel_lengthstream << std::fixed << std::setprecision(2) <<Min_rel_length;
     
-    std::string first_dir="../Results/Mem3DG_Cell_Shape/";
+    std::string first_dir="../Results/Mem3DG_Cell_Shape_KB_evol/    ";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
@@ -296,6 +296,7 @@ int main(int argc, char** argv) {
     double Area_bar;
     double nu_obs;
     double nu_evol;
+    double KB_evol;
     double nu_0;
     double c_null;
     size_t counter=0;
@@ -380,8 +381,9 @@ int main(int argc, char** argv) {
 
 
         nu_evol= (current_t-init_step) <Area_evol_steps ? nu_0 + (nu-nu_0)*(current_t-init_step)/Area_evol_steps : nu; 
+        KB_evol= (current_t-init_step) <Area_evol_steps ? 0.1 + (KB-0.1)*(current_t-init_step)/Area_evol_steps : KB; 
         
-        dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save);
+        dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB_evol,Kd,Sim_data,time,Save);
         if(Save==true)
         {
             Save=false;
