@@ -9,7 +9,7 @@ rc('text', usetex=True)
 
 
 KB=0.01
-Data_file = open("../Results/Mem3DG_Cell_Shape_KB_evol/Data/Final_energies_KB_{}.txt".format(KB))
+Data_file = open("../Results/Mem3DG_Cell_Shape_KB_evol/Data/Final_energies_KB_{}_2.txt".format(KB))
 
 line=Data_file.readline()
 nu_1=[]
