@@ -820,6 +820,7 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
     system_time+=1;
 
 
+    V = geometry->totalVolume();
     double scaling_factor=pow(V_bar/V,1.0/3.0);
     geometry->inputVertexPositions=geometry->inputVertexPositions*scaling_factor;
     
