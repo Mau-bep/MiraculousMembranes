@@ -14,7 +14,7 @@ nu=float(sys.argv[1])
 Initial_conds=int(sys.argv[2])
 KB=float(sys.argv[3])
 
-Nsim=1
+Nsim=int(sys.argv[4])
 
 # def main_bead(strg):
 
