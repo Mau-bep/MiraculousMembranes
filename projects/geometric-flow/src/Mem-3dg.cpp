@@ -75,20 +75,13 @@ Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,
 VertexData<Vector3> Mem3DG::buildFlowOperator(double h, double V_bar, double nu, double c0,double P0,double KA,double KB, double Kd)  {
 
     // Lets get our target area and curvature
-    double V=geometry->totalVolume();
+    
+    // double V=geometry->totalVolume();
+    // double D_P=-P0*(V-V_bar)/V_bar/V_bar;
+    
     double A_bar=4*PI*pow(3*V_bar/(4*PI*nu),2.0/3.0);
     double H_bar=sqrt(4*PI/A_bar)*c0/2.0; //Coment this with another comment
-    
-    // size_t index;
-    // for(Vertex v : mesh->vertices()){
-    //   index=v.getIndex();
-    //   H_Vector_0[index]=geometry->scalarMeanCurvature(v)/geometry->barycentricDualArea(v);
-    //   dH_Vector[index]=(H_bar-H_Vector_0[index])/50.0;
-
-    // }
-
     double A=geometry->totalArea();
-    double D_P=-P0*(V-V_bar)/V_bar/V_bar;
     double lambda=KA*(A-A_bar )/A_bar;
     
     
@@ -98,7 +91,9 @@ VertexData<Vector3> Mem3DG::buildFlowOperator(double h, double V_bar, double nu,
     // return (SurfaceTension(lambda)+OsmoticPressure(D_P));
 
 
-    return (Bending(H_bar,KB)+OsmoticPressure(D_P)+SurfaceTension(lambda));
+    // return (Bending(H_bar,KB)+OsmoticPressure(D_P)+SurfaceTension(lambda));
+    return (Bending(H_bar,KB)+SurfaceTension(lambda));
+    
     // 
     // +SurfaceTension(lambda)
 }
@@ -551,12 +546,13 @@ double rho=0.7;
 double alpha=1e-3;
 double positionProjection = 0;
 double A=geometry->totalArea();
-double V=geometry->totalVolume();
-double E_Vol=E_Pressure(D_P,V,V_bar);
+// double V=geometry->totalVolume();
+// double E_Vol=E_Pressure(D_P,V,V_bar);
 double E_Sur=E_Surface(KA,A,A_bar);
 double E_Ben=E_Bending(H_bar,KB);
 
-double previousE=E_Vol+E_Sur+E_Ben;
+// double previousE=E_Vol+E_Sur+E_Ben;
+double previousE=E_Sur+E_Ben;
 double NewE;
 VertexData<Vector3> initial_pos(*mesh);
 initial_pos= geometry->inputVertexPositions;
@@ -577,16 +573,16 @@ grad_norm=Projection;
 geometry->refreshQuantities();
 
 A=geometry->totalArea();
-V=geometry->totalVolume();
-E_Vol=E_Pressure(D_P,V,V_bar);
+// V=geometry->totalVolume();
+// E_Vol=E_Pressure(D_P,V,V_bar);
 E_Sur=E_Surface(KA,A,A_bar);
 E_Ben=E_Bending(H_bar,KB);
 
-NewE=E_Vol+E_Sur+E_Ben;
-
-if(std::isnan(E_Vol)){
-  std::cout<<"E vol is nan\n";
-}
+// NewE=E_Vol+E_Sur+E_Ben;
+NewE=E_Sur+E_Ben;
+// if(std::isnan(E_Vol)){
+//   std::cout<<"E vol is nan\n";
+// }
 if(std::isnan(E_Sur)){
   std::cout<<"E sur is nan\n";
 }
@@ -603,9 +599,9 @@ while(true){
     break;
 
     }
-  if(std::isnan(E_Vol)){
-  std::cout<<"E vol is nan\n";
-    }
+  // if(std::isnan(E_Vol)){
+  // std::cout<<"E vol is nan\n";
+  //   }
 if(std::isnan(E_Sur)){
   std::cout<<"E sur is nan\n";
     }
@@ -651,16 +647,14 @@ if(std::isnan(E_Ben)){
  
   
   A=geometry->totalArea();
-  V=geometry->totalVolume();
-  E_Vol=E_Pressure(D_P,V,V_bar);
+  // V=geometry->totalVolume();
+  // E_Vol=E_Pressure(D_P,V,V_bar);
   E_Sur=E_Surface(KA,A,A_bar);
   E_Ben=E_Bending(H_bar,KB);
-  NewE=E_Vol+E_Sur+E_Ben;
-  // std::cout<<"THe old energy is "<< previousE <<"\n";
-  // std::cout<<"Alpha is "<< alpha<<"and the new energy is"<< NewE << "\n";
-  // std::cout<<"The projection is :"<<Projection<<"\n";
-  // // std::cout<<"THe energy changed to"<<NewE<<"\n";
-  // std::cout<< "Volume E"<<E_Vol <<"Surface E" << E_Sur <<"\n";
+  NewE=E_Sur+E_Ben;
+  // NewE=E_Vol+E_Sur+E_Ben;
+  
+  
 
 
 
@@ -807,7 +801,7 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
     double lambda=KA*(A-A_bar )/A_bar;    
 
 
-    double E_Vol=E_Pressure(D_P,V,V_bar);
+    // double E_Vol=E_Pressure(D_P,V,V_bar);
     double E_Sur=E_Surface(KA,A,A_bar);
     double E_Ben=E_Bending(H_bar,KB);
     double backtrackstep;
@@ -819,11 +813,15 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
     // else{
     backtrackstep=Backtracking(Force,D_P,V_bar,A_bar,KA,KB,H_bar);
     // }
-
+    double E_Vol=0;
     if(Save || backtrackstep<0){
     Sim_data << V_bar<<" "<< A_bar<<" "<< time <<" "<< V<<" " << A<<" " << E_Vol << " " << E_Sur << " " << E_Ben << " "<< grad_norm<<" " << backtrackstep<<" \n";
     }
     system_time+=1;
+
+
+    double scaling_factor=pow(V_bar/V,1.0/3.0);
+    geometry->inputVertexPositions=geometry->inputVertexPositions*scaling_factor;
     
     // for (Vertex v : mesh->vertices()) {
     //     vindex=v.getIndex();
