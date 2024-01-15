@@ -180,7 +180,7 @@ int main(int argc, char** argv) {
     Area_evol_steps=100000*(0.2/nu);
     int init_step=0;
     c0=0.0;
-    KA=21.0;
+    KA=10.0;
     // KB=0.001;
 
     // I will do it so i can give this values
