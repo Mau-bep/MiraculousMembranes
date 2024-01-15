@@ -32,7 +32,7 @@ class Mem3DG {
     // DenseMatrix<double> Inv_Quasi_H;
 
     
-
+    double Area_evol_steps;
     double Old_norm2;
     double Current_norm2;
     size_t system_time;

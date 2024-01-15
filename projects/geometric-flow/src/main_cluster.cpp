@@ -73,7 +73,8 @@ float KB=0.0001;
 float Kd=0.0;
 double TS=0.001;
 
-size_t Area_evol_steps=100000;
+
+size_t Area_evol_steps;
 
 double Curv_adap=0.1;
 double Min_rel_length=0.5;
@@ -174,10 +175,12 @@ int main(int argc, char** argv) {
     int Init_cond = std::stoi(argv[2]);
     Nsim = std::stoi(argv[3]);
     KB=std::stod(argv[4]);
-
+    
+    
+    Area_evol_steps=100000*(0.2/nu);
     int init_step=0;
     c0=0.0;
-    KA=10.0;
+    KA=21.0;
     // KB=0.001;
 
     // I will do it so i can give this values
@@ -205,7 +208,7 @@ int main(int argc, char** argv) {
     Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
     Min_rel_lengthstream << std::fixed << std::setprecision(2) <<Min_rel_length;
     
-    std::string first_dir="../Results/Mem3DG_Cell_Shape_KB_evol_fix_vol/";
+    std::string first_dir="../Results/Mem3DG_Cell_Shape_KB_evol_flip/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
@@ -274,7 +277,7 @@ int main(int argc, char** argv) {
     
     M3DG = Mem3DG(mesh,geometry);
     M3DG.pulling=false;
-    
+    M3DG.Area_evol_steps=Area_evol_steps;
     std::string filename = basic_name+"Output_data.txt";
 
 
@@ -295,7 +298,7 @@ int main(int argc, char** argv) {
     double Area;
     double Area_bar;
     double nu_obs;
-    double nu_evol;
+    double nu_evol=0.0;
     double KB_evol;
     double nu_0;
     double c_null;
@@ -354,12 +357,14 @@ int main(int argc, char** argv) {
             std::cout<< "The volume is "<< Volume << "\n";
 
             std::cout<< "The reduced volume is "<< nu_obs << "\n";
+            std::cout<<"THe current target reduced volume is "<< nu_evol<<"\n";
             if(current_t==0){
                 nu_0=nu_obs;
             }
 
             // std::cout<< "The spontaneous curvature is " << H0<< "\n";
             std::cout << "The system time is " << M3DG.system_time <<"\n";
+            std::cout<<" THe simulation time is "<< time <<"\n";
             
             std::cout<<"A thousand iterations took "<<chrono::duration_cast<chrono::milliseconds>(end-start).count()<<" miliseconds\n\n\n";
 
@@ -381,8 +386,8 @@ int main(int argc, char** argv) {
 
 
         nu_evol= (current_t-init_step) <Area_evol_steps ? nu_0 + (nu-nu_0)*(current_t-init_step)/Area_evol_steps : nu; 
-        if(current_t>=Area_evol_steps){
-        KB_evol= (current_t-init_step) <2*Area_evol_steps ? 0.1 + (KB-0.1)*(current_t-init_step-Area_evol_steps)/Area_evol_steps : KB; 
+        if(current_t>=2*Area_evol_steps){
+        KB_evol= (current_t-init_step) <3*Area_evol_steps ? 0.1 + (KB-0.1)*(current_t-init_step-2*Area_evol_steps)/Area_evol_steps : KB; 
         }
         else{
             KB_evol=0.1;

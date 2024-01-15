@@ -34,10 +34,10 @@ void remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationMan
 
     size_t nFlips = 10;
     
-    // nFlips = fixDelaunay(mesh, geom, mm);
-    nFlips=0;
+    fixDelaunay(mesh, geom, mm);
+    // std::cout<<"The number of flips is "<< nFlips<<"\n";
     double flowDist = 1;
-    flowDist=0.0;
+    // flowDist=1;
     // switch (options.smoothStyle) {
     // case RemeshSmoothStyle::Circumcentric:
     //   flowDist = smoothByCircumcenter(mesh, geom, mm, 1, options.boundaryCondition);

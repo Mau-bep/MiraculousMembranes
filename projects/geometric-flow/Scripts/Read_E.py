@@ -156,8 +156,8 @@ Nsim=int(sys.argv[4])
 
 def main_shape(Ini_cond):
 
-
     pre_folder='../Results/Mem3DG_Cell_Shape/'
+    # pre_folder='../Results/Mem3DG_Cell_Shape_KB_evol/'
     dir='nu_{:.3f}_c0_0.000_KA_10.000_KB_{:.6f}_init_cond_{}_Nsim_{}'.format(nu,KB,Ini_cond,Nsim)
         #   nu_1.000_c0_0.000_KA_10.000_KB_0.005000_init_cond_1_Nsim_2
     # dir_2='nu_{:.3f}_c0_0.000_KA_10.000_KB_{:.6f}_init_cond_{}_Nsim_{}'.format(nu,KB,Ini,Nsim)
@@ -301,7 +301,7 @@ def main_shape(Ini_cond):
     plt.plot(time_evol,E_vol+E_sur+E_ben,color='black',label='total')
     # plt.axhline(V_bar,color='black',ls='dashed') 
     plt.legend()
-    plt.ylim(0,0.25)
+    # plt.ylim(0,0.25)
     plt.title(r'Energy evolution',fontsize=22)
     plt.xlabel(r't',fontsize=20)
     plt.ylabel(r'E',fontsize=20)
