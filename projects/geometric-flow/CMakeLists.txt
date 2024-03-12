@@ -78,13 +78,13 @@ endif()
 
 
 # Edit files to build here.
-set(SRCS 
-  src/main.cpp
-  src/Beads.cpp
-  src/Mem-3dg.cpp
-  src/Mem-3dg_implicit.cpp
-  ../../utils/src/colormap.cpp
-)
+# set(SRCS 
+#   src/main.cpp
+#   src/Beads.cpp
+#   src/Mem-3dg.cpp
+#   src/Mem-3dg_implicit.cpp
+#   ../../utils/src/colormap.cpp
+# )
 
 
 
@@ -174,18 +174,18 @@ endif()
 
 
 
-# Change the executable name by changing "main" in the lines below.
-add_executable(main "${SRCS}")
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT main)
-target_include_directories(main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
-target_include_directories(main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
-# add the args.hxx project which we use for command line args
-target_include_directories(main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
-target_link_libraries(main PUBLIC geometry-central polyscope)
-# find_package(OpenMP)
-# if(OPENMP_CXX_FOUND)
-#   target_link_libraries(main PUBLIC )
-# endif()
+# # Change the executable name by changing "main" in the lines below.
+# add_executable(main "${SRCS}")
+# set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT main)
+# target_include_directories(main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+# target_include_directories(main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
+# # add the args.hxx project which we use for command line args
+# target_include_directories(main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
+# target_link_libraries(main PUBLIC geometry-central polyscope)
+# # find_package(OpenMP)
+# # if(OPENMP_CXX_FOUND)
+# #   target_link_libraries(main PUBLIC )
+# # endif()
 
 
 add_executable(main_cluster "${SRCScluster}")
