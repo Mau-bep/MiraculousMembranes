@@ -30,7 +30,8 @@ public:
   virtual bool isManifold() override;
   virtual bool isEdgeManifold() override;
   virtual bool isOriented() override;
-
+  
+  
 
   // === Methods that mutate the mesh.
   // Note that all of these methods retain the validity of any MeshData<> containers, as well as any element handles

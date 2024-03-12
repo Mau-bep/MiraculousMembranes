@@ -92,7 +92,23 @@ VertexData<Vector3> Mem3DG::buildFlowOperator(double h, double V_bar, double nu,
     // return (SurfaceTension(lambda)+OsmoticPressure(D_P));
 
 
-    return (Bending(H_bar,KB)+OsmoticPressure(D_P)+SurfaceTension(lambda));
+    return (Bending(H_bar,KB)+OsmoticPressure(D_P)+lambda*SurfaceTension());
+    // return (Bending(H_bar,KB)+SurfaceTension(lambda));
+    
+    // 
+    // +SurfaceTension(lambda)
+}
+VertexData<Vector3> Mem3DG::buildFlowOperator(double h, double V_bar,double P0,double KA)  {
+
+    // Lets get our target area and curvature
+    
+    double V=geometry->totalVolume();
+    double D_P=-P0*(V-V_bar)/V_bar/V_bar;
+ 
+    
+  
+
+    return (OsmoticPressure(D_P)+KA*SurfaceTension());
     // return (Bending(H_bar,KB)+SurfaceTension(lambda));
     
     // 
@@ -126,7 +142,7 @@ VertexData<Vector3> Mem3DG::OsmoticPressure(double D_P) const {
 }
 
 
-VertexData<Vector3> Mem3DG::SurfaceTension(double lambda) const {
+VertexData<Vector3> Mem3DG::SurfaceTension() const {
 
     size_t index;
     Vector3 Normal;
@@ -147,7 +163,7 @@ VertexData<Vector3> Mem3DG::SurfaceTension(double lambda) const {
         }
 
     // std::cout<< "THe surface tension force in magnitude is: "<< -1*lambda*sqrt(Force.transpose()*Force) <<"\n";
-    return -1*lambda*Force;
+    return -1*Force;
 }
 Vector3 Mem3DG::computeHalfedgeMeanCurvatureVector(Halfedge he) const {
    size_t fID = he.face().getIndex();
@@ -403,7 +419,7 @@ Returns:
 
 */
 double Mem3DG::Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar,bool bead) {
-double c1=5e-4;
+double c1=1e-4;
 double rho=0.7;
 double alpha=1e-2;
 double positionProjection = 0;
@@ -493,7 +509,7 @@ while(true){
 
 
   alpha*=rho;
-  if(alpha<1e-8){
+  if(alpha<1e-9){
     std::cout<<"THe timestep got small so the simulation will end \n";
     alpha=-1.0;
     // continue;
@@ -540,6 +556,7 @@ return alpha;
 
 }
 
+// THis is for the membrane flow
 
 double Mem3DG::Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar) {
 double c1=1e-4;
@@ -695,6 +712,132 @@ VertexData<Vector3> Mem3DG::Project_force(VertexData<Vector3> Force) const{
   // return Projected_Force;
 }
 
+
+// THis is backtracking for volume preserving mean curvature flow
+double Mem3DG::Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double KA) {
+double c1=1e-4;
+double rho=0.7;
+double alpha=1e-3;
+double positionProjection = 0;
+double A=geometry->totalArea();
+double V=geometry->totalVolume();
+double E_Vol=E_Pressure(D_P,V,V_bar);
+double E_Sur=A*KA;
+
+// double previousE=E_Vol+E_Sur+E_Ben;
+double previousE=E_Vol+E_Sur;
+double NewE;
+VertexData<Vector3> initial_pos(*mesh);
+initial_pos= geometry->inputVertexPositions;
+// Zeroth iteration
+double Projection=0;
+
+// std::cout<<"THe initial E is "<<previousE<<"\n";
+geometry->inputVertexPositions+=alpha * Force;
+// std::cout<< geometry->inputVertexPositions[0]<<"and the other "<< initial_pos[0]<<"\n";
+
+for(Vertex v : mesh->vertices()) {
+  Projection+=Force[v.getIndex()].norm2();
+  } 
+
+
+grad_norm=Projection;
+
+geometry->refreshQuantities();
+
+A=geometry->totalArea();
+V=geometry->totalVolume();
+E_Vol=E_Pressure(D_P,V,V_bar);
+E_Sur=A*KA;
+NewE=E_Vol+E_Sur;
+// NewE=E_Sur+E_Ben;
+// if(std::isnan(E_Vol)){
+//   std::cout<<"E vol is nan\n";
+// }
+if(std::isnan(E_Sur)){
+  std::cout<<"E sur is nan\n";
+}
+
+
+
+size_t counter=0;
+while(true){
+  // if(true){
+  // std::cout<<"THe new energy is "<<NewE <<"\n";
+  if( NewE<= previousE - c1*alpha*Projection ) {
+    break;
+
+    }
+  // if(std::isnan(E_Vol)){
+  // std::cout<<"E vol is nan\n";
+  //   }
+if(std::isnan(E_Sur)){
+  std::cout<<"E sur is nan\n";
+    }
+
+  if(std::isnan(NewE)){
+    std::cout<<"The energy got Nan\n";
+    
+    alpha=-1.0;
+    break;
+  }
+
+
+  alpha*=rho;
+  if(alpha<1e-8){
+    // std::cout<<"THe timestep got small\n";
+    if(system_time<2*Area_evol_steps){
+      // std::cout<<"But the area evolution is not complete yet\n";
+      break;
+    }
+    else{
+    std::cout<<"THe simulation will stop because the timestep got smaller than 1e-8 \n";
+    alpha=-1.0;
+    // continue;
+    break;
+    }
+  }
+  // for(Vertex vi : mesh->vertices()){
+  //   geometry->inputVertexPositions[vi.getIndex()]= initial_pos[vi.getIndex()]+alpha*Force[vi.getIndex()];
+  // }
+  geometry->inputVertexPositions = initial_pos+alpha*Force;
+  geometry->refreshQuantities();  
+  // std::cout<<"THe old energy is "<< previousE <<"\n";
+  // std::cout<<"Alpha is "<< alpha<<"and the new energy is"<< NewE << "\n";
+  // std::cout<<"The projection is :"<<Projection<<"\n";
+  // // std::cout<<"THe energy changed to"<<NewE<<"\n";
+  // std::cout<< "Volume E"<<E_Vol <<"Surface E" << E_Sur <<"\n";
+
+    
+  A=geometry->totalArea();
+  V=geometry->totalVolume();
+  E_Vol=E_Pressure(D_P,V,V_bar);
+  E_Sur=A*KA;
+  NewE=E_Vol+E_Sur;  
+  
+
+}
+
+// for (Edge e : mesh->edges()){
+//   std::cout<< e.remesh;
+
+// }
+// std::cout<<"\n";
+  if(pulling){
+    // std::cout<<"THere is pulling right?\n";
+  VertexData<Vector3> Horizontal_pull(*mesh,Vector3({1.0,0.0,0.0}));
+  
+    // std::cout<<"\n";
+  geometry->inputVertexPositions+=alpha*pulling_force*No_remesh_list_v*Horizontal_pull;
+  geometry->refreshQuantities();
+  }
+return alpha;
+
+}
+
+
+
+
 /*
  * Performs integration with the bead
  *
@@ -766,8 +909,8 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
 
     // Bead_1.Move_bead(backtrackstep,center);
 
-    if(Save_output_data ){
-    Sim_data << V_bar<<" "<< A_bar<<" "<< time <<" "<< V<<" " << A<<" " << E_Vol << " " << E_Sur << " " << E_Ben <<" " << E_bead << " "<< grad_norm<<" " << backtrackstep<< " "<< Bead_1.Pos.x << " "<< Bead_1.Pos.y << " "<< Bead_1.Pos.z <<" \n";
+    if(Save_output_data || backtrackstep<0  ){
+    Sim_data << V_bar<<" "<< A_bar<<" "<< time <<" "<< V<<" " << A<<" " << E_Vol << " " << E_Sur << " " << E_Ben <<" " << E_bead << " "<< grad_norm<<" " << backtrackstep << " \n";
     }
     system_time+=1;
     
@@ -776,6 +919,7 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
   return backtrackstep;
 }
 
+// THis is the main integrate 
 double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,double KA,double KB, double Kd,std::ofstream& Sim_data, double time,bool Save) {
 
 
@@ -835,6 +979,57 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
   return backtrackstep;
 }
 
+
+// THis integrate will do surface tension + volume preservation
+double Mem3DG::integrate(double h, double V_bar,double P0,double KA,std::ofstream& Sim_data, double time,bool Save) {
+
+
+    
+    VertexData<Vector3> Force(*mesh);
+    Force=buildFlowOperator(h,V_bar,P0,KA);
+    
+    
+    // This force is the gradient basically
+    double alpha=1e-2;
+
+    // I have the forces for almost everything i just need the bead.
+
+    size_t vindex;
+    size_t Nvert=mesh->nVertices();
+
+
+    // I want to print the Volume, the area, VOl_E, Area_E, Bending_E 
+    double V = geometry->totalVolume();
+    double A = geometry->totalArea();
+    double D_P=-1*P0*(V-V_bar)/V_bar/V_bar;
+    
+
+    double E_Vol=E_Pressure(D_P,V,V_bar);
+    double E_Sur=KA*A;
+    double backtrackstep;
+
+    backtrackstep=Backtracking(Force,D_P,V_bar,KA);
+    // }
+    if(Save || backtrackstep<0){
+    Sim_data << V_bar<<" "<< time <<" "<< V<<" " << A<<" " << E_Vol << " " << E_Sur << " "<< grad_norm<<" " << backtrackstep<<" \n";
+    }
+    system_time+=1;
+
+
+    // for (Vertex v : mesh->vertices()) {
+    //     vindex=v.getIndex();
+
+    //     // Update= { Total_force[vindex],Total_force[vindex+Nvert],Total_force[vindex+2*Nvert]  };
+    //     // Update=h*Force[vindex];
+    //     Update=backtrackstep*Force[vindex];
+    //     geometry->inputVertexPositions[v] =geometry->inputVertexPositions[v]+ Update ; // placeholder
+    // }
+    // Force=MeshData<Vertex,Vector3>::fromVector(Delta_x);
+    // geometry->inputVertexPositions=geometry->inputVertexPositions+backtrackstep*Force;
+    
+  
+  return backtrackstep;
+}
 
 
 
@@ -1037,7 +1232,7 @@ Vector3 difference;
 E_area=E_Surface(KA,A,A_bar);
 
 
-VertexData<Vector3> Calc_grad=SurfaceTension(lambda);
+VertexData<Vector3> Calc_grad=lambda*SurfaceTension();
 
 dr=1e-6;
 
@@ -1716,6 +1911,9 @@ for(size_t exponent=0;exponent<20;exponent++){
 
 
 }
+
+
+
 
 
 

@@ -60,6 +60,7 @@ class VertexPositionGeometry : public EmbeddedGeometryInterface {
     // CHANGED: for DDG
     int eulerCharacteristic() const;
     double meanEdgeLength() const;
+    
     double totalArea() const;
     double totalVolume() const;
     double cotan(Halfedge he) const;
@@ -72,12 +73,17 @@ class VertexPositionGeometry : public EmbeddedGeometryInterface {
     Vector3 vertexNormalAreaWeighted(Vertex v) const;
     Vector3 vertexNormalGaussianCurvature(Vertex v) const;
     Vector3 vertexNormalMeanCurvature(Vertex v) const;
+    
+
+    Vector3 Angle_grad(Corner c, Vertex j, Vector3 Normal);
     double angleDefect(Vertex v) const;
     double totalAngleDefect() const;
     double scalarMeanCurvature(Vertex v) const;
     double circumcentricDualArea(Vertex v) const;
     std::pair<double, double> principalCurvatures(Vertex v) const;
 
+
+    
     SparseMatrix<double> laplaceMatrix() const;
     SparseMatrix<double> laplaceMatrix2() const;
     SparseMatrix<double> laplaceMatrix3d() const ;

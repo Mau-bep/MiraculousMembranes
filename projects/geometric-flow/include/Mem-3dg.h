@@ -49,14 +49,14 @@ class Mem3DG {
     Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, bool test);
 
     virtual VertexData<Vector3> buildFlowOperator(double h, double V_bar, double nu, double c0, double P0,double KA,double KB,double Kd);
-    
+    virtual VertexData<Vector3> buildFlowOperator(double h,double V_bar,double P0,double KA);
     Vector3 computeHalfedgeMeanCurvatureVector(Halfedge he) const;
     Vector3 computeHalfedgeGaussianCurvatureVector(Halfedge he) const ;
     Vector3 dihedralAngleGradient(Halfedge he, Vertex v) const;
     
     // virtual Vector3 cornerAngleGradient(Corner c, Vertex v) const;
     virtual VertexData<Vector3> OsmoticPressure(double D_P) const;
-    virtual VertexData<Vector3> SurfaceTension(double lambda) const;
+    virtual VertexData<Vector3> SurfaceTension() const;
     virtual VertexData<Vector3> SurfaceGrad() const;
     
     virtual VertexData<Vector3> Bending(double H0,double KB) const;
@@ -79,11 +79,12 @@ class Mem3DG {
 
     double Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar,bool bead) ;
     double Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar) ;
+    double Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double KA);
     virtual VertexData<Vector3> Project_force(VertexData<Vector3> Force) const; 
     virtual bool Area_sanity_check();  
     
     double integrate(double h, double V_bar, double nu, double c0,double P0,double KA,double KB, double Kd ,std::ofstream& Sim_data, double time, bool bead,std::ofstream& Bead_data,bool Save_output_data);
-    
+    double integrate(double h, double V_bar,double P0,double KA,std::ofstream& Sim_data, double time,bool Save);
     double integrate(double h, double V_bar, double nu, double c0,double P0,double KA,double KB, double Kd ,std::ofstream& Sim_data, double time,bool Save);
     double integrate_finite(double h, double V_bar, double nu, double c0,double P0,double KA,double KB, double Kd,std::ofstream& Sim_data, double time,std::ofstream& Gradient_file_vol,std::ofstream& Gradient_file_area,std::ofstream& Gradient_file_bending,bool Save );
 };

@@ -82,7 +82,7 @@ set(SRCS
   src/main.cpp
   src/Beads.cpp
   src/Mem-3dg.cpp
-
+  src/Mem-3dg_implicit.cpp
   ../../utils/src/colormap.cpp
 )
 
@@ -90,6 +90,13 @@ set(SRCS
 
 set(SRCScluster 
   src/main_cluster.cpp  
+  src/Mem-3dg.cpp
+    src/Beads.cpp
+  ../../utils/src/colormap.cpp
+)
+
+set(SRCSmainpreserv 
+  src/main_preserving_mean_curv.cpp  
   src/Mem-3dg.cpp
     src/Beads.cpp
   ../../utils/src/colormap.cpp
@@ -188,6 +195,14 @@ target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../.
 # add the args.hxx project which we use for command line args
 target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
 target_link_libraries(main_cluster PUBLIC geometry-central polyscope)
+
+add_executable(main_preserving_mean_curv "${SRCSmainpreserv}")
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT main_preserving_mean_curv)
+target_include_directories(main_preserving_mean_curv PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+target_include_directories(main_preserving_mean_curv PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
+# add the args.hxx project which we use for command line args
+target_include_directories(main_preserving_mean_curv PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
+target_link_libraries(main_preserving_mean_curv PUBLIC geometry-central polyscope)
 
 
 add_executable(main_cluster_beads "${SRCSclusterbeads}")

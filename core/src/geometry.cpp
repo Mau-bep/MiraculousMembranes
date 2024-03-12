@@ -61,6 +61,11 @@ double VertexPositionGeometry::meanEdgeLength() const {
 
 }
 
+
+
+
+
+
 /*
  * Compute the total surface area of the mesh.
  *
@@ -125,12 +130,19 @@ double VertexPositionGeometry::barycentricDualArea(Vertex v) const {
     // Ok i want to calculate the barycentric dual area which for a vertex is 1/3 or the total of the areas around
     
     double Dual_area=0.0;  
-    for(Face f : v.adjacentFaces()) {
-        Dual_area+=faceArea(f);
-
+    for(Halfedge he : v.outgoingHalfedges()){
+        if(!(he.isInterior())){
+            continue;
+        }
+        Dual_area+=faceArea(he.face());
     }
     
-    return Dual_area/3; // placeholder
+    // for(Face f : v.adjacentFaces()) {
+    //     Dual_area+=faceArea(f);
+
+    // }
+    
+    return Dual_area/3.0; // placeholder
 }
 
 /*
@@ -212,20 +224,34 @@ Vector3 VertexPositionGeometry::vertexNormalAngleWeighted(Vertex v) const {
     // 
     Corner corner;
     // how can i find the corner 
-    for(Face f : v.adjacentFaces()) {
-  // do science here
-    for(Halfedge he : f.adjacentHalfedges()) 
-    {
-        if(he.tailVertex()==v){
-            corner=he.corner();
+
+    for(Halfedge he : v.outgoingHalfedges()){
+        if(!he.isInterior()){
+            continue;
         }
+        corner=he.corner();
+        Normal+=faceNormal(he.face())*angle(corner);
+        // Normal+=faceNormal(he.face());
     }
+
+
+
+//     for(Face f : v.adjacentFaces()) {
+//   // do science here
+//     for(Halfedge he : f.adjacentHalfedges()) 
+//     {
+//         if(he.tailVertex()==v){
+//             corner=he.corner();
+//         }
     
-    Normal+=faceNormal(f)*angle(corner); 
+//     }
+    
+//     Normal+=faceNormal(f)*angle(corner); 
     
     
-    }
-    Normal=Normal/norm(Normal);
+//     }
+    // Normal=Normal;
+    // /norm(Normal);
     // TODO
     // TODO
     return Normal; // placeholder
@@ -346,6 +372,10 @@ Vector3 VertexPositionGeometry::vertexNormalMeanCurvature(Vertex v) const {
     return {0, 0, 0}; // placeholder
 }
 
+
+
+
+
 /*
  * Computes the angle defect at a vertex.
  *
@@ -388,6 +418,44 @@ double VertexPositionGeometry::totalAngleDefect() const {
     // TODO
     return total_d; // placeholder
 }
+
+
+/*
+Compute the gradient of an angle at vertex i with respect to vertex j 
+
+*/
+Vector3 VertexPositionGeometry::Angle_grad(Corner c, Vertex j, Vector3 Normal){
+
+    Vector3 u;
+    Vector3 v;
+    Vector3 grad;
+    if(c.vertex().getIndex()==j.getIndex()){
+        u = inputVertexPositions[c.halfedge().next().vertex()] -inputVertexPositions[c.halfedge().vertex()];
+        v = inputVertexPositions[c.halfedge().next().next().vertex()] -inputVertexPositions[c.halfedge().vertex()];
+        grad =  ( cross(Normal,u)/u.norm2() -cross(Normal,v)/v.norm2());
+        return -1*grad;
+    }
+
+    if(c.halfedge().next().vertex().getIndex()==j.getIndex()){
+        u=inputVertexPositions[c.halfedge().next().vertex()] -inputVertexPositions[c.halfedge().vertex()];
+        grad = -1*(cross(Normal,u)/u.norm2()); 
+        return -1*grad;
+    }
+    
+    if(c.halfedge().next().next().vertex().getIndex()==j.getIndex()){
+        v = inputVertexPositions[c.halfedge().next().next().vertex()] -inputVertexPositions[c.halfedge().vertex()];
+        grad=cross(Normal,v)/v.norm2();
+        return -1*grad;
+    }
+
+    std::cout<< "The vertex is not in the triangle where the angle is \n";
+
+return Vector3({0,0,0});
+}
+
+
+
+
 
 /*
  * Computes the (integrated) scalar mean curvature at a vertex.
@@ -502,6 +570,8 @@ SparseMatrix<double> VertexPositionGeometry::laplaceMatrix() const {
     // std::cout << "we are here right?";
     return laplace+diagonal; // placeholder
 }
+
+
 
 SparseMatrix<double> VertexPositionGeometry::laplaceMatrix3d() const {
     size_t nvert=mesh.nVertices();

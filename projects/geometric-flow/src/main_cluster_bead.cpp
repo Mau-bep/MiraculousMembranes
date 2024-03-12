@@ -159,7 +159,7 @@ int main(int argc, char** argv) {
 
     c0=0.0;
     KA=10.0;
-    KB=0.005;
+    KB=0.01;
 
 
     // I will do it so i can give this values
@@ -219,7 +219,7 @@ int main(int argc, char** argv) {
     // WFS = WillmoreFlowScho(mesh,geometry);
     // M3DG = Mem3DG(mesh,geometry);
     double radius=1.0;
-    Bead_1 = Bead(mesh,geometry,Vector3({6.3,0.0,0.0}),radius,Interaction_str);
+    Bead_1 = Bead(mesh,geometry,Vector3({6.2,0.0,0.0}),radius,Interaction_str);
     M3DG = Mem3DG(mesh,geometry,Bead_1);
     // Add visualization options.
     // psMesh->setSmoothShade(false);
@@ -330,13 +330,15 @@ int main(int argc, char** argv) {
         // psMesh->setEdgeWidth(1.0);
 
         
-        if(current_t%250==0){
+        if(current_t%100==0){
             Save_mesh(basic_name,current_t);
             Save_bead_data=true;
             Save_output_data=true;
 
         }
-        
+        if(current_t%100==0){
+            Save_output_data=true;
+        }
         if(current_t%1000==0) {
 
             end=chrono::steady_clock::now();

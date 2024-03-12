@@ -140,48 +140,52 @@ int main(int argc, char** argv) {
     
 
 
-    bool DoTest = false;
-
+    bool DoTest = true;
+    bool Test_Area = false;
+    bool Test_Vol = false;
+    bool Test_Bead = true;
+    bool Test_bending = false;
 
 
 
 
     // std::string path = "/home/mrojasve/Documents/DDG/MiraculousMembranes/projects/geometric-flow/Results/Tests_cil_regular/Minus_sign_force";
-    DIR *dh;
-    struct dirent * contents; 
-    dh = opendir("/home/mrojasve/Documents/DDG/MiraculousMembranes/projects/geometric-flow/Results/Bunny/nu_0.000_c0_0.000_KA_10.000_KB_0.000000/");
-    int index_underscore;
-    int index_dot;
-    size_t max_index=0;
-    size_t current_index=0;
+  
+    // DIR *dh;
+    // struct dirent * contents; 
+    // dh = opendir("/home/mrojasve/Documents/DDG/MiraculousMembranes/projects/geometric-flow/Results/Bunny/nu_0.000_c0_0.000_KA_10.000_KB_0.000000/");
+    // int index_underscore;
+    // int index_dot;
+    // size_t max_index=0;
+    // size_t current_index=0;
     
-    if ( !dh )
-    {
-        std::cout << "The given directory is not found";
-        return 1;
-    }
-    while ( ( contents = readdir ( dh ) ) != NULL )
-    {
-        std::string name = contents->d_name;
-        // std::cout<<name.size()<<endl;
+    // if ( !dh )
+    // {
+    //     std::cout << "The given directory is not found";
+    //     return 1;
+    // }
+    // while ( ( contents = readdir ( dh ) ) != NULL )
+    // {
+    //     std::string name = contents->d_name;
+    //     // std::cout<<name.size()<<endl;
         
-        if(name.size()>7 && name.find('t')>10){
-        index_underscore=name.find('_');
-        index_dot=name.find('.');
-        string str_index = name.substr(index_underscore+1,index_dot-index_underscore-1 );
-        std::cout << str_index << endl;
-        // I need to avoid the final state
-        current_index=stoi(str_index);
-        std::cout<<current_index<<endl;
-        if(current_index>max_index){
-            max_index=current_index;
-        }
+    //     if(name.size()>7 && name.find('t')>10){
+    //     index_underscore=name.find('_');
+    //     index_dot=name.find('.');
+    //     string str_index = name.substr(index_underscore+1,index_dot-index_underscore-1 );
+    //     std::cout << str_index << endl;
+    //     // I need to avoid the final state
+    //     current_index=stoi(str_index);
+    //     std::cout<<current_index<<endl;
+    //     if(current_index>max_index){
+    //         max_index=current_index;
+    //     }
 
-        // std::cout << name.substr(2) << endl;
-        }
-    }
-    std::cout<< "The biggest index is "<< max_index << endl;
-    closedir ( dh );
+    //     // std::cout << name.substr(2) << endl;
+    //     }
+    // }
+    // std::cout<< "The biggest index is "<< max_index << endl;
+    // closedir ( dh );
     
     if(DoTest){
 
@@ -250,7 +254,7 @@ int main(int argc, char** argv) {
     CoM = geometry->centerOfMass();
     double radius=1.0;
     double Interaction_str=1.0;
-    Bead_1 = Bead(mesh,geometry,Vector3({0.0,0.0,1.7}),radius,Interaction_str);
+    Bead_1 = Bead(mesh,geometry,Vector3({0.0,0.0,1.0}),radius,Interaction_str);
     // M3DG = Mem3DG(mesh,geometry);
     M3DG = Mem3DG(mesh,geometry,Bead_1);
 
@@ -344,8 +348,6 @@ int main(int argc, char** argv) {
 
 
 
-
-
     // Since this is the test secion, i want to check something
     double Total_A=0;
     double Total_A_dual_bar=0;
@@ -359,6 +361,15 @@ int main(int argc, char** argv) {
     std::cout<<"THe areas a are: Total "<<Total_A <<" Barycentric "<< Total_A_dual_bar <<" and Circumcentric "<< Total_A_dual_circ <<" \n";
     
 
+    // Here the tests start
+
+    // According to what i have written i need to create a function that receives the vertex where the angle is and the vertex where i want to calculate the gradient
+
+
+
+
+    if(Test_Area){
+
 
     filename = basic_name+"Area_tot_Gradient_evaluation_"+std::to_string(0) + ".txt";
     Gradient_data_tot_area.open(filename);
@@ -370,72 +381,82 @@ int main(int argc, char** argv) {
     
     
     Gradient_data_tot_area.close();
+    }
 
-
+    if(Test_Bead){
     filename = basic_name+"Bead_Gradient_evaluation_"+std::to_string(0) + ".txt";
     Gradient_data_bead.open(filename);
     Gradient_data_bead<< "Bead grad first finite then theory\n";
     // double H_bar=sqrt(4*PI/A_bar)*c0/2.0;
+ 
     VertexData<Vector3> Bead_grad_finite = M3DG.Grad_Bead(Gradient_data_bead,false,false);
     VertexData<Vector3> Bead_grad_th = M3DG.Bead_1.Gradient();
-    Gradient_data_bead<<Bead_grad_finite[3].x<<" "<<Bead_grad_finite[3].y<<" "<<Bead_grad_finite[3].z<<" \n";
-    Gradient_data_bead<<Bead_grad_th[3].x<<" "<<Bead_grad_th[3].y<<" "<<Bead_grad_th[3].z<<" \n";
-    
+ 
+    for(int i=0;i<7; i++){
+    Gradient_data_bead<<Bead_grad_finite[i].x<<" "<<Bead_grad_finite[i].y<<" "<<Bead_grad_finite[i].z<<" \n";
+    Gradient_data_bead<<Bead_grad_th[i].x<<" "<<Bead_grad_th[i].y<<" "<<Bead_grad_th[i].z<<" \n\n";
+    }
 
     Gradient_data_bead.close();
+    }
 
-    std::cout<<" This is where we will observe the problem in detail\n\n\n";
 
 
-    Vector3 r_ij = M3DG.Bead_1.Pos-geometry->inputVertexPositions[3];
-    double r_dist = r_ij.norm();
-    Vector3 unit_r=r_ij.unit();
-    std::cout<< "This two values should be equal "<< r_dist<< "and "<< dot(r_ij,unit_r)<<" which means the unit operation is correct\n";
+
+
+
+    // std::cout<<" This is where we will observe the problem in detail\n\n\n";
+
+
+    // Vector3 r_ij = M3DG.Bead_1.Pos-geometry->inputVertexPositions[3];
+    // double r_dist = r_ij.norm();
+    // Vector3 unit_r=r_ij.unit();
+    // std::cout<< "This two values should be equal "<< r_dist<< "and "<< dot(r_ij,unit_r)<<" which means the unit operation is correct\n";
     
-    double dual_area = geometry->circumcentricDualArea(mesh->vertex(3));
-    double strength= 1.0;
-    double sigma= 1.0;
+    // double dual_area = geometry->circumcentricDualArea(mesh->vertex(3));
+    // double strength= 1.0;
+    // double sigma= 1.0;
 
-    double E_v = 4*strength*(pow(sigma/r_dist,12)-pow(sigma/r_dist,6));
+    // double E_v = 4*strength*(pow(sigma/r_dist,12)-pow(sigma/r_dist,6));
 
-    Vector3 F_inter=(4*strength*( -12*pow(sigma/r_dist,12)+6*pow(sigma/r_dist,6))/r_dist)*unit_r;
+    // Vector3 F_inter=(4*strength*( -12*pow(sigma/r_dist,12)+6*pow(sigma/r_dist,6))/r_dist)*unit_r;
 
-    Vector3 F_area_grad=-2*geometry->vertexNormalMeanCurvature(mesh->vertex(3));
+    // Vector3 F_area_grad=-2*geometry->vertexNormalMeanCurvature(mesh->vertex(3));
 
-    Vector3 Gradient_finite_dif=Bead_grad_finite[3];
-
-
-    std::cout<<"The distance between them is "<<r_dist<<"\n";
-    
-
-    std::cout<<"The Finite difference says "<< Gradient_finite_dif.x<<" "<< Gradient_finite_dif.y <<" "<< Gradient_finite_dif.z<<"\n";
+    // Vector3 Gradient_finite_dif=Bead_grad_finite[3];
 
 
-    std::cout<< "The interaction force says "<< F_inter.x<<" "<< F_inter.y<<" "<< F_inter.z <<"\n";
-
-    std::cout<< "The Area grad says "<< F_area_grad.x << " "<< F_area_grad.y <<" " << F_area_grad.z<<" \n";
-
-    std::cout<<"The dual area is "<< dual_area<< " and the interaction energy is "<< E_v<<" \n\n";
-
-    std::cout<< "The interaction force*dual_area says "<< dual_area*F_inter.x<<" "<< dual_area*F_inter.y<<" "<< dual_area*F_inter.z <<"\n";
-
-    std::cout<< "The Area grad*E_v says "<< E_v*F_area_grad.x << " "<< E_v*F_area_grad.y <<" " << E_v*F_area_grad.z<<" \n";
+    // std::cout<<"The distance between them is "<<r_dist<<"\n";
     
 
-    std::cout<<"The Finite difference says "<< Gradient_finite_dif.x<<" "<< Gradient_finite_dif.y <<" "<< Gradient_finite_dif.z<<"\n\n";
-
-    std::cout<<"If we add them we get "<< E_v*F_area_grad.x+dual_area*F_inter.x << " "<< E_v*F_area_grad.y+dual_area*F_inter.y<<" "<< E_v*F_area_grad.z+dual_area*F_inter.z<<" \n\n";
+    // std::cout<<"The Finite difference says "<< Gradient_finite_dif.x<<" "<< Gradient_finite_dif.y <<" "<< Gradient_finite_dif.z<<"\n";
 
 
+    // std::cout<< "The interaction force says "<< F_inter.x<<" "<< F_inter.y<<" "<< F_inter.z <<"\n";
+
+    // std::cout<< "The Area grad says "<< F_area_grad.x << " "<< F_area_grad.y <<" " << F_area_grad.z<<" \n";
+
+    // std::cout<<"The dual area is "<< dual_area<< " and the interaction energy is "<< E_v<<" \n\n";
+
+    // std::cout<< "The interaction force*dual_area says "<< dual_area*F_inter.x<<" "<< dual_area*F_inter.y<<" "<< dual_area*F_inter.z <<"\n";
+
+    // std::cout<< "The Area grad*E_v says "<< E_v*F_area_grad.x << " "<< E_v*F_area_grad.y <<" " << E_v*F_area_grad.z<<" \n";
+    
+
+    // std::cout<<"The Finite difference says "<< Gradient_finite_dif.x<<" "<< Gradient_finite_dif.y <<" "<< Gradient_finite_dif.z<<"\n\n";
+
+    // std::cout<<"If we add them we get "<< E_v*F_area_grad.x+dual_area*F_inter.x << " "<< E_v*F_area_grad.y+dual_area*F_inter.y<<" "<< E_v*F_area_grad.z+dual_area*F_inter.z<<" \n\n";
 
 
-    std::cout<<"If we assume that the contribution in the radial distance is correct we can get a new vector \n\n";
-
-    Vector3 Area_contribution= Gradient_finite_dif-dual_area*F_inter;
 
 
+    // std::cout<<"If we assume that the contribution in the radial distance is correct we can get a new vector \n\n";
 
-    std::cout<<"If the E_v is correctly calculated then we can divide by E_v as long as it is not 0\n Then we will get the direction of the change\n This change is "<< Area_contribution.x/E_v<< " "<< Area_contribution.y/E_v<<" " << Area_contribution.z/E_v <<" \n";
+    // Vector3 Area_contribution= Gradient_finite_dif-dual_area*F_inter;
+
+
+
+    // std::cout<<"If the E_v is correctly calculated then we can divide by E_v as long as it is not 0\n Then we will get the direction of the change\n This change is "<< Area_contribution.x/E_v<< " "<< Area_contribution.y/E_v<<" " << Area_contribution.z/E_v <<" \n";
 
 
 

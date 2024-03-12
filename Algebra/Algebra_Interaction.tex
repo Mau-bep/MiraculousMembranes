@@ -1,0 +1,665 @@
+\documentclass[11pt]{article}
+\usepackage[left=1.5cm,top=1.5cm,right=1.5cm, bottom=1.5cm,letterpaper, includeheadfoot]{geometry}
+\usepackage{hyperref}
+\hypersetup{
+	colorlinks,
+	citecolor=black,
+	filecolor=black,
+	linkcolor=black,
+	urlcolor=black
+}
+
+\usepackage{amssymb, amsmath, amsthm}
+\usepackage{graphicx}
+\usepackage{lmodern,url}
+
+
+\usepackage[english]{babel}
+\usepackage{fancyhdr}
+\usepackage{amsmath}
+\usepackage{lipsum}
+\usepackage{framed}
+\usepackage{tikz}
+\usepackage{bbm}
+\usepackage{graphicx,todo}
+\graphicspath{{images/}}
+\usetikzlibrary{matrix}
+\usepackage{multicol}
+
+
+
+
+
+
+\usepackage[breakable]{tcolorbox}
+\usepackage{parskip} % Stop auto-indenting (to mimic markdown behaviour)
+
+
+% Basic figure setup, for now with no caption control since it's done
+% automatically by Pandoc (which extracts ![](path) syntax from Markdown).
+
+% Maintain compatibility with old templates. Remove in nbconvert 6.0
+\let\Oldincludegraphics\includegraphics
+% Ensure that by default, figures have no caption (until we provide a
+% proper Figure object with a Caption API and a way to capture that
+% in the conversion process - todo).
+\usepackage{caption}
+% \DeclareCaptionFormat{nocaption}{}
+% \captionsetup{format=nocaption,aboveskip=0pt,belowskip=0pt}
+
+\usepackage{float}
+\floatplacement{figure}{H} % forces figures to be placed at the correct location
+\usepackage{xcolor} % Allow colors to be defined
+\usepackage{enumerate} % Needed for markdown enumerations to work
+\usepackage{geometry} % Used to adjust the document margins
+
+\usepackage{amssymb} % Equations
+\usepackage{textcomp} % defines textquotesingle
+% Hack from http://tex.stackexchange.com/a/47451/13684:
+\AtBeginDocument{%
+    \def\PYZsq{\textquotesingle}% Upright quotes in Pygmentized code
+}
+\usepackage{upquote} % Upright quotes for verbatim code
+\usepackage{eurosym} % defines \euro
+
+\usepackage{iftex}
+\ifPDFTeX
+    \usepackage[T1]{fontenc}
+    \IfFileExists{alphabeta.sty}{
+          \usepackage{alphabeta}
+      }{
+          \usepackage[mathletters]{ucs}
+          \usepackage[utf8x]{inputenc}
+      }
+\else
+    \usepackage{fontspec}
+    \usepackage{unicode-math}
+\fi
+
+\usepackage{fancyvrb} % verbatim replacement that allows latex
+\usepackage{grffile} % extends the file name processing of package graphics 
+                     % to support a larger range
+\makeatletter % fix for old versions of grffile with XeLaTeX
+\@ifpackagelater{grffile}{2019/11/01}
+{
+  % Do nothing on new versions
+}
+{
+  \def\Gread@@xetex#1{%
+    \IfFileExists{"\Gin@base".bb}%
+    {\Gread@eps{\Gin@base.bb}}%
+    {\Gread@@xetex@aux#1}%
+  }
+}
+\makeatother
+\usepackage[Export]{adjustbox} % Used to constrain images to a maximum size
+\adjustboxset{max size={0.9\linewidth}{0.9\paperheight}}
+
+% The hyperref package gives us a pdf with properly built
+% internal navigation ('pdf bookmarks' for the table of contents,
+% internal cross-reference links, web links for URLs, etc.)
+\usepackage{hyperref}
+% The default LaTeX title has an obnoxious amount of whitespace. By default,
+% titling removes some of it. It also provides customization options.
+\usepackage{titling}
+\usepackage{longtable} % longtable support required by pandoc >1.10
+\usepackage{booktabs}  % table support for pandoc > 1.12.2
+\usepackage{array}     % table support for pandoc >= 2.11.3
+\usepackage{calc}      % table minipage width calculation for pandoc >= 2.11.1
+\usepackage[inline]{enumitem} % IRkernel/repr support (it uses the enumerate* environment)
+\usepackage[normalem]{ulem} % ulem is needed to support strikethroughs (\sout)
+                            % normalem makes italics be italics, not underlines
+\usepackage{mathrsfs}
+
+
+
+% Colors for the hyperref package
+\definecolor{urlcolor}{rgb}{0,.145,.698}
+\definecolor{linkcolor}{rgb}{.71,0.21,0.01}
+\definecolor{citecolor}{rgb}{.12,.54,.11}
+
+% ANSI colors
+\definecolor{ansi-black}{HTML}{3E424D}
+\definecolor{ansi-black-intense}{HTML}{282C36}
+\definecolor{ansi-red}{HTML}{E75C58}
+\definecolor{ansi-red-intense}{HTML}{B22B31}
+\definecolor{ansi-green}{HTML}{00A250}
+\definecolor{ansi-green-intense}{HTML}{007427}
+\definecolor{ansi-yellow}{HTML}{DDB62B}
+\definecolor{ansi-yellow-intense}{HTML}{B27D12}
+\definecolor{ansi-blue}{HTML}{208FFB}
+\definecolor{ansi-blue-intense}{HTML}{0065CA}
+\definecolor{ansi-magenta}{HTML}{D160C4}
+\definecolor{ansi-magenta-intense}{HTML}{A03196}
+\definecolor{ansi-cyan}{HTML}{60C6C8}
+\definecolor{ansi-cyan-intense}{HTML}{258F8F}
+\definecolor{ansi-white}{HTML}{C5C1B4}
+\definecolor{ansi-white-intense}{HTML}{A1A6B2}
+\definecolor{ansi-default-inverse-fg}{HTML}{FFFFFF}
+\definecolor{ansi-default-inverse-bg}{HTML}{000000}
+
+% common color for the border for error outputs.
+\definecolor{outerrorbackground}{HTML}{FFDFDF}
+
+% commands and environments needed by pandoc snippets
+% extracted from the output of `pandoc -s`
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\newenvironment{Shaded}{}{}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{{#1}}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.56,0.13,0.00}{{#1}}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{{#1}}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{{#1}}}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{{#1}}}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{{#1}}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{{#1}}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textit{{#1}}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{{#1}}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{{#1}}}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.02,0.16,0.49}{{#1}}}
+\newcommand{\RegionMarkerTok}[1]{{#1}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{{#1}}}}
+\newcommand{\NormalTok}[1]{{#1}}
+
+% Additional commands for more recent versions of Pandoc
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.53,0.00,0.00}{{#1}}}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{{#1}}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.73,0.40,0.53}{{#1}}}
+\newcommand{\ImportTok}[1]{{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.73,0.13,0.13}{\textit{{#1}}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{{#1}}}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{{#1}}}}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.10,0.09,0.49}{{#1}}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{{#1}}}}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.40,0.40,0.40}{{#1}}}
+\newcommand{\BuiltInTok}[1]{{#1}}
+\newcommand{\ExtensionTok}[1]{{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.74,0.48,0.00}{{#1}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.49,0.56,0.16}{{#1}}}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{{#1}}}}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{{#1}}}}}
+
+\newcommand{\wrong}[1] {\textcolor{red}{[#1]}}
+% Define a nice break command that doesn't care if a line doesn't already
+% exist.
+\def\br{\hspace*{\fill} \\* }
+% Math Jax compatibility definitions
+\def\gt{>}
+\def\lt{<}
+\let\Oldtex\TeX
+\let\Oldlatex\LaTeX
+\renewcommand{\TeX}{\textrm{\Oldtex}}
+\renewcommand{\LaTeX}{\textrm{\Oldlatex}}
+% Document parameters
+% Document title
+\title{Numerical Alg}
+
+
+
+
+
+% Pygments definitions
+\makeatletter
+\def\PY@reset{\let\PY@it=\relax \let\PY@bf=\relax%
+\let\PY@ul=\relax \let\PY@tc=\relax%
+\let\PY@bc=\relax \let\PY@ff=\relax}
+\def\PY@tok#1{\csname PY@tok@#1\endcsname}
+\def\PY@toks#1+{\ifx\relax#1\empty\else%
+\PY@tok{#1}\expandafter\PY@toks\fi}
+\def\PY@do#1{\PY@bc{\PY@tc{\PY@ul{%
+\PY@it{\PY@bf{\PY@ff{#1}}}}}}}
+\def\PY#1#2{\PY@reset\PY@toks#1+\relax+\PY@do{#2}}
+
+\@namedef{PY@tok@w}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.73,0.73}{##1}}}
+\@namedef{PY@tok@c}{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.24,0.48,0.48}{##1}}}
+\@namedef{PY@tok@cp}{\def\PY@tc##1{\textcolor[rgb]{0.61,0.40,0.00}{##1}}}
+\@namedef{PY@tok@k}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@kp}{\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@kt}{\def\PY@tc##1{\textcolor[rgb]{0.69,0.00,0.25}{##1}}}
+\@namedef{PY@tok@o}{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\@namedef{PY@tok@ow}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.67,0.13,1.00}{##1}}}
+\@namedef{PY@tok@nb}{\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@nf}{\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,1.00}{##1}}}
+\@namedef{PY@tok@nc}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,1.00}{##1}}}
+\@namedef{PY@tok@nn}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,1.00}{##1}}}
+\@namedef{PY@tok@ne}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.80,0.25,0.22}{##1}}}
+\@namedef{PY@tok@nv}{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\@namedef{PY@tok@no}{\def\PY@tc##1{\textcolor[rgb]{0.53,0.00,0.00}{##1}}}
+\@namedef{PY@tok@nl}{\def\PY@tc##1{\textcolor[rgb]{0.46,0.46,0.00}{##1}}}
+\@namedef{PY@tok@ni}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.44,0.44,0.44}{##1}}}
+\@namedef{PY@tok@na}{\def\PY@tc##1{\textcolor[rgb]{0.41,0.47,0.13}{##1}}}
+\@namedef{PY@tok@nt}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@nd}{\def\PY@tc##1{\textcolor[rgb]{0.67,0.13,1.00}{##1}}}
+\@namedef{PY@tok@s}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@sd}{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@si}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.64,0.35,0.47}{##1}}}
+\@namedef{PY@tok@se}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.67,0.36,0.12}{##1}}}
+\@namedef{PY@tok@sr}{\def\PY@tc##1{\textcolor[rgb]{0.64,0.35,0.47}{##1}}}
+\@namedef{PY@tok@ss}{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\@namedef{PY@tok@sx}{\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@m}{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\@namedef{PY@tok@gh}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,0.50}{##1}}}
+\@namedef{PY@tok@gu}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.50,0.00,0.50}{##1}}}
+\@namedef{PY@tok@gd}{\def\PY@tc##1{\textcolor[rgb]{0.63,0.00,0.00}{##1}}}
+\@namedef{PY@tok@gi}{\def\PY@tc##1{\textcolor[rgb]{0.00,0.52,0.00}{##1}}}
+\@namedef{PY@tok@gr}{\def\PY@tc##1{\textcolor[rgb]{0.89,0.00,0.00}{##1}}}
+\@namedef{PY@tok@ge}{\let\PY@it=\textit}
+\@namedef{PY@tok@gs}{\let\PY@bf=\textbf}
+\@namedef{PY@tok@gp}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,0.50}{##1}}}
+\@namedef{PY@tok@go}{\def\PY@tc##1{\textcolor[rgb]{0.44,0.44,0.44}{##1}}}
+\@namedef{PY@tok@gt}{\def\PY@tc##1{\textcolor[rgb]{0.00,0.27,0.87}{##1}}}
+\@namedef{PY@tok@err}{\def\PY@bc##1{{\setlength{\fboxsep}{\string -\fboxrule}\fcolorbox[rgb]{1.00,0.00,0.00}{1,1,1}{\strut ##1}}}}
+\@namedef{PY@tok@kc}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@kd}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@kn}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@kr}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@bp}{\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@fm}{\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,1.00}{##1}}}
+\@namedef{PY@tok@vc}{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\@namedef{PY@tok@vg}{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\@namedef{PY@tok@vi}{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\@namedef{PY@tok@vm}{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\@namedef{PY@tok@sa}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@sb}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@sc}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@dl}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@s2}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@sh}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@s1}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@mb}{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\@namedef{PY@tok@mf}{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\@namedef{PY@tok@mh}{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\@namedef{PY@tok@mi}{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\@namedef{PY@tok@il}{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\@namedef{PY@tok@mo}{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\@namedef{PY@tok@ch}{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.24,0.48,0.48}{##1}}}
+\@namedef{PY@tok@cm}{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.24,0.48,0.48}{##1}}}
+\@namedef{PY@tok@cpf}{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.24,0.48,0.48}{##1}}}
+\@namedef{PY@tok@c1}{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.24,0.48,0.48}{##1}}}
+\@namedef{PY@tok@cs}{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.24,0.48,0.48}{##1}}}
+
+\def\PYZbs{\char`\\}
+\def\PYZus{\char`\_}
+\def\PYZob{\char`\{}
+\def\PYZcb{\char`\}}
+\def\PYZca{\char`\^}
+\def\PYZam{\char`\&}
+\def\PYZlt{\char`\<}
+\def\PYZgt{\char`\>}
+\def\PYZsh{\char`\#}
+\def\PYZpc{\char`\%}
+\def\PYZdl{\char`\$}
+\def\PYZhy{\char`\-}
+\def\PYZsq{\char`\'}
+\def\PYZdq{\char`\"}
+\def\PYZti{\char`\~}
+% for compatibility with earlier versions
+\def\PYZat{@}
+\def\PYZlb{[}
+\def\PYZrb{]}
+\makeatother
+
+
+% For linebreaks inside Verbatim environment from package fancyvrb. 
+\makeatletter
+    \newbox\Wrappedcontinuationbox 
+    \newbox\Wrappedvisiblespacebox 
+    \newcommand*\Wrappedvisiblespace {\textcolor{red}{\textvisiblespace}} 
+    \newcommand*\Wrappedcontinuationsymbol {\textcolor{red}{\llap{\tiny$\m@th\hookrightarrow$}}} 
+    \newcommand*\Wrappedcontinuationindent {3ex } 
+    \newcommand*\Wrappedafterbreak {\kern\Wrappedcontinuationindent\copy\Wrappedcontinuationbox} 
+    % Take advantage of the already applied Pygments mark-up to insert 
+    % potential linebreaks for TeX processing. 
+    %        {, <, #, %, $, ' and ": go to next line. 
+    %        _, }, ^, &, >, - and ~: stay at end of broken line. 
+    % Use of \textquotesingle for straight quote. 
+    \newcommand*\Wrappedbreaksatspecials {% 
+        \def\PYGZus{\discretionary{\char`\_}{\Wrappedafterbreak}{\char`\_}}% 
+        \def\PYGZob{\discretionary{}{\Wrappedafterbreak\char`\{}{\char`\{}}% 
+        \def\PYGZcb{\discretionary{\char`\}}{\Wrappedafterbreak}{\char`\}}}% 
+        \def\PYGZca{\discretionary{\char`\^}{\Wrappedafterbreak}{\char`\^}}% 
+        \def\PYGZam{\discretionary{\char`\&}{\Wrappedafterbreak}{\char`\&}}% 
+        \def\PYGZlt{\discretionary{}{\Wrappedafterbreak\char`\<}{\char`\<}}% 
+        \def\PYGZgt{\discretionary{\char`\>}{\Wrappedafterbreak}{\char`\>}}% 
+        \def\PYGZsh{\discretionary{}{\Wrappedafterbreak\char`\#}{\char`\#}}% 
+        \def\PYGZpc{\discretionary{}{\Wrappedafterbreak\char`\%}{\char`\%}}% 
+        \def\PYGZdl{\discretionary{}{\Wrappedafterbreak\char`\$}{\char`\$}}% 
+        \def\PYGZhy{\discretionary{\char`\-}{\Wrappedafterbreak}{\char`\-}}% 
+        \def\PYGZsq{\discretionary{}{\Wrappedafterbreak\textquotesingle}{\textquotesingle}}% 
+        \def\PYGZdq{\discretionary{}{\Wrappedafterbreak\char`\"}{\char`\"}}% 
+        \def\PYGZti{\discretionary{\char`\~}{\Wrappedafterbreak}{\char`\~}}% 
+    } 
+    % Some characters . , ; ? ! / are not pygmentized. 
+    % This macro makes them "active" and they will insert potential linebreaks 
+    \newcommand*\Wrappedbreaksatpunct {% 
+        \lccode`\~`\.\lowercase{\def~}{\discretionary{\hbox{\char`\.}}{\Wrappedafterbreak}{\hbox{\char`\.}}}% 
+        \lccode`\~`\,\lowercase{\def~}{\discretionary{\hbox{\char`\,}}{\Wrappedafterbreak}{\hbox{\char`\,}}}% 
+        \lccode`\~`\;\lowercase{\def~}{\discretionary{\hbox{\char`\;}}{\Wrappedafterbreak}{\hbox{\char`\;}}}% 
+        \lccode`\~`\:\lowercase{\def~}{\discretionary{\hbox{\char`\:}}{\Wrappedafterbreak}{\hbox{\char`\:}}}% 
+        \lccode`\~`\?\lowercase{\def~}{\discretionary{\hbox{\char`\?}}{\Wrappedafterbreak}{\hbox{\char`\?}}}% 
+        \lccode`\~`\!\lowercase{\def~}{\discretionary{\hbox{\char`\!}}{\Wrappedafterbreak}{\hbox{\char`\!}}}% 
+        \lccode`\~`\/\lowercase{\def~}{\discretionary{\hbox{\char`\/}}{\Wrappedafterbreak}{\hbox{\char`\/}}}% 
+        \catcode`\.\active
+        \catcode`\,\active 
+        \catcode`\;\active
+        \catcode`\:\active
+        \catcode`\?\active
+        \catcode`\!\active
+        \catcode`\/\active 
+        \lccode`\~`\~ 	
+    }
+\makeatother
+
+\let\OriginalVerbatim=\Verbatim
+\makeatletter
+\renewcommand{\Verbatim}[1][1]{%
+    %\parskip\z@skip
+    \sbox\Wrappedcontinuationbox {\Wrappedcontinuationsymbol}%
+    \sbox\Wrappedvisiblespacebox {\FV@SetupFont\Wrappedvisiblespace}%
+    \def\FancyVerbFormatLine ##1{\hsize\linewidth
+        \vtop{\raggedright\hyphenpenalty\z@\exhyphenpenalty\z@
+            \doublehyphendemerits\z@\finalhyphendemerits\z@
+            \strut ##1\strut}%
+    }%
+    % If the linebreak is at a space, the latter will be displayed as visible
+    % space at end of first line, and a continuation symbol starts next line.
+    % Stretch/shrink are however usually zero for typewriter font.
+    \def\FV@Space {%
+        \nobreak\hskip\z@ plus\fontdimen3\font minus\fontdimen4\font
+        \discretionary{\copy\Wrappedvisiblespacebox}{\Wrappedafterbreak}
+        {\kern\fontdimen2\font}%
+    }%
+    
+    % Allow breaks at special characters using \PYG... macros.
+    \Wrappedbreaksatspecials
+    % Breaks at punctuation characters . , ; ? ! and / need catcode=\active 	
+    \OriginalVerbatim[#1,codes*=\Wrappedbreaksatpunct]%
+}
+\makeatother
+
+% Exact colors from NB
+\definecolor{incolor}{HTML}{303F9F}
+\definecolor{outcolor}{HTML}{D84315}
+\definecolor{cellborder}{HTML}{CFCFCF}
+\definecolor{cellbackground}{HTML}{F7F7F7}
+
+% prompt
+\makeatletter
+\newcommand{\boxspacing}{\kern\kvtcb@left@rule\kern\kvtcb@boxsep}
+\makeatother
+\newcommand{\prompt}[4]{
+    {\ttfamily\llap{{\color{#2}[#3]:\hspace{3pt}#4}}\vspace{-\baselineskip}}
+}
+
+
+
+% Prevent overflowing lines due to hard-to-break entities
+\sloppy 
+% Setup hyperref package
+\hypersetup{
+  breaklinks=true,  % so long urls are correctly broken across lines
+  colorlinks=true,
+  urlcolor=urlcolor,
+  linkcolor=linkcolor,
+  citecolor=citecolor,
+  }
+% Slightly bigger margins than the latex defaults
+
+\geometry{verbose,tmargin=1in,bmargin=1in,lmargin=1in,rmargin=1in}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\pagestyle{fancy}
+\fancypagestyle{plain}{%
+\fancyhf{}
+\lhead{\footnotesize\itshape\bfseries\rightmark}
+\rhead{\footnotesize\itshape\bfseries\leftmark}
+}
+
+
+
+
+
+
+
+
+
+
+% macros
+\newcommand{\Q}{\mathbb Q}
+\newcommand{\I}{\mathbb I}
+\newcommand{\R}{\mathbb R}
+\newcommand{\N}{\mathbb N}
+\newcommand{\Z}{\mathbb Z}
+\newcommand{\C}{\mathbb C}
+\newcommand{\K}{\mathbb K}
+\newcommand{\M}{\mathcal M}
+\newcommand{\MR}{\mathcal M_{nn}(\R)}
+\newcommand{\MC}{\mathcal M_{nn}(\C)}
+
+\newcommand{\MK}{\mathcal M_{nn}(\K)}
+\newcommand{\ds}{\displaystyle}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\Ker}{Ker}
+\DeclareMathOperator{\Ima}{Im}
+\DeclareMathOperator{\rango}{r}
+%Teoremas, Lemas, etc.
+\theoremstyle{plain}
+\newtheorem{teo}{Teorema}
+\newtheorem*{teo*}{Teorema}
+\newtheorem{lem}{Lema}
+\newtheorem{prop}{Proposici\'on}
+\newtheorem{cor}{Corolario}
+
+\theoremstyle{definition}
+\newtheorem*{defi}{Definici\'on}
+\newtheorem{solu}{Solución}
+
+\newenvironment{sol}{\begin{framed}
+\begin{solu}
+\leavevmode
+}{\end{solu}\end{framed}}
+
+
+
+\newcommand{\cin}{\operatorname{cint}}
+\newcommand{\horrule}[1]{\noindent\rule{\linewidth}{#1}}
+
+
+
+\begin{document}
+%Encabezado
+\fancyhead[L]{ }
+\fancyhead[R]{Institute of Science and Technology Austria} 
+
+% \begin{minipage}[t]{10.0 cm}
+% \vspace{-6.5ex}
+% \textbf{ } \\
+% \textbf{} \\
+% \textbf{Student: } Mau Rojas 
+%    \end{minipage}%
+  %  \hfill
+  %  \begin{minipage}[t]{3.2 cm}
+  %    \vspace{-6.5ex}
+  %    \raggedright\includegraphics[scale=1.0]{ISTA_LOGO.png} 
+  %  \end{minipage}
+\begin{center}
+\LARGE\textbf{Needed algebra for research purposes  \\}
+\vspace{3 mm}
+\end{center}
+
+
+So until now my interaction energy is 
+\begin{equation}
+  E_{\rm inter}=\sum_{i}^N E^{I}_{i} A^{dual}_i
+\end{equation}
+Where we are multipliying the interaction energy with the dual area. When we do this we find that the dual area of $i$ also depends on the neighboring vertices,so when we calculate the gradient for a vertex $i$ we obtain.
+
+\begin{equation}
+  \nabla_{\vec{r}_i} E_{\rm inter}=\nabla_{\vec{r}_i}E^I_{i}A^{\rm dual}_i +   \,\cfrac{1}{3}\nabla_{\vec{r}_i} A_{ijk}\sum_{j\in \text{Neigh}(i) }E^I_j 
+\end{equation}
+Where we used the barycentric dual area, that is why the factor $1/3$ appears. And the second summation is in all the triangles adjacent to vertex $i$.
+
+We now want to multiply this energy with this term
+
+\begin{equation}
+  \vec{N}_i\cdot \hat{r}_i
+\end{equation}
+THe second term is the direction from vertex $i$ to the bead. The derivative of the second term is easy, but the first one is no piece of cake because the way this normal is defined is 
+\begin{align}
+  \vec{N}_i=\sum_{ijk} \alpha_{kij}\vec{N}_{ijk}
+\end{align}
+Where i am calculating the normal at the vertex as the angle weighted sum of the normals at the faces.
+
+Therefore we are actually calculating.
+
+\begin{align}
+    E_{\rm inter} &= \sum_i^{N} E^I_i A_{i}^{\rm dual} \vec{N_i}\cdot \hat{r}\\
+    &=\sum_i^{N} E^I_i A_{i}^{\rm dual} \sum_{ijk} \alpha_{kij}\vec{N}_{ijk}\cdot \hat{r}
+\end{align}
+Here we can have a little discussion because i can keep it this way, but there could be a problem because the norm of the normal defined at the vertex is not normalized. Which may induce problems? I mean i am not sure i can try to implement this first and check if it works. But i do think one has to be more rigurous and normalize the normal, which means out actual energy is 
+
+\begin{align}
+  E_{\rm inter}&=\sum_i^{N} E^I_i A_{i}^{\rm dual} \cfrac{1}{\sqrt{\vec{N}_i^T\cdot \vec{N}_i}}\sum_{ijk} \alpha_{kij}\vec{N}_{ijk}\cdot \hat{r}_i
+\end{align}
+
+So when we calculate this gradient we will have $4$ more terms. And they may have a few terms inside. Since i already calculated the gradient with the previous terms we will only write now the gradients of the terms i need to add to the code, so forget about $E_i^I$ and the dual area.
+
+\begin{equation}
+  E_{\rm inter}=\sum_{i}^N \cfrac{1}{\sqrt{\vec{N}_i^T\cdot \vec{N}_i}}\sum_{ijk} \alpha_{kij}\vec{N}_{ijk}\cdot \hat{r}_i
+\end{equation}
+
+Now we need to be careful about this term. 
+First because we are summing over all vertex indices and then over all the triangles sorrounding this vertex. 
+We know there is only one $\hat{r}$ per vertex. But the normal $N_{ijk}$ appeas on the three vertices.
+Also the angle depends in the other two vertices. Lets try to unwrap this and see if we can make sense of it 
+\begin{align}
+  \nabla_{\vec{r}_l} E_{\rm inter} =\nabla_{\vec{r}_l} \left( \cfrac{1}{\sqrt{\vec{N}_l^T\cdot \vec{N}_l}}\sum_{ljk}\alpha_{klj}\vec{N}_{ljk}\cdot \hat{r}_l  \right)+\nabla_{\vec{r}_l}\left( \sum_{m\in \text{neigh}(l)}  \cfrac{1}{\sqrt{\vec{N}_m^T\cdot \vec{N}_m}} \sum_{mjk}\alpha_{kmj}\vec{N}_{mjk}\cdot   \hat{r}_m\right)
+\end{align}
+
+Ok what i see here is that there are two triangles for every neighbor that contribute. I just need to find a way to make sense of this. Because i still need to expand this.
+
+So the main thing here is dependence.
+Lets expand the first term because it looks simpler and we may gain intuition.
+
+
+\begin{align}
+  \text{First}&= -\cfrac{1}{2\sqrt[3/2]{\vec{N}^T_l \cdot \vec{N}_l}} \nabla_{\vec{r}_l}(\vec{N}_l^T \cdot \vec{N}_l)  \left(\sum_{ljk}\alpha_{klj}\vec{N}_{ljk}\cdot \hat{r}_l\right)+\cfrac{1}{\sqrt{\vec{N}_l^T\cdot \vec{N}_l}} \nabla_{\vec{r}_l}\left(\sum_{ljk}\alpha_{klj}\vec{N}_{ljk}\cdot \hat{r}_l\right)
+\end{align}
+
+We need to expand the dot product of the normal with itself. and the second term is the summation of a triple product, so there will be a lot of terms and i dont think we can cancel any of them (:
+
+
+\begin{align}
+  \nabla_{\vec{r}_l} \left(\vec{N}_l^T\cdot \vec{N}_l\right) &= 2\vec{N}_l\left(\nabla_{\vec{r}_l}\vec{N_l}\right)  
+\end{align}
+ 
+So now we need to calculate this derivative which will be useful later 
+\begin{align}
+  \nabla_{\vec{r}_l} \vec{N}_l &=\nabla_{\vec{r}_l} \sum_{ljk}\alpha_{klj}\vec{N}_{ljk}\\
+  &=\sum_{ljk}\vec{N}_{ljk}(\nabla_{\vec{r}_l}\alpha_{klj})^T+\alpha_{klj}(\nabla_{\vec{r}_l}\vec{N}_{ljk})
+\end{align}
+
+So the fist term of the first term gives us $3$ terms. Which is just ... great. Lets look into them. The first one is the gradient of an angle. The angles are at the vertex $l$.
+
+
+
+For an angle $\alpha$ the derivative with respect to the vertices are.
+\begin{align}
+  \nabla_l\alpha_{jlk} &= -(\nabla_j \alpha + \nabla_k \alpha)\\
+  \nabla_j\alpha_{jlk} &= -(N\times u )/|u|^2\\
+  \nabla_k\alpha_{jlk} &= (N\times v)/|v|^2 
+\end{align}
+Where if we use the halfedge data structure with anti-clockwise orientation, the outgoing halfedge points to vertex $j$. The vertex $u$ and $v$ are calculated as $k-l$ and $j-l$. So this is also something to keep in mind. Because if we use hafledges then both formulas will be with negative sign (cool fact that i may exploit).
+
+With this formula i think the implementation I will need the normal of the triangle and the vectors $u$ and $v$ but those are easy to calculate so no need to store them.
+
+The second term asks for the jacobian of the normal.
+
+The jacobian is 
+\begin{equation}
+  \cfrac{1}{2A}(\vec{e}\times \vec{N})\vec{N}^T
+\end{equation}
+Where $\vec{e}$ is the edge opposite of the vertex for which we are calculating the Jacobian.
+Again, this formula requires the normal defined at the triangle and getting a vector that is easy to ask for as you need it. 
+
+
+The third term asks for the gradient of a unit vector, the Jacobian is 
+\begin{equation}
+  \cfrac{1}{r}(I-\hat{r}\hat{r}^T)
+\end{equation}
+Where $r$ is the distance between the vertex and the bead in our case, $I$ is a identity matrix of $3x3$.
+This is the easiest one haha. 
+
+
+
+The good thing is that the second term of Eq(10) has the same gradient, so we are also ready with this one. 
+
+
+
+\begin{align}
+  \text{First}=-\cfrac{1}{2\sqrt[3/2]{\vec{N}_l^T\cdot \vec{N}_l}}2(\nabla_{\vec{r}_l}\vec{N}_l)\vec{N}_l + \cfrac{1}{\sqrt{\vec{N}_l^T\cdot \vec{N}_l^T}}[(\nabla_{\vec{r}_l} \vec{N_l})\hat{r}+(\nabla_{\vec{r}_l}\hat{r})\vec{N}_l]
+\end{align}
+I need to check where does the Jacobian goes, but for this i think i can do testing.
+
+I will do texting of the jacobian of the vectors, then the gradient of the dot product. 
+Then the gradient of this first big term. And then finally everything together, so its gonna be a lot of tests.
+
+
+
+
+
+
+
+
+Now i just need to include the second term of equation (9) where we are considering what happends to the neighbors.
+We will not have the contribution of the vector $\hat{r}_m$ since this does not depend on the position of $l$.
+
+
+Lets get to it 
+\begin{align}
+  \text{Second}&= \nabla_{\vec{r}_l}\left( \cfrac{1}{\sqrt{\vec{N}_m^T\cdot \vec{N}_m}}    \sum_{mjk}\alpha_{kmj}\vec{N}_{mjk}\cdot \hat{r}_m\right) \\
+  &=-\cfrac{1}{2\sqrt[3/2]{\vec{N}_m^T\cdot N_m^T}}2(\nabla_{\vec{r}_l} \vec{N}_m)\vec{N}_m \left( \sum_{mjk}\alpha_{kmj}\vec{N}_{mjk}\cdot \hat{r}_m \right)+\cfrac{1}{\sqrt{\vec{N}_m^T\cdot \vec{N}_m}}\nabla_{\vec{r}_l}\sum_{mjk}\alpha_{kmj}\vec{N}_{mjk}\cdot \hat{r}_m
+\end{align}
+
+Ok we are getting somewhere now.
+\begin{align}
+  \nabla_{\vec{r}_l}\vec{N}_m&=\nabla_{\vec{r}_l}\sum_{mjk}\alpha_{kmj}\vec{N}_{mjk}\\
+  &=\sum_{mjk}\vec{N}_{mjk}(\nabla_{\vec{r}_l}\alpha_{kmj})^T+\alpha_{kmj}(\nabla_{\vec{r}_l}\vec{N}_{mjk} )\\
+\end{align}
+The thing here is that there are only two angles that contribute to the gradient, since there are only two triangles shared by these two vertices. (This is under the assumption that they are only connected through one edge ).
+Therefore we will have $\alpha_{lmj}$ and $\alpha_{kml}$ are the only contributions, and this is the same for the second  term since they only share the two normals of the faces they both touch.
+We can there write 
+
+\begin{align}
+  \nabla_{\vec{r}_l}\vec{N}_m&=\vec{N}_{mjl}(\nabla_{\vec{r}_l}\alpha_{lmj})^T+\vec{N}_{mlk}\nabla_{\vec{r}_l}(\alpha_{kml})^T+\alpha_{lmj}(\nabla_{\vec{r}_l} \vec{N}_{mjl})+\alpha_{kml}(\nabla_{\vec{r}_l}\vec{N}_{kml})
+\end{align}
+So this will add only these terms. The good thing is because we have all the cases for the derivatives, we can get the contribution for every neighboring vertex. 
+
+And i think thats it, because we have the gradient and therefore we can rewrite the second term as 
+\begin{equation}
+  \text{Second}=-\cfrac{1}{\sqrt[3/2]{\vec{N}_m^T\cdot \vec{N}_m}}(\nabla_{\vec{r}_l}\vec{N}_m)\vec{N}_m \left(\vec{N}_m\cdot \hat{r}_m  \right)+\cfrac{1}{\sqrt{\vec{N}_m^T\cdot\vec{N}_m}}(\nabla_{\vec{r}_l}\vec{N}_m )\cdot \hat{r}_m
+\end{equation}
+
+So well this is everything. This means that i need to calculate the Jacobian of $\vec{N}_m$
+
+
+
+
+
+
+\end{document}

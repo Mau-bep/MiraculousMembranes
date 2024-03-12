@@ -9,7 +9,7 @@ rc('text', usetex=True)
 
 
 KB=0.01
-Data_file = open("../Results/Mem3DG_Cell_Shape_KB_evol/Data/Final_energies_KB_{}_Nsim_11_thisdataisgood.txt".format(KB))
+Data_file = open("../Results/Mem3DG_Cell_Shape_KB_evol_flip/Data/Final_energies_KB_{}_Nsim_10.txt".format(KB))
 # Data_file = open("../Results/Mem3DG_Cell_Shape/Data/Final_energies_KB_{}.txt".format(KB))
 
 line=Data_file.readline()
@@ -33,8 +33,8 @@ while(line):
     nus[Init_cond-1].append( 3*Volume/(4*np.pi*pow( Area/(4*np.pi) ,1.5 ))  )
     nus_target[Init_cond-1].append( float(splitted_line[0]))
 
-    Eas[Init_cond-1].append(float(splitted_line[4]))
-    Ebs[Init_cond-1].append(float(splitted_line[5]))
+    Eas[Init_cond-1].append(float(splitted_line[4])/(8*np.pi*0.01)    ) 
+    Ebs[Init_cond-1].append(float(splitted_line[5])/(4*np.pi*0.01) )
 
     line=Data_file.readline()
 
@@ -49,40 +49,43 @@ while(line):
 
 
 
-Data_file_2 = open("../Results/Mem3DG_Cell_Shape_KB_evol/Data/Final_energies_KB_{}_Nsim_11_second.txt".format(KB))
+# Data_file_2 = open("../Results/Mem3DG_Cell_Shape_KB_evol/Data/Final_energies_KB_{}_Nsim_11_second.txt".format(KB))
 
-line=Data_file_2.readline()
-
-
-
-while(line):
-    # print(line)
-
-    splitted_line=line.split(' ')
-    Init_cond = int(splitted_line[1])
-    Volume=float(splitted_line[7])
-    Area=float(splitted_line[6])
-    nus[Init_cond-1].append( 3*Volume/(4*np.pi*pow( Area/(4*np.pi) ,1.5 ))  )
-    nus_target[Init_cond-1].append( float(splitted_line[0]))
-    Eas[Init_cond-1].append(float(splitted_line[4]))
-    Ebs[Init_cond-1].append(float(splitted_line[5]))
-
-    line=Data_file_2.readline()
+# line=Data_file_2.readline()
 
 
+
+# while(line):
+#     # print(line)
+
+#     splitted_line=line.split(' ')
+#     Init_cond = int(splitted_line[1])
+#     Volume=float(splitted_line[7])
+#     Area=float(splitted_line[6])
+#     nus[Init_cond-1].append( 3*Volume/(4*np.pi*pow( Area/(4*np.pi) ,1.5 ))  )
+#     nus_target[Init_cond-1].append( float(splitted_line[0]))
+#     Eas[Init_cond-1].append(float(splitted_line[4]))
+#     Ebs[Init_cond-1].append(float(splitted_line[5]))
+
+#     line=Data_file_2.readline()
 
 
 
 
 
 
-plt.scatter(nus[0],Ebs[0],color='pink')
-plt.scatter(nus[1],Ebs[1],color='purple')
-plt.scatter(nus[2],Ebs[2],color='blue')
-plt.ylabel(r'$E_b$')
-plt.xlabel(r'$\nu$')
-plt.axvline(0.59,color='black',ls='dashed')
-plt.axvline(0.65,color='black',ls='dashed')
+
+
+plt.axvline(0.59,color='black',ls='dashdot',label=r'$\nu=0.59$')
+plt.axvline(0.65,color='black',ls='dashed',label=r'$\nu=0.65$')
+plt.scatter(nus[0],Ebs[0],color='pink',marker='^',label='prolate')
+plt.scatter(nus[1],Ebs[1],color='purple',label='oblate')
+plt.scatter(nus[2],Ebs[2],color='blue',marker='s',label='stomatocyte')
+plt.ylabel(r'$\frac{E_b}{8\pi \kappa_B}$',rotation=0,fontsize=)
+plt.xlabel(r'reduced volume $\nu$',fontsize=18)
+
+plt.legend()
+plt.savefig('./Energy_minimization.eps',bbox_inches='tight')
 plt.show()
 
 

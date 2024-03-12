@@ -40,7 +40,10 @@ def create_bead(Center,radius,frame):
         # Now i need to write this in the other
         if(line[0]=='v'):
             Data = line.split(' ')
-            # print(Data)
+            
+            if(len(Data)<4):
+                break
+            
             Pos = np.array(Data[1:],dtype=float)*radius/prev_rad+Center
             New_obj.write("v {} {} {}\n".format(Pos[0],Pos[1],Pos[2]))
 
@@ -69,7 +72,7 @@ radius=1.0
 Center=np.array([0,0,0])
 
 
-pre_folder='../Results/Mem3DG_Bead_Reciprocal/nu_1.000_c0_0.000_KA_10.000_KB_0.005000_strength_{:.6f}_Init_cond_{}_Nsim_{}/'.format(strg,Init_cond,Nsim)
+pre_folder='../Results/Mem3DG_Bead_Reciprocal/nu_1.000_c0_0.000_KA_10.000_KB_0.010000_strength_{:.6f}_Init_cond_{}_Nsim_{}/'.format(strg,Init_cond,Nsim)
 
 Bead_orig_data=open(pre_folder+'Bead_data.txt')
 line_bead=Bead_orig_data.readline()
