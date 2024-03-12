@@ -519,12 +519,12 @@ while(true){
   //   geometry->inputVertexPositions[vi.getIndex()]= initial_pos[vi.getIndex()]+alpha*Force[vi.getIndex()];
   // }
   geometry->inputVertexPositions = initial_pos+alpha*Force;
-  geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+  // geometry->normalize(Vector3({0.0,0.0,0.0}),false);
   geometry->refreshQuantities();
-  center = geometry->centerOfMass();
+  // center = geometry->centerOfMass();
 
   this->Bead_1.Reset_bead(Bead_init);
-  this->Bead_1.Move_bead(alpha,center);
+  this->Bead_1.Move_bead(alpha,Vector3({0,0,0}));
 
   geometry->refreshQuantities();  
   // std::cout<<"THe old energy is "<< previousE <<"\n";
