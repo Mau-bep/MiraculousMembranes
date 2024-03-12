@@ -91,14 +91,14 @@ endif()
 set(SRCScluster 
   src/main_cluster.cpp  
   src/Mem-3dg.cpp
-    src/Beads.cpp
+  src/Beads.cpp
   ../../utils/src/colormap.cpp
 )
 
 set(SRCSmainpreserv 
   src/main_preserving_mean_curv.cpp  
   src/Mem-3dg.cpp
-    src/Beads.cpp
+  src/Beads.cpp
   ../../utils/src/colormap.cpp
 )
 
@@ -112,7 +112,7 @@ set(SRCSclusterbeads
 set(SRCSclusterpulling 
   src/main_cluster_pulling.cpp  
   src/Mem-3dg.cpp
-    src/Beads.cpp
+  src/Beads.cpp
   ../../utils/src/colormap.cpp
 )
 
