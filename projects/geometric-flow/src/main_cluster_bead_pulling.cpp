@@ -67,10 +67,10 @@ float c0;
 float P0=10000.0;
 float KA=1.0000;
 float KB=0.0001;
-float sigma=0.1;
+float Kd=0.0;
 double TS=0.0001;
 
-double Curv_adap=1.0;
+double Curv_adap=0.1;
 double Min_rel_length=0.5;
 double trgt_len;
 double avg_remeshing;
@@ -151,14 +151,14 @@ int main(int argc, char** argv) {
     
     nu=std::stod(argv[1]);
     // c0=std::stod(argv[2]);
-    KA=std::stod(argv[5]);
+    // KA=std::stod(argv[3]);
     // KB=std::stod(argv[4]);
     Interaction_str=std::stod(argv[2]);
     int Init_cond = std::stoi(argv[3]);
     int Nsim = std::stoi(argv[4]);
 
     c0=0.0;
-    // KA=500.0;
+    KA=10.0;
     KB=0.01;
 
 
@@ -189,37 +189,15 @@ int main(int argc, char** argv) {
     trgt_len=geometry->meanEdgeLength();
     V_bar=geometry->totalVolume();
     
-    // polyscope::options::autocenterStructures = true;
-
-    // // Initialize polyscope
-    // polyscope::init();
-
-    // // Set the callback function
-    // polyscope::state::userCallback = functionCallback;
-
-    // // Add mesh to GUI
-    // psMesh = polyscope::registerSurfaceMesh(polyscope::guessNiceNameFromPath(filepath), geometry->inputVertexPositions,
-    //                                         mesh->getFaceVertexList(), polyscopePermutations(*mesh));
-    // psMesh->setSurfaceColor({0.9607, 0.6627, 0.7215});    
-
-    
-    // Initialize operators.
-    // flipZ();
-    
+  
+  
 
     ORIG_VPOS = geometry->inputVertexPositions;
     CoM = geometry->centerOfMass();
     
-    // MCF = MeanCurvatureFlow(mesh, geometry);
-    // ModMCF = ModifiedMeanCurvatureFlow(mesh, geometry);
-    // NF =NormalFlow(mesh, geometry);
-    // GCF = GaussCurvatureFlow(mesh, geometry);
-    // WF = WillmoreFlow(mesh,geometry);
-    // WF2 = WillmoreFlow2(mesh,geometry);
-    // WFS = WillmoreFlowScho(mesh,geometry);
-    // M3DG = Mem3DG(mesh,geometry);
-    double radius=1.0; //
-    Bead_1 = Bead(mesh,geometry,Vector3({6.135,0.0,0.0}),radius,Interaction_str);
+
+    double radius=1.0;
+    Bead_1 = Bead(mesh,geometry,Vector3({6.2,0.0,0.0}),radius,Interaction_str);
     M3DG = Mem3DG(mesh,geometry,Bead_1);
     // Add visualization options.
     // psMesh->setSmoothShade(false);
@@ -256,7 +234,7 @@ int main(int argc, char** argv) {
     
     
 
-    std::string first_dir="../Results/Mem3DG_Bead_Reciprocal/";
+    std::string first_dir="../Results/Mem3DG_Bead_Pulling/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
@@ -295,7 +273,7 @@ int main(int argc, char** argv) {
     double dt_sim=0.0;
 
     start = chrono::steady_clock::now();
-    for(size_t current_t=0;current_t<=400000;current_t++ ){
+    for(size_t current_t=0;current_t<=500000;current_t++ ){
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
         if(true){
@@ -330,7 +308,7 @@ int main(int argc, char** argv) {
         // psMesh->setEdgeWidth(1.0);
 
         
-        if(current_t%500==0){
+        if(current_t%100==0){
             Save_mesh(basic_name,current_t);
             Save_bead_data=true;
             Save_output_data=true;
@@ -371,7 +349,7 @@ int main(int argc, char** argv) {
         }
         nu_evol= time<50 ? nu_0 + (nu-nu_0)*time/50 : nu; 
         
-        dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,sigma,Sim_data,time,Save_bead_data,Bead_data,Save_output_data);
+        dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save_bead_data,Bead_data,Save_output_data);
         Save_output_data=false;
         Save_bead_data=false;
         if(dt_sim==-1){

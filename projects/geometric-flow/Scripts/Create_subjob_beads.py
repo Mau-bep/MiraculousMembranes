@@ -22,18 +22,18 @@ v=float(sys.argv[1])
 Strength=sys.argv[2]
 Init_cond=sys.argv[3]
 Nsim=sys.argv[4]
-
+KA = sys.argv[5]
 os.makedirs('../Subjobs/',exist_ok=True)
 os.makedirs('../Outputs/',exist_ok=True)
 
 
-f=open('../Subjobs/subjob_serial_bead_v_{}_Strg_{}_init_cond_{}_Nsim_{}'.format(v,Strength,Init_cond,Nsim),'w')
+f=open('../Subjobs/subjob_serial_bead_v_{}_Strg_{}_init_cond_{}_Nsim_{}_KA_{}'.format(v,Strength,Init_cond,Nsim,KA),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')
 
 f.write('#SBATCH --job-name=Mem3DGpa\n')
-f.write('#SBATCH --output=../Outputs/output_serial_bead_v_{}_Strg_{}_Init_cond_{}_Nsim_{}\n'.format(v,Strength,Init_cond,Nsim))
+f.write('#SBATCH --output=../Outputs/output_serial_bead_v_{}_Strg_{}_Init_cond_{}_Nsim_{}_KA_{}\n'.format(v,Strength,Init_cond,Nsim,KA))
 f.write('#\n')
 f.write('#number of CPUs to be used\n')
 f.write('#SBATCH --ntasks=1\n')
@@ -106,7 +106,7 @@ f.write('echo $PATH\n')
 
 f.write('pwd\n')
 
-f.write('srun time -v ../build/bin/main_cluster_beads {} {} {} {}\n'.format(v,Strength,Init_cond,Nsim))
+f.write('srun time -v ../build/bin/main_cluster_beads {} {} {} {} {}\n'.format(v,Strength,Init_cond,Nsim,KA))
 
 
 

@@ -10,8 +10,7 @@ import sys
 strg = float(sys.argv[1])
 Init_cond = int(sys.argv[2])
 Nsim = int(sys.argv[3])
-
-
+KA = float(sys.argv[4])
 
 
 
@@ -72,7 +71,7 @@ radius=1.0
 Center=np.array([0,0,0])
 
 
-pre_folder='../Results/Mem3DG_Bead_Reciprocal/nu_1.000_c0_0.000_KA_10.000_KB_0.010000_strength_{:.6f}_Init_cond_{}_Nsim_{}/'.format(strg,Init_cond,Nsim)
+pre_folder='../Results/Mem3DG_Bead_Reciprocal/nu_1.000_c0_0.000_KA_{:.3f}_KB_0.010000_strength_{:.6f}_Init_cond_{}_Nsim_{}/'.format(KA,strg,Init_cond,Nsim)
 
 Bead_orig_data=open(pre_folder+'Bead_data.txt')
 line_bead=Bead_orig_data.readline()

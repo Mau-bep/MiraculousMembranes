@@ -868,7 +868,7 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
     
     // std::cout<<Bead_1.Pos.x <<" \n";
 
-    // This force is the gradient basically
+    // This force is the grdient basically
     double alpha=h;
 
     // I have the forces for almost everything i just need the bead.

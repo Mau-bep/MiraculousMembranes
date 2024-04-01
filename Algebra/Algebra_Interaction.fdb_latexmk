@@ -1,7 +1,7 @@
 # Fdb version 3
-["pdflatex"] 1709289729 "/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Algebra_Interaction.tex" "Algebra_Interaction.pdf" "Algebra_Interaction" 1709289729
+["pdflatex"] 1710535347 "/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Algebra_Interaction.tex" "Algebra_Interaction.pdf" "Algebra_Interaction" 1710535348
   "/etc/texmf/web2c/texmf.cnf" 1663319117 475 c0e671620eb5563b2130f56340a5fde8 ""
-  "/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Algebra_Interaction.tex" 1709289729 29301 5fdd22f893831b76c675631cede48902 ""
+  "/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Algebra_Interaction.tex" 1710535346 29637 ab90ddc564218410abafd6cba8326fdf ""
   "/usr/share/texlive/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/share/texlive/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam10.tfm" 1246382020 916 f87d7c45f9c908e672703b83b72241a3 ""
   "/usr/share/texlive/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam7.tfm" 1246382020 928 2dc8d444221b7a635bb58038579b861a ""
@@ -229,10 +229,10 @@
   "/usr/share/texmf/tex/latex/lm/t1lmr.fd" 1256929440 1865 afbfccbe7fda9c2dc5078ad7c486bbed ""
   "/usr/share/texmf/web2c/texmf.cnf" 1644012257 39432 7155514e09a3d69036fac785183a21c2 ""
   "/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map" 1673113412 4271227 d672d4662bed749f7922e92e70a51875 ""
-  "/var/lib/texmf/web2c/pdftex/pdflatex.fmt" 1685514156 1435894 236428074e277941c85e55139885958a ""
-  "Algebra_Interaction.aux" 1709289729 803 035483c6d2d6cdb7af8e0829eae4c0e8 "pdflatex"
+  "/var/lib/texmf/web2c/pdftex/pdflatex.fmt" 1710479671 1435840 14640618612e574b4edf6b483b28135a ""
+  "Algebra_Interaction.aux" 1710535347 803 6139afc0ed5ec7ebfc660a7b0a4ded84 "pdflatex"
   "Algebra_Interaction.out" 0 -1 0 "pdflatex"
-  "Algebra_Interaction.tex" 1709289729 29301 5fdd22f893831b76c675631cede48902 ""
+  "Algebra_Interaction.tex" 1710535346 29637 ab90ddc564218410abafd6cba8326fdf ""
   (generated)
   "Algebra_Interaction.aux"
   "Algebra_Interaction.log"
