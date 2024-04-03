@@ -550,7 +550,7 @@ def main_bead(Ini_cond):
 
 # main_shape(Initial_conds)
 
-main_bead(Initial_conds)
+# main_bead(Initial_conds)
 # OK soo
 
 
@@ -691,9 +691,10 @@ for i in range(len(KAs)):
         En.append(bead_attachment_Energy(1))
     Energies.append(En)
     plt.plot(strengths,En,label='KA = {}'.format(KA))
-
+plt.legend()
 plt.savefig(pre_folder+"/Imgs/Bead_Energy_differen_KA.png",bbox_inches='tight')
 
 print(Energies)
+
 
 
