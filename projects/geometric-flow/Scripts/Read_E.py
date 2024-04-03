@@ -662,7 +662,7 @@ def bead_attachment_Energy(Ini_cond):
     os.makedirs(pre_folder+"Data/",exist_ok=True)
 
 
-    E_data = open(pre_folder+"Data/Final_bead_energies_Nsim_{}.txt".format(strength,Nsim),"a+")
+    E_data = open(pre_folder+"Data/Final_bead_energies_Nsim_{}.txt".format(Nsim),"a+")
 
     E_data.write("{} {} {} {} {} {} {} {} \n".format(nu,Initial_conds,Nsim,KA,strength,E_bead1,Area,Volume))
     # E_data.write("{} {} {} {} {} {} {} {} {} \n".format(nu,Initial_conds,Nsim,E_vol[-1],E_sur[-1],E_ben[-1],Areas[-1],Volumes[-1]))
