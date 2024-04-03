@@ -692,6 +692,8 @@ for i in range(len(KAs)):
     Energies.append(En)
     plt.plot(strengths,En,label='KA = {}'.format(KA))
 plt.legend()
+plt.xlabel("Interaction strength")
+plt.ylabel("Binding Energy")
 plt.savefig(pre_folder+"/Imgs/Bead_Energy_differen_KA.png",bbox_inches='tight')
 
 print(Energies)
