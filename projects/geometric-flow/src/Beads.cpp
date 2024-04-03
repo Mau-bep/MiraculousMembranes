@@ -78,6 +78,27 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
         E_v[v]=4*strength*(pow(sigma/r,12)-pow(sigma/r,6));
     }
     }
+    if(interaction=="pulling"){
+        for(Vertex v: mesh->vertices()){
+            double r1 = 0.5;
+            double r2 = 1.0;
+            unit_r=this->Pos-geometry->inputVertexPositions[v];
+            r=unit_r.norm();
+            // std::cout<<"Calculating energies\n";
+            if(r<r1){
+                // std::cout<<"Something very close\n";
+                E_v[v]=strength*r+strength*r1-strength*(r1-r2)/2;
+            }
+            if(r>r1 && r<r2){
+                // std::cout<<"Somethign not so close but still";
+                E_v[v]=(strength/(r1-r2))*(r-r2)*(r-r2)/2;
+            }
+            if(r>r2){
+                E_v[v]=0.0;
+            }
+        }
+    }
+    
     if(interaction=="Shifted-LJ" ||  interaction == "Shifted_LJ_Normal"||interaction == "Shifted_LJ_Normal_var" || interaction=="test_angle_normal_r_normalized"||interaction=="test_angle_normal_r_normalized_LJ"|| interaction=="test_angle_normal_r_normalized_LJ_Full"){
         // std::cout<<"Loading essential quantities\n";
         for(Vertex v : mesh->vertices()){
@@ -1238,7 +1259,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
         // THis is between the iteration of the halfedges and the vertex
         
 
-
+    
         
 
 
@@ -1480,6 +1501,69 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
     }
 
 
+    if(interaction=="pulling"){
+      
+        // I want to calculate this force 
+        double r1=0.5;
+        double r2=1.0;
+
+        Vector3 u;
+        double xdist;
+        for(Vertex v : mesh->vertices()){
+            
+            F={0,0,0};
+            unit_r= this->Pos- geometry->inputVertexPositions[v];
+            r= unit_r.norm();
+            
+            if(r<r2){
+                
+            
+            unit_r=unit_r.unit();
+            
+            // dual_area=Dual_areas[v.getIndex()];
+            dual_area=geometry->barycentricDualArea(v);
+            
+            if(r<r1){
+                F=dual_area*( strength)*unit_r;
+
+            }
+            if(r<r2 && r>r1){
+                F=dual_area*(strength/(r1-r2))*(r-r2)*unit_r;
+            }
+            // F=dual_area*strength*alpha*(-2)*(  (sigma*sigma/(r*r*r))*pow(( (rc2/(r*r))-1),2 )+ 2*((sigma*sigma/(r*r))-1)*( (rc2/(r*r))-1 )*(rc2/(r*r*r)) )*unit_r;
+            
+            }
+
+            // I need to work this thing, its not trivial
+            F2={0,0,0};
+            for(Face f : v.adjacentFaces()){
+                he_grad=f.halfedge();
+                while(he_grad.vertex().getIndex()!=v.getIndex() ){
+                    he_grad=he_grad.next();
+                }
+                
+                u=geometry->inputVertexPositions[he_grad.next().vertex()]-geometry->inputVertexPositions[he_grad.next().next().vertex()];
+                // This E_v is the one that is not so simple.
+                // I need to 
+                Vector3 Grad_vec=(0.5)* cross(Normals[f.getIndex()],u);
+                
+                F2+= (1.0/3.0)*(E_v[v]+E_v[he_grad.next().vertex()]+E_v[he_grad.next().next().vertex()]  )*Grad_vec;
+            
+            }
+
+
+            
+            // F2=E_v*(1.0/3) *-2*geometry->vertexNormalMeanCurvature(v);
+            
+            
+            // std::cout<<F2<<" F2\n";
+            Force[v]=F+F2;
+            Total_force-=F;
+
+        }
+
+
+    }
 
 
     
@@ -1797,6 +1881,23 @@ double Bead::Energy() {
         }
         
 
+        return Total_E;
+        }
+        if(interaction=="pulling"){
+            double r1 = 0.5;
+            double r2 = 1.0;
+            Vector3 unit_r;
+            for(Vertex v : mesh->vertices()){
+            unit_r=this->Pos-geometry->inputVertexPositions[v];
+            r=unit_r.norm();
+            dual_area=geometry->barycentricDualArea(v);
+            if(r<r1){
+                Total_E+=dual_area*r+strength*r1-strength*(r1-r2)/2;
+            }
+            if(r>r1 && r<r2){
+                Total_E+=dual_area*(strength/(r1-r2))*(r-r2)*(r-r2)/2;
+            }
+        }
         return Total_E;
         }
      

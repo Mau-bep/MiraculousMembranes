@@ -5,10 +5,10 @@
 
 # #   SARIConGPT143!
 
-set Nsim=100
+set Nsim=1
 set Init_cond=3
 #  4.5 5.0 5.5 6.0 6.5 7.0 7.5 8.5 9.0 10.0
-foreach PullF (1000.0 5000.0 10000.0)
+foreach PullF (1.0 10.0 100.0 )
 foreach Strg (0.1 0.25 0.5 0.75 1.0 1.25 1.5 )
 foreach KA ( 500 )
 #python3 Create_subjob.py ${v} ${c0} ${KA} ${KB}

@@ -209,6 +209,7 @@ int main(int argc, char** argv) {
     Bead_1 = Bead(mesh,geometry,Vector3({6.3,0.0,0.0}),radius,Interaction_str);
     }
     Bead_1.pulling_speed=pullin_force;
+    // Bead_1.interaction="pulling";
     M3DG = Mem3DG(mesh,geometry,Bead_1);
     // Add visualization options.
     // psMesh->setSmoothShade(false);

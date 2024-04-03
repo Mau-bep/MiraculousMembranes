@@ -254,7 +254,8 @@ int main(int argc, char** argv) {
     CoM = geometry->centerOfMass();
     double radius=1.0;
     double Interaction_str=1.0;
-    Bead_1 = Bead(mesh,geometry,Vector3({0.0,0.0,1.0}),radius,Interaction_str);
+    Bead_1 = Bead(mesh,geometry,Vector3({0.0,0.0,0.0}),radius,Interaction_str);
+    Bead_1.interaction="pulling";
     // M3DG = Mem3DG(mesh,geometry);
     M3DG = Mem3DG(mesh,geometry,Bead_1);
 

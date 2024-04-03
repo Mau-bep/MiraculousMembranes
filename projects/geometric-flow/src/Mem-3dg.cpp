@@ -451,11 +451,15 @@ geometry->refreshQuantities();
 center = geometry->centerOfMass();
 
 if(pulling){
+  // return alpha;
+  this->Bead_1.Set_Force(Vector3({Bead_1.pulling_speed,0.0,0.0}));
+  this->Bead_1.Move_bead(alpha,center);
   return alpha;
- this->Bead_1.Set_Force(Vector3({Bead_1.pulling_speed,0.0,0.0}));
+  
 }
+else{
 this->Bead_1.Move_bead(alpha,center);
-
+}
 
 
 
