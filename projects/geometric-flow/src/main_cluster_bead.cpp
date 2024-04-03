@@ -160,7 +160,7 @@ int main(int argc, char** argv) {
     c0=0.0;
     // KA=500.0;
     KB=0.01;
-
+    bool pulling = false;
 
     // I will do it so i can give this values
  
@@ -179,6 +179,9 @@ int main(int argc, char** argv) {
     }
     if(Init_cond==2){
         filepath = "../../../input/sphere_dense_40k.obj"; 
+    }
+    if(Init_cond==3){
+        filepath = "../../../input/big_sphere.obj";
     }
     // std::string filepath = "../../../input/sphere_dense_40k.obj";
     // Load mesh
@@ -219,7 +222,12 @@ int main(int argc, char** argv) {
     // WFS = WillmoreFlowScho(mesh,geometry);
     // M3DG = Mem3DG(mesh,geometry);
     double radius=1.0; //
-    Bead_1 = Bead(mesh,geometry,Vector3({6.135,0.0,0.0}),radius,Interaction_str);
+    if(Init_cond==3){
+        Bead_1 = Bead(mesh,geometry,Vector3({11.135,0.0,0.0}),radius,Interaction_str);
+    }
+    else{
+        Bead_1 = Bead(mesh,geometry,Vector3({6.135,0.0,0.0}),radius,Interaction_str);
+    }
     M3DG = Mem3DG(mesh,geometry,Bead_1);
     // Add visualization options.
     // psMesh->setSmoothShade(false);
@@ -371,7 +379,7 @@ int main(int argc, char** argv) {
         }
         nu_evol= time<50 ? nu_0 + (nu-nu_0)*time/50 : nu; 
         
-        dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,sigma,Sim_data,time,Save_bead_data,Bead_data,Save_output_data);
+        dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,sigma,Sim_data,time,Save_bead_data,Bead_data,Save_output_data,pulling);
         Save_output_data=false;
         Save_bead_data=false;
         if(dt_sim==-1){

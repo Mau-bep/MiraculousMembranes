@@ -110,7 +110,7 @@ set(SRCSclusterbeads
 )
 
 set(SRCSclusterpulling 
-  src/main_cluster_pulling.cpp  
+  src/main_cluster_bead_pulling.cpp  
   src/Mem-3dg.cpp
   src/Beads.cpp
   ../../utils/src/colormap.cpp

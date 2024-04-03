@@ -15,7 +15,7 @@ class Bead {
     Vector3 Total_force;
     double sigma;
     double strength;
-    
+    double pulling_speed;
     ManifoldSurfaceMesh* mesh;
     VertexPositionGeometry* geometry;
     std::string interaction;

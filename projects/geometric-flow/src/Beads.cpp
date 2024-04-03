@@ -21,7 +21,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
     strength = strg;
     // interaction = "test_Full";
     interaction = "Shifted_LJ_Normal_var";
-   
+    pulling_speed = 1.0;
     // interaction = "test_angle_normal_r_normalized";
     // interaction = "test_angle_normal_r_normalized_LJ_Full";
     Total_force={0,0,0};
@@ -1810,11 +1810,6 @@ void Bead::Reset_bead(Vector3 Actual_pos){
 }
 
 void Bead::Move_bead(double dt,Vector3 center) {
-    // We can add more things here later
-
     this->Pos=this->Pos+Total_force*dt -center;
-
-    // Total_force={0,0,0};
-
     return;
 }

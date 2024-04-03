@@ -418,7 +418,7 @@ Returns:
 
 
 */
-double Mem3DG::Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar,bool bead) {
+double Mem3DG::Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar,bool bead, bool pulling) {
 double c1=1e-4;
 double rho=0.7;
 double alpha=1e-2;
@@ -432,6 +432,9 @@ double E_Bead = Bead_1.Energy();
 double previousE=E_Vol+E_Sur+E_Ben+E_Bead;
 double NewE;
 VertexData<Vector3> initial_pos(*mesh);
+
+geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+
 initial_pos= geometry->inputVertexPositions;
 Vector3 Bead_init = this->Bead_1.Pos;
 // std::cout<<"THe current energy is "<<previousE <<"Is this awful?\n";
@@ -443,11 +446,14 @@ Vector3 center;
 
 
 geometry->inputVertexPositions+=alpha * Force;
-geometry->normalize(Vector3({0.0,0.0,0.0}),false);
 geometry->refreshQuantities();
+
 center = geometry->centerOfMass();
 
-
+if(pulling){
+  return alpha;
+ this->Bead_1.Set_Force(Vector3({Bead_1.pulling_speed,0.0,0.0}));
+}
 this->Bead_1.Move_bead(alpha,center);
 
 
@@ -549,6 +555,7 @@ while(true){
 
 
 }
+geometry->normalize(Vector3({0.0,0.0,0.0}),false);
 
 
 
@@ -844,7 +851,7 @@ return alpha;
  * Input: The timestep <h>.
  * Returns:
  */
-double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,double KA,double KB, double Kd,std::ofstream& Sim_data, double time, bool bead,std::ofstream& Bead_data,bool Save_output_data) {
+double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,double KA,double KB, double Kd,std::ofstream& Sim_data, double time, bool bead,std::ofstream& Bead_data,bool Save_output_data,bool pulling) {
 //, Beads Bead_1 
 
     if(bead){
@@ -900,7 +907,7 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
     //   backtrackstep=h;
     // }
     // else{
-    backtrackstep=Backtracking(Force,D_P,V_bar,A_bar,KA,KB,H_bar,bead);
+    backtrackstep=Backtracking(Force,D_P,V_bar,A_bar,KA,KB,H_bar,bead,pulling);
     // }
     // std::cout<<" The position of vertex 120 is "<<geometry->inputVertexPositions[120].x<<" "<<geometry->inputVertexPositions[120].y<< " "<<geometry->inputVertexPositions[120].z<<" \n";
     

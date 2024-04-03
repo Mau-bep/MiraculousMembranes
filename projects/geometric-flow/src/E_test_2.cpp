@@ -352,7 +352,7 @@ int main(int argc, char** argv) {
     double time=0.01;
     double dt_sim=0.0;
 
-
+    bool pulling;
     // Here i have loaded the mesh and i am ready to start testing
 
 
@@ -526,7 +526,7 @@ int main(int argc, char** argv) {
      
     nu_evol= time<50 ? nu_0 + (nu-nu_0)*time/50 : nu; 
     if(with_bead){
-        dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save_bead_data,Bead_data,Save_data);
+        dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save_bead_data,Bead_data,Save_data,pulling);
         
     }
     else{

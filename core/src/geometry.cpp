@@ -1237,13 +1237,24 @@ SparseMatrix<std::complex<double>> VertexPositionGeometry::complexLaplaceMatrix(
  */
 Vector3 VertexPositionGeometry::centerOfMass() const {
 
-    // Compute center of mass.
-    Vector3 center = {0.0, 0.0, 0.0};
-    for (Vertex v : mesh.vertices()) {
-        center += inputVertexPositions[v];
-    }
-    center /= mesh.nVertices();
+    // // Compute center of mass.
+    // Vector3 center = {0.0, 0.0, 0.0};
+    // for (Vertex v : mesh.vertices()) {
+    //     center += inputVertexPositions[v];
+    // }
+    // center /= mesh.nVertices();
 
+
+    double dual_area;
+    double tot_area=0;
+    Vector3 center = {0.0, 0.0, 0.0};
+    
+    for(Vertex v : mesh.vertices()){
+        dual_area=barycentricDualArea(v);
+        center += inputVertexPositions[v]*dual_area;
+        tot_area+=dual_area;
+    }
+    center /= tot_area;
 
 
 
