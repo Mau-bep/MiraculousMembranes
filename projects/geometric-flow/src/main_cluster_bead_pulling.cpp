@@ -203,7 +203,7 @@ int main(int argc, char** argv) {
 
     double radius=1.0;
     if(Init_cond ==3){
-        Bead_1 = Bead(mesh,geometry,Vector3({11.3,0.0,0.0}),radius,Interaction_str);   
+        Bead_1 = Bead(mesh,geometry,Vector3({10.2,0.0,0.0}),radius,Interaction_str);   
     }
     else{
     Bead_1 = Bead(mesh,geometry,Vector3({6.3,0.0,0.0}),radius,Interaction_str);

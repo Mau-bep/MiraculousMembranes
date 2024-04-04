@@ -81,7 +81,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
     if(interaction=="pulling"){
         for(Vertex v: mesh->vertices()){
             double r1 = 0.5;
-            double r2 = 1.0;
+            double r2 = 2.0;
             unit_r=this->Pos-geometry->inputVertexPositions[v];
             r=unit_r.norm();
             // std::cout<<"Calculating energies\n";
@@ -1504,8 +1504,8 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
     if(interaction=="pulling"){
       
         // I want to calculate this force 
-        double r1=0.5;
-        double r2=1.0;
+        double r1 = 0.5;
+        double r2 = 2.0;
 
         Vector3 u;
         double xdist;
@@ -1885,7 +1885,7 @@ double Bead::Energy() {
         }
         if(interaction=="pulling"){
             double r1 = 0.5;
-            double r2 = 1.0;
+            double r2 = 2.0;
             Vector3 unit_r;
             for(Vertex v : mesh->vertices()){
             unit_r=this->Pos-geometry->inputVertexPositions[v];

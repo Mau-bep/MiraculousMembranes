@@ -452,9 +452,18 @@ center = geometry->centerOfMass();
 
 if(pulling){
   // return alpha;
-  this->Bead_1.Set_Force(Vector3({Bead_1.pulling_speed,0.0,0.0}));
-  this->Bead_1.Move_bead(alpha,center);
+  double X_pos=0.0;
+  Vector3 Vertex_pos;
+  for(Vertex v : mesh->vertices()){
+  Vertex_pos=geometry->inputVertexPositions[v];
+  if(Vertex_pos.x>X_pos){
+    X_pos=Vertex_pos.x;
+  }  
+  Bead_1.Reset_bead(Vector3({X_pos+1,0.0,0.0}));
+  }
   return alpha;
+  // this->Bead_1.Set_Force(Vector3({Bead_1.pulling_speed,0.0,0.0}));
+  // this->Bead_1.Move_bead(alpha,center);
   
 }
 else{
