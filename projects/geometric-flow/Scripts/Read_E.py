@@ -161,7 +161,7 @@ KB=0.01
 
 
 def main_shape(Ini_cond):
-
+    
     pre_folder='../Results/Mem3DG_Cell_Shape/'
     # pre_folder='../Results/Mem3DG_Cell_Shape_KB_evol/'
     dir='nu_{:.3f}_c0_0.000_KA_{:.3f}_KB_{:.6f}_init_cond_{}_Nsim_{}'.format(nu,KA,KB,Ini_cond,Nsim)
@@ -352,7 +352,14 @@ def main_shape(Ini_cond):
 
 
 
-def main_bead(Ini_cond):
+def main_bead(Ini_cond,strength):
+
+    nu = 1.0
+    KB=0.01
+    
+    Nsim=100
+
+    KA = 500
 
     pre_folder='../Results/Mem3DG_Bead_Reciprocal/'
     # pre_folder='../Results/Mem3DG_Cell_Shape_KB_evol/'
@@ -550,7 +557,8 @@ def main_bead(Ini_cond):
 
 # main_shape(Initial_conds)
 
-# main_bead(Initial_conds)
+for strength_val in [0.0001,0.001,0.1,0.25,0.5,0.75,1.0,1.25,1.5,1.75,2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0]:
+    main_bead(Initial_conds,strength_val)
 # OK soo
 
 
@@ -676,27 +684,27 @@ def bead_attachment_Energy(Ini_cond):
 
 
 
+def test_tension():
+    KAs = [10, 100, 200, 500, 1000]
+    Energies=[]
+    strengths = [0.001, 0.01, 0.1, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0, 3.5, 4.0] 
+    pre_folder='../Results/Mem3DG_Bead_Reciprocal/'
+        # pre_folder='../Results/Mem3DG_Cell_Shape_KB_evol/'
+    Nsim=100
+    for i in range(len(KAs)):
+        KA=KAs[i]
+        En=[]
+        for j in range(len(strengths)):
+            strength=strengths[j]
+            En.append(bead_attachment_Energy(1))
+        Energies.append(En)
+        plt.plot(strengths,En,label='KA = {}'.format(KA))
+    plt.legend()
+    plt.xlabel("Interaction strength")
+    plt.ylabel("Binding Energy")
+    plt.savefig(pre_folder+"/Imgs/Bead_Energy_differen_KA.png",bbox_inches='tight')
 
-KAs = [10, 100, 200, 500, 1000]
-Energies=[]
-strengths = [0.001, 0.01, 0.1, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0, 3.5, 4.0] 
-pre_folder='../Results/Mem3DG_Bead_Reciprocal/'
-    # pre_folder='../Results/Mem3DG_Cell_Shape_KB_evol/'
-Nsim=100
-for i in range(len(KAs)):
-    KA=KAs[i]
-    En=[]
-    for j in range(len(strengths)):
-        strength=strengths[j]
-        En.append(bead_attachment_Energy(1))
-    Energies.append(En)
-    plt.plot(strengths,En,label='KA = {}'.format(KA))
-plt.legend()
-plt.xlabel("Interaction strength")
-plt.ylabel("Binding Energy")
-plt.savefig(pre_folder+"/Imgs/Bead_Energy_differen_KA.png",bbox_inches='tight')
-
-print(Energies)
+    print(Energies)
 
 
 
