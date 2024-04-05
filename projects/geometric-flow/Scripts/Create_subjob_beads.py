@@ -33,7 +33,7 @@ f.write('#!/bin/bash \n')
 f.write('# \n')
 
 f.write('#SBATCH --job-name=Mem3DGpa\n')
-f.write('#SBATCH --output=../Outputs/output_serial_bead_v_{}_Strg_{}_Init_cond_{}_Nsim_{}_KA_{}\n'.format(v,Strength,Init_cond,Nsim,KA))
+f.write('#SBATCH --output=../Outputs/output_serial_bead_curv_adap_{}_Strg_{}_Init_cond_{}_Nsim_{}_KA_{}\n'.format(v,Strength,Init_cond,Nsim,KA))
 f.write('#\n')
 f.write('#number of CPUs to be used\n')
 f.write('#SBATCH --ntasks=1\n')

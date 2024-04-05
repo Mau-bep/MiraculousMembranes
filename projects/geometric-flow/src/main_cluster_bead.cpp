@@ -149,7 +149,8 @@ void Save_mesh(std::string basic_name, size_t current_t) {
 int main(int argc, char** argv) {
 
     
-    nu=std::stod(argv[1]);
+    nu=1.0;
+    Curv_adap=std::stod(argv[1]);
     // c0=std::stod(argv[2]);
     KA=std::stod(argv[5]);
     // KB=std::stod(argv[4]);
@@ -268,7 +269,7 @@ int main(int argc, char** argv) {
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
-    std::string basic_name=first_dir+"nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"_strength_"+Interactionstrstream.str()+"_Init_cond_"+std::to_string(Init_cond)+"_Nsim_"+std::to_string(Nsim)+"/";
+    std::string basic_name=first_dir+"nu_"+nustream.str()+"_curvadap_"+Curv_adapstream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"_strength_"+Interactionstrstream.str()+"_Init_cond_"+std::to_string(Init_cond)+"_Nsim_"+std::to_string(Nsim)+"/";
     status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     
     std::cout<<"\nIf this number is 0 the directory was created succesfully "<< status<<"\n" ;
