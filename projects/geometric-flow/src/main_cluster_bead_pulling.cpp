@@ -149,9 +149,9 @@ void Save_mesh(std::string basic_name, size_t current_t) {
 int main(int argc, char** argv) {
 
     
-    double pullin_force=std::stod(argv[1]);
+    double rc=std::stod(argv[1]);
     nu=1.0;
-    
+    double pulling_force=0.0;
     // c0=std::stod(argv[2]);
     // KA=std::stod(argv[3]);
     // KB=std::stod(argv[4]);
@@ -208,7 +208,8 @@ int main(int argc, char** argv) {
     else{
     Bead_1 = Bead(mesh,geometry,Vector3({6.3,0.0,0.0}),radius,Interaction_str);
     }
-    Bead_1.pulling_speed=pullin_force;
+    // Bead_1.pulling_speed=pullin_force;
+    Bead_1.rc=rc;
     // Bead_1.interaction="pulling";
     M3DG = Mem3DG(mesh,geometry,Bead_1);
     // Add visualization options.
@@ -220,7 +221,7 @@ int main(int argc, char** argv) {
     // size_t counter=0;
     
     std::stringstream nustream;
-    std::stringstream pullingspeedstream;
+    std::stringstream rcstream;
     std::stringstream KAstream;
     std::stringstream KBstream;
     std::stringstream Interactionstrstream;
@@ -234,7 +235,7 @@ int main(int argc, char** argv) {
 
 
     nustream << std::fixed << std::setprecision(3) << nu;
-    pullingspeedstream << std::fixed << std::setprecision(3) << pullin_force;
+    rcstream << std::fixed << std::setprecision(3) << rc;
     KAstream << std::fixed << std::setprecision(3) << KA;
     KBstream << std::fixed << std::setprecision(6) << KB;
     Interactionstrstream << std::fixed << std::setprecision(6) << Interaction_str;
@@ -246,11 +247,11 @@ int main(int argc, char** argv) {
     
     
 
-    std::string first_dir="../Results/Mem3DG_Bead_Pulling/";
+    std::string first_dir="../Results/Mem3DG_Bead_Pulling_rc/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
-    std::string basic_name=first_dir+"nu_"+nustream.str()+"_pulling_force_"+pullingspeedstream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"_strength_"+Interactionstrstream.str()+"_Init_cond_"+std::to_string(Init_cond)+"_Nsim_"+std::to_string(Nsim)+"/";
+    std::string basic_name=first_dir+"nu_"+nustream.str()+"_rc_"+rcstream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"_strength_"+Interactionstrstream.str()+"_Init_cond_"+std::to_string(Init_cond)+"_Nsim_"+std::to_string(Nsim)+"/";
     status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     
     std::cout<<"\nIf this number is 0 the directory was created succesfully "<< status<<"\n" ;

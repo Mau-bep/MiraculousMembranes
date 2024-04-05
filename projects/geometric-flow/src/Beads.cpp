@@ -22,6 +22,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
     // interaction = "test_Full";
     interaction = "Shifted_LJ_Normal_var";
     pulling_speed = 1.0;
+    rc = 1.2;
     // interaction = "test_angle_normal_r_normalized";
     // interaction = "test_angle_normal_r_normalized_LJ_Full";
     Total_force={0,0,0};
@@ -63,7 +64,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
     Vector3 F2T;
     Vector3 F4T;
     Vector3 F3T;
-    double rc=1.2;
+    // double rc=1.2;
     double rc2=rc*rc;
     double r2;
     double alpha;
@@ -605,7 +606,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
         double r3;
 
         Vector3 u;
-        rc=1.2;
+        // rc=1.2;
         rc2=rc*rc;
 
         // FOr the record, if i only consider one dot product the first term is correct in that vertex 
@@ -850,8 +851,8 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
         double r3;
 
         Vector3 u;
-        rc=1.2;
-        rc2=rc*rc;
+        // rc=1.2;
+        rc2=this->rc*this->rc;
 
         // FOr the record, if i only consider one dot product the first term is correct in that vertex 
         // I now want to add the contributions of the neighbors to this point.
@@ -869,7 +870,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
                 unit_r = Unit_rs[v1_idx];
                 unit_r2 = Unit_rs[v2_idx];
                 unit_r3 = Unit_rs[v3_idx];
-                if((dot(unit_r,Face_normal)<0 || rs[v1_idx]>1.2 ) && (dot(unit_r2,Face_normal)<0|| rs[v2_idx]>1.2 )&& (dot(unit_r3,Face_normal)<0 || rs[v3_idx]>1.2) ){
+                if((dot(unit_r,Face_normal)<0 || rs[v1_idx]>this->rc ) && (dot(unit_r2,Face_normal)<0|| rs[v2_idx]>this->rc )&& (dot(unit_r3,Face_normal)<0 || rs[v3_idx]>this->rc) ){
                     break;
                 }
               
@@ -891,7 +892,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
                 // We have the area gradient correctly now we will do the energy of interaction
                 
                 r=rs[v1_idx];
-                if(rs[v1_idx]<1.2 && dot(unit_r,Face_normal)>0){
+                if(rs[v1_idx]<rc && dot(unit_r,Face_normal)>0){
                 // 
                 
                 alpha=2*(rc2/(sigma*sigma))*pow( 3/(2*( (rc2/(sigma*sigma)) -1))  ,3 );
@@ -975,7 +976,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
         double r;
 
         Vector3 u;
-        rc=1.2;
+        // rc=1.2;
         rc2=rc*rc;
 
         // FOr the record, if i only consider one dot product the first term is correct in that vertex 
@@ -1076,7 +1077,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
                 // F2+=(1.0/3.0)*E_v[v]*dot(Vertex_Angle_Normal,unit_r)*Grad_vec/Vertex_Angle_Normal_norm;
                 F+=(1.0/3.0)*E_v[v]*dot(Vertex_Angle_Normal,unit_r)*Grad_vec/Vertex_Angle_Normal_norm;
                 
-                if(rs[v]>1.2){
+                if(rs[v]>rc){
                     std::cout<<"The radius is "<< rs[v] << "and the energy is different than 0 :O "<< E_v[v]<<"\n";
                 }
                 // Force[v]+=(1.0/3.0)*E_v[v]*dot(Vertex_Angle_Normal,unit_r)*Grad_vec/Vertex_Angle_Normal_norm;    
@@ -1094,7 +1095,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
 
             // if(dot(Vertex_Angle_Normal3,unit_r3)>0 && rs[he.next().next().vertex().getIndex()]<1.2){
               
-                if(rs[he.next().next().vertex()]>1.2){
+                if(rs[he.next().next().vertex()]>rc){
                     std::cout<<"The radius is "<< rs[he.next().next().vertex()] << "and the energy is different than 0 :x"<< E_v[he.next().next().vertex()]<<"\n";
                 }
                Force[v]+=(1.0/3.0)*E_v[he.next().next().vertex()]*dot(Vertex_Angle_Normal3,unit_r3)*Grad_vec/Vertex_Angle_Normal_norm3;
@@ -1816,7 +1817,7 @@ double Bead::Energy() {
         double face_area;
         double r2;
         double r;
-        double rc2=1.2*1.2;
+        double rc2=rc*rc;
         double alpha;
         for (Face f : mesh->faces()){
             Face_normal= geometry->faceNormal(f);

@@ -459,8 +459,10 @@ if(pulling){
   if(Vertex_pos.x>X_pos){
     X_pos=Vertex_pos.x;
   }  
-  Bead_1.Reset_bead(Vector3({X_pos+1,0.0,0.0}));
+
+  
   }
+  Bead_1.Reset_bead(Vector3({X_pos+1.4,0.0,0.0}));
   return alpha;
   // this->Bead_1.Set_Force(Vector3({Bead_1.pulling_speed,0.0,0.0}));
   // this->Bead_1.Move_bead(alpha,center);
@@ -869,12 +871,14 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
 
     if(bead){
       Bead_data<<Bead_1.Pos.x <<" "<< Bead_1.Pos.y << " "<< Bead_1.Pos.z <<" \n";
-
+      // std::cout<<Bead_1.Pos.x << " "<< Bead_1.Pos.y << " "<< Bead_1.Pos.z<<" \n";
+      // std::cout<<"The total force is "<<Bead_1.Total_force <<"\n";
     }
     // Vector<double> Total_force=buildFlowOperator(h,V_bar,nu,c0,P0,KA,KB,Kd);
     VertexData<Vector3> Force(*mesh);
     Force=buildFlowOperator(h,V_bar,nu,c0,P0,KA,KB,Kd);//+Bead_1.Gradient();
     VertexData<Vector3> Bead_force = Bead_1.Gradient();
+
     // VertexData<Vector3> Bead_force=Project_force(Bead_1.Gradient());
     Force+=Bead_force;
 
