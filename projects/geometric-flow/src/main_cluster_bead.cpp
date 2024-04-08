@@ -64,7 +64,7 @@ float Interaction_str;
 float c0;
 
 
-float P0=10000.0;
+float P0=100000.0;
 float KA=1.0000;
 float KB=0.0001;
 float sigma=0.1;
@@ -152,12 +152,13 @@ int main(int argc, char** argv) {
     nu=1.0;
     Curv_adap=std::stod(argv[1]);
     // c0=std::stod(argv[2]);
-    KA=std::stod(argv[5]);
+   
     // KB=std::stod(argv[4]);
     Interaction_str=std::stod(argv[2]);
     int Init_cond = std::stoi(argv[3]);
     int Nsim = std::stoi(argv[4]);
-
+    KA=std::stod(argv[5]);
+    Min_rel_length = std::stod(argv[6]);
     c0=0.0;
     // KA=500.0;
     KB=0.01;
@@ -244,6 +245,7 @@ int main(int argc, char** argv) {
     std::stringstream KBstream;
     std::stringstream Interactionstrstream;
     
+    
     // std::stringstream H0stream;
     // std::stringstream kappastream;
     // std::stringstream sigmastream;
@@ -261,7 +263,7 @@ int main(int argc, char** argv) {
 
 
     Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
-    Min_rel_lengthstream << std::fixed << std::setprecision(2) <<Min_rel_length;
+    Min_rel_lengthstream << std::fixed << std::setprecision(4) <<Min_rel_length;
     
     
 
@@ -269,7 +271,7 @@ int main(int argc, char** argv) {
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
-    std::string basic_name=first_dir+"nu_"+nustream.str()+"_curvadap_"+Curv_adapstream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"_strength_"+Interactionstrstream.str()+"_Init_cond_"+std::to_string(Init_cond)+"_Nsim_"+std::to_string(Nsim)+"/";
+    std::string basic_name=first_dir+"nu_"+nustream.str()+"_curvadap_"+Curv_adapstream.str()+"_minrel_"+Min_rel_lengthstream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"_strength_"+Interactionstrstream.str()+"_Init_cond_"+std::to_string(Init_cond)+"_Nsim_"+std::to_string(Nsim)+"/";
     status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     
     std::cout<<"\nIf this number is 0 the directory was created succesfully "<< status<<"\n" ;
@@ -304,7 +306,7 @@ int main(int argc, char** argv) {
     double dt_sim=0.0;
 
     start = chrono::steady_clock::now();
-    for(size_t current_t=0;current_t<=400000;current_t++ ){
+    for(size_t current_t=0;current_t<=100000;current_t++ ){
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
         if(true){

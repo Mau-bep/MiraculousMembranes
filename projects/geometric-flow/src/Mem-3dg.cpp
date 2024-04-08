@@ -469,7 +469,7 @@ if(pulling){
   
 }
 else{
-this->Bead_1.Move_bead(alpha,center);
+this->Bead_1.Move_bead(alpha,Vector3({0,0,0}));
 }
 
 
@@ -546,8 +546,7 @@ while(true){
 
   this->Bead_1.Reset_bead(Bead_init);
   this->Bead_1.Move_bead(alpha,Vector3({0,0,0}));
-
-  geometry->refreshQuantities();  
+  
   // std::cout<<"THe old energy is "<< previousE <<"\n";
   // std::cout<<"Alpha is "<< alpha<<"and the new energy is"<< NewE << "\n";
   // std::cout<<"The projection is :"<<Projection<<"\n";
@@ -571,7 +570,7 @@ while(true){
 
 }
 geometry->normalize(Vector3({0.0,0.0,0.0}),false);
-
+geometry->refreshQuantities();
 
 
 return alpha;
