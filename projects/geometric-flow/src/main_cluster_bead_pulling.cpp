@@ -172,7 +172,7 @@ int main(int argc, char** argv) {
     
 
 
-    TS=pow(10,-3);
+    TS=pow(10,-4);
 
 
     std::cout<< "Current path is " << argv[0];

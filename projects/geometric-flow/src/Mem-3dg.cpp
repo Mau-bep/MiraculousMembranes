@@ -421,7 +421,7 @@ Returns:
 double Mem3DG::Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar,bool bead, bool pulling) {
 double c1=1e-4;
 double rho=0.7;
-double alpha=1e-2;
+double alpha=1e-3;
 double positionProjection = 0;
 double A=geometry->totalArea();
 double V=geometry->totalVolume();
@@ -463,6 +463,7 @@ if(pulling){
   
   }
   Bead_1.Reset_bead(Vector3({X_pos+1.4,0.0,0.0}));
+  // std::cout<<"Bead re seted \n";
   return alpha;
   // this->Bead_1.Set_Force(Vector3({Bead_1.pulling_speed,0.0,0.0}));
   // this->Bead_1.Move_bead(alpha,center);
