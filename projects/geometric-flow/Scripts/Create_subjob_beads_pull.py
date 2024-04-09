@@ -27,13 +27,13 @@ os.makedirs('../Subjobs/',exist_ok=True)
 os.makedirs('../Outputs/',exist_ok=True)
 
 
-f=open('../Subjobs/subjob_serial_bead_pull_rc_{}_Strg_{}_init_cond_{}_Nsim_{}_KA_{}'.format(rc,Strength,Init_cond,Nsim,KA),'w')
+f=open('../Subjobs/subjob_serial_bead_pull_rc_{}_Strg_{}_init_cond_{}_Nsim_{}_KB_{}'.format(rc,Strength,Init_cond,Nsim,KA),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')
 
 f.write('#SBATCH --job-name=Mem3DGpa\n')
-f.write('#SBATCH --output=../Outputs/output_serial_bead_pull_rc_{}_Strg_{}_Init_cond_{}_Nsim_{}_KA_{}\n'.format(rc,Strength,Init_cond,Nsim,KA))
+f.write('#SBATCH --output=../Outputs/output_serial_bead_pull_rc_{}_Strg_{}_Init_cond_{}_Nsim_{}_KB_{}\n'.format(rc,Strength,Init_cond,Nsim,KA))
 f.write('#\n')
 f.write('#number of CPUs to be used\n')
 f.write('#SBATCH --ntasks=1\n')
