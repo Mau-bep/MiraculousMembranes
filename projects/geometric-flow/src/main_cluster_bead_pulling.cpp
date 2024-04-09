@@ -161,7 +161,7 @@ int main(int argc, char** argv) {
     bool pulling =true;
     c0=0.0;
     KB=std::stod(argv[5]);
-    KA= 10000;
+    KA= 500;
     // KB=0.01;
 
 
