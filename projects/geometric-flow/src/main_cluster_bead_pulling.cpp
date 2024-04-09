@@ -160,8 +160,9 @@ int main(int argc, char** argv) {
     int Nsim = std::stoi(argv[4]);
     bool pulling =true;
     c0=0.0;
-    KA=std::stod(argv[5]);
-    KB=0.01;
+    KB=std::stod(argv[5]);
+    KA= 10000;
+    // KB=0.01;
 
 
     // I will do it so i can give this values
@@ -247,7 +248,7 @@ int main(int argc, char** argv) {
     
     
 
-    std::string first_dir="../Results/Mem3DG_Bead_Pulling_rc/";
+    std::string first_dir="../Results/Mem3DG_Bead_Pulling_rc_calib/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
