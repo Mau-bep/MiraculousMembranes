@@ -161,7 +161,7 @@ int main(int argc, char** argv) {
     bool pulling =true;
     c0=0.0;
     KB=std::stod(argv[5]);
-    KA= 500;
+    KA= 10000;
     // KB=0.01;
 
 
@@ -295,7 +295,7 @@ int main(int argc, char** argv) {
     double dt_sim=0.0;
 
     start = chrono::steady_clock::now();
-    for(size_t current_t=0;current_t<=30000;current_t++ ){
+    for(size_t current_t=0;current_t<=50000;current_t++ ){
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
         if(true){
@@ -304,8 +304,10 @@ int main(int argc, char** argv) {
         n_vert_new=1;
 
         counter=0;
-        while(n_vert_new!=n_vert_old && counter<10){
         // std::cout<<"Remeshing\n";
+        while(n_vert_new!=n_vert_old && counter<10){
+
+        
         n_vert_old=n_vert_new;
         RemeshOptions Options;
         Options.targetEdgeLength=trgt_len;
@@ -319,7 +321,7 @@ int main(int argc, char** argv) {
         n_vert_new=mesh->nVertices();
         counter=counter+1; 
         }
-        // std::cout<<"The number of vertices is "<<n_vert<< "\n";
+        // std::cout<<"The number of vertices is "<<n_vert<< " and the timestep is "<< current_t << " (done remeshing)\n";
         }
 
         // psMesh->remove();
@@ -331,7 +333,7 @@ int main(int argc, char** argv) {
         // psMesh->setEdgeWidth(1.0);
 
         
-        if(current_t%500==0){
+        if(current_t%500==0 ){
             start_saving = chrono::steady_clock::now();
             std::cout<<"Saving mesh \n";
 

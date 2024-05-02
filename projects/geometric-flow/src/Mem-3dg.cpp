@@ -462,9 +462,9 @@ if(pulling){
 
   
   }
-  Bead_1.Reset_bead(Vector3({X_pos+1.4,0.0,0.0}));
-  // std::cout<<"Bead re seted \n";
-  return alpha;
+  // Bead_1.Reset_bead(Vector3({X_pos+1.4,0.0,0.0}));
+  // // std::cout<<"Bead re seted \n";
+  // return alpha;
   // this->Bead_1.Set_Force(Vector3({Bead_1.pulling_speed,0.0,0.0}));
   // this->Bead_1.Move_bead(alpha,center);
   
@@ -531,9 +531,9 @@ while(true){
 
 
   alpha*=rho;
-  if(alpha<1e-9){
+  if(alpha<1e-5){
     if(pulling){
-      std::cout<<"Reseting bead position\n";
+      std::cout<<"\t \t Reseting bead position\n";
       X_pos=0.0;
     for(Vertex v : mesh->vertices()){
       Vertex_pos=geometry->inputVertexPositions[v];
