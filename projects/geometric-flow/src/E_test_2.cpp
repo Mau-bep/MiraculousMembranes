@@ -233,8 +233,8 @@ int main(int argc, char** argv) {
     std::cout<< "Current path is " << argv[0]<<"\n";
 
     // std::string filepath = "../../../input/sphere.obj";
-    std::string filepath = "../../../input/Final_state_test.obj";
-    // std::string filepath = "../../../input/Simple_cil_regular.obj";
+    // std::string filepath = "../../../input/Final_state_test.obj";
+    std::string filepath = "../../../input/Simple_cil_regular.obj";
     
     // std::string filepath = "../../../input/bloodcell.obj";
     // std::string filepath = "../input/sphere.obj"; //this is for debug
@@ -293,6 +293,16 @@ int main(int argc, char** argv) {
     Min_rel_lengthstream << std::fixed << std::setprecision(2) <<Min_rel_length;
     std::string basic_name;
     std::string first_dir;
+
+
+
+
+
+
+
+
+
+
 
     if(with_bead){
 
@@ -405,6 +415,36 @@ int main(int argc, char** argv) {
     std::cout<<"THe radius (according to volume) is" << pow(  3*Volume/(4*PI)   ,1.0/3.0)<<"\n"; 
     std::cout<<"THe maximum x coordinate is "<< max_x <<"\n";
 
+
+    // Lets check what is the dihedral angle in a sphere, to get an idea.
+
+    int count=0;
+    double dihedral=0.0;
+    double angle;
+    double maxdihedral=0.0;
+    double mindihedral=1.0;
+    for (Halfedge he : mesh->halfedges()){
+        count+=1;
+        angle=abs(geometry->dihedralAngle(he));
+        dihedral+=angle;
+        if(angle>maxdihedral){
+            maxdihedral=angle;
+        }
+        if(angle<mindihedral){
+            mindihedral=angle;
+        }
+        // std::cout<<"Angle is"<<angle <<"\n";
+        
+    }
+
+    std::cout<<"The mean dihedral angle ( in radians ) is" << dihedral/count<<"\n";
+    std::cout<<"The mean dihedral angle ( in degrees ) is" << 360*dihedral/(count*2*3.141592)<<"\n";
+    std::cout<<"The minimum dihedral angle (in radians) is " << mindihedral <<" and the maximum is "<< maxdihedral <<"\n";
+
+
+
+
+
     for(size_t current_t=0; current_t <1000;current_t++){
     if(current_t==0){
     Sim_data.open(filename_basic);
@@ -436,6 +476,30 @@ int main(int argc, char** argv) {
         n_vert_new=mesh->nVertices();
         counter=counter+1; 
         }
+
+        dihedral=0.0;
+        mindihedral=1.0;
+        maxdihedral=0.0;
+        for (Halfedge he : mesh->halfedges()){
+        count+=1;
+        angle=abs(geometry->dihedralAngle(he));
+        dihedral+=angle;
+        if(angle>maxdihedral){
+            maxdihedral=angle;
+        }
+        if(angle<mindihedral){
+            mindihedral=angle;
+        }
+        // std::cout<<"Angle is"<<angle <<"\n";
+        
+    }
+
+        std::cout<<"The mean dihedral angle ( in radians ) is" << dihedral/count<<"\n";
+        std::cout<<"The mean dihedral angle ( in degrees ) is" << 360*dihedral/(count*2*3.141592)<<"\n";
+        std::cout<<"The minimum dihedral angle (in radians) is " << mindihedral <<" and the maximum is "<< maxdihedral <<"\n";
+
+
+
         }
 
         n_vert=mesh->nVertices();

@@ -257,7 +257,7 @@ int main(int argc, char** argv) {
 
 
 
-    bool Continue_sim=false;
+    bool Continue_sim=true;
 
 
 
@@ -271,7 +271,7 @@ int main(int argc, char** argv) {
     init_step = Last_step(basic_name);
     
     filepath= "Membrane_"+std::to_string(init_step)+".obj";
-
+    std::cout<<"The filepath is"<< filepath<<" \n";
     }
     else{
 
@@ -389,7 +389,7 @@ int main(int argc, char** argv) {
     
     start = chrono::steady_clock::now();
     // for(size_t current_t=init_step;current_t<init_step + 2;current_t++ ){
-    for(size_t current_t=init_step;current_t<init_step + 1000000;current_t++ ){
+    for(size_t current_t=init_step;current_t<init_step + 10000;current_t++ ){
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
         if(true){
@@ -428,7 +428,7 @@ int main(int argc, char** argv) {
         // psMesh->setEdgeWidth(1.0);
 
         
-        if(current_t%500==0){
+        if(current_t%100==0){
             Save_mesh(basic_name,current_t);
 
         }

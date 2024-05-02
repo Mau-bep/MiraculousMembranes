@@ -171,6 +171,13 @@ int main(int argc, char** argv) {
     auto end = chrono::steady_clock::now();
     
 
+    auto start_saving = chrono::steady_clock::now();
+    auto end_saving = chrono::steady_clock::now();
+
+
+    auto start_report = chrono::steady_clock::now();
+    auto end_report = chrono::steady_clock::now();
+
 
     TS=pow(10,-4);
 
@@ -186,6 +193,9 @@ int main(int argc, char** argv) {
     if(Init_cond==3){
         filepath = "../../../input/big_sphere.obj";
     }
+    if(Init_cond==4){
+        filepath = "../Results/Mem3DG_Bead_Pulling_rc_calib/nu_1.000_rc_2.000_KA_500.000_KB_1.000000_strength_30.000000_Init_cond_1_Nsim_667/membrane_28000.obj";
+    }
     // std::string filepath = "../../../input/sphere_dense_40k.obj";
     // Load mesh
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
@@ -200,26 +210,24 @@ int main(int argc, char** argv) {
 
     ORIG_VPOS = geometry->inputVertexPositions;
     CoM = geometry->centerOfMass();
-    
+    double x_furthest=0.0;
+    for(Vertex v : mesh->vertices()){
+        if(geometry->inputVertexPositions[v].x>x_furthest){
+            x_furthest=geometry->inputVertexPositions[v].x;
+        }
 
+    }
+    x_furthest+=1.4;
     double radius=1.0;
-    if(Init_cond ==3){
-        Bead_1 = Bead(mesh,geometry,Vector3({10.2,0.0,0.0}),radius,Interaction_str);   
-    }
-    else{
-    Bead_1 = Bead(mesh,geometry,Vector3({6.3,0.0,0.0}),radius,Interaction_str);
-    }
+    
+    Bead_1 = Bead(mesh,geometry,Vector3({x_furthest,0.0,0.0}),radius,Interaction_str);
+    
     // Bead_1.pulling_speed=pullin_force;
     Bead_1.rc=rc;
     // Bead_1.interaction="pulling";
     M3DG = Mem3DG(mesh,geometry,Bead_1);
-    // Add visualization options.
-    // psMesh->setSmoothShade(false);
     
-    // psMesh->setSurfaceColor({0.9607, 0.6627, 0.7215});// not orange
-    // polyscope::screenshot("./This_filename_is_nice_right.jpg",true);
-
-    // size_t counter=0;
+    // Add visualization options.
     
     std::stringstream nustream;
     std::stringstream rcstream;
@@ -248,7 +256,7 @@ int main(int argc, char** argv) {
     
     
 
-    std::string first_dir="../Results/Mem3DG_Bead_Pulling_rc_calib/";
+    std::string first_dir="../Results/Mem3DG_Bead_Pulling_rc_sweep/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
@@ -287,7 +295,7 @@ int main(int argc, char** argv) {
     double dt_sim=0.0;
 
     start = chrono::steady_clock::now();
-    for(size_t current_t=0;current_t<=500000;current_t++ ){
+    for(size_t current_t=0;current_t<=30000;current_t++ ){
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
         if(true){
@@ -311,6 +319,7 @@ int main(int argc, char** argv) {
         n_vert_new=mesh->nVertices();
         counter=counter+1; 
         }
+        // std::cout<<"The number of vertices is "<<n_vert<< "\n";
         }
 
         // psMesh->remove();
@@ -323,10 +332,14 @@ int main(int argc, char** argv) {
 
         
         if(current_t%500==0){
+            start_saving = chrono::steady_clock::now();
+            std::cout<<"Saving mesh \n";
+
             Save_mesh(basic_name,current_t);
             Save_bead_data=true;
             Save_output_data=true;
-
+            end_saving = chrono::steady_clock::now();
+            std::cout<<"Saving Process took "<<chrono::duration_cast<chrono::milliseconds>(end_saving-start_saving).count()   << " miliseconds\n";
         }
         if(current_t%100==0){
             Save_output_data=true;
@@ -334,6 +347,8 @@ int main(int argc, char** argv) {
         if(current_t%1000==0) {
 
             end=chrono::steady_clock::now();
+            start_report = chrono::steady_clock::now();
+            std::cout<<"Started reporting process \n";
             n_vert=mesh->nVertices();
             std::cout<< "THe number of vertices is "<< n_vert <<"\n";    
             std::cout<< "the avg edge lenghth is " <<geometry->meanEdgeLength()<<"\n";
@@ -358,6 +373,8 @@ int main(int argc, char** argv) {
 
 
             // polyscope::screenshot(basic_name+std::to_string(current_t)+".jpg",true);
+            end_report = chrono::steady_clock::now();
+            std::cout<<"Reporting Process took "<<chrono::duration_cast<chrono::milliseconds>(end_report-start_report).count()   << " miliseconds\n";
             start = chrono::steady_clock::now();
 
         }

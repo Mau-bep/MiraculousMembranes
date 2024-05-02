@@ -89,6 +89,19 @@ inline Vector3 edgeMidpoint(SurfaceMesh& mesh, VertexPositionGeometry& geom, Edg
   Vector3 endPos2 = geom.vertexPositions[e.halfedge().tipVertex()];
   return (endPos1 + endPos2) / 2;
 }
+inline Vector3 edgeButterfly(SurfaceMesh& mesh, VertexPositionGeometry& geom, Edge e){
+  Halfedge he = e.halfedge();
+  Vector3 P1 = geom.vertexPositions[he.vertex()];
+  Vector3 P2 = geom.vertexPositions[he.next().vertex()];
+  Vector3 Q1 = geom.vertexPositions[he.next().next().vertex()];
+  Vector3 Q2 = geom.vertexPositions[he.twin().next().next().vertex()];
+  Vector3 R1 = geom.vertexPositions[he.next().next().twin().next().next().vertex()];
+  Vector3 R2 = geom.vertexPositions[he.next().twin().next().next().vertex()];
+  Vector3 R3 = geom.vertexPositions[he.twin().next().twin().next().next().vertex()];
+  Vector3 R4 = geom.vertexPositions[he.twin().next().next().twin().next().next().vertex()];
+
+  return (8*(P1+P2)+2*(Q1+Q2)-(R1+R2+R3+R4)) / 16.0;
+}
 
 Vector3 findCircumcenter(Vector3 p1, Vector3 p2, Vector3 p3) {
   // barycentric coordinates of circumcenter
@@ -171,6 +184,7 @@ bool shouldCollapse(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Edg
 
   // see if the point that would form after a collapse would cause a major foldover with surrounding edges
   Vector3 midpoint = edgeMidpoint(mesh, geom, e);
+  Vector3 butterfly = edgeButterfly(mesh,geom,e);
   for (Halfedge he0 : edgesToCheck) {
     Halfedge heT = he0.twin();
     Vertex v1 = heT.tailVertex();
@@ -407,9 +421,14 @@ bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, 
     double length_e = geom.edgeLength(e);
     double threshold =
         (useCurvatureAdaptation) ? findMeanTargetL(mesh, geom, e, flatLength, curvatureAdaptation) : flatLength;
-    if (length_e > minLength && length_e > threshold * 1.5) {
+        // Mau edit
+        // This is a criteria for splitting (I will say that if the dihedral angle is too big change it)
+    double dihedral = abs(geom.dihedralAngle(e.halfedge()));
+    if (length_e > minLength && (length_e > threshold *1.2  || dihedral>0.5) ) {
       // std::cout<< "We are splitting edge "<< e.getIndex() <<"\n";
-      Vector3 newPos = edgeMidpoint(mesh, geom, e);
+      // Vector3 newPos = edgeMidpoint(mesh, geom, e);
+      Vector3 newPos = edgeButterfly(mesh, geom, e);
+      
       // std::cout<< "The candidate new position is "<< newPos << " \n";
 
       Halfedge he = mm.splitEdge(e, newPos);
@@ -455,6 +474,7 @@ bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, 
         (useCurvatureAdaptation) ? findMeanTargetL(mesh, geom, e, flatLength, curvatureAdaptation) : flatLength;
     if (geom.edgeLength(e) < threshold * 0.5) {
       Vector3 newPos = edgeMidpoint(mesh, geom, e);
+      
       if (shouldCollapse(mesh, geom, e)) {
         Vertex v = mm.collapseEdge(e, newPos);
         if (v != Vertex()) {

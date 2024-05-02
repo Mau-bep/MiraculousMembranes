@@ -6,7 +6,7 @@
 #include "geometrycentral/surface/vertex_position_geometry.h"
 
 #include <deque>
-
+ 
 namespace geometrycentral {
 namespace surface {
 

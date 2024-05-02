@@ -449,11 +449,11 @@ geometry->inputVertexPositions+=alpha * Force;
 geometry->refreshQuantities();
 
 center = geometry->centerOfMass();
-
+Vector3 Vertex_pos;
+double X_pos=0.0;
 if(pulling){
   // return alpha;
-  double X_pos=0.0;
-  Vector3 Vertex_pos;
+  X_pos=0.0;
   for(Vertex v : mesh->vertices()){
   Vertex_pos=geometry->inputVertexPositions[v];
   if(Vertex_pos.x>X_pos){
@@ -532,6 +532,24 @@ while(true){
 
   alpha*=rho;
   if(alpha<1e-9){
+    if(pulling){
+      std::cout<<"Reseting bead position\n";
+      X_pos=0.0;
+    for(Vertex v : mesh->vertices()){
+      Vertex_pos=geometry->inputVertexPositions[v];
+      if(Vertex_pos.x>X_pos){
+        X_pos=Vertex_pos.x;
+      }  
+      
+      
+      }
+     Bead_1.Reset_bead(Vector3({X_pos+1.4,0.0,0.0}));
+    return alpha;
+    }
+
+
+
+
     std::cout<<"THe timestep got small so the simulation will end \n";
     alpha=-1.0;
     // continue;
@@ -545,14 +563,11 @@ while(true){
   geometry->refreshQuantities();
   // center = geometry->centerOfMass();
 
+  if(!pulling){
   this->Bead_1.Reset_bead(Bead_init);
   this->Bead_1.Move_bead(alpha,Vector3({0,0,0}));
-  
-  // std::cout<<"THe old energy is "<< previousE <<"\n";
-  // std::cout<<"Alpha is "<< alpha<<"and the new energy is"<< NewE << "\n";
-  // std::cout<<"The projection is :"<<Projection<<"\n";
-  // // std::cout<<"THe energy changed to"<<NewE<<"\n";
-  // std::cout<< "Volume E"<<E_Vol <<"Surface E" << E_Sur <<"\n";
+  }
+
   
   A=geometry->totalArea();
   V=geometry->totalVolume();
@@ -870,7 +885,7 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
 //, Beads Bead_1 
 
     if(bead){
-      Bead_data<<Bead_1.Pos.x <<" "<< Bead_1.Pos.y << " "<< Bead_1.Pos.z <<" \n";
+      Bead_data<<Bead_1.Pos.x <<" "<< Bead_1.Pos.y << " "<< Bead_1.Pos.z<< " "<< Bead_1.Total_force.x <<" "<< Bead_1.Total_force.y << " "<< Bead_1.Total_force.z <<" \n";
       // std::cout<<Bead_1.Pos.x << " "<< Bead_1.Pos.y << " "<< Bead_1.Pos.z<<" \n";
       // std::cout<<"The total force is "<<Bead_1.Total_force <<"\n";
     }

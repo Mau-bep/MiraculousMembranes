@@ -45,17 +45,20 @@ def get_radius(file):
     return [r,err] 
 
 
-filenames=["1_TUBE.obj","2_TUBE.obj","3_TUBE.obj","4_TUBE.obj"]
+# filenames=["1_TUBE.obj","2_TUBE.obj","3_TUBE.obj","4_TUBE.obj","5_TUBE.obj","6_TUBE.obj"]
 rs=[]
-KBs=[0.01,0.04,0.09,0.16]
+KBs=[0.01,0.04,0.09,0.16,0.25,0.36,0.49,0.64,0.81,1.0]
 errs=[]
-for filename in filenames:
+for i in range(1,11):
+    filename = "{}_TUBE.obj".format(i)
     rs.append(get_radius(filename)[0])
     errs.append(get_radius(filename)[1])
 
 rs=np.array(rs)
-plt.plot(KBs,rs)
-plt.errorbar(KBs,rs,yerr=errs,capsize=10,color="purple")
+# plt.scatter(KBs,rs)
+plt.errorbar(KBs,rs,yerr=errs,capsize=10,fmt='none',ecolor="purple")
+plt.scatter(KBs,rs,color='black')
+
 plt.xlabel("KB")
 plt.ylabel("Microtubule radius")
 plt.show()

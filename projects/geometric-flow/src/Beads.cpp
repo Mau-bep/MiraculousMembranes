@@ -111,8 +111,8 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
         Unit_rs[v.getIndex()]=unit_r/rs[v];
         
         r2=rs[v]*rs[v];
-        // Consider_vertex[v.getIndex()]=dot(Angle_Normals[v.getIndex()],Unit_rs[v.getIndex()])>0;
-        Consider_vertex[v.getIndex()]=true;
+        Consider_vertex[v.getIndex()]=dot(Angle_Normals[v.getIndex()],Unit_rs[v.getIndex()])>0;
+        // Consider_vertex[v.getIndex()]=true;
         
         Dual_areas[v.getIndex()]=geometry->barycentricDualArea(v);
         // Dual_areas[v.getIndex()]=geometry->circumcentricDualArea(v);
@@ -871,27 +871,27 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
                 unit_r = Unit_rs[v1_idx];
                 unit_r2 = Unit_rs[v2_idx];
                 unit_r3 = Unit_rs[v3_idx];
-                // if((dot(unit_r,Face_normal)<0 || rs[v1_idx]>this->rc ) && (dot(unit_r2,Face_normal)<0|| rs[v2_idx]>this->rc )&& (dot(unit_r3,Face_normal)<0 || rs[v3_idx]>this->rc) ){
-                //     break;
-                // }
-                if(rs[v1_idx]>this->rc  && (rs[v2_idx]>this->rc )&& (rs[v3_idx]>this->rc) ){
+                if((dot(unit_r,Face_normal)<0 || rs[v1_idx]>this->rc ) && (dot(unit_r2,Face_normal)<0|| rs[v2_idx]>this->rc )&& (dot(unit_r3,Face_normal)<0 || rs[v3_idx]>this->rc) ){
                     break;
                 }
+                // if(rs[v1_idx]>this->rc  && (rs[v2_idx]>this->rc )&& (rs[v3_idx]>this->rc) ){
+                //     break;
+                // }
               
                 u=geometry->inputVertexPositions[v2_idx]-geometry->inputVertexPositions[v3_idx];
                 Vector3 Grad_vec=(0.5)* cross(Normals[f.getIndex()],u);
 
                 // I need to add the consider restriction here
 
-                // if(dot(unit_r,Face_normal)>0){
+                if(dot(unit_r,Face_normal)>0){
                     Force[v1_idx]+=(1.0/3.0)*E_v[v1_idx]*dot(Face_normal,unit_r)*Grad_vec;
-                // }
-                // if(dot(unit_r2,Face_normal)>0){
+                }
+                if(dot(unit_r2,Face_normal)>0){
                     Force[v1_idx]+=(1.0/3.0)*E_v[v2_idx]*dot(Face_normal,unit_r2)*Grad_vec;
-                // }
-                // if(dot(unit_r3,Face_normal)>0){
+                }
+                if(dot(unit_r3,Face_normal)>0){
                     Force[v1_idx]+=(1.0/3.0)*E_v[v3_idx]*dot(Face_normal,unit_r3)*Grad_vec;
-                // }
+                }
 
                 // We have the area gradient correctly now we will do the energy of interaction
                 
@@ -911,8 +911,8 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
 
 
                 // Vertex 1
-                // if(dot(unit_r,Face_normal)>0){
-                if(true){
+                if(dot(unit_r,Face_normal)>0){
+                // if(true){
                 
                     grad =-1*dot(cross(geometry->inputVertexPositions[v3_idx]-geometry->inputVertexPositions[v2_idx],Face_normal),unit_r)*Face_normal/(2*Face_area);            
             
@@ -923,8 +923,8 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
                 }
                 // Vertex 2
                 
-                // if(dot(unit_r2,Face_normal)>0){
-                if(true){
+                if(dot(unit_r2,Face_normal)>0){
+                // if(true){
                     grad=-1*dot(cross(geometry->inputVertexPositions[v3_idx]-geometry->inputVertexPositions[v2_idx],Face_normal),unit_r2)*Face_normal/(2*Face_area);
 
                     Force[v1_idx]+=(Face_area/3.0)*E_v[v2_idx]*grad;
@@ -932,8 +932,8 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
                 // Force[v1_idx]+=grad;
 
                 // Vertex 3
-                // if(dot(unit_r3,Face_normal)>0){
-                if(true){
+                if(dot(unit_r3,Face_normal)>0){
+                // if(true){
                     grad=-1*dot(cross(geometry->inputVertexPositions[v3_idx]-geometry->inputVertexPositions[v2_idx],Face_normal),unit_r3)*Face_normal/(2*Face_area);
             
                     Force[v1_idx]+=(Face_area/3.0)*E_v[v3_idx]*grad;
@@ -1837,8 +1837,8 @@ double Bead::Energy() {
                 r=unit_r.norm();
                 unit_r=unit_r/r;
                 r2=r*r;
-                // if(r<1.2 && dot(Face_normal,unit_r)>0){
-                if(r<rc){
+                if(r<rc && dot(Face_normal,unit_r)>0){
+                // if(r<rc){
                     
                     alpha=2*(rc2/(sigma*sigma))*pow( 3/(2*( (rc2/(sigma*sigma)) -1))  ,3 );
                     // Total_E+=(face_area/3.0);
