@@ -296,7 +296,7 @@ int main(int argc, char** argv) {
     double dt_sim=0.0;
 
     start = chrono::steady_clock::now();
-    for(size_t current_t=0;current_t<=50000;current_t++ ){
+    for(size_t current_t=0;current_t<=100000;current_t++ ){
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
         if(true){
@@ -322,7 +322,7 @@ int main(int argc, char** argv) {
         n_vert_new=mesh->nVertices();
         counter=counter+1; 
         }
-        if(n_vert_new>=12000){
+        if(n_vert_new>=15000){
             std::cout<<"Too many vertices, we are gonna crash \n";
             crash=true;
         }
