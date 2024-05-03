@@ -534,6 +534,8 @@ while(true){
   if(alpha<1e-5){
     if(pulling){
       std::cout<<"\t \t Reseting bead position\n";
+      geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+      geometry->refreshQuantities();
       X_pos=0.0;
     for(Vertex v : mesh->vertices()){
       Vertex_pos=geometry->inputVertexPositions[v];

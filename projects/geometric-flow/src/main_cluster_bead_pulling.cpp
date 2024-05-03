@@ -256,7 +256,7 @@ int main(int argc, char** argv) {
     
     
 
-    std::string first_dir="../Results/Mem3DG_Bead_Pulling_rc_sweep/";
+    std::string first_dir="../Results/Mem3DG_Bead_Pulling_rc_sweeping/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
@@ -277,6 +277,7 @@ int main(int argc, char** argv) {
     std::ofstream Bead_data(filename2);
 
     bool Save_bead_data=false;
+    bool crash = false;
     bool Save_output_data=false;
     Bead_data<<"####### This data is taken every 250 steps just like the mesh radius is " << radius<<" \n";
     
@@ -321,8 +322,13 @@ int main(int argc, char** argv) {
         n_vert_new=mesh->nVertices();
         counter=counter+1; 
         }
+        if(n_vert_new>=12000){
+            std::cout<<"Too many vertices, we are gonna crash \n";
+            crash=true;
+        }
         // std::cout<<"The number of vertices is "<<n_vert<< " and the timestep is "<< current_t << " (done remeshing)\n";
         }
+        
 
         // psMesh->remove();
         
@@ -333,7 +339,7 @@ int main(int argc, char** argv) {
         // psMesh->setEdgeWidth(1.0);
 
         
-        if(current_t%500==0 ){
+        if(current_t%500==0 || crash){
             start_saving = chrono::steady_clock::now();
             std::cout<<"Saving mesh \n";
 
@@ -381,7 +387,9 @@ int main(int argc, char** argv) {
 
         }
         nu_evol= time<50 ? nu_0 + (nu-nu_0)*time/50 : nu; 
-        
+        if(crash){
+            break;
+        }
         dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save_bead_data,Bead_data,Save_output_data,pulling);
         Save_output_data=false;
         Save_bead_data=false;

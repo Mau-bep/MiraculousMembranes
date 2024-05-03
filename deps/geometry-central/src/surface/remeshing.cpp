@@ -184,7 +184,7 @@ bool shouldCollapse(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Edg
 
   // see if the point that would form after a collapse would cause a major foldover with surrounding edges
   Vector3 midpoint = edgeMidpoint(mesh, geom, e);
-  Vector3 butterfly = edgeButterfly(mesh,geom,e);
+  // Vector3 butterfly = edgeButterfly(mesh,geom,e);
   for (Halfedge he0 : edgesToCheck) {
     Halfedge heT = he0.twin();
     Vertex v1 = heT.tailVertex();
@@ -426,8 +426,8 @@ bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, 
     double dihedral = abs(geom.dihedralAngle(e.halfedge()));
     if (length_e > minLength && (length_e > threshold *1.2  || dihedral>0.5) ) {
       // std::cout<< "We are splitting edge "<< e.getIndex() <<"\n";
-      // Vector3 newPos = edgeMidpoint(mesh, geom, e);
-      Vector3 newPos = edgeButterfly(mesh, geom, e);
+      Vector3 newPos = edgeMidpoint(mesh, geom, e);
+      // Vector3 newPos = edgeButterfly(mesh, geom, e);
       
       // std::cout<< "The candidate new position is "<< newPos << " \n";
 
