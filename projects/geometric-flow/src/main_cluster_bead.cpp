@@ -158,7 +158,8 @@ int main(int argc, char** argv) {
     int Init_cond = std::stoi(argv[3]);
     int Nsim = std::stoi(argv[4]);
     KA=std::stod(argv[5]);
-    Min_rel_length = std::stod(argv[6]);
+    double radius=std::stod(argv[6]);
+    Min_rel_length = 0.1;
     c0=0.0;
     // KA=500.0;
     KB=0.01;
@@ -168,7 +169,18 @@ int main(int argc, char** argv) {
  
     auto start = chrono::steady_clock::now();
     auto end = chrono::steady_clock::now();
+
+
+
+
+    auto start_time_control= chrono::steady_clock::now();
+    auto end_time_control= chrono::steady_clock::now();
     
+    double remeshing_elapsed_time=0;
+    double integrate_elapsed_time=0;
+    double saving_mesh_time=0;
+
+
 
 
     TS=pow(10,-3);
@@ -215,20 +227,12 @@ int main(int argc, char** argv) {
     ORIG_VPOS = geometry->inputVertexPositions;
     CoM = geometry->centerOfMass();
     
-    // MCF = MeanCurvatureFlow(mesh, geometry);
-    // ModMCF = ModifiedMeanCurvatureFlow(mesh, geometry);
-    // NF =NormalFlow(mesh, geometry);
-    // GCF = GaussCurvatureFlow(mesh, geometry);
-    // WF = WillmoreFlow(mesh,geometry);
-    // WF2 = WillmoreFlow2(mesh,geometry);
-    // WFS = WillmoreFlowScho(mesh,geometry);
-    // M3DG = Mem3DG(mesh,geometry);
-    double radius=1.0; //
+ 
     if(Init_cond==3){
-        Bead_1 = Bead(mesh,geometry,Vector3({11.135,0.0,0.0}),radius,Interaction_str);
+        Bead_1 = Bead(mesh,geometry,Vector3({10.135+radius,0.0,0.0}),radius,Interaction_str);
     }
     else{
-        Bead_1 = Bead(mesh,geometry,Vector3({6.135,0.0,0.0}),radius,Interaction_str);
+        Bead_1 = Bead(mesh,geometry,Vector3({5.135+radius,0.0,0.0}),radius,Interaction_str);
     }
     M3DG = Mem3DG(mesh,geometry,Bead_1);
     // Add visualization options.
@@ -267,7 +271,7 @@ int main(int argc, char** argv) {
     
     
 
-    std::string first_dir="../Results/Mem3DG_Bead_Reciprocal_cuttedpot/";
+    std::string first_dir="../Results/Mem3DG_Bead_Reciprocal_finemesh/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
@@ -310,6 +314,9 @@ int main(int argc, char** argv) {
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
         if(true){
+
+
+        start_time_control=chrono::steady_clock::now();
         // if(current_t%10==0 ){
         n_vert_old=mesh->nVertices();
         n_vert_new=1;
@@ -330,6 +337,8 @@ int main(int argc, char** argv) {
         n_vert_new=mesh->nVertices();
         counter=counter+1; 
         }
+        end_time_control=chrono::steady_clock::now();
+        remeshing_elapsed_time+=chrono::duration_cast<chrono::milliseconds>(end_time_control-start_time_control).count();
         }
 
         // psMesh->remove();
@@ -342,7 +351,10 @@ int main(int argc, char** argv) {
 
         
         if(current_t%500==0){
+            start_time_control=chrono::steady_clock::now();
             Save_mesh(basic_name,current_t);
+            end_time_control = chrono::steady_clock::now();
+            saving_mesh_time+=chrono::duration_cast<chrono::milliseconds>(end_time_control-start_time_control).count();
             Save_bead_data=true;
             Save_output_data=true;
 
@@ -375,16 +387,24 @@ int main(int argc, char** argv) {
             
             std::cout<<"A thousand iterations took "<<chrono::duration_cast<chrono::milliseconds>(end-start).count()<<" miliseconds\n";
 
-
+            
             // polyscope::screenshot(basic_name+std::to_string(current_t)+".jpg",true);
             start = chrono::steady_clock::now();
 
         }
         nu_evol= time<50 ? nu_0 + (nu-nu_0)*time/50 : nu; 
-        
+        start_time_control = chrono::steady_clock::now();
         dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,sigma,Sim_data,time,Save_bead_data,Bead_data,Save_output_data,pulling);
+        end_time_control = chrono::steady_clock::now();
+        integrate_elapsed_time += chrono::duration_cast<chrono::milliseconds>(end_time_control-start_time_control).count(); 
         Save_output_data=false;
         Save_bead_data=false;
+
+
+        if(current_t%1000==0){
+            std::cout<< "Remeshing has taken a total of "<< remeshing_elapsed_time <<" milliseconds\n" << "Saving the mesh has taken a total of "<< saving_mesh_time<< "\n Integrating the forces has taken a total of "<< integrate_elapsed_time <<" milliseconds \n\n"; 
+        }
+
         if(dt_sim==-1){
             std::cout<<"Sim broke or timestep very small\n";
             break;
