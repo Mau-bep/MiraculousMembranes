@@ -379,7 +379,6 @@ int main(int argc, char** argv) {
     bool evolve=false;
     size_t target_index=120;
     // I will do it so i can give this values
- 
     auto start = chrono::steady_clock::now();
     auto end = chrono::steady_clock::now();
     
@@ -530,7 +529,13 @@ int main(int argc, char** argv) {
     // Ok now is then the fun begins
 
         // I want to do normal flow.
-        bool arcsim_remesh=true;
+        bool arcsim_remesh;
+        if(c0>0){
+        arcsim_remesh=true;
+        }
+        else{
+        arcsim_remesh=false;
+        }
         bool preserving_vol=true;
         double targ_vol=geometry->totalVolume();
         std::ofstream Sim_data;
@@ -545,7 +550,7 @@ int main(int argc, char** argv) {
         int n_vert_old;
         int n_vert_new;
         int counter;
-        for(size_t current_t = 0 ; current_t< 10000; current_t ++){
+        for(size_t current_t = 0 ; current_t<50000; current_t ++){
             // std::cout<<"Current t is "<< current_t <<"\n";
             // fIRST THING IS REMESHIng 
             if(arcsim_remesh){
@@ -613,7 +618,7 @@ int main(int argc, char** argv) {
             // I am doing it wrong, the idea is to move them depending on the position, not the normals.
             if(preserving_vol){ 
                 bool Save=false;
-                if(current_t%100==0){
+                if(current_t%250==0){
                     Save=true;
                 }
                 double Volume;
