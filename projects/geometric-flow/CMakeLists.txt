@@ -2,11 +2,17 @@ cmake_minimum_required(VERSION 3.10.0)
 
 project(geometric-flow)
 
+
+
 ### Configure output locations
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+
+FIND_PACKAGE(Eigen3 REQUIRED)
+
+include_directories(${EIGEN3_INCLUDE_DIR})
 # Print the build type
 # set(CMAKE_BUILD_TYPE "Debug")
 if(NOT CMAKE_BUILD_TYPE)
@@ -161,15 +167,17 @@ set(TEST_fan_SRCS
 add_subdirectory(../../deps/geometry-central deps/geometry-central)
 add_subdirectory(../../deps/polyscope deps/polyscope)
 add_subdirectory(../../deps/googletest deps/googletest)
+add_subdirectory(../../deps/libarcsim deps/libarcsim)
 
 
 find_package(OpenMP REQUIRED)
 if(OPENMP_FOUND)
 message("OPENMP FOUND")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -I../../deps/include -I/opt/local/include/")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
+
 
 
 
@@ -216,10 +224,17 @@ target_link_libraries(main_cluster_beads PUBLIC geometry-central polyscope)
 add_executable(main_cluster_pulling "${SRCSclusterpulling}")
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT main_cluster_pulling)
 target_include_directories(main_cluster_pulling PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+target_include_directories(main_cluster_pulling PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src_arcsim/")
+
 target_include_directories(main_cluster_pulling PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
+target_include_directories(main_cluster_pulling PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps")
+
 # add the args.hxx project which we use for command line args
 target_include_directories(main_cluster_pulling PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
-target_link_libraries(main_cluster_pulling PUBLIC geometry-central polyscope)
+
+target_include_directories(main_cluster_pulling PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
+
+target_link_libraries(main_cluster_pulling PUBLIC geometry-central polyscope arcsim)
 
 
 # add_executable(mainbunny "${SRCSfun}")
@@ -252,17 +267,25 @@ add_executable(Grad_tests_th "${TEST_Grad_th_SRCS}")
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Grad_tests_th)
 target_include_directories(Grad_tests_th PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
 target_include_directories(Grad_tests_th PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
+target_include_directories(Grad_tests_th PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src_arcsim/")
+
+target_include_directories(Grad_tests_th PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps")
 # add the args.hxx project which we use for command line args
 target_include_directories(Grad_tests_th PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
-target_link_libraries(Grad_tests_th geometry-central polyscope)
+target_include_directories(Grad_tests_th PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
+
+target_link_libraries(Grad_tests_th PUBLIC geometry-central polyscope arcsim)
 
 
 add_executable(Test_fan "${TEST_fan_SRCS}")
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Test_fan)
 target_include_directories(Test_fan PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+
 target_include_directories(Test_fan PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
 # add the args.hxx project which we use for command line args
 target_include_directories(Test_fan PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
+
+
 target_link_libraries(Test_fan geometry-central polyscope)
 
 

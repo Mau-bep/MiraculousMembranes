@@ -401,6 +401,9 @@ double Mem3DG::E_Bending(double H0,double KB) const{
         index=v.getIndex();
         // Scalar_MC.coeffRef(index)
         H=abs(geometry->scalarMeanCurvature(v)/geometry->barycentricDualArea(v)-H0);
+        if(std::isnan(H)){
+          std::cout<<"One of the H is not a number\n";
+        }
         Eb+=KB*H*H*geometry->barycentricDualArea(v);
         
         }   
@@ -525,6 +528,7 @@ while(true){
     }
 
   if(std::isnan(NewE)){
+      
       alpha=-1.0;
       break;
     }
@@ -560,6 +564,7 @@ while(true){
   // for(Vertex vi : mesh->vertices()){
   //   geometry->inputVertexPositions[vi.getIndex()]= initial_pos[vi.getIndex()]+alpha*Force[vi.getIndex()];
   // }
+  
   geometry->inputVertexPositions = initial_pos+alpha*Force;
   // geometry->normalize(Vector3({0.0,0.0,0.0}),false);
   geometry->refreshQuantities();
@@ -586,6 +591,10 @@ while(true){
 
 
 
+}
+if(alpha<0.0){
+    
+    geometry->inputVertexPositions = initial_pos;
 }
 geometry->normalize(Vector3({0.0,0.0,0.0}),false);
 geometry->refreshQuantities();
@@ -666,13 +675,7 @@ if(std::isnan(E_Ben)){
   std::cout<<"E ben is nan\n";
     }
 
-  if(std::isnan(NewE)){
-    std::cout<<"The energy got Nan\n";
-    
-    alpha=-1.0;
-    break;
-  }
-
+  
 
   alpha*=rho;
   if(alpha<1e-8){
@@ -711,7 +714,13 @@ if(std::isnan(E_Ben)){
   // NewE=E_Sur+E_Ben;
   NewE=E_Vol+E_Sur+E_Ben;
   
-  
+  if(std::isnan(NewE)){
+    std::cout<<"The energy got Nan\n";
+    
+    alpha=-1.0;
+    break;
+  }
+
 
 
 

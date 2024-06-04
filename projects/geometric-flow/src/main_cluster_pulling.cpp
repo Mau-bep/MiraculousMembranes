@@ -74,7 +74,7 @@ float Kd=0.0;
 double TS=0.001;
 
 double Curv_adap=0.1;
-double Min_rel_length=0.5;
+double Min_rel_length=0.1;
 double trgt_len;
 double avg_remeshing;
 // bool edge_length_adj;

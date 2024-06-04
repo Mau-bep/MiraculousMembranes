@@ -12,12 +12,20 @@
 #include <fstream>
 #include <string>
 
+#include <limits>
+
 #include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/meshio.h"
 #include "geometrycentral/surface/vertex_position_geometry.h"
 
 #include "geometrycentral/surface/remeshing.h"
 
+
+
+#include "geometrycentral/surface/simple_polygon_mesh.h"
+#include "geometrycentral/surface/surface_mesh_factories.h"
+
+#include "happly.h"
 
 #include <chrono>
 
@@ -31,6 +39,19 @@
 
 #include "Mem-3dg.h"
 #include "Beads.h"
+
+
+#include "libarcsim/include/cloth.hpp"
+#include "libarcsim/include/collision.hpp"
+#include "libarcsim/include/mesh.hpp"
+#include "libarcsim/include/dynamicremesh.hpp"
+
+#include "io.hpp"
+#include "simulation.hpp"
+#include "conf.hpp"
+#include "log.hpp"
+
+
 
 using namespace geometrycentral;
 using namespace geometrycentral::surface;
@@ -71,13 +92,13 @@ float Kd=0.0;
 double TS=0.0001;
 
 double Curv_adap=0.1;
-double Min_rel_length=0.5;
+double Min_rel_length=0.05;
 double trgt_len;
 double avg_remeshing;
 bool edge_length_adj;
 VertexData<Vector3> ORIG_VPOS; // original vertex positions
 Vector3 CoM;                   // original center of mass
-
+ 
 
 Mem3DG M3DG;
 Bead Bead_1;
@@ -144,7 +165,109 @@ void Save_mesh(std::string basic_name, size_t current_t) {
 }
 
 
+arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeometry* geometry){
 
+    arcsim::Mesh mesh1;
+  
+    for (int v = 0; v < mesh->nVertices(); v++) {
+            // const Vert *vert0 = mesh0.verts[v];
+            Vector3 pos_orig= geometry->inputVertexPositions[v];
+            arcsim::Vec3 pos;
+            pos[0]=pos_orig.x;
+            pos[1]=pos_orig.y;
+            pos[2]=pos_orig.z;
+            arcsim::Vert *vert1 = new arcsim::Vert(pos, 0, 1);
+            mesh1.add(vert1);
+            
+    }
+    for (int v = 0; v < mesh->nVertices(); v++) {
+            // const Vert *vert0 = mesh0.verts[v];
+            Vector3 pos_orig= geometry->inputVertexPositions[v];
+            arcsim::Vec3 pos;
+            pos[0]=pos_orig.x;
+            pos[1]=pos_orig.y;
+            pos[2]=pos_orig.z;
+            // arcsim::Vert *vert1 = new arcsim::Vert(pos, 0, 1);
+            // mesh1.add(vert1);
+            mesh1.add(new arcsim::Node(pos,arcsim::Vec3(0)));
+            mesh1.verts[v]->node=mesh1.nodes[v];
+    }
+
+
+    for (int e = 0; e<mesh->nEdges();e++){
+        Edge e_orig= mesh->edge(e);
+
+        arcsim::Edge *edge1 = new arcsim::Edge(mesh1.nodes[e_orig.firstVertex().getIndex()],mesh1.nodes[e_orig.secondVertex().getIndex()],0);
+        mesh1.add(edge1);
+
+    }
+    
+    
+
+
+
+    for(int f=0; f< mesh->nFaces(); f++){
+    Face f_orig = mesh->face(f);
+    Halfedge he = f_orig.halfedge();
+    arcsim::Face *face1 = new arcsim::Face(mesh1.verts[he.vertex().getIndex()],mesh1.verts[he.next().vertex().getIndex()],mesh1.verts[he.next().next().vertex().getIndex()],0,0 );        
+
+    mesh1.add(face1);
+
+    }
+    arcsim::compute_ms_data(mesh1);
+    mesh1.numComponents = 1;
+    
+
+
+    return mesh1;
+}
+
+
+std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
+translate_to_geometry(arcsim::Mesh mesh){
+
+
+  SimplePolygonMesh simpleMesh;
+
+//   processLoadedMesh(simpleMesh, loadType);
+    Vector3 v_pos;
+    for(int v = 0 ; v<mesh.verts.size(); v++){
+        arcsim::Vec3 pos_old = mesh.nodes[v]->x;
+        v_pos.x=pos_old[0];
+        v_pos.y=pos_old[1];
+        v_pos.z=pos_old[2];
+        simpleMesh.vertexCoordinates.push_back(v_pos);
+    }
+    for(int f = 0 ; f<mesh.faces.size();f++){
+        
+        std::vector<size_t> polygon(3);
+        polygon[0] = mesh.faces[f]->v[0]->index;
+        polygon[1] = mesh.faces[f]->v[1]->index;
+        polygon[2] = mesh.faces[f]->v[2]->index;
+        simpleMesh.polygons.push_back(polygon);
+    }
+
+  auto lvals = makeManifoldSurfaceMeshAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
+
+
+
+ return std::tuple<std::unique_ptr<ManifoldSurfaceMesh>,
+                    std::unique_ptr<VertexPositionGeometry>>(std::move(std::get<0>(lvals)),  // mesh
+                                                             std::move(std::get<1>(lvals))); // geometry
+
+}
+
+
+
+
+
+
+
+// void init_physics(const string &json_file, bool is_reloading, arcsim::Simulation &sim){
+        
+    // vector<arcsim::Mesh *> base_meshes(sim.obstacles.size());
+    // arcsim::load_json(json_file,sim);
+// }
 
 int main(int argc, char** argv) {
 
@@ -164,6 +287,8 @@ int main(int argc, char** argv) {
     KA= 10000;
     // KB=0.01;
 
+
+    
 
     // I will do it so i can give this values
  
@@ -206,7 +331,31 @@ int main(int argc, char** argv) {
     V_bar=geometry->totalVolume();
     
   
-  
+    arcsim::Mesh remesher_mesh;
+    remesher_mesh = translate_to_arcsim(mesh,geometry);
+
+
+    std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(remesher_mesh);
+    mesh = mesh_uptr.release();
+    geometry = geometry_uptr.release();
+
+    
+
+    // arcsim::Simulation sim;
+    // sim.cloths.resize(1);
+    arcsim::Cloth Cloth_1;
+    Cloth_1.mesh=remesher_mesh;
+    // sim.cloths[0]=Cloth_1;
+    vector<arcsim::AccelStruct *> obs_accs;
+    // I need to add more data to the Cloth for it to work
+    // arcsim::dynamic_remesh(Cloth_1,false,obs_accs,true);
+
+    
+
+    
+    
+
+
 
     ORIG_VPOS = geometry->inputVertexPositions;
     CoM = geometry->centerOfMass();

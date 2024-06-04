@@ -91,7 +91,7 @@ Index parseFaceIndex(const std::string& token) {
 
 std::vector<std::string> supportedMeshTypes = {"obj", "ply", "stl", "off"};
 
-} // namespace
+} // namespace?
 
 
 std::string SimplePolygonMesh::detectFileType(std::string filename) {
@@ -178,7 +178,7 @@ void SimplePolygonMesh::readMeshFromObjFile(std::istream& in) {
       Vector3 position;
       ss >> position;
 
-      vertexCoordinates.push_back(position);
+      vertexCoordinates.push_back(position); 
 
     } else if (token == "vt") {
       double u, v;

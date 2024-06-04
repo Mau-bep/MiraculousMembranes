@@ -424,7 +424,7 @@ bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, 
         // Mau edit
         // This is a criteria for splitting (I will say that if the dihedral angle is too big change it)
     double dihedral = abs(geom.dihedralAngle(e.halfedge()));
-    if (length_e > minLength && (length_e > threshold *1.2  || dihedral>0.5) ) {
+    if (length_e > minLength && (length_e > threshold *2.0 ) ) {
       // std::cout<< "We are splitting edge "<< e.getIndex() <<"\n";
       Vector3 newPos = edgeMidpoint(mesh, geom, e);
       // Vector3 newPos = edgeButterfly(mesh, geom, e);
@@ -472,7 +472,7 @@ bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, 
 
     double threshold =
         (useCurvatureAdaptation) ? findMeanTargetL(mesh, geom, e, flatLength, curvatureAdaptation) : flatLength;
-    if (geom.edgeLength(e) < threshold * 0.5) {
+    if (geom.edgeLength(e) < threshold * 0.1) {
       Vector3 newPos = edgeMidpoint(mesh, geom, e);
       
       if (shouldCollapse(mesh, geom, e)) {

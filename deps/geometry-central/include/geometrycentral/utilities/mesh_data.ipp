@@ -291,7 +291,7 @@ inline T MeshData<E, T>::getDefault() const {
 template <typename E, typename T, typename U>
 void checkMeshCompatible(const MeshData<E, T>& lhs, const MeshData<E, U>& rhs) {
   GC_SAFETY_ASSERT(lhs.getMesh() != nullptr && rhs.getMesh() != nullptr, "arguments must both be initialized");
-  GC_SAFETY_ASSERT(lhs.getMesh() == rhs.getMesh(), "arguments be defined on same mesh");
+  GC_SAFETY_ASSERT(lhs.getMesh() == rhs.getMesh(), "arguments be defined on same mesh"); // you commented this
 }
 
 template <typename E, typename T>
