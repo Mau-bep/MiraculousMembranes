@@ -94,6 +94,7 @@ double TS=0.0001;
 double Curv_adap=0.1;
 double Min_rel_length=0.05;
 double trgt_len;
+double prev_force;
 double avg_remeshing;
 bool edge_length_adj;
 VertexData<Vector3> ORIG_VPOS; // original vertex positions
@@ -169,6 +170,7 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
 
     arcsim::Mesh mesh1;
   
+    // std::cout<<"Adding vertices?\n";
     for (int v = 0; v < mesh->nVertices(); v++) {
             // const Vert *vert0 = mesh0.verts[v];
             Vector3 pos_orig= geometry->inputVertexPositions[v];
@@ -176,10 +178,12 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
             pos[0]=pos_orig.x;
             pos[1]=pos_orig.y;
             pos[2]=pos_orig.z;
-            arcsim::Vert *vert1 = new arcsim::Vert(pos, 0, 1);
+            arcsim::Vert *vert1 = new arcsim::Vert(pos, 1);
             mesh1.add(vert1);
             
     }
+
+    // std::cout<<"Adding nodes?\n";
     for (int v = 0; v < mesh->nVertices(); v++) {
             // const Vert *vert0 = mesh0.verts[v];
             Vector3 pos_orig= geometry->inputVertexPositions[v];
@@ -191,9 +195,11 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
             // mesh1.add(vert1);
             mesh1.add(new arcsim::Node(pos,arcsim::Vec3(0)));
             mesh1.verts[v]->node=mesh1.nodes[v];
+            mesh1.nodes[v]->verts.push_back(mesh1.verts[v]);
     }
 
 
+    // std::cout<<"Adding edges?\n";
     for (int e = 0; e<mesh->nEdges();e++){
         Edge e_orig= mesh->edge(e);
 
@@ -206,6 +212,7 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
 
 
 
+    // std::cout<<"Adding faces?\n";
     for(int f=0; f< mesh->nFaces(); f++){
     Face f_orig = mesh->face(f);
     Halfedge he = f_orig.halfedge();
@@ -214,11 +221,17 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
     mesh1.add(face1);
 
     }
+
+    // std::cout<<"computing data?\n";
     arcsim::compute_ms_data(mesh1);
+
+
+
     mesh1.numComponents = 1;
     
+    
 
-
+    // std::cout<<"done translating\n";
     return mesh1;
 }
 
@@ -229,8 +242,10 @@ translate_to_geometry(arcsim::Mesh mesh){
 
   SimplePolygonMesh simpleMesh;
 
+    // std::cout<<"This is being called\n";
 //   processLoadedMesh(simpleMesh, loadType);
     Vector3 v_pos;
+    
     for(int v = 0 ; v<mesh.verts.size(); v++){
         arcsim::Vec3 pos_old = mesh.nodes[v]->x;
         v_pos.x=pos_old[0];
@@ -246,7 +261,8 @@ translate_to_geometry(arcsim::Mesh mesh){
         polygon[2] = mesh.faces[f]->v[2]->index;
         simpleMesh.polygons.push_back(polygon);
     }
-
+    // std::cout<<"Does this happen after loading the data to create the mesh?\n";
+    // std::cout<<" THe information in the mesh is, "<< simpleMesh.vertexCoordinates.size()<<"number of vertices\n";
   auto lvals = makeManifoldSurfaceMeshAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
 
 
@@ -256,7 +272,6 @@ translate_to_geometry(arcsim::Mesh mesh){
                                                              std::move(std::get<1>(lvals))); // geometry
 
 }
-
 
 
 
@@ -284,7 +299,7 @@ int main(int argc, char** argv) {
     bool pulling =true;
     c0=0.0;
     KB=std::stod(argv[5]);
-    KA= 10000;
+    KA= 500;
     // KB=0.01;
 
 
@@ -323,6 +338,7 @@ int main(int argc, char** argv) {
     }
     // std::string filepath = "../../../input/sphere_dense_40k.obj";
     // Load mesh
+    std::cout<<"The mesh is"<< filepath<<"\n";
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
     mesh = mesh_uptr.release();
     geometry = geometry_uptr.release();
@@ -331,22 +347,22 @@ int main(int argc, char** argv) {
     V_bar=geometry->totalVolume();
     
   
-    arcsim::Mesh remesher_mesh;
-    remesher_mesh = translate_to_arcsim(mesh,geometry);
+    // arcsim::Mesh remesher_mesh;
+    // remesher_mesh = translate_to_arcsim(mesh,geometry);
 
 
-    std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(remesher_mesh);
-    mesh = mesh_uptr.release();
-    geometry = geometry_uptr.release();
+    // std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(remesher_mesh);
+    // mesh = mesh_uptr.release();
+    // geometry = geometry_uptr.release();
 
     
 
     // arcsim::Simulation sim;
     // sim.cloths.resize(1);
-    arcsim::Cloth Cloth_1;
-    Cloth_1.mesh=remesher_mesh;
+    // arcsim::Cloth Cloth_1;
+    // Cloth_1.mesh=remesher_mesh;
     // sim.cloths[0]=Cloth_1;
-    vector<arcsim::AccelStruct *> obs_accs;
+    // vector<arcsim::AccelStruct *> obs_accs;
     // I need to add more data to the Cloth for it to work
     // arcsim::dynamic_remesh(Cloth_1,false,obs_accs,true);
 
@@ -369,10 +385,9 @@ int main(int argc, char** argv) {
     x_furthest+=1.4;
     double radius=1.0;
     
-    Bead_1 = Bead(mesh,geometry,Vector3({x_furthest,0.0,0.0}),radius,Interaction_str);
+    Bead_1 = Bead(mesh,geometry,Vector3({x_furthest,0.0,0.0}),radius,Interaction_str,rc);
     
     // Bead_1.pulling_speed=pullin_force;
-    Bead_1.rc=rc;
     // Bead_1.interaction="pulling";
     M3DG = Mem3DG(mesh,geometry,Bead_1);
     
@@ -405,7 +420,7 @@ int main(int argc, char** argv) {
     
     
 
-    std::string first_dir="../Results/Mem3DG_Bead_Pulling_rc_sweeping/";
+    std::string first_dir="../Results/Mem3DG_Bead_Pulling_rc_arcsim/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
@@ -443,12 +458,64 @@ int main(int argc, char** argv) {
     size_t counter=0;
     double time=0.0;
     double dt_sim=0.0;
+    bool arcsim = true;
+    arcsim::Cloth Cloth_1;
+    arcsim::Cloth::Remeshing remeshing_params;
+    double remeshing_elapsed_time=0;
+    double integrate_elapsed_time=0;
+    double saving_mesh_time=0;
 
+    trgt_len=geometry->meanEdgeLength();
+    if(arcsim){
+        std::cout<<"Settin remesher params\n";
+        remeshing_params.aspect_min=0.2;
+        remeshing_params.refine_angle=0.1;
+        remeshing_params.refine_compression=1e-4;
+        remeshing_params.refine_velocity=1.0;
+        remeshing_params.size_max=trgt_len*3.0;
+        remeshing_params.size_min=trgt_len*0.001;
+
+    
+    }
+
+    // start = chrono::steady_clock::now();
+    auto start_time_control= chrono::steady_clock::now();
+    auto end_time_control= chrono::steady_clock::now();
     start = chrono::steady_clock::now();
-    for(size_t current_t=0;current_t<=100000;current_t++ ){
+    // Save_mesh(basic_name,12345);
+    for(size_t current_t=0;current_t<=200000;current_t++ ){
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
-        if(true){
+        if(arcsim){
+            // std::cout<<"entering remesher\n";
+            start_time_control=chrono::steady_clock::now();
+            // std::cout<<"Translating mesh\n";
+            arcsim::Mesh remesher_mesh2 = translate_to_arcsim(mesh,geometry);
+            Cloth_1.mesh=remesher_mesh2;
+
+            Cloth_1.remeshing=remeshing_params;
+            // std::cout<<"remeshing\n";
+            arcsim::dynamic_remesh(Cloth_1);
+            
+            Bead_1 = M3DG.Bead_1;
+            prev_force = M3DG.Bead_1.Total_force.norm2();
+            delete mesh;
+            delete geometry;
+            // std::cout<<"translating back?\n";
+            std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
+            arcsim::delete_mesh(Cloth_1.mesh);
+
+            // std::cout<<"defining pointers\n";
+            mesh = mesh_uptr.release();
+            geometry = geometry_uptr.release();
+            Bead_1 = Bead(mesh,geometry,Bead_1.Pos,radius,Interaction_str,rc);
+            Bead_1.prev_force=prev_force;
+            
+            end_time_control=chrono::steady_clock::now();
+            remeshing_elapsed_time+=chrono::duration_cast<chrono::milliseconds>(end_time_control-start_time_control).count();
+            // std::cout<<"leaving remesher\n";
+        }
+        else{
         // if(current_t%10==0 ){
         n_vert_old=mesh->nVertices();
         n_vert_new=1;
@@ -496,7 +563,8 @@ int main(int argc, char** argv) {
             Save_bead_data=true;
             Save_output_data=true;
             end_saving = chrono::steady_clock::now();
-            std::cout<<"Saving Process took "<<chrono::duration_cast<chrono::milliseconds>(end_saving-start_saving).count()   << " miliseconds\n";
+            saving_mesh_time+= chrono::duration_cast<chrono::milliseconds>(end_saving-start_saving).count();
+            
         }
         if(current_t%100==0){
             Save_output_data=true;
@@ -524,7 +592,8 @@ int main(int argc, char** argv) {
             }
 
             std::cout<< "The spontaneous curvature is " << H0<< "\n";
-            std::cout << "The system time is " << M3DG.system_time <<"\n\n";
+            std::cout << "Current t is " << current_t <<"\n";
+            std::cout << "The system time is " << time <<"\n\n";
             
             std::cout<<"A thousand iterations took "<<chrono::duration_cast<chrono::milliseconds>(end-start).count()<<" miliseconds\n";
 
@@ -535,13 +604,21 @@ int main(int argc, char** argv) {
             start = chrono::steady_clock::now();
 
         }
+        M3DG= Mem3DG(mesh,geometry,Bead_1);
         nu_evol= time<50 ? nu_0 + (nu-nu_0)*time/50 : nu; 
         if(crash){
             break;
         }
+        start_time_control = chrono::steady_clock::now();
         dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save_bead_data,Bead_data,Save_output_data,pulling);
+        end_time_control = chrono::steady_clock::now();
+        integrate_elapsed_time += chrono::duration_cast<chrono::milliseconds>(end_time_control-start_time_control).count(); 
         Save_output_data=false;
         Save_bead_data=false;
+        if(current_t%1000==0){
+            std::cout<<"THe position of the bead is "<< M3DG.Bead_1.Pos<<"\n";
+            std::cout<< "Remeshing has taken a total of "<< remeshing_elapsed_time <<" milliseconds\n" << "Saving the mesh has taken a total of "<< saving_mesh_time<< "milliseconds \n Integrating the forces has taken a total of "<< integrate_elapsed_time <<" milliseconds \n\n"; 
+        }
         if(dt_sim==-1){
             std::cout<<"Sim broke or timestep very small\n";
             break;

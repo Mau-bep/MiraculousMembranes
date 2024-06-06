@@ -17,6 +17,7 @@ class Bead {
     double strength;
     double pulling_speed;
     double rc;
+    double prev_force;
     ManifoldSurfaceMesh* mesh;
     VertexPositionGeometry* geometry;
     std::string interaction;
@@ -24,6 +25,7 @@ class Bead {
     // constructors
     Bead() {};
     Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, Vector3 Position, double sigma_bead, double strg );
+    Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vector3 Position,double input_sigma , double strg, double input_rc);
 
 
     VertexData<Vector3> Gradient();

@@ -23,6 +23,26 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
     interaction = "Shifted_LJ_Normal_var";
     pulling_speed = 1.0;
     rc =sigma*1.2;
+    prev_force=0.0;
+    // rc = 1.2;
+    // interaction = "test_angle_normal_r_normalized";
+    // interaction = "test_angle_normal_r_normalized_LJ_Full";
+    Total_force={0,0,0};
+}   
+
+Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vector3 Position,double input_sigma , double strg, double input_rc) {
+
+    // Build member variables: mesh, geometry
+    mesh = inputMesh;
+    geometry = inputGeo;
+    Pos = Position;
+    sigma = input_sigma;
+    strength = strg;
+    // interaction = "test_Full";
+    interaction = "Shifted_LJ_Normal_var";
+    pulling_speed = 1.0;
+    rc =input_rc;
+    prev_force=0.0;
     // rc = 1.2;
     // interaction = "test_angle_normal_r_normalized";
     // interaction = "test_angle_normal_r_normalized_LJ_Full";
@@ -51,7 +71,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
     VertexData<double> rs(*mesh,0.0);
     Vector<bool> Consider_vertex(mesh->nVertices());
     Vector<double> Dual_areas(mesh->nVertices());
-
+    // prev_force=Total_force.norm2();
     Total_force={0,0,0};
     double r;
     // double E_v=0;

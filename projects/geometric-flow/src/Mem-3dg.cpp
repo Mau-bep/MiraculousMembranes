@@ -422,6 +422,11 @@ Returns:
 
 */
 double Mem3DG::Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar,bool bead, bool pulling) {
+
+// std::cout<<"Backtracking\n";
+
+double Bead_force_prev=-12;
+double Bead_force_new=-15;
 double c1=1e-4;
 double rho=0.7;
 double alpha=1e-3;
@@ -454,31 +459,33 @@ geometry->refreshQuantities();
 center = geometry->centerOfMass();
 Vector3 Vertex_pos;
 double X_pos=0.0;
-if(pulling){
-  // return alpha;
-  X_pos=0.0;
-  for(Vertex v : mesh->vertices()){
-  Vertex_pos=geometry->inputVertexPositions[v];
-  if(Vertex_pos.x>X_pos){
-    X_pos=Vertex_pos.x;
-  }  
+// if(pulling){
+
+
+
+//   // return alpha;
+//   X_pos=0.0;
+//   for(Vertex v : mesh->vertices()){
+//   Vertex_pos=geometry->inputVertexPositions[v];
+//   if(Vertex_pos.x>X_pos){
+//     X_pos=Vertex_pos.x;
+//   }  
 
   
-  }
-  // Bead_1.Reset_bead(Vector3({X_pos+1.4,0.0,0.0}));
-  // // std::cout<<"Bead re seted \n";
-  // return alpha;
-  // this->Bead_1.Set_Force(Vector3({Bead_1.pulling_speed,0.0,0.0}));
-  // this->Bead_1.Move_bead(alpha,center);
+//   }
+//   // Bead_1.Reset_bead(Vector3({X_pos+1.4,0.0,0.0}));
+//   // // std::cout<<"Bead re seted \n";
+//   // return alpha;
+//   // this->Bead_1.Set_Force(Vector3({Bead_1.pulling_speed,0.0,0.0}));
+//   // this->Bead_1.Move_bead(alpha,center);
   
-}
-else{
+// }
+if(!pulling){
 this->Bead_1.Move_bead(alpha,Vector3({0,0,0}));
 }
 
 
 
-// std::cout<< geometry->inputVertexPositions[0]<<"and the other "<< initial_pos[0]<<"\n";
 
 for(Vertex v : mesh->vertices()) {
   Projection+=Force[v.getIndex()].norm2();
@@ -508,6 +515,8 @@ if(std::isnan(E_Ben)){
 
 
 size_t counter=0;
+
+// std::cout<<"starting while\n";
 while(true){
   // if(true){
   if( NewE<= previousE - c1*alpha*Projection && Bead_1.Total_force.norm()*alpha<0.1  ) {
@@ -533,10 +542,14 @@ while(true){
       break;
     }
 
-
+  
   alpha*=rho;
-  if(alpha<1e-5){
+  
     if(pulling){
+      
+      double current_force=Bead_1.Total_force.norm2();
+      // std::cout<<current_force<<"\n";
+      if(abs(current_force-Bead_1.prev_force)<1e-4){
       std::cout<<"\t \t Reseting bead position\n";
       geometry->normalize(Vector3({0.0,0.0,0.0}),false);
       geometry->refreshQuantities();
@@ -546,13 +559,13 @@ while(true){
       if(Vertex_pos.x>X_pos){
         X_pos=Vertex_pos.x;
       }  
-      
-      
       }
+      
      Bead_1.Reset_bead(Vector3({X_pos+1.4,0.0,0.0}));
     return alpha;
     }
-
+    }
+  if(alpha<1e-9){
 
 
 
@@ -561,10 +574,11 @@ while(true){
     // continue;
     break;
   }
-  // for(Vertex vi : mesh->vertices()){
-  //   geometry->inputVertexPositions[vi.getIndex()]= initial_pos[vi.getIndex()]+alpha*Force[vi.getIndex()];
-  // }
+
+
+
   
+
   geometry->inputVertexPositions = initial_pos+alpha*Force;
   // geometry->normalize(Vector3({0.0,0.0,0.0}),false);
   geometry->refreshQuantities();
@@ -573,7 +587,9 @@ while(true){
   if(!pulling){
   this->Bead_1.Reset_bead(Bead_init);
   this->Bead_1.Move_bead(alpha,Vector3({0,0,0}));
+  // std::cout<<"pulling is false\n";
   }
+  
 
   
   A=geometry->totalArea();
@@ -592,6 +608,33 @@ while(true){
 
 
 }
+
+
+if(pulling){
+    // std::cout<<"pulling is true\n";
+      
+      double current_force=Bead_1.Total_force.norm2();
+      // std::cout<<"The force difference is "<<abs(current_force-Bead_1.prev_force)<<"\n";
+      // std::cout<<"The value of prev force is"<< Bead_1.prev_force<<"\n";
+      if(abs(current_force-Bead_1.prev_force)<1e-4){
+      std::cout<<"\t \t Reseting bead position\n";
+      geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+      geometry->refreshQuantities();
+      X_pos=0.0;
+    for(Vertex v : mesh->vertices()){
+      Vertex_pos=geometry->inputVertexPositions[v];
+      if(Vertex_pos.x>X_pos){
+        X_pos=Vertex_pos.x;
+      }  
+      }
+      
+     Bead_1.Reset_bead(Vector3({X_pos+1.4,0.0,0.0}));
+    return alpha;
+    }
+    }
+
+
+// std::cout<<"finished while\n";
 if(alpha<0.0){
     
     geometry->inputVertexPositions = initial_pos;
@@ -895,28 +938,27 @@ return alpha;
 double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,double KA,double KB, double Kd,std::ofstream& Sim_data, double time, bool bead,std::ofstream& Bead_data,bool Save_output_data,bool pulling) {
 //, Beads Bead_1 
 
+    // std::cout<<"1_2\n";
     if(bead){
       Bead_data<<Bead_1.Pos.x <<" "<< Bead_1.Pos.y << " "<< Bead_1.Pos.z<< " "<< Bead_1.Total_force.x <<" "<< Bead_1.Total_force.y << " "<< Bead_1.Total_force.z <<" \n";
       // std::cout<<Bead_1.Pos.x << " "<< Bead_1.Pos.y << " "<< Bead_1.Pos.z<<" \n";
       // std::cout<<"The total force is "<<Bead_1.Total_force <<"\n";
     }
+
+    // std::cout<<"2_2\n";
     // Vector<double> Total_force=buildFlowOperator(h,V_bar,nu,c0,P0,KA,KB,Kd);
     VertexData<Vector3> Force(*mesh);
+    
     Force=buildFlowOperator(h,V_bar,nu,c0,P0,KA,KB,Kd);//+Bead_1.Gradient();
+    
+    // std::cout<<"3_2\n";
     VertexData<Vector3> Bead_force = Bead_1.Gradient();
 
     // VertexData<Vector3> Bead_force=Project_force(Bead_1.Gradient());
+    
+    // std::cout<<"4_2\n";
     Force+=Bead_force;
 
-
-
-
-    // std::cout<<"The bead has initial position of  "<<Bead_1.Pos.x  << " "<< Bead_1.Pos.y << " "<< Bead_1.Pos.z <<" \n";
-    // std::cout<<"The sigma for the interaction is "<< Bead_1.sigma <<" and the strength of the potential is "<< Bead_1.strength <<" \n";  
-
-    // 
-    
-    // std::cout<<Bead_1.Pos.x <<" \n";
 
     // This force is the grdient basically
     double alpha=h;
@@ -950,6 +992,7 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
     //   backtrackstep=h;
     // }
     // else{
+      // std::cout<<"Backtracking is being called\n";
     backtrackstep=Backtracking(Force,D_P,V_bar,A_bar,KA,KB,H_bar,bead,pulling);
     // }
     // std::cout<<" The position of vertex 120 is "<<geometry->inputVertexPositions[120].x<<" "<<geometry->inputVertexPositions[120].y<< " "<<geometry->inputVertexPositions[120].z<<" \n";
@@ -1161,7 +1204,7 @@ for(size_t exponent=0;exponent<20;exponent++){
 
 // Gradient_file<<"\n";
 // This function should just write
-std::cout<<"\n";
+// std::cout<<"\n";
 
 return ;
 }

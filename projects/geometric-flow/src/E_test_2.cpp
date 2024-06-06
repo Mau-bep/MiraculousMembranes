@@ -492,7 +492,7 @@ int main(int argc, char** argv) {
         arcsim::Cloth::Remeshing remeshing_params;
         remeshing_params.aspect_min=0.2;
         remeshing_params.refine_angle=0.1;
-        remeshing_params.refine_compression=0.05;
+        remeshing_params.refine_compression=0.0;
         remeshing_params.refine_velocity=1.0;
         remeshing_params.size_max=avg_edge*2.0;
         remeshing_params.size_min=avg_edge*0.1;
