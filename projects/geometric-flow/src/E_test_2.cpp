@@ -340,19 +340,45 @@ translate_to_geometry(arcsim::Mesh mesh){
 //   processLoadedMesh(simpleMesh, loadType);
     Vector3 v_pos;
     
+    // for(int v =0 ; v<mesh.nodes.size();v++){
+    //     arcsim::Vec3 pos_old = mesh.nodes[v]->x;
+    //     v_pos.x=pos_old[0];
+    //     v_pos.y=pos_old[1];
+    //     v_pos.z=pos_old[2];
+    //     simpleMesh.vertexCoordinates.push_back(v_pos);
+    // }
+    bool flag_warning=false;
+    int flag=0;
     for(int v = 0 ; v<mesh.verts.size(); v++){
         arcsim::Vec3 pos_old = mesh.nodes[v]->x;
         v_pos.x=pos_old[0];
         v_pos.y=pos_old[1];
         v_pos.z=pos_old[2];
+        if(mesh.verts[v]->adjf.size()==0){
+            std::cout<<"The vertex index to not consider are"<< v<<"\n";
+            flag_warning=true;
+            flag=v;
+            continue;
+        }
         simpleMesh.vertexCoordinates.push_back(v_pos);
     }
+    int id1;
+    int id2;
+    int id3;
     for(int f = 0 ; f<mesh.faces.size();f++){
         
         std::vector<size_t> polygon(3);
-        polygon[0] = mesh.faces[f]->v[0]->index;
-        polygon[1] = mesh.faces[f]->v[1]->index;
-        polygon[2] = mesh.faces[f]->v[2]->index;
+        
+        id1 = mesh.faces[f]->v[0]->index;
+        id2 = mesh.faces[f]->v[1]->index;
+        id3 = mesh.faces[f]->v[2]->index;
+        if(id1>flag && flag_warning) id1-=1;
+        if(id2>flag && flag_warning) id2-=1;
+        if(id3>flag && flag_warning) id3-=1;
+        polygon[0] = id1;
+        polygon[1] = id2;
+        polygon[2] = id3;
+
         simpleMesh.polygons.push_back(polygon);
     }
     // std::cout<<"Does this happen after loading the data to create the mesh?\n";
@@ -402,8 +428,11 @@ int main(int argc, char** argv) {
     if(preserving_vol){
         filepath = "../../../input/bunny.obj";
     }
+    filepath = "../../../input/cone.obj";
     // std::string filepath = "../../../input/8_octahedron.obj";
+    // 
     // std::string filepath = "../../../input/Simple_cil_regular.obj";
+    // filepath = "../../../input/Simple_cil_regular.obj";
     
     // std::string filepath = "../../../input/bloodcell.obj";
     // std::string filepath = "../input/sphere.obj"; //this is for debug
@@ -491,11 +520,11 @@ int main(int argc, char** argv) {
         Cloth_1.mesh=remesher_mesh;
         arcsim::Cloth::Remeshing remeshing_params;
         remeshing_params.aspect_min=0.2;
-        remeshing_params.refine_angle=0.1;
-        remeshing_params.refine_compression=0.0;
+        remeshing_params.refine_angle=0.5;
+        remeshing_params.refine_compression=0.01;
         remeshing_params.refine_velocity=1.0;
         remeshing_params.size_max=avg_edge*2.0;
-        remeshing_params.size_min=avg_edge*0.1;
+        remeshing_params.size_min=avg_edge*0.5;
 
         Cloth_1.remeshing=remeshing_params;
    
@@ -564,6 +593,7 @@ int main(int argc, char** argv) {
                 delete mesh;
                 delete geometry;
                 // std::cout<<"translating back?\n";
+                arcsim::save_obj(Cloth_1.mesh,basic_name+"before_translating.obj");
                 std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
                 arcsim::delete_mesh(Cloth_1.mesh);
 

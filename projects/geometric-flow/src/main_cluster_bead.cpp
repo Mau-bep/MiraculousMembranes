@@ -498,6 +498,7 @@ int main(int argc, char** argv) {
             
             end_time_control=chrono::steady_clock::now();
             remeshing_elapsed_time+=chrono::duration_cast<chrono::milliseconds>(end_time_control-start_time_control).count();
+            M3DG= Mem3DG(mesh,geometry,Bead_1);
         }
         else{
 
@@ -524,6 +525,7 @@ int main(int argc, char** argv) {
         }
         end_time_control=chrono::steady_clock::now();
         remeshing_elapsed_time+=chrono::duration_cast<chrono::milliseconds>(end_time_control-start_time_control).count();
+        
         }
 
         // psMesh->remove();
@@ -583,7 +585,7 @@ int main(int argc, char** argv) {
         }
         // std::cout<<"Redeclaring M3DG\n";
         // std::cout<<"Bead_1 position changed? "<< Bead_1.Pos << " \n";
-        M3DG= Mem3DG(mesh,geometry,Bead_1);
+        
         // std::cout<<"1\n";
         nu_evol= time<50 ? nu_0 + (nu-nu_0)*time/50 : nu; 
         // std::cout<<"2\n";

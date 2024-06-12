@@ -549,19 +549,19 @@ while(true){
       
       double current_force=Bead_1.Total_force.norm2();
       // std::cout<<current_force<<"\n";
-      if(abs(current_force-Bead_1.prev_force)<1e-4){
-      std::cout<<"\t \t Reseting bead position\n";
+      if(abs((current_force-Bead_1.prev_force)/current_force)<1e-4){
+      // std::cout<<"\t \t Reseting bead position\n";
       geometry->normalize(Vector3({0.0,0.0,0.0}),false);
       geometry->refreshQuantities();
-      X_pos=0.0;
-    for(Vertex v : mesh->vertices()){
-      Vertex_pos=geometry->inputVertexPositions[v];
-      if(Vertex_pos.x>X_pos){
-        X_pos=Vertex_pos.x;
-      }  
-      }
-      
-     Bead_1.Reset_bead(Vector3({X_pos+1.4,0.0,0.0}));
+    //   X_pos=0.0;
+    // for(Vertex v : mesh->vertices()){
+    //   Vertex_pos=geometry->inputVertexPositions[v];
+    //   if(Vertex_pos.x>X_pos){
+    //     X_pos=Vertex_pos.x;
+    //   }  
+    //   }
+      Bead_1.Reset_bead(Vector3(Bead_1.Pos+Vector3({alpha,0,0})));
+    //  Bead_1.Reset_bead(Vector3({X_pos+1.4,0.0,0.0}));
     return alpha;
     }
     }
@@ -616,19 +616,19 @@ if(pulling){
       double current_force=Bead_1.Total_force.norm2();
       // std::cout<<"The force difference is "<<abs(current_force-Bead_1.prev_force)<<"\n";
       // std::cout<<"The value of prev force is"<< Bead_1.prev_force<<"\n";
-      if(abs(current_force-Bead_1.prev_force)<1e-4){
-      std::cout<<"\t \t Reseting bead position\n";
+      if(abs((current_force-Bead_1.prev_force)/current_force)<1e-4){
+      // std::cout<<"\t \t Reseting bead position\n";
       geometry->normalize(Vector3({0.0,0.0,0.0}),false);
       geometry->refreshQuantities();
-      X_pos=0.0;
-    for(Vertex v : mesh->vertices()){
-      Vertex_pos=geometry->inputVertexPositions[v];
-      if(Vertex_pos.x>X_pos){
-        X_pos=Vertex_pos.x;
-      }  
-      }
+    //   X_pos=0.0;
+    // for(Vertex v : mesh->vertices()){
+    //   Vertex_pos=geometry->inputVertexPositions[v];
+    //   if(Vertex_pos.x>X_pos){
+    //     X_pos=Vertex_pos.x;
+    //   }  
+    //   }
       
-     Bead_1.Reset_bead(Vector3({X_pos+1.4,0.0,0.0}));
+     Bead_1.Reset_bead(Vector3(Bead_1.Pos+Vector3({alpha,0,0})));
     return alpha;
     }
     }
