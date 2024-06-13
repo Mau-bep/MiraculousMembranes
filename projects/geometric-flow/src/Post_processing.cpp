@@ -370,6 +370,7 @@ int main(int argc, char** argv) {
 
                 // I have the bead positions and the directories of the objs, Lesgo
 
+                std::cout<<"Bead data read\n";
 
                 filename = basic_name + "Coverage_evol.txt";
                 std::ofstream Coverage(filename); 
@@ -380,6 +381,8 @@ int main(int argc, char** argv) {
                 // Mesh related data 
                 std::string filepath;
                 filepath = basic_name+"membrane_"+std::to_string(step*500)+".obj";
+
+                std::cout<<"Reading mesh\n";
                 std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
                 
                 mesh = mesh_uptr.release();
@@ -414,7 +417,7 @@ int main(int argc, char** argv) {
                 filename = basic_name + "Touching_step_"+to_string(step)+".txt";
                 std::ofstream Touching_data(filename);
                 covered_area=0.0;
-
+                std::cout<<"Iterating over vertices\n";
                 for(int v =0; v<mesh->nVertices(); v++){
                     // So i have the radius and the 
                     Vert_pos=geometry->inputVertexPositions[v];
