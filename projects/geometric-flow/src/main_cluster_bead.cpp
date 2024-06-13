@@ -543,11 +543,13 @@ int main(int argc, char** argv) {
             end_time_control = chrono::steady_clock::now();
             saving_mesh_time+=chrono::duration_cast<chrono::milliseconds>(end_time_control-start_time_control).count();
             Save_bead_data=true;
+            Bead_data = std::ofstream(filename2,std::ios_base::app);
             Save_output_data=true;
             
 
         }
         if(current_t%100==0){
+
             Save_output_data=true;
         }
         if(current_t%1000==0) {
@@ -595,6 +597,7 @@ int main(int argc, char** argv) {
      
         dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,sigma,Sim_data,
         time,Save_bead_data,Bead_data,Save_output_data,pulling);
+        Bead_data.close();
         // std::cout<<"4\n";
         
         end_time_control = chrono::steady_clock::now();

@@ -12,6 +12,8 @@
 #include <fstream>
 #include <string>
 
+# include <dirent.h>
+
 #include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/meshio.h"
 #include "geometrycentral/surface/vertex_position_geometry.h"
@@ -38,13 +40,6 @@
 #include "Beads.h"
 
 
-
-
-
-#include "io.hpp"
-#include "simulation.hpp"
-#include "conf.hpp"
-#include "log.hpp"
 
 
 using namespace geometrycentral;
@@ -84,8 +79,8 @@ float KB=0.000001;
 float Kd=0.0;
 double TS=0.001;
 
-double Curv_adap=0.1;
-double Min_rel_length=0.5;
+double Curv_adap=0.0;
+double Min_rel_length=0.1;
 double trgt_len;
 double avg_remeshing;
 bool edge_length_adj;
@@ -110,7 +105,7 @@ int Last_step(std::string base_dir){
     DIR *dh;
     struct dirent * contents;
     dh = opendir(base_dir.c_str());
-
+    std::cout<<base_dir<<"\n";
     int index_underscore;
     int index_dot;
     string max_name;
@@ -125,14 +120,17 @@ int Last_step(std::string base_dir){
     while ( ( contents = readdir ( dh ) ) != NULL )
     {
         std::string name = contents->d_name;
-        // std::cout<<name.size()<<endl;
+        // std::cout<<"filename is "<<name<<" \n";
+        // std::cout<<"Find t is"<<name.find('t')<<endl;
         
-        if(name.size()>7 && name.find('t')>10){
+        if(name.size()>7 && name.find('t')>100){
         index_underscore=name.find('_');
         index_dot=name.find('.');
         string str_index = name.substr(index_underscore+1,index_dot-index_underscore-1 );
         // std::cout << str_index << endl;
+        
         // I need to avoid the final state
+      
         current_index=stoi(str_index);
         // std::cout<<current_index<<endl;
         if(current_index>max_index){
@@ -237,24 +235,35 @@ int main(int argc, char** argv) {
 
     //
 
-    double arr[] = { 1.0, 2.0, 3.0 }; 
+    // double arr[] = { 1.0, 2.0, 3.0 };
+    double arr[] = { 1.0, 2.0,3.0}; 
     int n = sizeof(arr) / sizeof(arr[0]); 
   
-    vector<double> radius(arr, arr + n); 
+    vector<double> radius(arr,arr+n);
+    // radius.push_back(1.0);
+    // radius.push_back(3.0);
+
+    // double arr_2[] = {100.0};
 
     double arr_2[] = {100.0,1000.0,10000.0,100000.0};
     n=sizeof(arr_2) / sizeof(arr_2[0]);
-    Vector<double> KAs(arr_2,arr_2+n);
+    vector<double> KAs(arr_2,arr_2+n);
     
     KB=0.1;
     
-    double arr_3[] = {0.1,0.5,1.0,5.0,10.0,15.0,15.0,20.0,40.0,50.0};
+    double arr_3[] = {0.1,0.5,1.0,5.0,10.0,15.0,15.0,20.0,40.0,50.0, 100.0};
+    // double arr_3[] = {10.0};
+    
     n=sizeof(arr_3) / sizeof(arr_3[0]);
     
-    Vector<double> strengths(arr_3,arr_3+n);
+    vector<double> strengths(arr_3,arr_3+n);
     
     nu=1.0;
     c0=0.0;
+
+    double trgt_vol = 566.44;
+    double trgt_area = 331.09;
+
 
     int Init_cond=2;
     int Nsim=1;
@@ -269,24 +278,13 @@ int main(int argc, char** argv) {
     double Interaction_str;
     int Last_ts;
     int num_steps;
-
+    Vector3 Bead_pos;
     std::cout<< "Current path is " << argv[0]<<"\n";
+    bool check_coverage = true;
+    bool check_forces = false;
 
 
 
-
-    // Mesh related data 
-    std::string filepath;
-    filepath = "../../../input/sphere.obj";
-    std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
-    std::cout<<"The mesh is correctly loaded\n";
-    mesh = mesh_uptr.release();
-    geometry = geometry_uptr.release();
-    trgt_len=geometry->meanEdgeLength();
-    V_bar=geometry->totalVolume();
-    ORIG_VPOS = geometry->inputVertexPositions;
-    CoM = geometry->centerOfMass();
-    
     std::stringstream nustream;
     std::stringstream c0stream;
     std::stringstream KAstream;
@@ -306,20 +304,32 @@ int main(int argc, char** argv) {
     c0stream << std::fixed << std::setprecision(3) << c0;
     KBstream << std::fixed << std::setprecision(6) << KB;
     Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
-    Min_rel_lengthstream << std::fixed << std::setprecision(2) <<Min_rel_length;
+    Min_rel_lengthstream << std::fixed << std::setprecision(4) <<Min_rel_length;
 
     first_dir="../Results/Mem3DG_Bead_Reciprocal_finemesh/";
-    std::string basic_name;
+    filename = first_dir + "Coverage_final.txt" ;
+    std::ofstream Coverage_final(filename); 
+    int counter=0;
     for (int r_it = 0 ; r_it < radius.size(); r_it++){
+        std::cout<<"Hre\n";
         rad = radius[r_it];    
+        radiusstream.str(std::string());
+        radiusstream.clear();
+
         radiusstream << std::fixed << std::setprecision(3) << rad;
     
         for(int KA_it = 0 ; KA_it<KAs.size(); KA_it++){
             KA = KAs[KA_it];
+            KAstream.str(std::string());
+            KAstream.clear();
+            
             KAstream << std::fixed << std::setprecision(3) << KA;
     
             for(int str_it = 0; str_it<strengths.size(); str_it++){
+                // std::cout<<"How many?\n";
                 Interaction_str=strengths[str_it];
+                Interactionstrstream.str(std::string());
+                Interactionstrstream.clear();
                 Interactionstrstream << std::fixed << std::setprecision(6) << Interaction_str;
                 // Those are all the manual parameters
                 
@@ -340,63 +350,130 @@ int main(int argc, char** argv) {
                     return 1;
                 }
                 string line;
+                counter=0;
                 while (std::getline(Bead_data,line)){
+                    if(counter>=num_steps) break;
                     std::vector<std::string> splitted = split(line," ");
-                    // I want
-                    
-                }
-                Bead_data.close()
+                    // i NEED TO MAKE SURE THERE ARE NUMBERS HERE
+                    if(line[0]=='#') {
+                        std::cout<<"First line\n";
+                        continue;
+                    }
+                    Bead_pos[counter].x=std::stod(splitted[0]);
+                    Bead_pos[counter].y=std::stod(splitted[1]);
+                    Bead_pos[counter].z=std::stod(splitted[2]);
+                    counter+=1;
 
+                    // I want the first three
+                }
+                Bead_data.close();
+
+                // I have the bead positions and the directories of the objs, Lesgo
+
+
+                filename = basic_name + "Coverage_evol.txt";
+                std::ofstream Coverage(filename); 
+                double covered_area=0;
+                double relative_coverage=0;
+                for(int step = 0 ; step<num_steps;step++){
+                    
+                // Mesh related data 
+                std::string filepath;
+                filepath = basic_name+"membrane_"+std::to_string(step*500)+".obj";
+                std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
+                
+                mesh = mesh_uptr.release();
+                geometry = geometry_uptr.release();
+                trgt_len=geometry->meanEdgeLength();
+                V_bar=geometry->totalVolume();
+                ORIG_VPOS = geometry->inputVertexPositions;
+                CoM = geometry->centerOfMass();
+                
+                // The mesh and the bead position are loaded, time to measure
+
+                Vector3 Vert_pos;
+                Vector3 Bead_current;
+                Vector3 Normal;
+                Vector3 rij;
+                double r_dist;
+
+                double mag_Vol;
+                double mag_Area;
+                double mag_Bend;
+                double mag_Bead;
+                // I want to check
+                
+                
+                // I can check the rdist
+                Bead_current=Bead_pos[step];
+                // std::cout<<"The bead position is"<< Bead_current<<"\n";
+                int touching_count=0;
+                filename = basic_name + "Radius_distribution_step_"+to_string(step)+".txt";
+                std::ofstream R_dist(filename);
+                
+                filename = basic_name + "Touching_step_"+to_string(step)+".txt";
+                std::ofstream Touching_data(filename);
+                covered_area=0.0;
+
+                for(int v =0; v<mesh->nVertices(); v++){
+                    // So i have the radius and the 
+                    Vert_pos=geometry->inputVertexPositions[v];
+                    rij = (Bead_current-Vert_pos);
+                    r_dist = rij.norm();
+                    Normal=geometry->vertexNormalAreaWeighted(mesh->vertex(v));
+
+                    // I want the distribution saved so 
+                    if(v==0) R_dist<<r_dist;
+                    else R_dist<<" "<<r_dist;
+                
+                    if(check_coverage){
+                    // Now i need to do my part
+
+                    if(r_dist<rad*1.1 && dot(rij,Normal)>0){
+                        Touching_data<<Vert_pos.x <<" "<< Vert_pos.y <<" "<<Vert_pos.z<<"\n";
+                        touching_count+=1;
+                        covered_area+=geometry->barycentricDualArea(mesh->vertex(v));
+
+                    }
+
+                    
+
+
+                    }
+                    // if(check_forces){
+                    //     if(r_dist<rad*1.1 && dot(rij,Normal)>0){
+                    //         // This are the vertices interacting with the bead
+                            
+
+                    //     }
+                    // // There are multiple ways to go about this
+                    // // I will check 
+
+
+
+
+                    // }
+                
+                    // 
+                
+                
+                }
+                // std::cout<<"The amount touching is"<< touching_count<<" \n";
+                relative_coverage=covered_area/(4*PI*(rad*1.05)*(rad*1.05));
+                Coverage<<relative_coverage<<"\n";
+                R_dist.close();
                 
 
-
-
-
-
+                }
+                Coverage.close();
+                Coverage_final<< rad<<" "<< KA << " "<< Interaction_str<<" "<< relative_coverage<<"\n";
+                
             }
         }
     }
 
-  
+    Coverage_final.close();
     
-
-
-    std::string filename_basic = basic_name+"Output_data.txt";
-
-    std::ofstream Sim_data;
-    
-
-    std::string filename2 = basic_name + "Bead_data.txt";
-    std::ofstream Bead_data(filename2);
-    bool Save_bead_data=false;
-        
-
-
-    // Here i want to run my video
-    size_t n_vert;
-    size_t n_vert_old;
-    size_t n_vert_new;
-    double Volume;
-    double Area;
-    double nu_obs;
-    double nu_evol;
-    double nu_0;
-
-    size_t counter=0;
-    time=0.01;
-    dt_sim=0.0;
-
-
-
-    std::string filename;
-    std::ofstream Gradient_data_bead;
-
-    std::ofstream Gradient_data_bead_dx;
-    
-
-
-    filename = basic_name+"Bead_Gradient_evaluation_dx_"+std::to_string(0) + ".txt";
-
 
 
 
