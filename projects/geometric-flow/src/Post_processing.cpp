@@ -359,11 +359,12 @@ int main(int argc, char** argv) {
                         std::cout<<"First line\n";
                         continue;
                     }
+                    if(splitted.size()>=3){
                     Bead_pos[counter].x=std::stod(splitted[0]);
                     Bead_pos[counter].y=std::stod(splitted[1]);
                     Bead_pos[counter].z=std::stod(splitted[2]);
                     counter+=1;
-
+                    }
                     // I want the first three
                 }
                 Bead_data.close();
