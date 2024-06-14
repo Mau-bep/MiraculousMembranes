@@ -415,9 +415,9 @@ int main(int argc, char** argv) {
     double time;
     double dt_sim;
     bool test_remesher = true;
+    bool evaluate_remesher = true;
 
-
-    bool preserving_vol=true;
+    bool preserving_vol=false;
 
 
     std::cout<< "Current path is " << argv[0]<<"\n";
@@ -428,7 +428,8 @@ int main(int argc, char** argv) {
     if(preserving_vol){
         filepath = "../../../input/bunny.obj";
     }
-    filepath = "../../../input/cone.obj";
+    filepath = "../../../input/bunny.obj";
+    // filepath = "../../../input/cone.obj";
     // std::string filepath = "../../../input/8_octahedron.obj";
     // 
     // std::string filepath = "../../../input/Simple_cil_regular.obj";
@@ -523,7 +524,7 @@ int main(int argc, char** argv) {
         remeshing_params.refine_angle=0.5;
         remeshing_params.refine_compression=0.01;
         remeshing_params.refine_velocity=1.0;
-        remeshing_params.size_max=avg_edge*2.0;
+        remeshing_params.size_max=avg_edge*3.0;
         remeshing_params.size_min=avg_edge*0.5;
 
         Cloth_1.remeshing=remeshing_params;
@@ -533,8 +534,59 @@ int main(int argc, char** argv) {
         }
 
 
-        // arcsim::dynamic_remesh(Cloth_1);
+        if(evaluate_remesher){
+            
+        arcsim::dynamic_remesh(Cloth_1);
+        std::cout<<"\n\n\n";
+        // We are looking to measure things now
+        double sizing_val;
+        double mean_sizing_val=0;
+        double max_sizing=0;
+        double min_sizing=1e4;
 
+        for(int v=0; v<Cloth_1.mesh.verts.size();v++){
+            // I want to get the sizing 
+            arcsim::Vert* Ve = Cloth_1.mesh.verts[v];
+            sizing_val = Ve->sizing->M.col(0)[0];
+            mean_sizing_val+=sizing_val;
+            if(sizing_val>max_sizing) max_sizing = sizing_val;
+            if(sizing_val<min_sizing) min_sizing = sizing_val;
+
+        }
+        std::cout<< "The mean sizing value is "<< mean_sizing_val/Cloth_1.mesh.verts.size() << " \n";
+        std::cout<< "The min sizing value is " << min_sizing <<" \n";
+        std::cout<< "The max sizing value is " << max_sizing <<" \n";
+        
+        double max_edge = 0;
+        double min_edge = 1e4;
+        double avg_edgel = 0;
+        
+        double edge_length;
+
+        for(int e = 0 ; e < Cloth_1.mesh.edges.size() ; e++){
+            
+            arcsim::Edge* Edg = Cloth_1.mesh.edges[e];
+
+            edge_length = Edg->l;
+            avg_edgel+=edge_length;
+            
+            if(edge_length < min_edge) min_edge = edge_length;
+            if(edge_length > max_edge) max_edge = edge_length;
+            if(edge_length<=1e-5){
+                std::cout<<"There is a tiny edge? of edgelength " << edge_length<<"\n";
+                std::cout<< "The edge length is "<< norm(Edg->n[0]->x - Edg->n[1]->x)<< " Which is def not 0?\n";
+            }
+
+        }
+        std::cout<< "The mean edge length this "<< avg_edgel/Cloth_1.mesh.edges.size() << " \n";
+        std::cout<< "The min edge length is " << min_edge <<"and the minimum allowed is" << remeshing_params.size_max << " \n";
+        std::cout<< "The max edge length is " << max_edge <<"and the maximum allowed is" << remeshing_params.size_min << " \n";
+        
+        arcsim::save_obj(Cloth_1.mesh,basic_name+"Evaluation_mesh.obj");
+
+        
+        }
+        // Ok i remeshed now what
 
         // arcsim::save_obj(Cloth_1.mesh, basic_name+"dynamicallyremeshed_girlie.obj");
         // std::cout<<"Saved mesh at "<< basic_name<<"dynamicallyremeshed_girlie.obj\n";
@@ -565,7 +617,7 @@ int main(int argc, char** argv) {
         else{
         arcsim_remesh=false;
         }
-        bool preserving_vol=true;
+        bool preserving_vol=false;
         double targ_vol=geometry->totalVolume();
         std::ofstream Sim_data;
         if(preserving_vol){
@@ -576,6 +628,7 @@ int main(int argc, char** argv) {
              Sim_data<<"T_Volume time Volume Area E_vol E_sur grad_norm backtrackstep\n";
         }
 
+        if(!evaluate_remesher){
         int n_vert_old;
         int n_vert_new;
         int counter;
@@ -693,7 +746,7 @@ int main(int argc, char** argv) {
 
 
         }
-
+    }
 
     //     for(size_t current_t=0; current_t <1000;current_t++){
    

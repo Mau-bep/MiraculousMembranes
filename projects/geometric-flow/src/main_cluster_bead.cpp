@@ -317,10 +317,11 @@ int main(int argc, char** argv) {
     int Nsim = std::stoi(argv[4]);
     KA=std::stod(argv[5]);
     double radius=std::stod(argv[6]);
+    KB = std::stod(argv[7]);
     Min_rel_length = 0.1;
     c0=0.0;
     // KA=500.0;
-    KB=0.1;
+    // KB=0.1;
     bool pulling = false;
     bool arcsim = false;
     // I will do it so i can give this values
@@ -372,11 +373,11 @@ int main(int argc, char** argv) {
       if(arcsim){
         std::cout<<"Settin remesher params";
         remeshing_params.aspect_min=0.2;
-        remeshing_params.refine_angle=0.1;
+        remeshing_params.refine_angle=0.5;
         remeshing_params.refine_compression=1e-4;
         remeshing_params.refine_velocity=1.0;
         remeshing_params.size_max=trgt_len*3.0;
-        remeshing_params.size_min=trgt_len*0.001;
+        remeshing_params.size_min=trgt_len*0.5;
 
     
     }
@@ -432,7 +433,7 @@ int main(int argc, char** argv) {
     
     
 
-    std::string first_dir="../Results/Mem3DG_Bead_Reciprocal_finemesh/";
+    std::string first_dir="../Results/Mem3DG_Bead_Reciprocal_finemesh_varKB/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
@@ -443,10 +444,11 @@ int main(int argc, char** argv) {
 
     std::string filename = basic_name+"Output_data.txt";
 
+    std::string filename3 = basic_name+"Output_data.txt";
 
-    std::ofstream Sim_data(filename);
+    std::ofstream Sim_data(filename3);
     Sim_data<<"T_Volume T_Area time Volume Area E_vol E_sur E_bend grad_norm backtrackstep\n";
-    
+    Sim_data.close();
 
     std::string filename2 = basic_name + "Bead_data.txt";
     
@@ -471,7 +473,7 @@ int main(int argc, char** argv) {
     double dt_sim=0.0;
 
     start = chrono::steady_clock::now();
-    for(size_t current_t=0;current_t<=200000;current_t++ ){
+    for(size_t current_t=0;current_t<=300000;current_t++ ){
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
         
@@ -537,7 +539,7 @@ int main(int argc, char** argv) {
         // psMesh->setEdgeWidth(1.0);
 
         
-        if(current_t%500==0){
+        if(current_t%1000==0){
             start_time_control=chrono::steady_clock::now();
             Save_mesh(basic_name,current_t);
             end_time_control = chrono::steady_clock::now();
@@ -545,13 +547,15 @@ int main(int argc, char** argv) {
             Save_bead_data=true;
             Bead_data = std::ofstream(filename2,std::ios_base::app);
             Save_output_data=true;
+            Sim_data = std::ofstream(filename3,std::ios_base::app);
+
             
 
         }
-        if(current_t%100==0){
+        // if(current_t%100==0){
 
-            Save_output_data=true;
-        }
+        //     Save_output_data=true;
+        // }
         if(current_t%1000==0) {
 
             end=chrono::steady_clock::now();
@@ -598,6 +602,7 @@ int main(int argc, char** argv) {
         dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,sigma,Sim_data,
         time,Save_bead_data,Bead_data,Save_output_data,pulling);
         Bead_data.close();
+        Sim_data.close();
         // std::cout<<"4\n";
         
         end_time_control = chrono::steady_clock::now();
@@ -627,8 +632,8 @@ int main(int argc, char** argv) {
 
 
     }
-    Sim_data.close();
-    Bead_data.close();
+    // Sim_data.close();
+    // Bead_data.close();
 
     Vector3 Pos;
     std::ofstream o(basic_name+"Final_state.obj");

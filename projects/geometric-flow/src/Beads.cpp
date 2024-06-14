@@ -121,7 +121,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
         }
     }
     
-    if(interaction=="Shifted-LJ" ||  interaction == "Shifted_LJ_Normal"||interaction == "Shifted_LJ_Normal_var" || interaction=="test_angle_normal_r_normalized"||interaction=="test_angle_normal_r_normalized_LJ"|| interaction=="test_angle_normal_r_normalized_LJ_Full"){
+    if(interaction=="Shifted-LJ" ||  interaction == "Shifted_LJ_Normal"||interaction == "Shifted_LJ_Normal_var" || interaction == "Shifted_LJ_Normal_nopush" || interaction=="test_angle_normal_r_normalized"||interaction=="test_angle_normal_r_normalized_LJ"|| interaction=="test_angle_normal_r_normalized_LJ_Full"){
         // std::cout<<"Loading essential quantities\n";
         for(Vertex v : mesh->vertices()){
 
@@ -836,7 +836,143 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
 
     }
 
+    if(interaction=="Shifted_LJ_Normal_nopush"){
 
+
+        int v1_idx;
+        int v2_idx;
+        int v3_idx;
+        double Face_area;
+    
+        double dual_area2;
+        double dual_area3;
+        Vector3 Face_normal;
+        Vector3 grad;
+        Vector3 grad2;
+        // Halfedge he;
+        Face f;
+        Vector3 Vertex_Normal;
+        Vector3 Vertex_Angle_Normal;
+        Vector3 Vertex_Angle_Normal2;
+        Vector3 Vertex_Angle_Normal3;
+        double Vertex_Angle_Normal_norm;
+        double Vertex_Angle_Normal_norm2;
+        double Vertex_Angle_Normal_norm3;
+
+        
+        
+
+        Halfedge he2;
+        Vector3 unit_r;
+        Vector3 unit_r1;
+        Vector3 unit_r2;
+        Vector3 unit_r3;
+        double r;
+        double r2;
+        double r3;
+
+        Vector3 u;
+        // rc=1.2;
+        rc2=this->rc*this->rc;
+
+        // FOr the record, if i only consider one dot product the first term is correct in that vertex 
+        // I now want to add the contributions of the neighbors to this point.
+
+        for(Face f : mesh->faces()){
+
+            Face_normal=Normals[f.getIndex()];
+            Face_area = geometry->faceArea(f);
+            
+            for(Halfedge he : f.adjacentHalfedges()){
+              
+                v1_idx = he.vertex().getIndex();
+                v2_idx = he.next().vertex().getIndex();
+                v3_idx = he.next().next().vertex().getIndex();
+                unit_r = Unit_rs[v1_idx];
+                unit_r2 = Unit_rs[v2_idx];
+                unit_r3 = Unit_rs[v3_idx];
+                if((dot(unit_r,Face_normal)<0 || rs[v1_idx]>this->rc ) && (dot(unit_r2,Face_normal)<0|| rs[v2_idx]>this->rc )&& (dot(unit_r3,Face_normal)<0 || rs[v3_idx]>this->rc) ){
+                    break;
+                }
+                // if(rs[v1_idx]>this->rc  && (rs[v2_idx]>this->rc )&& (rs[v3_idx]>this->rc) ){
+                //     break;
+                // }
+              
+                u=geometry->inputVertexPositions[v2_idx]-geometry->inputVertexPositions[v3_idx];
+                Vector3 Grad_vec=(0.5)* cross(Normals[f.getIndex()],u);
+
+                // I need to add the consider restriction here
+
+                if(dot(unit_r,Face_normal)>0){
+                    Force[v1_idx]+=(1.0/3.0)*E_v[v1_idx]*dot(Face_normal,unit_r)*Grad_vec;
+                }
+                if(dot(unit_r2,Face_normal)>0){
+                    Force[v1_idx]+=(1.0/3.0)*E_v[v2_idx]*dot(Face_normal,unit_r2)*Grad_vec;
+                }
+                if(dot(unit_r3,Face_normal)>0){
+                    Force[v1_idx]+=(1.0/3.0)*E_v[v3_idx]*dot(Face_normal,unit_r3)*Grad_vec;
+                }
+
+                // We have the area gradient correctly now we will do the energy of interaction
+                
+                r=rs[v1_idx];
+                if(rs[v1_idx]<rc && dot(unit_r,Face_normal)>0){
+                // if(rs[v1_idx]<rc ){
+                
+                // 
+                
+                alpha=2*(rc2/(sigma*sigma))*pow( 3/(2*( (rc2/(sigma*sigma)) -1))  ,3 );
+
+                F=dot(Face_normal,unit_r)*(-2)*(Face_area/3)*strength*alpha*(  (sigma*sigma/(r*r*r))*pow(( (rc2/(r*r))-1),2 )+ 2*((sigma*sigma/(r*r))-1)*( (rc2/(r*r))-1 )*(rc2/(r*r*r)) )*unit_r;
+                // F=(Face_area/3)*dot(Face_normal,unit_r)*strength*alpha*(-2)*(  (sigma*sigma/(r*r*r))*pow(( (rc2/(r*r))-1),2 )+ 2*((sigma*sigma/(r*r))-1)*( (rc2/(r*r))-1 )*(rc2/(r*r*r)) )*unit_r;
+                Total_force-=F;
+                Force[v1_idx]+=F;
+                }
+
+
+                // Vertex 1
+                if(dot(unit_r,Face_normal)>0){
+                // if(true){
+                
+                    grad =-1*dot(cross(geometry->inputVertexPositions[v3_idx]-geometry->inputVertexPositions[v2_idx],Face_normal),unit_r)*Face_normal/(2*Face_area);            
+            
+                    Force[v1_idx]+=(Face_area/3.0)*E_v[v1_idx]*grad;    
+                    Force[v1_idx]+=(Face_area/3.0)*E_v[v1_idx]*(Face_normal-unit_r*dot(unit_r,Face_normal))/(r);
+                
+                    Total_force-=(Face_area/3.0)*E_v[v1_idx]*(Face_normal-unit_r*dot(unit_r,Face_normal))/(r);
+                }
+                // Vertex 2
+                
+                if(dot(unit_r2,Face_normal)>0){
+                // if(true){
+                    grad=-1*dot(cross(geometry->inputVertexPositions[v3_idx]-geometry->inputVertexPositions[v2_idx],Face_normal),unit_r2)*Face_normal/(2*Face_area);
+
+                    Force[v1_idx]+=(Face_area/3.0)*E_v[v2_idx]*grad;
+                }
+                // Force[v1_idx]+=grad;
+
+                // Vertex 3
+                if(dot(unit_r3,Face_normal)>0){
+                // if(true){
+                    grad=-1*dot(cross(geometry->inputVertexPositions[v3_idx]-geometry->inputVertexPositions[v2_idx],Face_normal),unit_r3)*Face_normal/(2*Face_area);
+            
+                    Force[v1_idx]+=(Face_area/3.0)*E_v[v3_idx]*grad;
+                }
+                // Force[v1_idx]+=grad;
+            
+            
+                
+            }   
+            // The thing i want to do now is to get all the terms 
+            
+            // The energy term is  (area/3)*E[v]*(N . r)
+             
+
+        }
+        return Force;
+
+
+    }
     if(interaction=="Shifted_LJ_Normal_var"){
 
 
@@ -1835,7 +1971,44 @@ double Bead::Energy() {
         
         }
         
-                
+        if(interaction == "Shifted_LJ_Normal_nopush")
+        {
+        double val;
+        Vector3 unit_r;
+        Vector3 unit_r2;
+        Vector3 unit_r3;
+        
+        Vector3 Angle_normal;
+        Vector3 Face_normal;
+        double face_area;
+        double r2;
+        double r;
+        double rc2=rc*rc;
+        double alpha;
+        for (Face f : mesh->faces()){
+            Face_normal= geometry->faceNormal(f);
+            face_area = geometry->faceArea(f);
+            for(Vertex v : f.adjacentVertices()){
+                unit_r = Pos-geometry->inputVertexPositions[v];
+                r=unit_r.norm();
+                unit_r=unit_r/r;
+                r2=r*r;
+                if(r<rc && dot(Face_normal,unit_r)>0){
+                // if(r<rc){
+                    
+                    alpha=2*(rc2/(sigma*sigma))*pow( 3/(2*( (rc2/(sigma*sigma)) -1))  ,3 );
+                    // Total_E+=(face_area/3.0);
+                    // Total_E+=(face_area/3.0)*strength*alpha*( (sigma*sigma/r2)-1  )*pow( (rc2/r2)-1 ,2);
+                    Total_E+=(face_area/3.0)*strength*alpha*( (sigma*sigma/r2)-1  )*pow( (rc2/r2)-1 ,2)*dot(Face_normal,unit_r);
+                    // Total_E+=dot(Face_normal,unit_r);
+                    
+                }
+            }
+        }
+
+        return Total_E;
+        
+        }        
         if(interaction == "Shifted_LJ_Normal_var")
         {
         double val;

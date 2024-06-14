@@ -251,7 +251,7 @@ int main(int argc, char** argv) {
     
     KB=0.1;
     
-    double arr_3[] = {0.1,0.5,1.0,5.0,10.0,15.0,15.0,20.0,40.0,50.0, 100.0};
+    double arr_3[] = {0.1,0.5,1.0,5.0,10.0,20.0,40.0,50.0, 100.0};
     // double arr_3[] = {10.0};
     
     n=sizeof(arr_3) / sizeof(arr_3[0]);
@@ -308,7 +308,9 @@ int main(int argc, char** argv) {
 
     first_dir="../Results/Mem3DG_Bead_Reciprocal_finemesh/";
     filename = first_dir + "Coverage_final.txt" ;
-    std::ofstream Coverage_final(filename); 
+    std::ofstream Coverage_final(filename,std::ios_base::app);
+    Coverage_final<<"# # # Coverage data \n";
+    Coverage_final.close(); 
     int counter=0;
     for (int r_it = 0 ; r_it < radius.size(); r_it++){
         std::cout<<"Hre\n";
@@ -359,12 +361,14 @@ int main(int argc, char** argv) {
                         std::cout<<"First line\n";
                         continue;
                     }
-                    if(splitted.size()>=3){
+                    if(splitted.size()>5){
+                    
                     Bead_pos[counter].x=std::stod(splitted[0]);
                     Bead_pos[counter].y=std::stod(splitted[1]);
                     Bead_pos[counter].z=std::stod(splitted[2]);
                     counter+=1;
                     }
+                    
                     // I want the first three
                 }
                 Bead_data.close();
@@ -373,11 +377,11 @@ int main(int argc, char** argv) {
 
                 std::cout<<"Bead data read\n";
 
-                filename = basic_name + "Coverage_evol.txt";
-                std::ofstream Coverage(filename); 
+                // filename = basic_name + "Coverage_evol.txt";
+                // std::ofstream Coverage(filename); 
                 double covered_area=0;
                 double relative_coverage=0;
-                for(int step = 0 ; step<num_steps;step++){
+                for(int step = 0 ; step<counter;step++){
                     
                 // Mesh related data 
                 std::string filepath;
@@ -412,11 +416,11 @@ int main(int argc, char** argv) {
                 Bead_current=Bead_pos[step];
                 // std::cout<<"The bead position is"<< Bead_current<<"\n";
                 int touching_count=0;
-                filename = basic_name + "Radius_distribution_step_"+to_string(step)+".txt";
-                std::ofstream R_dist(filename);
+                // filename = basic_name + "Radius_distribution_step_"+to_string(step)+".txt";
+                // std::ofstream R_dist(filename);
                 
-                filename = basic_name + "Touching_step_"+to_string(step)+".txt";
-                std::ofstream Touching_data(filename);
+                // filename = basic_name + "Touching_step_"+to_string(step)+".txt";
+                // std::ofstream Touching_data(filename);
                 covered_area=0.0;
                 // std::cout<<"Iterating over vertices\n";
                 for(int v =0; v<mesh->nVertices(); v++){
@@ -427,15 +431,15 @@ int main(int argc, char** argv) {
                     Normal=geometry->vertexNormalAreaWeighted(mesh->vertex(v));
 
                     // I want the distribution saved so 
-                    if(v==0) R_dist<<r_dist;
-                    else R_dist<<" "<<r_dist;
+                    // if(v==0) R_dist<<r_dist;
+                    // else R_dist<<" "<<r_dist;
                 
                     if(check_coverage){
                     // Now i need to do my part
 
                     if(r_dist<rad*1.1 && dot(rij,Normal)>0){
-                        Touching_data<<Vert_pos.x <<" "<< Vert_pos.y <<" "<<Vert_pos.z<<"\n";
-                        touching_count+=1;
+                        // Touching_data<<Vert_pos.x <<" "<< Vert_pos.y <<" "<<Vert_pos.z<<"\n";
+                        // touching_count+=1;
                         covered_area+=geometry->barycentricDualArea(mesh->vertex(v));
 
                     }
@@ -464,19 +468,22 @@ int main(int argc, char** argv) {
                 }
                 // std::cout<<"The amount touching is"<< touching_count<<" \n";
                 relative_coverage=covered_area/(4*PI*(rad*1.05)*(rad*1.05));
-                Coverage<<relative_coverage<<"\n";
-                R_dist.close();
+                // Coverage<<relative_coverage<<"\n";
+                // R_dist.close();
                 
 
                 }
-                Coverage.close();
+                // Coverage.close();
+                filename = first_dir + "Coverage_final.txt" ;
+                Coverage_final =std::ofstream(filename,std::ios_base::app); 
+    
                 Coverage_final<< rad<<" "<< KA << " "<< Interaction_str<<" "<< relative_coverage<<"\n";
-                
+                Coverage_final.close();
             }
         }
     }
 
-    Coverage_final.close();
+    // Coverage_final.close();
     
 
 

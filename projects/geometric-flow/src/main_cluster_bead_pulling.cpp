@@ -388,7 +388,7 @@ int main(int argc, char** argv) {
     Bead_1 = Bead(mesh,geometry,Vector3({x_furthest,0.0,0.0}),radius,Interaction_str,rc);
     
     // Bead_1.pulling_speed=pullin_force;
-    // Bead_1.interaction="pulling";
+    Bead_1.interaction="Shifted_LJ_Normal_nopush";
     M3DG = Mem3DG(mesh,geometry,Bead_1);
     
     // Add visualization options.
@@ -510,10 +510,12 @@ int main(int argc, char** argv) {
             geometry = geometry_uptr.release();
             Bead_1 = Bead(mesh,geometry,Bead_1.Pos,radius,Interaction_str,rc);
             Bead_1.prev_force=prev_force;
-            
+            Bead_1.interaction="Shifted_LJ_Normal_nopush";
+            M3DG= Mem3DG(mesh,geometry,Bead_1);
             end_time_control=chrono::steady_clock::now();
             remeshing_elapsed_time+=chrono::duration_cast<chrono::milliseconds>(end_time_control-start_time_control).count();
             // std::cout<<"leaving remesher\n";
+
         }
         else{
         // if(current_t%10==0 ){
@@ -604,7 +606,7 @@ int main(int argc, char** argv) {
             start = chrono::steady_clock::now();
 
         }
-        M3DG= Mem3DG(mesh,geometry,Bead_1);
+        
         nu_evol= time<50 ? nu_0 + (nu-nu_0)*time/50 : nu; 
         if(crash){
             break;
