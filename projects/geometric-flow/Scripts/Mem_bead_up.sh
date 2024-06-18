@@ -5,14 +5,14 @@
 
 # #   SARIConGPT143!
 # set v=1.0
-set Nsim=1
+set Nsim=2
 # set Init_cond=1
 foreach v (0.0 )
 foreach Init_cond ( 2)
-foreach Strg ( 10.0 50.0 100.0 150.0 )
-foreach KA ( 100000 10000 )
-foreach radius ( 1.0 2.0 )
-foreach KB ( 1.0 10.0 )
+foreach Strg ( 10.0 50.0 )
+foreach KA ( 100000 )
+foreach radius ( 1.0 )
+foreach KB ( 1.0 )
 #python3 Create_subjob.py ${v} ${c0} ${KA} ${KB}
 
 python3 Create_subjob_beads.py ${v} ${Strg} ${Init_cond} ${Nsim} ${KA} ${radius} ${KB}

@@ -348,16 +348,21 @@ translate_to_geometry(arcsim::Mesh mesh){
     //     simpleMesh.vertexCoordinates.push_back(v_pos);
     // }
     bool flag_warning=false;
-    int flag=0;
+    // int flag=0;
+    vector<int> flags(0);
+
+   
     for(int v = 0 ; v<mesh.verts.size(); v++){
         arcsim::Vec3 pos_old = mesh.nodes[v]->x;
         v_pos.x=pos_old[0];
         v_pos.y=pos_old[1];
         v_pos.z=pos_old[2];
+        
         if(mesh.verts[v]->adjf.size()==0){
             std::cout<<"The vertex index to not consider are"<< v<<"\n";
             flag_warning=true;
-            flag=v;
+            // flag=v;
+            flags.push_back(v);
             continue;
         }
         simpleMesh.vertexCoordinates.push_back(v_pos);
@@ -365,6 +370,14 @@ translate_to_geometry(arcsim::Mesh mesh){
     int id1;
     int id2;
     int id3;
+    // int flag_idx=0;
+    // int number_of_flags=0;
+    std::cout<<"THe number of flags is "<<flags.size()<<"\n";
+    std::cout<<"THe flags are \n";
+    for (int flag = 0 ; flag< flags.size(); flag++){
+        std::cout<< flags[flag]<<"\t ";
+    }
+    std::cout<<"\n";
     for(int f = 0 ; f<mesh.faces.size();f++){
         
         std::vector<size_t> polygon(3);
@@ -372,14 +385,30 @@ translate_to_geometry(arcsim::Mesh mesh){
         id1 = mesh.faces[f]->v[0]->index;
         id2 = mesh.faces[f]->v[1]->index;
         id3 = mesh.faces[f]->v[2]->index;
-        if(id1>flag && flag_warning) id1-=1;
-        if(id2>flag && flag_warning) id2-=1;
-        if(id3>flag && flag_warning) id3-=1;
+
+        int less_id1 = 0;
+        int less_id2 = 0;
+        int less_id3 = 0;
+
+        for(int flag =0 ; flag< flags.size(); flag++){
+
+        if(id1>flags[flag]&& flag_warning) less_id1+=1;
+        if(id2>flags[flag]&& flag_warning) less_id2+=1;
+        if(id3>flags[flag]&& flag_warning) less_id3+=1;
+        }
+        id1 = id1 - less_id1;
+        id2 = id2 - less_id2;
+        id3 = id3 - less_id3; 
+
+        // if(id1==6075 || id2==6075 || id3 ==6075) std::cout<<" 2. This is is being called\n";
+
+        // std::cout<<id1 <<" "<< id2 << " "<< id3 << "\n";
         polygon[0] = id1;
         polygon[1] = id2;
         polygon[2] = id3;
-
+        
         simpleMesh.polygons.push_back(polygon);
+        
     }
     // std::cout<<"Does this happen after loading the data to create the mesh?\n";
     // std::cout<<" THe information in the mesh is, "<< simpleMesh.vertexCoordinates.size()<<"number of vertices\n";
@@ -418,7 +447,7 @@ int main(int argc, char** argv) {
     bool evaluate_remesher = true;
 
     bool preserving_vol=false;
-
+    bool dihedral_dist= true;
 
     std::cout<< "Current path is " << argv[0]<<"\n";
 
@@ -438,6 +467,10 @@ int main(int argc, char** argv) {
     // std::string filepath = "../../../input/bloodcell.obj";
     // std::string filepath = "../input/sphere.obj"; //this is for debug
     
+    // if(dihedral_dist){
+    //     filepath = "../../../input/Wrong_bunny.obj";
+    // }
+
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
     std::cout<<"The mesh is correctly loaded\n";
     
@@ -534,8 +567,29 @@ int main(int argc, char** argv) {
         }
 
 
+        
         if(evaluate_remesher){
             
+        
+        if(dihedral_dist){
+
+            std::ofstream Dihedral_dist(basic_name+"Dihedral_distribution_before.txt");
+            Dihedral_dist<<"# # # Dihedral angle distribution non problematic case\n";
+            for(int e = 0 ; e< mesh->nEdges(); e++){
+                Dihedral_dist << abs( geometry->dihedralAngle(mesh->edge(e).halfedge()))<< "\n";
+            }
+            Dihedral_dist.close();
+        }
+
+        std::ofstream Edge_dist(basic_name+"Edge_dist_before.txt");
+        Edge_dist<<"# # # Edge distribution before remeshing\n";
+        for(int e = 0 ; e < mesh->nEdges(); e++){
+            Edge_dist << geometry->edgeLength(mesh->edge(e))<<"\n";
+
+        }
+
+
+        
         arcsim::dynamic_remesh(Cloth_1);
         std::cout<<"\n\n\n";
         // We are looking to measure things now
@@ -563,19 +617,23 @@ int main(int argc, char** argv) {
         
         double edge_length;
 
+        Edge_dist = std::ofstream(basic_name+"Edge_dist_after.txt");
+        Edge_dist<<"# # # Edge distribution after remeshing\n";
+
         for(int e = 0 ; e < Cloth_1.mesh.edges.size() ; e++){
             
             arcsim::Edge* Edg = Cloth_1.mesh.edges[e];
-
+        
             edge_length = Edg->l;
             avg_edgel+=edge_length;
             
             if(edge_length < min_edge) min_edge = edge_length;
             if(edge_length > max_edge) max_edge = edge_length;
-            if(edge_length<=1e-5){
-                std::cout<<"There is a tiny edge? of edgelength " << edge_length<<"\n";
-                std::cout<< "The edge length is "<< norm(Edg->n[0]->x - Edg->n[1]->x)<< " Which is def not 0?\n";
-            }
+            Edge_dist << norm(Edg->n[0]->x - Edg->n[1]->x) << "\n";
+            // if(edge_length<=1e-5){
+            //     std::cout<<"There is a tiny edge? of edgelength " << edge_length<<"\n";
+            //     std::cout<< "The edge length is "<< norm(Edg->n[0]->x - Edg->n[1]->x)<< " Which is def not 0?\n";
+            // }
 
         }
         std::cout<< "The mean edge length this "<< avg_edgel/Cloth_1.mesh.edges.size() << " \n";
@@ -584,7 +642,27 @@ int main(int argc, char** argv) {
         
         arcsim::save_obj(Cloth_1.mesh,basic_name+"Evaluation_mesh.obj");
 
-        
+
+
+        std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
+        arcsim::delete_mesh(Cloth_1.mesh);
+
+        std::cout<<"defining pointers\n";
+        mesh = mesh_uptr.release();
+        geometry = geometry_uptr.release();
+
+           if(dihedral_dist){
+
+            std::ofstream Dihedral_dist(basic_name+"Dihedral_distribution_after.txt");
+            Dihedral_dist<<"# # # Dihedral angle distribution non problematic case\n";
+            for(int e = 0 ; e< mesh->nEdges(); e++){
+                Dihedral_dist << abs( geometry->dihedralAngle(mesh->edge(e).halfedge()))<< "\n";
+            }
+            Dihedral_dist.close();
+        }
+
+
+
         }
         // Ok i remeshed now what
 

@@ -298,8 +298,8 @@ int main(int argc, char** argv) {
     int Nsim = std::stoi(argv[4]);
     bool pulling =true;
     c0=0.0;
-    KB=std::stod(argv[5]);
-    KA= 500;
+    KB=1.0;
+    KA= 100000;
     // KB=0.01;
 
 
@@ -431,10 +431,12 @@ int main(int argc, char** argv) {
 
     std::string filename = basic_name+"Output_data.txt";
 
+    std::string filename3 = basic_name+"Output_data.txt";
 
-    std::ofstream Sim_data(filename);
+
+    std::ofstream Sim_data(filename3);
     Sim_data<<"T_Volume T_Area time Volume Area E_vol E_sur E_bend grad_norm backtrackstep\n";
-    
+    Sim_data.close();
 
     std::string filename2 = basic_name + "Bead_data.txt";
     
@@ -458,7 +460,7 @@ int main(int argc, char** argv) {
     size_t counter=0;
     double time=0.0;
     double dt_sim=0.0;
-    bool arcsim = true;
+    bool arcsim = false;
     arcsim::Cloth Cloth_1;
     arcsim::Cloth::Remeshing remeshing_params;
     double remeshing_elapsed_time=0;
@@ -473,7 +475,7 @@ int main(int argc, char** argv) {
         remeshing_params.refine_compression=1e-4;
         remeshing_params.refine_velocity=1.0;
         remeshing_params.size_max=trgt_len*3.0;
-        remeshing_params.size_min=trgt_len*0.001;
+        remeshing_params.size_min=trgt_len*0.5;
 
     
     }
@@ -518,7 +520,11 @@ int main(int argc, char** argv) {
 
         }
         else{
+        prev_force = M3DG.Bead_1.Total_force.norm2();
+        // Bead_1.prev_force=prev_force;
+        M3DG.Bead_1.prev_force = prev_force;
         // if(current_t%10==0 ){
+        start_time_control=chrono::steady_clock::now();
         n_vert_old=mesh->nVertices();
         n_vert_new=1;
 
@@ -544,6 +550,8 @@ int main(int argc, char** argv) {
             std::cout<<"Too many vertices, we are gonna crash \n";
             crash=true;
         }
+        end_time_control=chrono::steady_clock::now();
+        remeshing_elapsed_time+=chrono::duration_cast<chrono::milliseconds>(end_time_control-start_time_control).count();
         // std::cout<<"The number of vertices is "<<n_vert<< " and the timestep is "<< current_t << " (done remeshing)\n";
         }
         
@@ -563,10 +571,11 @@ int main(int argc, char** argv) {
 
             Save_mesh(basic_name,current_t);
             Save_bead_data=true;
+            Bead_data = std::ofstream(filename2,std::ios_base::app);
             Save_output_data=true;
             end_saving = chrono::steady_clock::now();
             saving_mesh_time+= chrono::duration_cast<chrono::milliseconds>(end_saving-start_saving).count();
-            
+            Sim_data = std::ofstream(filename3,std::ios_base::app);
         }
         if(current_t%100==0){
             Save_output_data=true;
@@ -617,6 +626,8 @@ int main(int argc, char** argv) {
         integrate_elapsed_time += chrono::duration_cast<chrono::milliseconds>(end_time_control-start_time_control).count(); 
         Save_output_data=false;
         Save_bead_data=false;
+        Bead_data.close();
+        Sim_data.close();
         if(current_t%1000==0){
             std::cout<<"THe position of the bead is "<< M3DG.Bead_1.Pos<<"\n";
             std::cout<< "Remeshing has taken a total of "<< remeshing_elapsed_time <<" milliseconds\n" << "Saving the mesh has taken a total of "<< saving_mesh_time<< "milliseconds \n Integrating the forces has taken a total of "<< integrate_elapsed_time <<" milliseconds \n\n"; 
@@ -635,8 +646,8 @@ int main(int argc, char** argv) {
 
 
     }
-    Sim_data.close();
-    Bead_data.close();
+    // Sim_data.close();
+    // Bead_data.close();
 
     Vector3 Pos;
     std::ofstream o(basic_name+"Final_state.obj");

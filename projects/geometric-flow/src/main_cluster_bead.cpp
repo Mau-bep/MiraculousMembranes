@@ -393,6 +393,10 @@ int main(int argc, char** argv) {
     else{
         Bead_1 = Bead(mesh,geometry,Vector3({5.135+radius,0.0,0.0}),radius,Interaction_str);
     }
+    // This is for big bead
+    Bead_1.rc=radius*2.0;
+
+
     M3DG = Mem3DG(mesh,geometry,Bead_1);
     // Add visualization options.
     // psMesh->setSmoothShade(false);

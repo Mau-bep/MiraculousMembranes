@@ -548,8 +548,10 @@ while(true){
     if(pulling){
       
       double current_force=Bead_1.Total_force.norm2();
+      // std::cout<<"The force relative dif is "<< abs((current_force-Bead_1.prev_force)/current_force) <<" \n";
+      // std::cout<<"The bead prev force is"<< Bead_1.prev_force<<"\n";
       // std::cout<<current_force<<"\n";
-      if(abs((current_force-Bead_1.prev_force)/current_force)<1e-4){
+      if(abs((current_force-Bead_1.prev_force)/current_force)<1e-3){
       // std::cout<<"\t \t Reseting bead position\n";
       geometry->normalize(Vector3({0.0,0.0,0.0}),false);
       geometry->refreshQuantities();
@@ -616,7 +618,9 @@ if(pulling){
       double current_force=Bead_1.Total_force.norm2();
       // std::cout<<"The force difference is "<<abs(current_force-Bead_1.prev_force)<<"\n";
       // std::cout<<"The value of prev force is"<< Bead_1.prev_force<<"\n";
-      if(abs((current_force-Bead_1.prev_force)/current_force)<1e-4){
+      // std::cout<<"The force relative dif is "<< abs((current_force-Bead_1.prev_force)/current_force) <<" \n";
+      // std::cout<<"The bead prev force is"<< Bead_1.prev_force<<"\n";
+      if(abs((current_force-Bead_1.prev_force)/current_force)<1e-3){
       // std::cout<<"\t \t Reseting bead position\n";
       geometry->normalize(Vector3({0.0,0.0,0.0}),false);
       geometry->refreshQuantities();
