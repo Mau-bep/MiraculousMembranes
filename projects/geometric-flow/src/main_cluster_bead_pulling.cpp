@@ -299,7 +299,8 @@ int main(int argc, char** argv) {
     bool pulling =true;
     c0=0.0;
     KB=1.0;
-    KA= 100000;
+    KA = std::stod(argv[5]);
+    // KA= 100000;
     // KB=0.01;
 
 
@@ -420,7 +421,7 @@ int main(int argc, char** argv) {
     
     
 
-    std::string first_dir="../Results/Mem3DG_Bead_Pulling_rc_arcsim/";
+    std::string first_dir="../Results/Mem3DG_Bead_Pulling_rc_june/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
@@ -589,7 +590,7 @@ int main(int argc, char** argv) {
             std::cout<< "THe number of vertices is "<< n_vert <<"\n";    
             std::cout<< "the avg edge lenghth is " <<geometry->meanEdgeLength()<<"\n";
             std::cout << "The avg edge length is = " << std::fixed << std::setprecision(10) << geometry->meanEdgeLength() << std::endl;
-
+            std::cout << "The interaction strength is "<< M3DG.Bead_1.strength <<" \n";
             Volume= geometry->totalVolume();
             Area=geometry->totalArea();
             nu_obs=3*Volume/(4*PI*pow( Area/(4*PI) ,1.5 ));

@@ -552,18 +552,27 @@ while(true){
       // std::cout<<"The bead prev force is"<< Bead_1.prev_force<<"\n";
       // std::cout<<current_force<<"\n";
       if(abs((current_force-Bead_1.prev_force)/current_force)<1e-3){
-      // std::cout<<"\t \t Reseting bead position\n";
+      // // std::cout<<"\t \t Reseting bead position\n";
       geometry->normalize(Vector3({0.0,0.0,0.0}),false);
       geometry->refreshQuantities();
-    //   X_pos=0.0;
-    // for(Vertex v : mesh->vertices()){
-    //   Vertex_pos=geometry->inputVertexPositions[v];
-    //   if(Vertex_pos.x>X_pos){
-    //     X_pos=Vertex_pos.x;
-    //   }  
-    //   }
-      Bead_1.Reset_bead(Vector3(Bead_1.Pos+Vector3({alpha,0,0})));
-    //  Bead_1.Reset_bead(Vector3({X_pos+1.4,0.0,0.0}));
+    
+      X_pos=0.0;
+      for(Vertex v : mesh->vertices()){
+        Vertex_pos=geometry->inputVertexPositions[v];
+        if(Vertex_pos.x>X_pos){
+          X_pos=Vertex_pos.x;
+        }  
+      }
+      // std::cout<<" The difference in distance after a step is "<< abs(Bead_1.Pos.x -(X_pos+1.4)) <<" \n";
+      if(abs(Bead_1.Pos.x -(X_pos+1.4))<1e-4|| Bead_1.Pos.x>X_pos+1.4 ){
+          Bead_1.strength = Bead_1.strength+0.1;
+          // std::cout<<"Increasing strength\n";
+        }
+      // Bead_1.Reset_bead(Vector3(Bead_1.Pos+Vector3({alpha,0,0})));
+      Bead_1.Reset_bead(Vector3({X_pos+1.4,0.0,0.0}));
+      if(X_pos>40){
+        return -1.0;
+      }
     return alpha;
     }
     }
@@ -620,19 +629,28 @@ if(pulling){
       // std::cout<<"The value of prev force is"<< Bead_1.prev_force<<"\n";
       // std::cout<<"The force relative dif is "<< abs((current_force-Bead_1.prev_force)/current_force) <<" \n";
       // std::cout<<"The bead prev force is"<< Bead_1.prev_force<<"\n";
-      if(abs((current_force-Bead_1.prev_force)/current_force)<1e-3){
+      if(abs((current_force-Bead_1.prev_force)/current_force)<1e-2){
       // std::cout<<"\t \t Reseting bead position\n";
       geometry->normalize(Vector3({0.0,0.0,0.0}),false);
       geometry->refreshQuantities();
-    //   X_pos=0.0;
-    // for(Vertex v : mesh->vertices()){
-    //   Vertex_pos=geometry->inputVertexPositions[v];
-    //   if(Vertex_pos.x>X_pos){
-    //     X_pos=Vertex_pos.x;
-    //   }  
-    //   }
-      
-     Bead_1.Reset_bead(Vector3(Bead_1.Pos+Vector3({alpha,0,0})));
+      X_pos=0.0;
+      for(Vertex v : mesh->vertices()){
+        Vertex_pos=geometry->inputVertexPositions[v];
+        if(Vertex_pos.x>X_pos){
+          X_pos=Vertex_pos.x;
+          }  
+        }
+        // std::cout<<" The difference in distance after a step is "<< abs(Bead_1.Pos.x -(X_pos+1.4)) <<" \n";
+
+        if(abs(Bead_1.Pos.x -(X_pos+1.4))<1e-4 || Bead_1.Pos.x>X_pos+1.4 ){
+          // std::cout<<"Increasing strength\n";
+          Bead_1.strength = Bead_1.strength+0.1;
+        }
+      Bead_1.Reset_bead(Vector3({X_pos+1.4,0,0}));
+      if(X_pos>40){
+        return -1.0;
+      }
+    //  Bead_1.Reset_bead(Vector3(Bead_1.Pos+Vector3({alpha,0,0})));
     return alpha;
     }
     }
