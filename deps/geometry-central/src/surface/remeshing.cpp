@@ -53,6 +53,30 @@ void remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationMan
   geom.refreshQuantities();
 }
 
+
+
+void remesh_smoothing(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOptions options) {
+  MutationManager mm(mesh, geom);
+
+    // std::cout<<"The number of flips is "<< nFlips<<"\n";
+    double flowDist = 1;
+    // flowDist=1;
+    switch (options.smoothStyle) {
+    case RemeshSmoothStyle::Circumcentric:
+      flowDist = smoothByCircumcenter(mesh, geom, mm, 1, options.boundaryCondition);
+      break;
+    case RemeshSmoothStyle::Laplacian:
+      flowDist = smoothByLaplacian(mesh, geom, mm, 1, options.boundaryCondition);
+      break;
+    }
+
+    std::cout<<"The smoothing distance is "<< flowDist <<" ... huh \n ";
+    // std::cout << iIt << " : " << changedConnectivity << " " << nFlips << " " << flowDist << std::endl;
+  
+  
+  geom.refreshQuantities();
+}
+
 Vector3 vertexNormal(VertexPositionGeometry& geom, Vertex v, MutationManager& mm) {
   Vector3 totalNormal = Vector3::zero();
   for (Corner c : v.adjacentCorners()) {

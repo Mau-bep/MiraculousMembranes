@@ -39,8 +39,20 @@ class Mem3DG {
     double grad_norm;
     bool is_test;
     bool pulling;
+    bool Save_SS;
+    bool stop_increasing;
     double pulling_force;
   
+    double A;
+    double V;
+    double E_Vol;
+    double E_Sur;
+    double E_Ben;
+    double E_Bead;
+    Vector3 Total_force;
+
+
+
     // double pulling_offset;
     // constructors
     Mem3DG() {};

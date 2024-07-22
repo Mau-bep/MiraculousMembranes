@@ -28,6 +28,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
     // interaction = "test_angle_normal_r_normalized";
     // interaction = "test_angle_normal_r_normalized_LJ_Full";
     Total_force={0,0,0};
+    prev_E_stationary=0;
 }   
 
 Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vector3 Position,double input_sigma , double strg, double input_rc) {
@@ -47,6 +48,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
     // interaction = "test_angle_normal_r_normalized";
     // interaction = "test_angle_normal_r_normalized_LJ_Full";
     Total_force={0,0,0};
+    prev_E_stationary=0;
 }   
 
 
@@ -980,7 +982,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
         int v2_idx;
         int v3_idx;
         double Face_area;
-    
+        double Inv_face_area;
         double dual_area2;
         double dual_area3;
         Vector3 Face_normal;
@@ -1019,6 +1021,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
 
             Face_normal=Normals[f.getIndex()];
             Face_area = geometry->faceArea(f);
+            Inv_face_area = 3/Face_area;
             
             for(Halfedge he : f.adjacentHalfedges()){
               
@@ -1028,12 +1031,12 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
                 unit_r = Unit_rs[v1_idx];
                 unit_r2 = Unit_rs[v2_idx];
                 unit_r3 = Unit_rs[v3_idx];
-                // if((dot(unit_r,Face_normal)<0 || rs[v1_idx]>this->rc ) && (dot(unit_r2,Face_normal)<0|| rs[v2_idx]>this->rc )&& (dot(unit_r3,Face_normal)<0 || rs[v3_idx]>this->rc) ){
-                //     break;
-                // }
-                if(rs[v1_idx]>this->rc  && (rs[v2_idx]>this->rc )&& (rs[v3_idx]>this->rc) ){
+                if((dot(unit_r,Face_normal)<0 || rs[v1_idx]>this->rc ) && (dot(unit_r2,Face_normal)<0|| rs[v2_idx]>this->rc )&& (dot(unit_r3,Face_normal)<0 || rs[v3_idx]>this->rc) ){
                     break;
                 }
+                // if(rs[v1_idx]>this->rc  && (rs[v2_idx]>this->rc )&& (rs[v3_idx]>this->rc) ){
+                //     break;
+                // }
               
                 u=geometry->inputVertexPositions[v2_idx]-geometry->inputVertexPositions[v3_idx];
                 Vector3 Grad_vec=(0.5)* cross(Normals[f.getIndex()],u);
@@ -1042,12 +1045,17 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
 
                 // if(dot(unit_r,Face_normal)>0){
                     Force[v1_idx]+=(1.0/3.0)*E_v[v1_idx]*dot(Face_normal,unit_r)*Grad_vec;
+                    // Force[v1_idx]+=(1.0/3.0)*E_v[v1_idx]*dot(Face_normal,unit_r)*Grad_vec*Inv_face_area;
+
+
                 // }
                 // if(dot(unit_r2,Face_normal)>0){
                     Force[v1_idx]+=(1.0/3.0)*E_v[v2_idx]*dot(Face_normal,unit_r2)*Grad_vec;
+                    // Force[v1_idx]+=(1.0/3.0)*E_v[v2_idx]*dot(Face_normal,unit_r2)*Grad_vec*Inv_face_area;
                 // }
                 // if(dot(unit_r3,Face_normal)>0){
                     Force[v1_idx]+=(1.0/3.0)*E_v[v3_idx]*dot(Face_normal,unit_r3)*Grad_vec;
+                    // Force[v1_idx]+=(1.0/3.0)*E_v[v3_idx]*dot(Face_normal,unit_r3)*Grad_vec*Inv_face_area;
                 // }
 
                 // We have the area gradient correctly now we will do the energy of interaction
@@ -1061,7 +1069,8 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
                 alpha=2*(rc2/(sigma*sigma))*pow( 3/(2*( (rc2/(sigma*sigma)) -1))  ,3 );
 
                 F=dot(Face_normal,unit_r)*(-2)*(Face_area/3)*strength*alpha*(  (sigma*sigma/(r*r*r))*pow(( (rc2/(r*r))-1),2 )+ 2*((sigma*sigma/(r*r))-1)*( (rc2/(r*r))-1 )*(rc2/(r*r*r)) )*unit_r;
-                // F=(Face_area/3)*dot(Face_normal,unit_r)*strength*alpha*(-2)*(  (sigma*sigma/(r*r*r))*pow(( (rc2/(r*r))-1),2 )+ 2*((sigma*sigma/(r*r))-1)*( (rc2/(r*r))-1 )*(rc2/(r*r*r)) )*unit_r;
+                // F=dot(Face_normal,unit_r)*(-2)*strength*alpha*(  (sigma*sigma/(r*r*r))*pow(( (rc2/(r*r))-1),2 )+ 2*((sigma*sigma/(r*r))-1)*( (rc2/(r*r))-1 )*(rc2/(r*r*r)) )*unit_r;
+                
                 Total_force-=F;
                 Force[v1_idx]+=F;
                 }
@@ -1077,14 +1086,23 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
                     Force[v1_idx]+=(Face_area/3.0)*E_v[v1_idx]*(Face_normal-unit_r*dot(unit_r,Face_normal))/(r);
                 
                     Total_force-=(Face_area/3.0)*E_v[v1_idx]*(Face_normal-unit_r*dot(unit_r,Face_normal))/(r);
+
+                    // Force[v1_idx]+=E_v[v1_idx]*grad;    
+                    // Force[v1_idx]+=E_v[v1_idx]*(Face_normal-unit_r*dot(unit_r,Face_normal))/(r);
+                
+                    // Total_force-=E_v[v1_idx]*(Face_normal-unit_r*dot(unit_r,Face_normal))/(r);
+                
                 }
                 // Vertex 2
                 
                 // if(dot(unit_r2,Face_normal)>0){
                 if(true){
                     grad=-1*dot(cross(geometry->inputVertexPositions[v3_idx]-geometry->inputVertexPositions[v2_idx],Face_normal),unit_r2)*Face_normal/(2*Face_area);
-
-                    Force[v1_idx]+=(Face_area/3.0)*E_v[v2_idx]*grad;
+            
+                    Force[v1_idx]+=(Face_area/3.0)*E_v[v2_idx]*grad;    
+                    // Force[v1_idx]+=E_v[v2_idx]*grad;
+                
+                
                 }
                 // Force[v1_idx]+=grad;
 
@@ -1094,6 +1112,8 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
                     grad=-1*dot(cross(geometry->inputVertexPositions[v3_idx]-geometry->inputVertexPositions[v2_idx],Face_normal),unit_r3)*Face_normal/(2*Face_area);
             
                     Force[v1_idx]+=(Face_area/3.0)*E_v[v3_idx]*grad;
+                    // Force[v1_idx]+=E_v[v3_idx]*grad;
+                
                 }
                 // Force[v1_idx]+=grad;
             
@@ -1106,6 +1126,9 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
              
 
         }
+
+
+
         return Force;
 
 
@@ -2023,6 +2046,7 @@ double Bead::Energy() {
         double r;
         double rc2=rc*rc;
         double alpha;
+
         for (Face f : mesh->faces()){
             Face_normal= geometry->faceNormal(f);
             face_area = geometry->faceArea(f);
@@ -2033,6 +2057,7 @@ double Bead::Energy() {
                 r2=r*r;
                 // if(r<rc && dot(Face_normal,unit_r)>0){
                 if(r<rc){
+                    // std::cout<<"THe POS of the vertex is "<< geometry->inputVertexPositions[v]<<" \n";
                     
                     alpha=2*(rc2/(sigma*sigma))*pow( 3/(2*( (rc2/(sigma*sigma)) -1))  ,3 );
                     // Total_E+=(face_area/3.0);
@@ -2117,5 +2142,6 @@ void Bead::Reset_bead(Vector3 Actual_pos){
 
 void Bead::Move_bead(double dt,Vector3 center) {
     this->Pos=this->Pos+Total_force*dt -center;
+    // std::cout<<"The bead is moving "<< norm(Total_force*dt -center)<<"\n";
     return;
 }

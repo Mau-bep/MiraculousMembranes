@@ -18,6 +18,7 @@ class Bead {
     double pulling_speed;
     double rc;
     double prev_force;
+    double prev_E_stationary;
     ManifoldSurfaceMesh* mesh;
     VertexPositionGeometry* geometry;
     std::string interaction;

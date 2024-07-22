@@ -28,7 +28,7 @@ Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo)
     is_test=false;
     pulling=false;
     Area_evol_steps=100000;
-    
+    stop_increasing = false;
 
 }
 Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, Bead input_Bead) {
@@ -47,6 +47,8 @@ Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,
     is_test=false;
     Bead_1=input_Bead;
     pulling=false;
+    Save_SS = false;
+    stop_increasing = false;
 }
 
 
@@ -66,6 +68,7 @@ Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,
     grad_norm=0.0;
     is_test=test;
     pulling=false;
+    stop_increasing = false;
 }
 /* 
  * Build the mean curvature flow operator.
@@ -424,19 +427,21 @@ Returns:
 double Mem3DG::Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar,bool bead, bool pulling) {
 
 // std::cout<<"Backtracking\n";
-
+bool other_pulling=true;
 double Bead_force_prev=-12;
 double Bead_force_new=-15;
 double c1=1e-4;
-double rho=0.7;
+double rho=0.5;
 double alpha=1e-3;
 double positionProjection = 0;
-double A=geometry->totalArea();
-double V=geometry->totalVolume();
-double E_Vol = E_Pressure(D_P,V,V_bar);
-double E_Sur = E_Surface(KA,A,A_bar);
-double E_Ben = E_Bending(H_bar,KB);
-double E_Bead = Bead_1.Energy();
+double X_pos;
+
+// A=geometry->totalArea();
+// V=geometry->totalVolume();
+// E_Vol = E_Pressure(D_P,V,V_bar);
+// E_Sur = E_Surface(KA,A,A_bar);
+// E_Ben = E_Bending(H_bar,KB);
+// E_Bead = Bead_1.Energy();
 double previousE=E_Vol+E_Sur+E_Ben+E_Bead;
 double NewE;
 VertexData<Vector3> initial_pos(*mesh);
@@ -458,37 +463,19 @@ geometry->refreshQuantities();
 
 center = geometry->centerOfMass();
 Vector3 Vertex_pos;
-double X_pos=0.0;
-// if(pulling){
 
 
 
-//   // return alpha;
-//   X_pos=0.0;
-//   for(Vertex v : mesh->vertices()){
-//   Vertex_pos=geometry->inputVertexPositions[v];
-//   if(Vertex_pos.x>X_pos){
-//     X_pos=Vertex_pos.x;
-//   }  
-
-  
-//   }
-//   // Bead_1.Reset_bead(Vector3({X_pos+1.4,0.0,0.0}));
-//   // // std::cout<<"Bead re seted \n";
-//   // return alpha;
-//   // this->Bead_1.Set_Force(Vector3({Bead_1.pulling_speed,0.0,0.0}));
-//   // this->Bead_1.Move_bead(alpha,center);
-  
-// }
 if(!pulling){
 this->Bead_1.Move_bead(alpha,Vector3({0,0,0}));
 }
 
 
 
-
+Total_force = Vector3({0,0,0});
 for(Vertex v : mesh->vertices()) {
   Projection+=Force[v.getIndex()].norm2();
+  Total_force+=Force[v.getIndex()];
   } 
 
 
@@ -519,7 +506,8 @@ size_t counter=0;
 // std::cout<<"starting while\n";
 while(true){
   // if(true){
-  if( NewE<= previousE - c1*alpha*Projection && Bead_1.Total_force.norm()*alpha<0.1  ) {
+  
+  if( NewE<= previousE - c1*alpha*Projection && (Bead_1.Total_force.norm()*alpha<0.1|| pulling)  ) {
     break;
 
     }
@@ -545,43 +533,47 @@ while(true){
   
   alpha*=rho;
   
-    if(pulling){
+    // if(pulling){
       
-      double current_force=Bead_1.Total_force.norm2();
-      // std::cout<<"The force relative dif is "<< abs((current_force-Bead_1.prev_force)/current_force) <<" \n";
-      // std::cout<<"The bead prev force is"<< Bead_1.prev_force<<"\n";
-      // std::cout<<current_force<<"\n";
-      if(abs((current_force-Bead_1.prev_force)/current_force)<1e-3){
-      // // std::cout<<"\t \t Reseting bead position\n";
-      geometry->normalize(Vector3({0.0,0.0,0.0}),false);
-      geometry->refreshQuantities();
+    //   double current_force=Bead_1.Total_force.norm2();
+    //   std::cout<<"The force relative dif is "<< abs((current_force-Bead_1.prev_force)/current_force) <<" \n";
+    //   std::cout<<"The bead prev force is"<< Bead_1.prev_force<<"\n";
+    //   std::cout<<current_force<<"\n";
+    //   if(abs((current_force-Bead_1.prev_force)/current_force)<1e-4){
+    //   // std::cout<<"\t \t Reseting bead position\n";
+    //   // geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+    //   // geometry->refreshQuantities();
     
-      X_pos=0.0;
-      for(Vertex v : mesh->vertices()){
-        Vertex_pos=geometry->inputVertexPositions[v];
-        if(Vertex_pos.x>X_pos){
-          X_pos=Vertex_pos.x;
-        }  
-      }
-      // std::cout<<" The difference in distance after a step is "<< abs(Bead_1.Pos.x -(X_pos+1.4)) <<" \n";
-      if(abs(Bead_1.Pos.x -(X_pos+1.4))<1e-4|| Bead_1.Pos.x>X_pos+1.4 ){
-          Bead_1.strength = Bead_1.strength+0.1;
-          // std::cout<<"Increasing strength\n";
-        }
-      // Bead_1.Reset_bead(Vector3(Bead_1.Pos+Vector3({alpha,0,0})));
-      Bead_1.Reset_bead(Vector3({X_pos+1.4,0.0,0.0}));
-      if(X_pos>40){
-        return -1.0;
-      }
-    return alpha;
-    }
-    }
-  if(alpha<1e-9){
+    //   // X_pos=0.0;
+    //   // for(Vertex v : mesh->vertices()){
+    //   //   Vertex_pos=geometry->inputVertexPositions[v];
+    //   //   if(Vertex_pos.x>X_pos){
+    //   //     X_pos=Vertex_pos.x;
+    //   //   }  
+    //   // }
+    //   // std::cout<<" The difference in distance after a step is "<< abs(Bead_1.Pos.x -(X_pos+1.4)) <<" \n";
+    //   // if(abs(Bead_1.Pos.x -(X_pos+1.4))<1e-4 ){ //|| Bead_1.Pos.x>X_pos+1.4
+    //       // Bead_1.strength = Bead_1.strength+0.1;
+    //       // std::cout<<"Increasing strength\n";
+    //     // }
+    //   // Bead_1.Reset_bead(Vector3(Bead_1.Pos+Vector3({alpha,0,0})));
+    //   // Bead_1.Reset_bead(Vector3({X_pos+1.4,0.0,0.0}));
+    //   if(X_pos>40.0){
+    //     return -1.0;
+    //   }
+    // // return alpha;
+    // break;
+    // }
+    // }
+
+
+  if(alpha<1e-8){
 
 
 
-    std::cout<<"THe timestep got small so the simulation will end \n";
-    alpha=-1.0;
+    std::cout<<"THe timestep got small so the simulation would end \n";
+    // if(!pulling)
+    // alpha=-1.0;
     // continue;
     break;
   }
@@ -621,15 +613,59 @@ while(true){
 }
 
 
-if(pulling){
+if(pulling && other_pulling){
+  // std::cout<<"pulling is true\n";
+      
+      double current_force=Bead_1.Total_force.norm2();
+      geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+      geometry->refreshQuantities();
+      X_pos=0.0;
+      for(Vertex v : mesh->vertices()){
+        Vertex_pos=geometry->inputVertexPositions[v];
+        if(Vertex_pos.x>X_pos){
+          X_pos=Vertex_pos.x;
+          }  
+        }
+      if(abs((current_force-Bead_1.prev_force)/current_force)<1e-7 || alpha<1e-9){
+        // std::cout<<" The difference in distance after a step is "<< abs(Bead_1.Pos.x -(X_pos+1.4)) <<" \n";
+        
+        std::cout<<"Some form of steady state was reached\n";
+        if(Bead_1.Pos.x -X_pos<1.4){
+          // Just reset the bead
+          std::cout<<"\t\t Moving bead\n"; 
+          Bead_1.Reset_bead(Vector3({X_pos+1.4,0,0}));
+          if(alpha<1e-8){
+            Save_SS = true;
+            std::cout<<"\t\t Also increasing interaction strength\n";
+            Bead_1.strength = Bead_1.strength + 0.1;
+          }
+        
+        }
+        else{
+          // if(abs(Bead_1.Pos.x -(X_pos+1.4))<1e-4 ){
+            std::cout<<"\t\tIncreasing interaction strength\n";
+          Bead_1.strength = Bead_1.strength+0.1;
+          }
+          
+          Bead_1.prev_E_stationary = E_Bead;
+
+      if(X_pos>40){
+        return -1.0;
+      }
+    //  Bead_1.Reset_bead(Vector3(Bead_1.Pos+Vector3({alpha,0,0})));
+    return alpha;
+    }
+    
+    // Bead_1.Reset_bead(Vector3({X_pos+1.4,0,0}));
+
+
+
+}
+
+if(pulling && !other_pulling){
     // std::cout<<"pulling is true\n";
       
       double current_force=Bead_1.Total_force.norm2();
-      // std::cout<<"The force difference is "<<abs(current_force-Bead_1.prev_force)<<"\n";
-      // std::cout<<"The value of prev force is"<< Bead_1.prev_force<<"\n";
-      // std::cout<<"The force relative dif is "<< abs((current_force-Bead_1.prev_force)/current_force) <<" \n";
-      // std::cout<<"The bead prev force is"<< Bead_1.prev_force<<"\n";
-      if(abs((current_force-Bead_1.prev_force)/current_force)<1e-2){
       // std::cout<<"\t \t Reseting bead position\n";
       geometry->normalize(Vector3({0.0,0.0,0.0}),false);
       geometry->refreshQuantities();
@@ -640,12 +676,22 @@ if(pulling){
           X_pos=Vertex_pos.x;
           }  
         }
+      if(abs((current_force-Bead_1.prev_force)/current_force)<1e-7 || alpha<1e-9){
         // std::cout<<" The difference in distance after a step is "<< abs(Bead_1.Pos.x -(X_pos+1.4)) <<" \n";
+        std::cout<<"It is moving "<< abs(Bead_1.Pos.x -(X_pos+1.4)) <<" \n";
+        // if(abs(Bead_1.Pos.x -(X_pos+1.4))<1e-4 ){
+          std::cout<<"Increasing strength\n";
+          Save_SS = true;
+          std::cout<<"The energy difference is "<< abs(E_Bead-Bead_1.prev_E_stationary)<<" \n"; 
+          if(abs(E_Bead-Bead_1.prev_E_stationary)<1e-3 && !stop_increasing && Bead_1.strength>10.0){
+            stop_increasing = true;
+            std::cout<<"\t \t Stopped increasing potential energy\n";
+          }
+          if(!stop_increasing) Bead_1.strength = Bead_1.strength+0.1;
 
-        if(abs(Bead_1.Pos.x -(X_pos+1.4))<1e-4 || Bead_1.Pos.x>X_pos+1.4 ){
-          // std::cout<<"Increasing strength\n";
-          Bead_1.strength = Bead_1.strength+0.1;
-        }
+          Bead_1.prev_E_stationary = E_Bead;
+
+        // }
       Bead_1.Reset_bead(Vector3({X_pos+1.4,0,0}));
       if(X_pos>40){
         return -1.0;
@@ -653,6 +699,10 @@ if(pulling){
     //  Bead_1.Reset_bead(Vector3(Bead_1.Pos+Vector3({alpha,0,0})));
     return alpha;
     }
+    
+    Bead_1.Reset_bead(Vector3({X_pos+1.4,0,0}));
+
+
     }
 
 
@@ -992,8 +1042,8 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
 
 
     // I want to print the Volume, the area, VOl_E, Area_E, Bending_E 
-    double V = geometry->totalVolume();
-    double A = geometry->totalArea();
+    V = geometry->totalVolume();
+    A = geometry->totalArea();
     double A_bar=4*PI*pow(3*V_bar/(4*PI*nu),2.0/3.0);
     double H_bar=sqrt(4*PI/A_bar)*c0/2.0; //Coment this with another comment
     double D_P=-1*P0*(V-V_bar)/V_bar/V_bar;
@@ -1001,10 +1051,10 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
 
 
 
-    double E_Vol = E_Pressure(D_P,V,V_bar);
-    double E_Sur = E_Surface(KA,A,A_bar);
-    double E_Ben = E_Bending(H_bar,KB);
-    double E_bead = Bead_1.Energy();
+    E_Vol = E_Pressure(D_P,V,V_bar);
+    E_Sur = E_Surface(KA,A,A_bar);
+    E_Ben = E_Bending(H_bar,KB);
+    E_Bead = Bead_1.Energy();
     
     double backtrackstep;
 
@@ -1015,7 +1065,10 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
     // }
     // else{
       // std::cout<<"Backtracking is being called\n";
+    Total_force = Vector3({0,0,0});
     backtrackstep=Backtracking(Force,D_P,V_bar,A_bar,KA,KB,H_bar,bead,pulling);
+    // Total_force*=backtrackstep;
+    // I need to find the stop increasing bt
     // }
     // std::cout<<" The position of vertex 120 is "<<geometry->inputVertexPositions[120].x<<" "<<geometry->inputVertexPositions[120].y<< " "<<geometry->inputVertexPositions[120].z<<" \n";
     
@@ -1025,7 +1078,7 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
     // Bead_1.Move_bead(backtrackstep,center);
 
     if(Save_output_data || backtrackstep<0  ){
-    Sim_data << V_bar<<" "<< A_bar<<" "<< time <<" "<< V<<" " << A<<" " << E_Vol << " " << E_Sur << " " << E_Ben <<" " << E_bead << " "<< grad_norm<<" " << backtrackstep << " \n";
+    Sim_data << V_bar<<" "<< A_bar<<" "<< time <<" "<< V<<" " << A<<" " << E_Vol << " " << E_Sur << " " << E_Ben <<" " << E_Bead << " "<< grad_norm<<" " << backtrackstep << " \n";
     }
     system_time+=1;
     

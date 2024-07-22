@@ -358,7 +358,7 @@ translate_to_geometry(arcsim::Mesh mesh){
         v_pos.y=pos_old[1];
         v_pos.z=pos_old[2];
         
-        if(mesh.verts[v]->adjf.size()==0){
+        if(mesh.verts[v]->adjf.size()<=2){
             std::cout<<"The vertex index to not consider are"<< v<<"\n";
             flag_warning=true;
             // flag=v;
@@ -377,7 +377,8 @@ translate_to_geometry(arcsim::Mesh mesh){
     for (int flag = 0 ; flag< flags.size(); flag++){
         std::cout<< flags[flag]<<"\t ";
     }
-    std::cout<<"\n";
+    std::cout<<"hihi\n";
+    bool non_manifold = false;
     for(int f = 0 ; f<mesh.faces.size();f++){
         
         std::vector<size_t> polygon(3);
@@ -391,10 +392,16 @@ translate_to_geometry(arcsim::Mesh mesh){
         int less_id3 = 0;
 
         for(int flag =0 ; flag< flags.size(); flag++){
-
+        if( id1 == flags[flag]|| id2 == flags[flag] || id3 == flags[flag]){
+            non_manifold=true;
+        }
         if(id1>flags[flag]&& flag_warning) less_id1+=1;
         if(id2>flags[flag]&& flag_warning) less_id2+=1;
         if(id3>flags[flag]&& flag_warning) less_id3+=1;
+        }
+        if(non_manifold){
+            non_manifold=false;
+            continue;
         }
         id1 = id1 - less_id1;
         id2 = id2 - less_id2;
@@ -444,7 +451,9 @@ int main(int argc, char** argv) {
     double time;
     double dt_sim;
     bool test_remesher = true;
-    bool evaluate_remesher = true;
+    bool evaluate_remesher = false;
+
+    bool debug_remesher = true;
 
     bool preserving_vol=false;
     bool dihedral_dist= true;
@@ -457,7 +466,8 @@ int main(int argc, char** argv) {
     if(preserving_vol){
         filepath = "../../../input/bunny.obj";
     }
-    filepath = "../../../input/bunny.obj";
+    // filepath = "../../../input/bunny.obj";
+    // filepath = "../../../input/squirrel.obj";
     // filepath = "../../../input/cone.obj";
     // std::string filepath = "../../../input/8_octahedron.obj";
     // 
@@ -531,6 +541,13 @@ int main(int argc, char** argv) {
     double avg_edge= geometry->meanEdgeLength();
 
 
+
+
+
+
+
+
+
     if(test_remesher){
         first_dir = "../Results/Tests_remesher/";
         int status1 = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
@@ -554,17 +571,55 @@ int main(int argc, char** argv) {
         Cloth_1.mesh=remesher_mesh;
         arcsim::Cloth::Remeshing remeshing_params;
         remeshing_params.aspect_min=0.2;
-        remeshing_params.refine_angle=0.5;
+        remeshing_params.refine_angle=0.7;
         remeshing_params.refine_compression=0.01;
         remeshing_params.refine_velocity=1.0;
-        remeshing_params.size_max=avg_edge*3.0;
-        remeshing_params.size_min=avg_edge*0.5;
+        remeshing_params.size_max=avg_edge*2.5;
+        remeshing_params.size_min=avg_edge*0.2;
 
         Cloth_1.remeshing=remeshing_params;
    
+
+
+
+
+
+
+
+
         for(int i =0 ; i<Cloth_1.mesh.nodes.size(); i++){
             if(arcsim::is_seam_or_boundary( Cloth_1.mesh.nodes[i])) std::cout<<"THis node is a seam or boundary? wtf\n\n";
         }
+
+
+
+        //
+        if(debug_remesher){
+            filepath ="../../../input/Debugging_before_slot.obj";
+            std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
+
+            mesh = mesh_uptr.release();
+            geometry = geometry_uptr.release();
+
+
+            Cloth_1.mesh= translate_to_arcsim(mesh,geometry);
+
+            arcsim::dynamic_remesh(Cloth_1);
+
+            arcsim::save_obj(Cloth_1.mesh,basic_name + "after_remeshing.obj");
+
+            std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
+            arcsim::delete_mesh(Cloth_1.mesh);
+
+            return 0;
+        }
+
+
+
+
+
+
+
 
 
         
@@ -589,7 +644,7 @@ int main(int argc, char** argv) {
         }
 
 
-        
+        std::cout<<"Lets remesh\n";
         arcsim::dynamic_remesh(Cloth_1);
         std::cout<<"\n\n\n";
         // We are looking to measure things now
@@ -624,7 +679,7 @@ int main(int argc, char** argv) {
             
             arcsim::Edge* Edg = Cloth_1.mesh.edges[e];
         
-            edge_length = Edg->l;
+            edge_length = norm(Edg->n[0]->x - Edg->n[1]->x);
             avg_edgel+=edge_length;
             
             if(edge_length < min_edge) min_edge = edge_length;
@@ -637,8 +692,8 @@ int main(int argc, char** argv) {
 
         }
         std::cout<< "The mean edge length this "<< avg_edgel/Cloth_1.mesh.edges.size() << " \n";
-        std::cout<< "The min edge length is " << min_edge <<"and the minimum allowed is" << remeshing_params.size_max << " \n";
-        std::cout<< "The max edge length is " << max_edge <<"and the maximum allowed is" << remeshing_params.size_min << " \n";
+        std::cout<< "The min edge length is " << min_edge <<"and the minimum allowed is" << remeshing_params.size_min << " \n";
+        std::cout<< "The max edge length is " << max_edge <<"and the maximum allowed is" << remeshing_params.size_max << " \n";
         
         arcsim::save_obj(Cloth_1.mesh,basic_name+"Evaluation_mesh.obj");
 
@@ -650,6 +705,18 @@ int main(int argc, char** argv) {
         std::cout<<"defining pointers\n";
         mesh = mesh_uptr.release();
         geometry = geometry_uptr.release();
+
+
+         RemeshOptions Options;
+        Options.targetEdgeLength=trgt_len;
+        Options.curvatureAdaptation=Curv_adap;
+        Options.maxIterations=10;
+        Options.minRelativeLength=0.1;
+        Options.smoothStyle=RemeshSmoothStyle::Circumcentric;
+        Options.boundaryCondition=RemeshBoundaryCondition::Tangential;
+
+        Save_mesh(basic_name,10);
+         
 
            if(dihedral_dist){
 
@@ -761,6 +828,7 @@ int main(int argc, char** argv) {
                 // Options.remesh_list=true;
                 // Options.No_remesh_list=No_remesh;
                 MutationManager Mutation_manager(*mesh,*geometry);
+                // smoothByLaplacian(mesh, geometry, mm, 1, options.boundaryCondition)
                 remesh(*mesh,*geometry,Mutation_manager,Options);
                 n_vert_new=mesh->nVertices();
                 counter=counter+1; 

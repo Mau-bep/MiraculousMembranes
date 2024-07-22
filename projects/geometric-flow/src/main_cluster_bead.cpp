@@ -196,6 +196,7 @@ void Save_mesh(std::string basic_name,bool arcsim_remeshing, size_t current_t) {
 }
 
 
+
 arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeometry* geometry){
 
     arcsim::Mesh mesh1;
@@ -223,7 +224,10 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
             pos[2]=pos_orig.z;
             // arcsim::Vert *vert1 = new arcsim::Vert(pos, 0, 1);
             // mesh1.add(vert1);
-            mesh1.add(new arcsim::Node(pos,arcsim::Vec3(0)));
+            mesh1.add(new arcsim::Node(pos,
+                                 pos,
+                                 pos,
+                                 0,false));
             mesh1.verts[v]->node=mesh1.nodes[v];
             mesh1.nodes[v]->verts.push_back(mesh1.verts[v]);
     }
@@ -269,27 +273,126 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
 std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
 translate_to_geometry(arcsim::Mesh mesh){
 
-
-  SimplePolygonMesh simpleMesh;
+SimplePolygonMesh simpleMesh;
 
     // std::cout<<"This is being called\n";
 //   processLoadedMesh(simpleMesh, loadType);
     Vector3 v_pos;
     
+    // for(int v =0 ; v<mesh.nodes.size();v++){
+    //     arcsim::Vec3 pos_old = mesh.nodes[v]->x;
+    //     v_pos.x=pos_old[0];
+    //     v_pos.y=pos_old[1];
+    //     v_pos.z=pos_old[2];
+    //     simpleMesh.vertexCoordinates.push_back(v_pos);
+    // }
+    bool flag_warning=false;
+    // int flag=0;
+    vector<int> flags(0);
+
+    // double avg_neigh = 0;
+    // double verts = 0;
+    // std::cout<<"Something\n";
+    // while(flag_warning){
+
+    // arcsim::update_indices(mesh);
+    // std::cout<<"The number of vertices is "<< mesh.verts.size()<<" \n";
+    // flag_warning=false;
+    // flags = vector<int>();
+    // simpleMesh = SimplePolygonMesh();
     for(int v = 0 ; v<mesh.verts.size(); v++){
         arcsim::Vec3 pos_old = mesh.nodes[v]->x;
+        
         v_pos.x=pos_old[0];
         v_pos.y=pos_old[1];
         v_pos.z=pos_old[2];
+        // avg_neigh+=mesh.verts[v]->adjf.size();
+        // verts+=1;
+        if(mesh.verts[v]->adjf.size()<=2){
+            std::cout<<"The number of neighbors is "<< mesh.verts[v]->adjf.size()<<"\n";
+        
+    
+            
+            // for(int f_index = 0 ; f_index < mesh.verts[v]->adjf.size();f_index++)
+            // { 
+            // std::cout<<"Deleting face \n";
+            // mesh.remove(mesh.verts[v]->adjf[f_index]);    
+            // }
+            // std::cout<<"Now we delete the vert\n";
+            // mesh.remove(mesh.verts[v]);
+            
+            // // mesh.remove(mesh.verts[v]->adjf[0]);
+
+            std::cout<<"The vertex index to not consider are"<< v<<" out of a total of"<< mesh.verts.size()<<"\n";
+            flag_warning=true;
+            // flag=v;
+            flags.push_back(v);
+            continue;
+        }
+        
+        
         simpleMesh.vertexCoordinates.push_back(v_pos);
     }
+
+    // }
+    int id1;
+    int id2;
+    int id3;
+    // int flag_idx=0;
+    // int number_of_flags=0;
+
+    
+
+    if(flag_warning){
+    std::cout<<"THe number of flags is "<<flags.size()<<"\n";
+    std::cout<<"THe flags are \n";
+    for (int flag = 0 ; flag< flags.size(); flag++){
+        std::cout<< flags[flag]<<"\t ";
+    }
+    std::cout<<" \n";
+    }
+    // std::cout<<"hihi\n";
+    bool non_manifold = false;
     for(int f = 0 ; f<mesh.faces.size();f++){
         
         std::vector<size_t> polygon(3);
-        polygon[0] = mesh.faces[f]->v[0]->index;
-        polygon[1] = mesh.faces[f]->v[1]->index;
-        polygon[2] = mesh.faces[f]->v[2]->index;
+        
+        id1 = mesh.faces[f]->v[0]->index;
+        id2 = mesh.faces[f]->v[1]->index;
+        id3 = mesh.faces[f]->v[2]->index;
+
+        int less_id1 = 0;
+        int less_id2 = 0;
+        int less_id3 = 0;
+
+        for(int flag =0 ; flag< flags.size(); flag++){
+        if( id1 == flags[flag]|| id2 == flags[flag] || id3 == flags[flag]){
+            non_manifold=true;
+        }
+        if(id1>flags[flag]&& flag_warning) less_id1+=1;
+        if(id2>flags[flag]&& flag_warning) less_id2+=1;
+        if(id3>flags[flag]&& flag_warning) less_id3+=1;
+        }
+        if(non_manifold){
+            non_manifold=false;
+            continue;
+        }
+        id1 = id1 - less_id1;
+        id2 = id2 - less_id2;
+        id3 = id3 - less_id3; 
+
+        // if(id1==6075 || id2==6075 || id3 ==6075) std::cout<<" 2. This is is being called\n";
+
+        // std::cout<<id1 <<" "<< id2 << " "<< id3 << "\n";
+        polygon[0] = id1;
+        polygon[1] = id2;
+        polygon[2] = id3;
+        
         simpleMesh.polygons.push_back(polygon);
+        
+    }
+    if(flag_warning){
+    std::cout<<"The problem is not the translation\n";
     }
     // std::cout<<"Does this happen after loading the data to create the mesh?\n";
     // std::cout<<" THe information in the mesh is, "<< simpleMesh.vertexCoordinates.size()<<"number of vertices\n";
@@ -300,8 +403,10 @@ translate_to_geometry(arcsim::Mesh mesh){
  return std::tuple<std::unique_ptr<ManifoldSurfaceMesh>,
                     std::unique_ptr<VertexPositionGeometry>>(std::move(std::get<0>(lvals)),  // mesh
                                                              std::move(std::get<1>(lvals))); // geometry
-
 }
+
+
+
 
 
 int main(int argc, char** argv) {
@@ -323,7 +428,7 @@ int main(int argc, char** argv) {
     // KA=500.0;
     // KB=0.1;
     bool pulling = false;
-    bool arcsim = false;
+    bool arcsim = true;
     // I will do it so i can give this values
  
     arcsim::Cloth Cloth_1;
@@ -373,11 +478,11 @@ int main(int argc, char** argv) {
       if(arcsim){
         std::cout<<"Settin remesher params";
         remeshing_params.aspect_min=0.2;
-        remeshing_params.refine_angle=0.5;
+        remeshing_params.refine_angle=0.6;
         remeshing_params.refine_compression=1e-4;
         remeshing_params.refine_velocity=1.0;
-        remeshing_params.size_max=trgt_len*3.0;
-        remeshing_params.size_min=trgt_len*0.5;
+        remeshing_params.size_max=trgt_len*2.5;
+        remeshing_params.size_min=trgt_len*0.2;
 
     
     }
@@ -437,7 +542,7 @@ int main(int argc, char** argv) {
     
     
 
-    std::string first_dir="../Results/Mem3DG_Bead_Reciprocal_finemesh_varKB/";
+    std::string first_dir="../Results/Mem3DG_Bead_Reciprocal_finemesh/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
@@ -488,12 +593,25 @@ int main(int argc, char** argv) {
             Cloth_1.mesh=remesher_mesh2;
             Cloth_1.remeshing=remeshing_params;
             // std::cout<<"remeshing\n";
+
+            if( true ){
+                arcsim::save_obj(Cloth_1.mesh, basic_name +"Debugging_before_slot.obj");
+            }        
+            // std::cout<<"Remeshing\n";
             arcsim::dynamic_remesh(Cloth_1);
             
+
+            if( true ){
+                arcsim::save_obj(Cloth_1.mesh, basic_name + "Debugging_after.obj" );
+            }
+        
+        
+        
+        
             Bead_1 = M3DG.Bead_1;
             delete mesh;
             delete geometry;
-                // std::cout<<"translating back?\n";
+            // std::cout<<"translating back?\n";
             std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
             arcsim::delete_mesh(Cloth_1.mesh);
 
@@ -543,9 +661,9 @@ int main(int argc, char** argv) {
         // psMesh->setEdgeWidth(1.0);
 
         
-        if(current_t%1000==0){
+        if(current_t%2==0){
             start_time_control=chrono::steady_clock::now();
-            Save_mesh(basic_name,current_t);
+            Save_mesh(basic_name,current_t%1000);
             end_time_control = chrono::steady_clock::now();
             saving_mesh_time+=chrono::duration_cast<chrono::milliseconds>(end_time_control-start_time_control).count();
             Save_bead_data=true;
@@ -602,7 +720,7 @@ int main(int argc, char** argv) {
         
         start_time_control = chrono::steady_clock::now();
         // std::cout<<"3\n";
-     
+        // std::cout<<"Integrating\n";
         dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,sigma,Sim_data,
         time,Save_bead_data,Bead_data,Save_output_data,pulling);
         Bead_data.close();

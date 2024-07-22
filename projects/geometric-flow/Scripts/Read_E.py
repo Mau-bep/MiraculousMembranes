@@ -557,9 +557,9 @@ def main_bead(Ini_cond,strength):
 
 # main_shape(Initial_conds)
 
-for strength_val in [0.001,0.1,0.25,0.5,0.75,1.0,1.25,1.5,1.75,2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0]:
-    main_bead(Initial_conds,strength_val)
-# OK soo
+# for strength_val in [0.001,0.1,0.25,0.5,0.75,1.0,1.25,1.5,1.75,2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0]:
+#     main_bead(Initial_conds,strength_val)
+# # OK soo
 
 
 
@@ -707,4 +707,133 @@ def test_tension():
     print(Energies)
 
 
+
+
+
+def main_bead_energy(Nsim,KB,strength):
+
+    nu = 1.0
+
+
+    KA = 100000
+    rc = 2.0
+    Ini_cond = 1
+    pre_folder='../Results/Mem3DG_Bead_Pulling_rc_june_arcsim/'
+    # pre_folder='../Results/Mem3DG_Cell_Shape_KB_evol/'
+    dir='nu_{:.3f}_rc_{:.3f}_KA_{:.3F}_KB_{:.6f}_strength_{:.6f}_Init_cond_{}_Nsim_{}'.format(nu,rc,KA,KB,strength,Ini_cond,Nsim)
+        #   nu_1.000_c0_0.000_KA_10.000_KB_0.005000_init_cond_1_Nsim_2
+    # dir_2='nu_{:.3f}_c0_0.000_KA_10.000_KB_{:.6f}_init_cond_{}_Nsim_{}'.format(nu,KB,Ini,Nsim)
+    
+    folder_path= pre_folder+dir+'/'
+
+    # Bead_path=folder_path+"Bead_data.txt"
+    Output_path=folder_path+"Output_data.txt"
+
+
+    Output_file= open(Output_path)
+
+    line = Output_file.readline()
+
+    line = Output_file.readline()
+    E_bead = []
+    times = []
+    while(line):
+
+
+
+        data = line.split(' ')
+        times.append(float(data[2]))
+        E_bead.append(float(data[8]))
+
+        line = Output_file.readline()
+
+
+
+
+
+
+    Bead_data_path = folder_path+ "Bead_data_SS.txt"
+
+    Bead_data_file = open(Bead_data_path)
+
+    line = Bead_data_file.readline()
+
+    line = Bead_data_file.readline()
+    Mag_f  = []
+    X_bead = []
+    while(line):
+
+        data = line.split(' ')
+        Force = np.array( [float(data[3]), float(data[4]), float(data[5])] )
+        Mag_f.append( np.sqrt(np.sum(Force*Force)))
+        X_bead.append(float(data[0]))
+
+        line = Bead_data_file.readline()
+
+    # print(Mag_f)
+    plt.plot(X_bead,Mag_f)
+    plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    plt.xlabel('timestep')
+    plt.ylabel('Bead energy')
+    plt.plot(times,E_bead,color='black')
+    plt.show()
+    differences = []
+    # x_useful = []
+    # for i in range(len(E_bead)):
+    #     differences.append(abs(E_bead[i-1]-E_bead[i]))
+    #     if(differences[i]<1e-3):
+    #         # print(i)
+    #         x_useful.append(i)
+    plt.plot(differences,color='purple')
+    plt.yscale('log')
+    plt.show()
+
+    # plt.axvline(x_useful[0],color='purple')
+    plt.plot(E_bead)
+
+    plt.show()
+
+
+
+
+
+
+
+
+def Get_energies_data(Interaction_strengths):
+    # This function creates a file that gets the following
+    # Volume_E Area_E Bending_E Interaction_E Interaction_strength
+
+
+
+
+
+    return 
+
+
+
+
+
+
+
+
+
+
+# main_bead_energy(10,1.0,2.0)
 

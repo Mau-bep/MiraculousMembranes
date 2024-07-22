@@ -35,6 +35,7 @@ void remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOptio
 void remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
             RemeshOptions options = defaultRemeshOptions);
 
+void remesh_smoothing(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOptions options);
 // Try to make all triangles Delaunay
 // Returns the number of flips performed
 size_t fixDelaunay(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom);
