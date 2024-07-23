@@ -819,6 +819,62 @@ def main_bead_energy(Nsim,KB,strength):
 def Get_energies_data(Interaction_strengths):
     # This function creates a file that gets the following
     # Volume_E Area_E Bending_E Interaction_E Interaction_strength
+    parent_folder= "../Results/Mem3DG_Bead_Reciprocal_finemesh_varKB/"
+
+    E_bead_list = []
+    E_area_list = []
+    E_vol_list = []
+    E_bend_list = []
+
+    counter=0
+
+    Storedata_dir = parent_folder + "Wrapping_data_energies.txt"
+    Storedata = open(Storedata_dir)
+        
+    for strength in Interaction_strengths:
+        E_bend_list.append([])
+        E_bead_list.append([])
+        E_area_list.append([])
+        E_vol_list.append([])
+
+        
+        Sim_folder = "nu_1.000_radius_1.000_curvadap_0.00_minrel_0.1000_KA_100000.000_KB_1.000000_strength_{:.6f}_Init_cond_2_Nsim_1/".format(strength)
+        Output_filename = parent_folder + Sim_folder + "Output_data.txt"
+
+        Output_file = open(Output_filename)
+
+        line = Output_file.readline()
+
+        line = Output_filename.readline()
+
+        while(line):
+
+
+            data = line.split(' ')
+            if(not(len(data)>10)):
+               break
+
+
+            E_vol = data[5]
+            E_area = data[6]
+            E_bend = data[7]
+            E_bead = data[8]
+
+
+            line = Output_filename.readline()
+
+        Storedata.write("{} {} {} {} {}".format(strength,E_vol,E_area,E_bend,E_bead))
+        E_vol_list[counter].append(E_vol)
+        E_area_list[counter].append(E_area)
+        E_bead_list[counter].append(E_bead)
+        E_bend_list[counter].append(E_bend)
+    
+        counter+=1
+
+    Storedata.close()
+
+
+
 
 
 
@@ -829,7 +885,9 @@ def Get_energies_data(Interaction_strengths):
 
 
 
+strengths = [10,50,100,150]
 
+Get_energies_data(strengths)
 
 
 

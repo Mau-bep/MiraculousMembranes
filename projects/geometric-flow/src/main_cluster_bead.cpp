@@ -594,16 +594,16 @@ int main(int argc, char** argv) {
             Cloth_1.remeshing=remeshing_params;
             // std::cout<<"remeshing\n";
 
-            if( true ){
-                arcsim::save_obj(Cloth_1.mesh, basic_name +"Debugging_before_slot.obj");
-            }        
+            // if( true ){
+            //     arcsim::save_obj(Cloth_1.mesh, basic_name +"Debugging_before_slot.obj");
+            // }        
             // std::cout<<"Remeshing\n";
             arcsim::dynamic_remesh(Cloth_1);
             
 
-            if( true ){
-                arcsim::save_obj(Cloth_1.mesh, basic_name + "Debugging_after.obj" );
-            }
+            // if( true ){
+            //     arcsim::save_obj(Cloth_1.mesh, basic_name + "Debugging_after.obj" );
+            // }
         
         
         
@@ -661,9 +661,9 @@ int main(int argc, char** argv) {
         // psMesh->setEdgeWidth(1.0);
 
         
-        if(current_t%2==0){
+        if(current_t%500==0){
             start_time_control=chrono::steady_clock::now();
-            Save_mesh(basic_name,current_t%1000);
+            Save_mesh(basic_name,current_t);
             end_time_control = chrono::steady_clock::now();
             saving_mesh_time+=chrono::duration_cast<chrono::milliseconds>(end_time_control-start_time_control).count();
             Save_bead_data=true;

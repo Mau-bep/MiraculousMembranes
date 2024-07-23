@@ -511,6 +511,15 @@ while(true){
     break;
 
     }
+  if(abs(NewE-previousE)>100 && Projection>1e6){
+    std::cout<<"The energy diff is"<< abs(NewE-previousE)<<"\n";
+    std::cout<<"THe relative energy diff  is"<<abs((NewE-previousE)/previousE)<<"\n";
+    std::cout<<"The projection is"<< Projection<<"\n";
+    std::cout<<"Peak in energy variation, will stop out of safety\n";
+    alpha=-1;
+    break;
+  }
+  
   if(std::isnan(E_Vol)){
       std::cout<<"E vol is nan\n";
     }
@@ -567,15 +576,19 @@ while(true){
     // }
 
 
-  if(alpha<1e-8){
+  if(alpha<1e-7){
 
 
 
     std::cout<<"THe timestep got small so the simulation would end \n";
-    // if(!pulling)
-    // alpha=-1.0;
+    if(!pulling){
+    alpha=-1.0;
+    // return alpha;
+    }
     // continue;
     break;
+    
+
   }
 
 

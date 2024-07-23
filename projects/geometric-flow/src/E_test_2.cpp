@@ -576,7 +576,7 @@ int main(int argc, char** argv) {
         remeshing_params.refine_velocity=1.0;
         remeshing_params.size_max=avg_edge*2.5;
         remeshing_params.size_min=avg_edge*0.2;
-
+        std::cout<<"The min edge size is "<< remeshing_params.size_min<<" \n";
         Cloth_1.remeshing=remeshing_params;
    
 
@@ -595,7 +595,7 @@ int main(int argc, char** argv) {
 
         //
         if(debug_remesher){
-            filepath ="../../../input/Debugging_before_slot.obj";
+            filepath ="../../../input/Debug_flip.obj";
             std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
 
             mesh = mesh_uptr.release();
