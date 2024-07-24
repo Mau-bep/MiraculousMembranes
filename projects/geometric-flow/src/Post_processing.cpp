@@ -381,7 +381,7 @@ int main(int argc, char** argv) {
                 // std::ofstream Coverage(filename); 
                 double covered_area=0;
                 double relative_coverage=0;
-                for(int step = 0 ; step<counter;step++){
+                for(int step = counter-1 ; step<counter;step++){
                     
                 // Mesh related data 
                 std::string filepath;
@@ -416,8 +416,8 @@ int main(int argc, char** argv) {
                 Bead_current=Bead_pos[step];
                 // std::cout<<"The bead position is"<< Bead_current<<"\n";
                 int touching_count=0;
-                // filename = basic_name + "Radius_distribution_step_"+to_string(step)+".txt";
-                // std::ofstream R_dist(filename);
+                filename = basic_name + "Radius_distribution_step_"+to_string(str_it)+".txt";
+                std::ofstream R_dist(filename);
                 
                 // filename = basic_name + "Touching_step_"+to_string(step)+".txt";
                 // std::ofstream Touching_data(filename);
@@ -431,13 +431,13 @@ int main(int argc, char** argv) {
                     Normal=geometry->vertexNormalAreaWeighted(mesh->vertex(v));
 
                     // I want the distribution saved so 
-                    // if(v==0) R_dist<<r_dist;
-                    // else R_dist<<" "<<r_dist;
+                    if(v==0) R_dist<<r_dist;
+                    else R_dist<<" "<<r_dist;
                 
                     if(check_coverage){
                     // Now i need to do my part
 
-                    if(r_dist<rad*1.1 && dot(rij,Normal)>0){
+                    if(r_dist<rad*1.2 && dot(rij,Normal)>0){
                         // Touching_data<<Vert_pos.x <<" "<< Vert_pos.y <<" "<<Vert_pos.z<<"\n";
                         // touching_count+=1;
                         covered_area+=geometry->barycentricDualArea(mesh->vertex(v));
@@ -466,8 +466,9 @@ int main(int argc, char** argv) {
                 
                 
                 }
+                R_dist.close();
                 // std::cout<<"The amount touching is"<< touching_count<<" \n";
-                relative_coverage=covered_area/(4*PI*(rad*1.05)*(rad*1.05));
+                relative_coverage=covered_area/(4*PI*(rad*1.2)*(rad*1.2));
                 // Coverage<<relative_coverage<<"\n";
                 // R_dist.close();
                 
@@ -479,6 +480,8 @@ int main(int argc, char** argv) {
     
                 Coverage_final<< rad<<" "<< KA << " "<< Interaction_str<<" "<< relative_coverage<<"\n";
                 Coverage_final.close();
+
+                // R_dist.close()
             }
         }
     }

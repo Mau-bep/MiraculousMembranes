@@ -645,7 +645,10 @@ int main(int argc, char** argv) {
         // psMesh->setEdgeWidth(1.0);
 
         
-        if(current_t%100==0  ){
+        if(current_t%10==0 ){
+            Bead_data.close();
+            Sim_data.close();
+            
             start_time_control=chrono::steady_clock::now();
             Save_mesh(basic_name,current_t);
             end_time_control = chrono::steady_clock::now();
@@ -654,10 +657,10 @@ int main(int argc, char** argv) {
             Bead_data = std::ofstream(filename2,std::ios_base::app);
             Save_output_data=true;
             Sim_data = std::ofstream(filename3,std::ios_base::app);
-
             
 
         }
+        
         // if(current_t%100==0){
 
         //     Save_output_data=true;
@@ -705,10 +708,14 @@ int main(int argc, char** argv) {
         start_time_control = chrono::steady_clock::now();
         // std::cout<<"3\n";
         // std::cout<<"Integrating\n";
+        
         dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,sigma,Sim_data,
         time,Save_bead_data,Bead_data,Save_output_data,pulling);
         Bead_data.close();
         Sim_data.close();
+        Bead_data = std::ofstream(filename2,std::ios_base::app);
+        Sim_data = std::ofstream(filename3,std::ios_base::app);
+        
         // std::cout<<"4\n";
         
         end_time_control = chrono::steady_clock::now();
