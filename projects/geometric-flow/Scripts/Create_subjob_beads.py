@@ -29,19 +29,19 @@ os.makedirs('../Subjobs/',exist_ok=True)
 os.makedirs('../Outputs/',exist_ok=True)
 
 
-f=open('../Subjobs/subjob_serial_bead_curvadap_{}_radius_{}_Strg_{}_init_cond_{}_Nsim_{}_KA_{}_KB_{}'.format(v,radius,Strength,Init_cond,Nsim,KA,KB),'w')
+f=open('../Subjobs/subjob_serial_bead_arcsim_radius_{}_Strg_{}_init_cond_{}_Nsim_{}_KA_{}_KB_{}'.format(v,radius,Strength,Init_cond,Nsim,KA,KB),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')
 
 f.write('#SBATCH --job-name=Mem3DGpa\n')
-f.write('#SBATCH --output=../Outputs/output_serial_bead_curvadap_{}_radius_{}_Strg_{}_init_cond_{}_Nsim_{}_KA_{}_KB_{}'.format(v,radius,Strength,Init_cond,Nsim,KA,KB))
+f.write('#SBATCH --output=../Outputs/output_serial_bead_arcsim_radius_{}_Strg_{}_init_cond_{}_Nsim_{}_KA_{}_KB_{}'.format(v,radius,Strength,Init_cond,Nsim,KA,KB))
 f.write('#\n')
 f.write('#number of CPUs to be used\n')
 f.write('#SBATCH --ntasks=1\n')
 f.write('#Define the number of hours the job should run. \n')
 f.write('#Maximum runtime is limited to 10 days, ie. 240 hours\n')
-f.write('#SBATCH --time=80:00:00\n')
+f.write('#SBATCH --time=10:00:00\n')
 
 f.write('#\n')
 f.write('#Define the amount of system RAM used by your job in GigaBytes\n')

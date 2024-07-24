@@ -425,8 +425,7 @@ int main(int argc, char** argv) {
     KB = std::stod(argv[7]);
     Min_rel_length = 0.1;
     c0=0.0;
-    // KA=500.0;
-    // KB=0.1;
+
     bool pulling = false;
     bool arcsim = true;
     // I will do it so i can give this values
@@ -503,13 +502,6 @@ int main(int argc, char** argv) {
 
 
     M3DG = Mem3DG(mesh,geometry,Bead_1);
-    // Add visualization options.
-    // psMesh->setSmoothShade(false);
-    
-    // psMesh->setSurfaceColor({0.9607, 0.6627, 0.7215});// not orange
-    // polyscope::screenshot("./This_filename_is_nice_right.jpg",true);
-
-    // size_t counter=0;
     
     std::stringstream nustream;
     std::stringstream c0stream;
@@ -523,8 +515,8 @@ int main(int argc, char** argv) {
     // std::stringstream H0stream;
     // std::stringstream kappastream;
     // std::stringstream sigmastream;
-    std::stringstream Curv_adapstream;
-    std::stringstream Min_rel_lengthstream;
+  
+
     
 
 
@@ -536,17 +528,14 @@ int main(int argc, char** argv) {
     Interactionstrstream << std::fixed << std::setprecision(6) << Interaction_str;
 
 
-
-    Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
-    Min_rel_lengthstream << std::fixed << std::setprecision(4) <<Min_rel_length;
     
     
 
-    std::string first_dir="../Results/Mem3DG_Bead_Reciprocal_finemesh/";
+    std::string first_dir="../Results/Mem3DG_Bead_Reciprocal_arcsim/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
-    std::string basic_name=first_dir+"nu_"+nustream.str()+"_radius_"+radiusstream.str()+"_curvadap_"+Curv_adapstream.str()+"_minrel_"+Min_rel_lengthstream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"_strength_"+Interactionstrstream.str()+"_Init_cond_"+std::to_string(Init_cond)+"_Nsim_"+std::to_string(Nsim)+"/";
+    std::string basic_name=first_dir+"nu_"+nustream.str()+"_radius_"+radiusstream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"_strength_"+Interactionstrstream.str()+"_Init_cond_"+std::to_string(Init_cond)+"_Nsim_"+std::to_string(Nsim)+"/";
     status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     
     std::cout<<"\nIf this number is 0 the directory was created succesfully "<< status<<"\n" ;
@@ -565,8 +554,9 @@ int main(int argc, char** argv) {
 
     bool Save_bead_data=false;
     bool Save_output_data=false;
-    Bead_data<<"####### This data is taken every 250 steps just like the mesh radius is " << radius<<" \n";
-    
+    bool small_Ts;
+    Bead_data<<"####### This data is taken every 500 steps just like the mesh dump, radius is " << radius<<" \n";
+    Bead_data.close();
     // Here i want to run my video
     size_t n_vert;
     size_t n_vert_old;
@@ -592,23 +582,15 @@ int main(int argc, char** argv) {
             arcsim::Mesh remesher_mesh2 = translate_to_arcsim(mesh,geometry);
             Cloth_1.mesh=remesher_mesh2;
             Cloth_1.remeshing=remeshing_params;
-            // std::cout<<"remeshing\n";
-
-            // if( true ){
-            //     arcsim::save_obj(Cloth_1.mesh, basic_name +"Debugging_before_slot.obj");
-            // }        
-            // std::cout<<"Remeshing\n";
+         
             arcsim::dynamic_remesh(Cloth_1);
             
 
             // if( true ){
             //     arcsim::save_obj(Cloth_1.mesh, basic_name + "Debugging_after.obj" );
             // }
-        
-        
-        
-        
             Bead_1 = M3DG.Bead_1;
+            small_Ts = M3DG.small_TS;
             delete mesh;
             delete geometry;
             // std::cout<<"translating back?\n";
@@ -619,10 +601,12 @@ int main(int argc, char** argv) {
             mesh = mesh_uptr.release();
             geometry = geometry_uptr.release();
             Bead_1 = Bead(mesh,geometry,Bead_1.Pos,radius,Interaction_str);
+            Bead_1.rc = 2.0;
             
             end_time_control=chrono::steady_clock::now();
             remeshing_elapsed_time+=chrono::duration_cast<chrono::milliseconds>(end_time_control-start_time_control).count();
             M3DG= Mem3DG(mesh,geometry,Bead_1);
+            M3DG.small_TS = small_Ts;
         }
         else{
 
@@ -661,7 +645,7 @@ int main(int argc, char** argv) {
         // psMesh->setEdgeWidth(1.0);
 
         
-        if(current_t%500==0){
+        if(current_t%100==0  ){
             start_time_control=chrono::steady_clock::now();
             Save_mesh(basic_name,current_t);
             end_time_control = chrono::steady_clock::now();

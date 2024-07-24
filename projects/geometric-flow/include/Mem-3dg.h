@@ -42,6 +42,7 @@ class Mem3DG {
     bool Save_SS;
     bool stop_increasing;
     double pulling_force;
+    bool small_TS;
   
     double A;
     double V;

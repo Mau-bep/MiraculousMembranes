@@ -131,7 +131,8 @@ Vector3 Mem3DG::computeHalfedgeGaussianCurvatureVector(Halfedge he) const {
     gaussVec = 0.5 * geometry->dihedralAngle(he)*( -1* geometry->inputVertexPositions[he.next().vertex()]-geometry->inputVertexPositions[he.vertex()]).unit();
   }
   else{
-    std::cout<<"This mean gaussian curvature doesnt work";
+    gaussVec = 0.5 * geometry->dihedralAngle(he)*( -1* geometry->inputVertexPositions[he.next().vertex()]-geometry->inputVertexPositions[he.vertex()]).unit();
+    std::cout<<"This mean gaussian curvature shouldnt work?";
   }
   return gaussVec;
 }

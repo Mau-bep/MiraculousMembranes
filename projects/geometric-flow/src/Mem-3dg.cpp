@@ -29,6 +29,7 @@ Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo)
     pulling=false;
     Area_evol_steps=100000;
     stop_increasing = false;
+    small_TS = false;
 
 }
 Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, Bead input_Bead) {
@@ -49,6 +50,7 @@ Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,
     pulling=false;
     Save_SS = false;
     stop_increasing = false;
+    small_TS = false;
 }
 
 
@@ -69,6 +71,7 @@ Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,
     is_test=test;
     pulling=false;
     stop_increasing = false;
+    small_TS = false;
 }
 /* 
  * Build the mean curvature flow operator.
@@ -222,7 +225,10 @@ Vector3 Mem3DG::computeHalfedgeGaussianCurvatureVector(Halfedge he) const {
     gaussVec = 0.5 * geometry->dihedralAngle(he)*( -1* geometry->inputVertexPositions[he.next().vertex()]+geometry->inputVertexPositions[he.vertex()] ).unit();
   }
   else{
-    std::cout<<"This mean gaussian curvature doesnt work";
+    gaussVec = 0.5 * geometry->dihedralAngle(he)*( -1* geometry->inputVertexPositions[he.next().vertex()]+geometry->inputVertexPositions[he.vertex()] ).unit();
+    // std::cout<< "Dihedral angle "<<0.5 * geometry->dihedralAngle(he)<<"\n";
+    // std::cout<<" Unit vector of an edge"<< ( -1* geometry->inputVertexPositions[he.next().vertex()]+geometry->inputVertexPositions[he.vertex()] ).unit()<<"\n";
+    // std::cout<<"This mean gaussian curvature shouldnt work";
   }
   return gaussVec;
 }
@@ -403,8 +409,10 @@ double Mem3DG::E_Bending(double H0,double KB) const{
     for(Vertex v : mesh->vertices()) {
         index=v.getIndex();
         // Scalar_MC.coeffRef(index)
-        H=abs(geometry->scalarMeanCurvature(v)/geometry->barycentricDualArea(v)-H0);
+        H=abs(geometry->scalarMeanCurvature(v)/geometry->barycentricDualArea(v));
         if(std::isnan(H)){
+          std::cout<<"Dual area: "<< geometry->barycentricDualArea(v);
+          std::cout<<"Scalar mean Curv"<< geometry->scalarMeanCurvature(v);
           std::cout<<"One of the H is not a number\n";
         }
         Eb+=KB*H*H*geometry->barycentricDualArea(v);
@@ -507,18 +515,19 @@ size_t counter=0;
 while(true){
   // if(true){
   
-  if( NewE<= previousE - c1*alpha*Projection && (Bead_1.Total_force.norm()*alpha<0.1|| pulling)  ) {
+  if( NewE<= previousE - c1 * alpha * Projection && ( Bead_1.Total_force.norm() * alpha<0.1 || pulling) && abs(NewE-previousE)<50  ) {
+    // std::cout<<Bead_1.Total_force.norm()*alpha<<" Displacement of the bead\n";
     break;
 
     }
-  if(abs(NewE-previousE)>100 && Projection>1e6){
-    std::cout<<"The energy diff is"<< abs(NewE-previousE)<<"\n";
-    std::cout<<"THe relative energy diff  is"<<abs((NewE-previousE)/previousE)<<"\n";
-    std::cout<<"The projection is"<< Projection<<"\n";
-    std::cout<<"Peak in energy variation, will stop out of safety\n";
-    alpha=-1;
-    break;
-  }
+  // if(abs(NewE-previousE)>100 && Projection>1e6){
+  //   std::cout<<"The energy diff is"<< abs(NewE-previousE)<<"\n";
+  //   std::cout<<"THe relative energy diff  is"<<abs((NewE-previousE)/previousE)<<"\n";
+  //   std::cout<<"The projection is"<< Projection<<"\n";
+  //   std::cout<<"Peak in energy variation, will stop out of safety\n";
+  //   alpha=-1;
+  //   break;
+  // }
   
   if(std::isnan(E_Vol)){
       std::cout<<"E vol is nan\n";
@@ -576,13 +585,21 @@ while(true){
     // }
 
 
-  if(alpha<1e-7){
-
+  if(alpha<1e-10){
 
 
     std::cout<<"THe timestep got small so the simulation would end \n";
+    std::cout<<"THe timestep is "<< alpha <<" \n";
+    std::cout<<"The energy diff is"<< abs(NewE-previousE)<<"\n";
+    std::cout<<"THe relative energy diff  is"<<abs((NewE-previousE)/previousE)<<"\n";
+    std::cout<<"The projection is"<< Projection<<"\n";
+    
     if(!pulling){
-    alpha=-1.0;
+    if(small_TS==true){
+      alpha=-1.0;
+    
+    }
+    small_TS = true;
     // return alpha;
     }
     // continue;
