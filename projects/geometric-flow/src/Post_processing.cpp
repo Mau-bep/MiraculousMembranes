@@ -266,7 +266,7 @@ int main(int argc, char** argv) {
 
 
     int Init_cond=1;
-    int Nsim=666;
+    int Nsim=777;
 
     auto start = chrono::steady_clock::now();
     auto end = chrono::steady_clock::now();
@@ -381,6 +381,7 @@ int main(int argc, char** argv) {
                 // std::ofstream Coverage(filename); 
                 double covered_area=0;
                 double relative_coverage=0;
+                double rmin = 12;
                 for(int step = counter-1 ; step<counter;step++){
                     
                 // Mesh related data 
@@ -438,6 +439,7 @@ int main(int argc, char** argv) {
                     // Now i need to do my part
 
                     if(r_dist<rad*2.0 && dot(rij,Normal)>0){
+                        if(r_dist<rmin) rmin = r_dist;
                         // Touching_data<<Vert_pos.x <<" "<< Vert_pos.y <<" "<<Vert_pos.z<<"\n";
                         // touching_count+=1;
                         covered_area+=geometry->barycentricDualArea(mesh->vertex(v));
@@ -468,7 +470,7 @@ int main(int argc, char** argv) {
                 }
                 R_dist.close();
                 // std::cout<<"The amount touching is"<< touching_count<<" \n";
-                relative_coverage=covered_area/(4*PI*(rad*1.3)*(rad*1.3));
+                relative_coverage=covered_area/(4*PI*(rmin)*(rmin));
                 // Coverage<<relative_coverage<<"\n";
                 // R_dist.close();
                 
