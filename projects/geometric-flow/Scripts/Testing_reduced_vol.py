@@ -25,7 +25,8 @@ force = first_seg+second_seg
 
 plt.plot(x,-1*force)
 
-plt.show()
+# plt.show()
+plt.clf()
 # plt.plot(x,first_seg)
 # plt.plot(x,second_seg)
 
@@ -35,4 +36,19 @@ U_second= -1*(K/(r1-r2))*(x>r1)*(x<r2)*(x-r2)*(x-r2)/2
 U = U_first+U_second
 
 plt.plot(x,-1*U)
+# plt.show()
+
+plt.clf()
+
+
+data =np.loadtxt("../Results/Mem3DG_Bead_Reciprocal_arcsim/Some_radial_dist.txt")
+
+
+plt.hist(data,bins=100)
+plt.xlim(0,10)
 plt.show()
+
+
+
+
+

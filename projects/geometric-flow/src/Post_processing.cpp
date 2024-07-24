@@ -437,7 +437,7 @@ int main(int argc, char** argv) {
                     if(check_coverage){
                     // Now i need to do my part
 
-                    if(r_dist<rad*1.2 && dot(rij,Normal)>0){
+                    if(r_dist<rad*1.5 && dot(rij,Normal)>0){
                         // Touching_data<<Vert_pos.x <<" "<< Vert_pos.y <<" "<<Vert_pos.z<<"\n";
                         // touching_count+=1;
                         covered_area+=geometry->barycentricDualArea(mesh->vertex(v));
@@ -468,7 +468,7 @@ int main(int argc, char** argv) {
                 }
                 R_dist.close();
                 // std::cout<<"The amount touching is"<< touching_count<<" \n";
-                relative_coverage=covered_area/(4*PI*(rad*1.2)*(rad*1.2));
+                relative_coverage=covered_area/(4*PI*(rad*1.3)*(rad*1.3));
                 // Coverage<<relative_coverage<<"\n";
                 // R_dist.close();
                 
