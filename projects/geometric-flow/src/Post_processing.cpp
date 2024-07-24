@@ -417,10 +417,10 @@ int main(int argc, char** argv) {
                 Bead_current=Bead_pos[step];
                 // std::cout<<"The bead position is"<< Bead_current<<"\n";
                 int touching_count=0;
-                filename = basic_name + "Radius_distribution_strength_"+to_string(Interaction_str)+".txt";
+                filename = first_dir + "Radius_distribution_strength_"+to_string(Interaction_str)+".txt";
                 std::ofstream R_dist(filename);
                 
-                filename = basic_name + "Touching_strength_"+to_string(Interaction_str)+".txt";
+                filename = first_dir + "Touching_strength_"+to_string(Interaction_str)+".txt";
                 std::ofstream Touching_data(filename);
 
                 covered_area=0.0;
