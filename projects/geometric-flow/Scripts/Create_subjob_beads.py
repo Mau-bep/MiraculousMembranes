@@ -29,13 +29,13 @@ os.makedirs('../Subjobs/',exist_ok=True)
 os.makedirs('../Outputs/',exist_ok=True)
 
 
-f=open('../Subjobs/subjob_serial_bead_arcsim_radius_{}_Strg_{}_init_cond_{}_Nsim_{}_KA_{}_KB_{}'.format(v,radius,Strength,Init_cond,Nsim,KA,KB),'w')
+f=open('../Subjobs/subjob_serial_bead_arcsim_radius_{}_Strg_{}_init_cond_{}_Nsim_{}_KA_{}_KB_{}'.format(radius,Strength,Init_cond,Nsim,KA,KB),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')
 
 f.write('#SBATCH --job-name=Mem3DGpa\n')
-f.write('#SBATCH --output=../Outputs/output_serial_bead_arcsim_radius_{}_Strg_{}_init_cond_{}_Nsim_{}_KA_{}_KB_{}'.format(v,radius,Strength,Init_cond,Nsim,KA,KB))
+f.write('#SBATCH --output=../Outputs/output_serial_bead_arcsim_radius_{}_Strg_{}_init_cond_{}_Nsim_{}_KA_{}_KB_{}'.format(radius,Strength,Init_cond,Nsim,KA,KB))
 f.write('#\n')
 f.write('#number of CPUs to be used\n')
 f.write('#SBATCH --ntasks=1\n')

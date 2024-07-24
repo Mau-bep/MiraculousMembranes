@@ -7,7 +7,7 @@
 # set v=1.0
 set Nsim=666
 # set Init_cond=1
-foreach v (0.0 )
+foreach v (1.0 )
 foreach Init_cond ( 1)
 foreach Strg ( 1.0 5.0 10.0 20.0 30.0 40.0 50.0 60.0 70.0 80.0 90.0 100.0 110.0 120.0 130.0 140.0 150.0 )
 foreach KA ( 100000 )

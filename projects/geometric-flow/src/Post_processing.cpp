@@ -236,7 +236,7 @@ int main(int argc, char** argv) {
     //
 
     // double arr[] = { 1.0, 2.0, 3.0 };
-    double arr[] = { 1.0, 2.0,3.0}; 
+    double arr[] = { 1.0}; 
     int n = sizeof(arr) / sizeof(arr[0]); 
   
     vector<double> radius(arr,arr+n);
@@ -245,13 +245,13 @@ int main(int argc, char** argv) {
 
     // double arr_2[] = {100.0};
 
-    double arr_2[] = {100.0,1000.0,10000.0,100000.0};
+    double arr_2[] = {100000.0};
     n=sizeof(arr_2) / sizeof(arr_2[0]);
     vector<double> KAs(arr_2,arr_2+n);
     
-    KB=0.1;
+    KB=1.0;
     
-    double arr_3[] = {0.1,0.5,1.0,5.0,10.0,20.0,40.0,50.0, 100.0};
+    double arr_3[] = {1.0,5.0,10.0,20.0,30.0,40.0,50.0, 60.0, 70.0, 80.0, 90.0,100.0, 110.0, 120.0, 130.0, 140.0, 150.0};
     // double arr_3[] = {10.0};
     
     n=sizeof(arr_3) / sizeof(arr_3[0]);
@@ -265,8 +265,8 @@ int main(int argc, char** argv) {
     double trgt_area = 331.09;
 
 
-    int Init_cond=2;
-    int Nsim=1;
+    int Init_cond=1;
+    int Nsim=666;
 
     auto start = chrono::steady_clock::now();
     auto end = chrono::steady_clock::now();
@@ -306,7 +306,7 @@ int main(int argc, char** argv) {
     Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
     Min_rel_lengthstream << std::fixed << std::setprecision(4) <<Min_rel_length;
 
-    first_dir="../Results/Mem3DG_Bead_Reciprocal_finemesh/";
+    first_dir="../Results/Mem3DG_Bead_Reciprocal_arcsim/";
     filename = first_dir + "Coverage_final.txt" ;
     std::ofstream Coverage_final(filename,std::ios_base::app);
     Coverage_final<<"# # # Coverage data \n";
@@ -336,7 +336,7 @@ int main(int argc, char** argv) {
                 // Those are all the manual parameters
                 
                 // We now load the directory
-                basic_name=first_dir+"nu_"+nustream.str()+"_radius_"+radiusstream.str()+"_curvadap_"+Curv_adapstream.str()+"_minrel_"+Min_rel_lengthstream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"_strength_"+Interactionstrstream.str()+"_Init_cond_"+std::to_string(Init_cond)+"_Nsim_"+std::to_string(Nsim)+"/";
+                basic_name=first_dir+"nu_"+nustream.str()+"_radius_"+radiusstream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"_strength_"+Interactionstrstream.str()+"_Init_cond_"+std::to_string(Init_cond)+"_Nsim_"+std::to_string(Nsim)+"/";
 
                 // 
                 // This is the last step to consider
