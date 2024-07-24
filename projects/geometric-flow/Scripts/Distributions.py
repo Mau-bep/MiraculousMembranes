@@ -12,13 +12,13 @@ def checking_radius_dist():
     radius=1.0
     curvadap=0.0
     minrel=0.1
-    KA=100.0
-    KB=0.1
-    strength = 10.0
+    KA=100000.0
+    KB=1.0
+    strength = 70.0
     init_cond=1 
     Nsim=12
 
-    basic_name="../Results/Mem3DG_Bead_Reciprocal_finemesh/nu_{:.3f}_radius_{:.3f}_curvadap_{:.2f}_minrel_{:.4f}_KA_{:.3f}_KB_{:.6f}_strength_{:.6f}_Init_cond_{}_Nsim_{}/".format(nu,radius,curvadap,minrel,KA,KB,strength,init_cond,Nsim)
+    basic_name="../Results/Mem3DG_Bead_Reciprocal_arcsim/nu_{:.3f}_radius_{:.3f}_KA_{:.3f}_KB_{:.6f}_strength_{:.6f}_Init_cond_{}_Nsim_{}/".format(nu,radius,KA,KB,strength,init_cond,Nsim)
 
 
 

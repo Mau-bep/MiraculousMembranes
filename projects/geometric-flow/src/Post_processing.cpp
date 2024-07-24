@@ -417,11 +417,12 @@ int main(int argc, char** argv) {
                 Bead_current=Bead_pos[step];
                 // std::cout<<"The bead position is"<< Bead_current<<"\n";
                 int touching_count=0;
-                filename = basic_name + "Radius_distribution_step_"+to_string(str_it)+".txt";
+                filename = basic_name + "Radius_distribution_strength_"+to_string(Interaction_str)+".txt";
                 std::ofstream R_dist(filename);
                 
-                // filename = basic_name + "Touching_step_"+to_string(step)+".txt";
-                // std::ofstream Touching_data(filename);
+                filename = basic_name + "Touching_strength_"+to_string(Interaction_str)+".txt";
+                std::ofstream Touching_data(filename);
+
                 covered_area=0.0;
                 // std::cout<<"Iterating over vertices\n";
 
@@ -448,8 +449,8 @@ int main(int argc, char** argv) {
 
                     if(r_dist<rmin+0.3 && dot(rij,Normal)>0){
                         // if(r_dist<rmin) rmin = r_dist;
-                        // Touching_data<<Vert_pos.x <<" "<< Vert_pos.y <<" "<<Vert_pos.z<<"\n";
-                        // touching_count+=1;
+                        Touching_data<<Vert_pos.x <<" "<< Vert_pos.y <<" "<<Vert_pos.z<<"\n";
+                        touching_count+=1;
                         covered_area+=geometry->barycentricDualArea(mesh->vertex(v));
 
                     }
@@ -477,6 +478,7 @@ int main(int argc, char** argv) {
                 
                 }
                 R_dist.close();
+                Touching_data.close();
                 // std::cout<<"The amount touching is"<< touching_count<<" \n";
                 relative_coverage=covered_area/(4*PI*(rmin)*(rmin));
                 // Coverage<<relative_coverage<<"\n";
