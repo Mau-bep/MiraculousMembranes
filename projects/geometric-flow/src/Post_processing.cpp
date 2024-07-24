@@ -424,6 +424,14 @@ int main(int argc, char** argv) {
                 // std::ofstream Touching_data(filename);
                 covered_area=0.0;
                 // std::cout<<"Iterating over vertices\n";
+
+                for(int v = 0 ; v < mesh->nVertices() ; v++){
+                    Vert_pos=geometry->inputVertexPositions[v];
+                    rij = (Bead_current-Vert_pos);
+                    r_dist = rij.norm();
+                    if(r_dist<rmin) rmin = r_dist;
+                }
+
                 for(int v =0; v<mesh->nVertices(); v++){
                     // So i have the radius and the 
                     Vert_pos=geometry->inputVertexPositions[v];
@@ -438,8 +446,8 @@ int main(int argc, char** argv) {
                     if(check_coverage){
                     // Now i need to do my part
 
-                    if(r_dist<rad*2.0 && dot(rij,Normal)>0){
-                        if(r_dist<rmin) rmin = r_dist;
+                    if(r_dist<rmin+0.2 && dot(rij,Normal)>0){
+                        // if(r_dist<rmin) rmin = r_dist;
                         // Touching_data<<Vert_pos.x <<" "<< Vert_pos.y <<" "<<Vert_pos.z<<"\n";
                         // touching_count+=1;
                         covered_area+=geometry->barycentricDualArea(mesh->vertex(v));
