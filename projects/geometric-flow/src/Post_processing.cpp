@@ -446,7 +446,7 @@ int main(int argc, char** argv) {
                     if(check_coverage){
                     // Now i need to do my part
 
-                    if(r_dist<rmin+0.2 && dot(rij,Normal)>0){
+                    if(r_dist<rmin+0.3 && dot(rij,Normal)>0){
                         // if(r_dist<rmin) rmin = r_dist;
                         // Touching_data<<Vert_pos.x <<" "<< Vert_pos.y <<" "<<Vert_pos.z<<"\n";
                         // touching_count+=1;
