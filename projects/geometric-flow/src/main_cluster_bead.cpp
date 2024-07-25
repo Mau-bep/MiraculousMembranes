@@ -556,7 +556,7 @@ int main(int argc, char** argv) {
     bool Save_output_data=false;
     bool small_Ts;
     Bead_data<<"####### This data is taken every 500 steps just like the mesh dump, radius is " << radius<<" \n";
-    Bead_data.close();
+    // Bead_data.close();
     // Here i want to run my video
     size_t n_vert;
     size_t n_vert_old;
@@ -649,20 +649,20 @@ int main(int argc, char** argv) {
         // psMesh->setEdgeWidth(1.0);
 
         
-        if(current_t%1==0 ){
-            Bead_data.close();
-            Sim_data.close();
+        if(current_t%100==0 ){
+            // Bead_data.close();
+            // Sim_data.close();
             
             start_time_control=chrono::steady_clock::now();
-            if(current_t%100==0){
+            // if(current_t%100==0){
             Save_mesh(basic_name,current_t);
-            }
+            // }
             end_time_control = chrono::steady_clock::now();
             saving_mesh_time+=chrono::duration_cast<chrono::milliseconds>(end_time_control-start_time_control).count();
             Save_bead_data=true;
-            Bead_data = std::ofstream(filename2,std::ios_base::app);
+            // Bead_data = std::ofstream(filename2,std::ios_base::app);
             Save_output_data=true;
-            Sim_data = std::ofstream(filename3,std::ios_base::app);
+            // Sim_data = std::ofstream(filename3,std::ios_base::app);
             
 
         }
@@ -720,10 +720,10 @@ int main(int argc, char** argv) {
         
         dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,sigma,Sim_data,
         time,Save_bead_data,Bead_data,Save_output_data,pulling);
-        Bead_data.close();
-        Sim_data.close();
-        Bead_data = std::ofstream(filename2,std::ios_base::app);
-        Sim_data = std::ofstream(filename3,std::ios_base::app);
+        // Bead_data.close();
+        // Sim_data.close();
+        // Bead_data = std::ofstream(filename2,std::ios_base::app);
+        // Sim_data = std::ofstream(filename3,std::ios_base::app);
         
         // std::cout<<"4\n";
         
@@ -754,8 +754,8 @@ int main(int argc, char** argv) {
 
 
     }
-    // Sim_data.close();
-    // Bead_data.close();
+    Sim_data.close();
+    Bead_data.close();
 
     Vector3 Pos;
     std::ofstream o(basic_name+"Final_state.obj");
