@@ -477,7 +477,7 @@ int main(int argc, char** argv) {
       if(arcsim){
         std::cout<<"Settin remesher params";
         remeshing_params.aspect_min=0.2;
-        remeshing_params.refine_angle=0.6;
+        remeshing_params.refine_angle=0.65;
         remeshing_params.refine_compression=1e-4;
         remeshing_params.refine_velocity=1.0;
         remeshing_params.size_max=trgt_len*2.5;
@@ -583,7 +583,7 @@ int main(int argc, char** argv) {
             arcsim::Mesh remesher_mesh2 = translate_to_arcsim(mesh,geometry);
             Cloth_1.mesh=remesher_mesh2;
             Cloth_1.remeshing=remeshing_params;
-         
+            // std::cout<<"Remeshing\n";
             arcsim::dynamic_remesh(Cloth_1);
             
 
