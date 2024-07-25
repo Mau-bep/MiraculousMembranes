@@ -595,18 +595,23 @@ while(true){
     std::cout<<"The projection is"<< Projection<<"\n";
     
     if(!pulling){
-    if(small_TS==true){
-      alpha=-1.0;
+    // if(small_TS==true){
+    //   alpha=-1.0;
     
-    }
+    // }
     small_TS = true;
     // return alpha;
     }
+    
     // continue;
     break;
     
 
+  }else if (small_TS)
+  {
+    small_TS = false;
   }
+  
 
 
 

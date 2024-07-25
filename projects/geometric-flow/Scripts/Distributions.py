@@ -14,16 +14,16 @@ def checking_radius_dist():
     minrel=0.1
     KA=100000.0
     KB=1.0
-    strength = 70.0
+    strength = 130
     init_cond=1 
     Nsim=12
 
-    basic_name="../Results/Mem3DG_Bead_Reciprocal_arcsim/nu_{:.3f}_radius_{:.3f}_KA_{:.3f}_KB_{:.6f}_strength_{:.6f}_Init_cond_{}_Nsim_{}/".format(nu,radius,KA,KB,strength,init_cond,Nsim)
+    basic_name="../Results/Mem3DG_Bead_Reciprocal_arcsim/".format(nu,radius,KA,KB,strength,init_cond,Nsim)
 
 
 
 
-    radius_vec= np.loadtxt(basic_name+"Radius_distribution_step_"+str(6)+".txt",delimiter=' ')
+    radius_vec= np.loadtxt(basic_name+"Radius_distribution_strength_"+"{:.6f}".format(strength)+".txt",delimiter=' ')
 
     print(min(radius_vec))
     print(max(radius_vec))
@@ -31,15 +31,16 @@ def checking_radius_dist():
     plt.show()
     plt.clf()
 
+    
 
-
-    Touching_data=np.loadtxt(basic_name+"Touching_step_"+str(6)+".txt")
+    Touching_data=np.loadtxt(basic_name+"Touching_strength_"+"{:.6f}".format(strength)+".txt")
 
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
     ax.scatter(Touching_data[:,0], Touching_data[:,1], Touching_data[:,2], marker='o')
     plt.axis('equal')
     plt.show()
+    # plt.clf()
 
     # for angle in range(0, 360*4 + 1):
     #     # Normalize the angle to the range [-180, 180] for display
@@ -64,6 +65,31 @@ def checking_radius_dist():
     #     plt.pause(.001)
 
 
+# checking_radius_dist()
+
+def Ploting_coverage_2():
+    file = open("../Results/Mem3DG_Bead_Reciprocal_arcsim/Coverage_final.txt")
+  
+    line = file.readline()
+    print(line)
+    line = file.readline()
+
+    strengths = []
+    coverage = []
+
+    while(line):
+        splitted= line.split(' ')
+        strengths.append(float(splitted[2]))
+        coverage.append(float(splitted[3]))
+
+        line = file.readline()
+    plt.scatter(strengths,coverage,color='magenta',)
+    plt.xlabel("Interaction strength")
+    plt.ylabel("Coverage ")
+    plt.show()
+
+
+Ploting_coverage_2()
 def Plotting_coverage():
 
     # So i will have 3 radius
@@ -268,7 +294,7 @@ def Plotting_coverage_varKB():
 
 
 # Plotting_coverage()
-Plotting_coverage_varKB()
+# Plotting_coverage_varKB()
 
 
 

@@ -342,7 +342,8 @@ int main(int argc, char** argv) {
                 // This is the last step to consider
 
                 Last_ts = Last_step(basic_name);
-                num_steps=Last_ts/500+1;
+                
+                num_steps=Last_ts/10+1;
                 Vector<Vector3> Bead_pos(num_steps);
                 filename = basic_name+ "Bead_data.txt";
                 // I now need to read the bead data 
@@ -382,11 +383,13 @@ int main(int argc, char** argv) {
                 double covered_area=0;
                 double relative_coverage=0;
                 double rmin = 12;
+                double x_max_mem = 0.0;
+                bool first=true;
                 for(int step = counter-1 ; step<counter;step++){
                     
                 // Mesh related data 
                 std::string filepath;
-                filepath = basic_name+"membrane_"+std::to_string(step*500)+".obj";
+                filepath = basic_name+"membrane_"+std::to_string(step*10)+".obj";
 
                 // std::cout<<"Reading mesh\n";
                 std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
@@ -415,6 +418,7 @@ int main(int argc, char** argv) {
                 
                 // I can check the rdist
                 Bead_current=Bead_pos[step];
+                std::cout<<Bead_current<<"This is the bead position\n";
                 // std::cout<<"The bead position is"<< Bead_current<<"\n";
                 int touching_count=0;
                 filename = first_dir + "Radius_distribution_strength_"+to_string(Interaction_str)+".txt";
@@ -428,32 +432,50 @@ int main(int argc, char** argv) {
 
                 for(int v = 0 ; v < mesh->nVertices() ; v++){
                     Vert_pos=geometry->inputVertexPositions[v];
+                    // if(Vert_pos.x>x_max_mem) x_max_mem = Vert_pos.x;
                     rij = (Bead_current-Vert_pos);
                     r_dist = rij.norm();
                     if(r_dist<rmin) rmin = r_dist;
-                }
 
+                }
+                // x_max_mem+=1.0;
+                // Vector3 Second_bead({x_max_mem,0.0,0.0});
+                // double second_dist=0.0;
                 for(int v =0; v<mesh->nVertices(); v++){
                     // So i have the radius and the 
                     Vert_pos=geometry->inputVertexPositions[v];
                     rij = (Bead_current-Vert_pos);
                     r_dist = rij.norm();
-                    Normal=geometry->vertexNormalAreaWeighted(mesh->vertex(v));
+                    // second_dist = (Vert_pos-Second_bead).norm();
 
-                    // I want the distribution saved so 
-                    if(v==0) R_dist<<r_dist;
+                    Normal = geometry->vertexNormalAreaWeighted(mesh->vertex(v));
+                    Normal = Normal.unit();
+                    Vector3 x_dir;
+                    
+                    if(first) {
+                        R_dist<<r_dist;
+                        first = false;
+                        }
                     else R_dist<<" "<<r_dist;
+                    rij = rij.unit();
+                    // I want the distribution saved so 
+                    
                 
                     if(check_coverage){
                     // Now i need to do my part
 
-                    if(r_dist<rmin+0.3 && dot(rij,Normal)>0){
+                    if( (dot(rij,Normal)>0.0 && r_dist<1.25 ) ){
+                        
+
+                        
                         // if(r_dist<rmin) rmin = r_dist;
                         Touching_data<<Vert_pos.x <<" "<< Vert_pos.y <<" "<<Vert_pos.z<<"\n";
                         touching_count+=1;
                         covered_area+=geometry->barycentricDualArea(mesh->vertex(v));
+                        // std::cout<<"Dot"<< dot(rij,Normal)<<"\t";
 
                     }
+                    
 
                     
 
@@ -477,6 +499,7 @@ int main(int argc, char** argv) {
                 
                 
                 }
+                std::cout<<"\n";
                 R_dist.close();
                 Touching_data.close();
                 // std::cout<<"The amount touching is"<< touching_count<<" \n";

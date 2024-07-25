@@ -695,6 +695,9 @@ int main(int argc, char** argv) {
             // polyscope::screenshot(basic_name+std::to_string(current_t)+".jpg",true);
    
             start = chrono::steady_clock::now();
+            if(M3DG.small_TS){
+                break;
+            }
     
 
         }
