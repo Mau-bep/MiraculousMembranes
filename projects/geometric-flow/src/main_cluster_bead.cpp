@@ -570,6 +570,7 @@ int main(int argc, char** argv) {
     size_t counter=0;
     double time=0.0;
     double dt_sim=0.0;
+    int sys_time = 0;
 
     start = chrono::steady_clock::now();
     for(size_t current_t=0;current_t<=300000;current_t++ ){
@@ -591,6 +592,8 @@ int main(int argc, char** argv) {
             // }
             Bead_1 = M3DG.Bead_1;
             small_Ts = M3DG.small_TS;
+            sys_time = M3DG.system_time;
+
             delete mesh;
             delete geometry;
             // std::cout<<"translating back?\n";
@@ -607,6 +610,7 @@ int main(int argc, char** argv) {
             remeshing_elapsed_time+=chrono::duration_cast<chrono::milliseconds>(end_time_control-start_time_control).count();
             M3DG= Mem3DG(mesh,geometry,Bead_1);
             M3DG.small_TS = small_Ts;
+            M3DG.system_time = sys_time;
         }
         else{
 
@@ -645,12 +649,14 @@ int main(int argc, char** argv) {
         // psMesh->setEdgeWidth(1.0);
 
         
-        if(current_t%10==0 ){
+        if(current_t%1==0 ){
             Bead_data.close();
             Sim_data.close();
             
             start_time_control=chrono::steady_clock::now();
+            if(current_t%100==0){
             Save_mesh(basic_name,current_t);
+            }
             end_time_control = chrono::steady_clock::now();
             saving_mesh_time+=chrono::duration_cast<chrono::milliseconds>(end_time_control-start_time_control).count();
             Save_bead_data=true;

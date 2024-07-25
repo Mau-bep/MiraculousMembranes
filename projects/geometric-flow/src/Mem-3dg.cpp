@@ -1046,7 +1046,7 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
 //, Beads Bead_1 
 
     // std::cout<<"1_2\n";
-    if(bead){
+    if(bead && system_time%100==0){
       Bead_data<<Bead_1.Pos.x <<" "<< Bead_1.Pos.y << " "<< Bead_1.Pos.z<< " "<< Bead_1.Total_force.x <<" "<< Bead_1.Total_force.y << " "<< Bead_1.Total_force.z <<" \n";
       // std::cout<<Bead_1.Pos.x << " "<< Bead_1.Pos.y << " "<< Bead_1.Pos.z<<" \n";
       // std::cout<<"The total force is "<<Bead_1.Total_force <<"\n";
@@ -1112,7 +1112,7 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
 
     // Bead_1.Move_bead(backtrackstep,center);
 
-    if(Save_output_data || backtrackstep<0  ){
+    if((Save_output_data&& system_time%100==0 ) || backtrackstep<0  ){
     Sim_data << V_bar<<" "<< A_bar<<" "<< time <<" "<< V<<" " << A<<" " << E_Vol << " " << E_Sur << " " << E_Ben <<" " << E_Bead << " "<< grad_norm<<" " << backtrackstep << " \n";
     }
     system_time+=1;
