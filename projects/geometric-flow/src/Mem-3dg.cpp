@@ -599,7 +599,9 @@ while(true){
     //   alpha=-1.0;
     
     // }
+    if(system_time>2000){
     small_TS = true;
+    }
     // return alpha;
     }
     // if(Projection>1e10){
