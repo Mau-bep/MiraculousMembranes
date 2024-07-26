@@ -135,6 +135,8 @@ void showSelected() {
 void Save_mesh(std::string basic_name, size_t current_t) {
    // Build member variables: mesh, geometry
     Vector3 Pos;
+
+    if(current_t%100==0){
     std::ofstream o(basic_name+"membrane_"+std::to_string(current_t)+".obj");
     o << "#This is a meshfile from a saved state\n" ;
 
@@ -155,6 +157,11 @@ void Save_mesh(std::string basic_name, size_t current_t) {
     }
     o<<"\n";
     
+    }
+    }else{
+        for(Vertex v : mesh->vertices()) {
+        Pos=geometry->inputVertexPositions[v];
+        }
     }
 
     return ;
@@ -483,6 +490,8 @@ int main(int argc, char** argv) {
         remeshing_params.size_max=trgt_len*2.5;
         remeshing_params.size_min=trgt_len*0.2;
 
+        std::cout<<"Minimum edge length allowed is "<< trgt_len*0.2<<" muak\n";
+
     
     }
     
@@ -584,10 +593,13 @@ int main(int argc, char** argv) {
             Cloth_1.mesh=remesher_mesh2;
             Cloth_1.remeshing=remeshing_params;
             // std::cout<<"Remeshing\n";
+            // if( current_t>1300 ){
+            //     arcsim::save_obj(Cloth_1.mesh, basic_name + "Debugging_before.obj" );
+            // }
             arcsim::dynamic_remesh(Cloth_1);
             
 
-            // if( true ){
+            // if( current_t>1300 ){
             //     arcsim::save_obj(Cloth_1.mesh, basic_name + "Debugging_after.obj" );
             // }
             Bead_1 = M3DG.Bead_1;
@@ -649,7 +661,7 @@ int main(int argc, char** argv) {
         // psMesh->setEdgeWidth(1.0);
 
         
-        if(current_t%100==0 ){
+        if(current_t%100==0 || current_t>1400){
             // Bead_data.close();
             // Sim_data.close();
             

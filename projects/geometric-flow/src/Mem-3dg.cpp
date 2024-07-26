@@ -515,7 +515,7 @@ size_t counter=0;
 while(true){
   // if(true){
   
-  if( NewE<= previousE - c1 * alpha * Projection && ( Bead_1.Total_force.norm() * alpha<0.1 || pulling) && abs(NewE-previousE)<50  ) {
+  if( NewE<= previousE - c1 * alpha * Projection && ( Bead_1.Total_force.norm() * alpha<0.1 || pulling) && abs(NewE-previousE)<10  ) {
     // std::cout<<Bead_1.Total_force.norm()*alpha<<" Displacement of the bead\n";
     break;
 
@@ -602,13 +602,18 @@ while(true){
     small_TS = true;
     // return alpha;
     }
-    
+    // if(Projection>1e10){
+    //   std::cout<<"Not moving forward\n";
+    //   alpha=0.0;
+      // return -1;
+    // }
     // continue;
     break;
     
 
   }else if (small_TS)
   {
+    std::cout<<"Converging cancelled\n";
     small_TS = false;
   }
   

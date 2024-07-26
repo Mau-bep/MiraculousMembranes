@@ -79,6 +79,8 @@ def Ploting_coverage_2():
 
     while(line):
         splitted= line.split(' ')
+        if(len(splitted)>4):
+            break
         strengths.append(float(splitted[2]))
         coverage.append(float(splitted[3]))
 
