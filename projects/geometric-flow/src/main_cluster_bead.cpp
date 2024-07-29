@@ -81,7 +81,7 @@ float Interaction_str;
 float c0;
 
 
-float P0=100000.0;
+float P0=1000000.0;
 float KA=1.0000;
 float KB=0.0001;
 float sigma=0.1;
