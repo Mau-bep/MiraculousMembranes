@@ -72,7 +72,7 @@ float nu;
 
 float c0;
 
-
+ 
 float P0=10000.0;
 float KA=1.0000;
 float KB=0.000001;
@@ -252,7 +252,7 @@ int main(int argc, char** argv) {
     KB=1.0;
     
     double arr_3[] = {1.0,5.0,10.0,20.0,30.0,40.0,50.0, 60.0, 70.0, 80.0, 90.0,100.0, 110.0, 120.0, 130.0, 140.0, 150.0};
-    // double arr_3[] = {10.0};
+    // double arr_3[] = {100.0, 110.0};
     
     n=sizeof(arr_3) / sizeof(arr_3[0]);
     
@@ -266,7 +266,7 @@ int main(int argc, char** argv) {
 
 
     int Init_cond=1;
-    int Nsim=777;
+    int Nsim=3;
 
     auto start = chrono::steady_clock::now();
     auto end = chrono::steady_clock::now();
@@ -278,6 +278,7 @@ int main(int argc, char** argv) {
     double Interaction_str;
     int Last_ts;
     int num_steps;
+    int delta_steps=100;
     Vector3 Bead_pos;
     std::cout<< "Current path is " << argv[0]<<"\n";
     bool check_coverage = true;
@@ -343,7 +344,7 @@ int main(int argc, char** argv) {
 
                 Last_ts = Last_step(basic_name);
                 
-                num_steps=Last_ts/10+1;
+                num_steps=Last_ts/delta_steps+1;
                 Vector<Vector3> Bead_pos(num_steps);
                 filename = basic_name+ "Bead_data.txt";
                 // I now need to read the bead data 
@@ -389,7 +390,7 @@ int main(int argc, char** argv) {
                     
                 // Mesh related data 
                 std::string filepath;
-                filepath = basic_name+"membrane_"+std::to_string(step*10)+".obj";
+                filepath = basic_name+"membrane_"+std::to_string(step*delta_steps)+".obj";
 
                 // std::cout<<"Reading mesh\n";
                 std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
