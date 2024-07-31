@@ -602,7 +602,12 @@ while(true){
     if(system_time>3000 ){
     small_TS = true;
     }
+    if(Projection>1e10 && abs(NewE-previousE)>1e9){}
     // return alpha;
+    std::cout<<"The gradient got crazy\n";
+    geometry->inputVertexPositions = initial_pos;
+    return -1;
+    
     }
     // if(Projection>1e10){
     //   std::cout<<"Not moving forward\n";
