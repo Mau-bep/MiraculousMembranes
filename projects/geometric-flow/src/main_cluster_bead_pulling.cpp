@@ -394,7 +394,7 @@ SimplePolygonMesh simpleMesh;
         simpleMesh.polygons.push_back(polygon);
         
     }
-    std::cout<<"Done with translating";
+    // std::cout<<"Done with translating";
     // std::cout<<"Does this happen after loading the data to create the mesh?\n";
     // std::cout<<" THe information in the mesh is, "<< simpleMesh.vertexCoordinates.size()<<"number of vertices\n";
   auto lvals = makeManifoldSurfaceMeshAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
@@ -555,7 +555,7 @@ int main(int argc, char** argv) {
     
     
 
-    std::string first_dir="../Results/Mem3DG_Bead_Pulling_rc_june_arcsim/";
+    std::string first_dir="../Results/Mem3DG_Bead_Pulling_rc_august_arcsim/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
