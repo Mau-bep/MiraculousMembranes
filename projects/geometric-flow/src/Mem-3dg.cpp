@@ -599,7 +599,7 @@ while(true){
     //   alpha=-1.0;
     
     // }
-    if(system_time>3000 && Projection<3000){
+    if(system_time>3000 ){
     small_TS = true;
     }
     // return alpha;
@@ -616,6 +616,7 @@ while(true){
   }else if (small_TS)
   {
     std::cout<<"Converging cancelled\n";
+    std::cout<<"Timestep is "<< alpha <<"\n";
     small_TS = false;
   }
   
