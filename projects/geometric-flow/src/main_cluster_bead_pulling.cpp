@@ -638,9 +638,9 @@ int main(int argc, char** argv) {
 
             arcsim::Mesh remesher_mesh2 = translate_to_arcsim(mesh,geometry);
             Cloth_1.mesh=remesher_mesh2;
-            if( current_t>48000 && current_t<49000 ){
-                arcsim::save_obj(Cloth_1.mesh, basic_name +"Debugging_before_slot.obj");
-            }
+            // if( current_t>48000 && current_t<49000 ){
+            //     arcsim::save_obj(Cloth_1.mesh, basic_name +"Debugging_before_slot.obj");
+            // }
             Cloth_1.remeshing=remeshing_params;
             // std::cout<<"remeshing\n";
             arcsim::dynamic_remesh(Cloth_1);
@@ -658,9 +658,9 @@ int main(int argc, char** argv) {
             delete mesh;
             delete geometry;
             // std::cout<<"translating back?\n";
-            if( current_t>48000 && current_t<49000 ){
-                arcsim::save_obj(Cloth_1.mesh, basic_name + "Debugging_after.obj" );
-            }
+            // if( current_t>48000 && current_t<49000 ){
+            //     arcsim::save_obj(Cloth_1.mesh, basic_name + "Debugging_after.obj" );
+            // }
             std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
             arcsim::delete_mesh(Cloth_1.mesh);
 

@@ -602,14 +602,14 @@ while(true){
     if(system_time>3000 ){
     small_TS = true;
     }
-    if(Projection>1e10 && abs(NewE-previousE)>1e9){
+    if(Projection>1e10){
     // return alpha;
     std::cout<<"The gradient got crazy\n";
     std::cout<<"The projections is "<< Projection<<"\n";
     geometry->inputVertexPositions = initial_pos;
     return -1;
     }
-    
+
     }
     // if(Projection>1e10){
     //   std::cout<<"Not moving forward\n";
@@ -676,15 +676,17 @@ if(pulling && other_pulling){
           X_pos=Vertex_pos.x;
           }  
         }
-      if(abs((current_force-Bead_1.prev_force)/current_force)<1e-7 || alpha<1e-9){
+      if(abs((current_force-Bead_1.prev_force)/current_force)<1e-6 || alpha<1e-10){
         // std::cout<<" The difference in distance after a step is "<< abs(Bead_1.Pos.x -(X_pos+1.4)) <<" \n";
         
         std::cout<<"Some form of steady state was reached\n";
         if(Bead_1.Pos.x -X_pos<1.4){
           // Just reset the bead
           std::cout<<"\t\t Moving bead\n"; 
+          std::cout<<"It is moving "<< abs(Bead_1.Pos.x -(X_pos+1.4)) <<" \n";
           Bead_1.Reset_bead(Vector3({X_pos+1.4,0,0}));
-          if(alpha<1e-8){
+          if(Bead_1.Pos.x-X_pos <1e-6){
+            
             Save_SS = true;
             std::cout<<"\t\t Also increasing interaction strength\n";
             Bead_1.strength = Bead_1.strength + 0.1;
@@ -693,7 +695,8 @@ if(pulling && other_pulling){
         }
         else{
           // if(abs(Bead_1.Pos.x -(X_pos+1.4))<1e-4 ){
-            std::cout<<"\t\tIncreasing interaction strength\n";
+          Save_SS = true;
+          std::cout<<"\t\tIncreasing interaction strength because it is going back\n";
           Bead_1.strength = Bead_1.strength+0.1;
           }
           
@@ -726,7 +729,7 @@ if(pulling && !other_pulling){
           X_pos=Vertex_pos.x;
           }  
         }
-      if(abs((current_force-Bead_1.prev_force)/current_force)<1e-7 || alpha<1e-9){
+      if(abs((current_force-Bead_1.prev_force)/current_force)<1e-6 || alpha<1e-10){
         // std::cout<<" The difference in distance after a step is "<< abs(Bead_1.Pos.x -(X_pos+1.4)) <<" \n";
         std::cout<<"It is moving "<< abs(Bead_1.Pos.x -(X_pos+1.4)) <<" \n";
         // if(abs(Bead_1.Pos.x -(X_pos+1.4))<1e-4 ){
