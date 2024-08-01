@@ -718,7 +718,8 @@ def main_bead_energy(Nsim,KB,strength):
     KA = 100000
     rc = 2.0
     Ini_cond = 1
-    pre_folder='../Results/Mem3DG_Bead_Pulling_rc_june_arcsim/'
+    pre_folder='../Results/Mem3DG_Bead_Pulling_rc_august_arcsim/'
+    
     # pre_folder='../Results/Mem3DG_Cell_Shape_KB_evol/'
     dir='nu_{:.3f}_rc_{:.3f}_KA_{:.3F}_KB_{:.6f}_strength_{:.6f}_Init_cond_{}_Nsim_{}'.format(nu,rc,KA,KB,strength,Ini_cond,Nsim)
         #   nu_1.000_c0_0.000_KA_10.000_KB_0.005000_init_cond_1_Nsim_2
@@ -771,7 +772,9 @@ def main_bead_energy(Nsim,KB,strength):
         line = Bead_data_file.readline()
 
     # print(Mag_f)
-    plt.plot(X_bead,Mag_f)
+    plt.xlabel("Bead position")
+    plt.ylabel("Force magnitude")
+    plt.plot(X_bead,Mag_f,color='purple')
     plt.show()
 
 
@@ -791,7 +794,7 @@ def main_bead_energy(Nsim,KB,strength):
 
     plt.xlabel('timestep')
     plt.ylabel('Bead energy')
-    plt.plot(times,E_bead,color='black')
+    plt.scatter(times,E_bead,color='black')
     plt.show()
     differences = []
     # x_useful = []
@@ -800,14 +803,14 @@ def main_bead_energy(Nsim,KB,strength):
     #     if(differences[i]<1e-3):
     #         # print(i)
     #         x_useful.append(i)
-    plt.plot(differences,color='purple')
-    plt.yscale('log')
-    plt.show()
+    # plt.plot(differences,color='purple')
+    # plt.yscale('log')
+    # plt.show()
 
     # plt.axvline(x_useful[0],color='purple')
-    plt.plot(E_bead)
+    # plt.plot(E_bead)
 
-    plt.show()
+    # plt.show()
 
 
 
@@ -885,13 +888,13 @@ def Get_energies_data(Interaction_strengths):
 
 
 
-strengths = [10,50,100,150]
+# strengths = [10,50,100,150]
 
-Get_energies_data(strengths)
-
-
+# Get_energies_data(strengths)
 
 
 
-# main_bead_energy(10,1.0,2.0)
+
+
+main_bead_energy(20,1.0,2.0)
 

@@ -676,7 +676,11 @@ if(pulling && other_pulling){
           X_pos=Vertex_pos.x;
           }  
         }
-      if(abs((current_force-Bead_1.prev_force)/current_force)<1e-6 || alpha<1e-10){
+        // std::cout<<"The system time is"<<system_time<<"\n";
+      // if(system_time >2e4){
+      //   std::cout<<"The force difference is "<<abs((current_force-Bead_1.prev_force)/current_force)<<"\n";
+      // }
+      if(abs((current_force-Bead_1.prev_force)/current_force)<1e-5 || alpha<1e-10){
         // std::cout<<" The difference in distance after a step is "<< abs(Bead_1.Pos.x -(X_pos+1.4)) <<" \n";
         
         std::cout<<"Some form of steady state was reached\n";
@@ -684,13 +688,14 @@ if(pulling && other_pulling){
           // Just reset the bead
           std::cout<<"\t\t Moving bead\n"; 
           std::cout<<"It is moving "<< abs(Bead_1.Pos.x -(X_pos+1.4)) <<" \n";
-          Bead_1.Reset_bead(Vector3({X_pos+1.4,0,0}));
-          if(Bead_1.Pos.x-X_pos <1e-6){
+          
+          if(abs(Bead_1.Pos.x-(X_pos+1.4)) <1e-6){
             
             Save_SS = true;
             std::cout<<"\t\t Also increasing interaction strength\n";
             Bead_1.strength = Bead_1.strength + 0.1;
           }
+          Bead_1.Reset_bead(Vector3({X_pos+1.4,0,0}));
         
         }
         else{

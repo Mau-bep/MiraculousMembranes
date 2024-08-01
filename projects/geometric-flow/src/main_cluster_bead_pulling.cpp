@@ -608,6 +608,7 @@ int main(int argc, char** argv) {
     double remeshing_elapsed_time=0;
     double integrate_elapsed_time=0;
     double saving_mesh_time=0;
+    
 
     trgt_len=geometry->meanEdgeLength();
     if(arcsim){
@@ -675,6 +676,8 @@ int main(int argc, char** argv) {
             
             M3DG = Mem3DG(mesh,geometry,Bead_1);
             M3DG.Save_SS = Save_ss;
+            M3DG.system_time = current_t;
+            // std::cout<<"time is"<<time<<"\n";
             M3DG.stop_increasing = Stop_increasing;
             end_time_control=chrono::steady_clock::now();
             remeshing_elapsed_time+=chrono::duration_cast<chrono::milliseconds>(end_time_control-start_time_control).count();
@@ -724,7 +727,7 @@ int main(int argc, char** argv) {
             // Ok lets try to do this
             if(SS_index%2==1){
             Bead_data_SS = std::ofstream(filename4,std::ios_base::app);
-            if(Stop_increasing && current_t&500==0 && flag_SS  ){
+            if(Stop_increasing && current_t%500==0 && flag_SS  ){
                 flag_SS = false;
                 Bead_data_SS << "# STARTING THE CONSTANT TUBE GROWTH THEREFORE THIS COUNTS AS A STATIONARY STATE # # # # # # # # # # # # # # # # # # # # #\n";
             }
