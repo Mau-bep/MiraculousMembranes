@@ -1298,5 +1298,6 @@ void VertexPositionGeometry::normalize(const Vector3& origin, bool rescale) {
 
 
 
+
 } // namespace surface
 } // namespace geometrycentral

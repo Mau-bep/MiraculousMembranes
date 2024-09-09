@@ -8,7 +8,7 @@
 
 
 using namespace std;
-/* Constructor
+/* Constructor 
  * Input: The surface mesh <inputMesh> and geometry <inputGeo>.
  */
 Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vector3 Position,double input_sigma , double strg) {
@@ -21,6 +21,9 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
     strength = strg;
     // interaction = "test_Full";
     interaction = "Shifted_LJ_Normal_var";
+    state = "default"; //The other two states are manual and frozee
+    Velocity = Vector3({0,0,0});
+    
     pulling_speed = 1.0;
     rc =sigma*1.2;
     prev_force=0.0;
@@ -41,6 +44,11 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
     strength = strg;
     // interaction = "test_Full";
     interaction = "Shifted_LJ_Normal_var";
+    
+    state = "default"; //The other two states are manual and frozee
+    Velocity = Vector3({0,0,0});
+    
+    
     pulling_speed = 1.0;
     rc =input_rc;
     prev_force=0.0;
@@ -51,6 +59,19 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
     prev_E_stationary=0;
 }   
 
+    void Bead::Add_bead(Bead *bead, std::string Interaction, vector<double> Interaction_constants){
+
+        Beads.push_back(bead);
+        Bond_type.push_back(Interaction);
+        Interaction_constants_vector.push_back(Interaction_constants);
+
+    }
+    void Bead::Reasign_mesh(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo){
+        mesh = inputMesh;
+        geometry = inputGeo;
+
+    }
+
 
     VertexData<Vector3> Bead::Gradient(){
     
@@ -59,6 +80,10 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
     VertexData<Vector3> Force(*mesh,{0,0,0});
     VertexData<double> E_v(*mesh,0.0);
 
+    if(interaction=="None"){
+        // std::cout<<"Null force\n";
+        return Force;
+    }
 
     // The problem is that FaceData is not working lmao
 
@@ -122,8 +147,47 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
             }
         }
     }
+    size_t counter = 0 ;
+    if(interaction =="Shifted-LJ"){
+        // std::cout<<"No null force\n";
+        // std::cout<<"The diference between rc and the cutoff is"<< rc-pow(2,1/6.0)<<"\n";
+        for(Vertex v : mesh->vertices()){
+
+        // Angle_Normals[v.getIndex()]=geometry->vertexNormalAngleWeighted(v);
+        // Angle_Normals_norm[v.getIndex()]=Angle_Normals[v.getIndex()].norm();
+        unit_r=(this->Pos-geometry->inputVertexPositions[v]);
+        rs[v]=unit_r.norm();
+        Unit_rs[v.getIndex()]=unit_r/rs[v];
+        
+        r2=rs[v]*rs[v];
+        // Consider_vertex[v.getIndex()]=dot(Angle_Normals[v.getIndex()],Unit_rs[v.getIndex()])>0;
+        // Consider_vertex[v.getIndex()]=true;
+        
+        Dual_areas[v.getIndex()]=geometry->barycentricDualArea(v);
+        // Dual_areas[v.getIndex()]=geometry->circumcentricDualArea(v);
+        
+        if(rs[v]>rc){
+            E_v[v]=0.0;
+           
+        }
+        else{
+            // std::cout<<"Interacting with this vettex\n";
+        counter+=1;
+        dual_area=Dual_areas[v.getIndex()];
+        // dual_area=geometry->circumcentricDualArea(v);
+        
+        E_v[v]= 4*strength*( pow( (sigma/rs[v]) ,12.0) - pow(sigma/rs[v],6.0) )+strength;
+        // std::cout<<"The strength is "<< strength <<" the sigma is "<< sigma <<" the r is"<< r <<"\n";
+        // std::cout<<"The energy of interaction is "<< E_v[v]<<"and the force norm is"<< 4*strength*(-12*pow(sigma/rs[v],13)/sigma + 6*pow(sigma/rs[v],7)/sigma ) <<"\n";
+        // Angle_Normals[v.getIndex()]=geometry->vertexNormalAngleWeighted(v);
+        }
+        
+        }
+        // std::cout<<"Interacted with " << counter << "vertices\n";
     
-    if(interaction=="Shifted-LJ" ||  interaction == "Shifted_LJ_Normal"||interaction == "Shifted_LJ_Normal_var" || interaction == "Shifted_LJ_Normal_nopush" || interaction=="test_angle_normal_r_normalized"||interaction=="test_angle_normal_r_normalized_LJ"|| interaction=="test_angle_normal_r_normalized_LJ_Full"){
+    }
+    
+    if( interaction == "Shifted_LJ_Normal"||interaction == "Shifted_LJ_Normal_var" || interaction == "Shifted_LJ_Normal_nopush" || interaction=="test_angle_normal_r_normalized"||interaction=="test_angle_normal_r_normalized_LJ"|| interaction=="test_angle_normal_r_normalized_LJ_Full"){
         // std::cout<<"Loading essential quantities\n";
         for(Vertex v : mesh->vertices()){
 
@@ -191,18 +255,18 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
         
         for(Vertex v : mesh->vertices()){
             F={0,0,0};
-            unit_r= this->Pos- geometry->inputVertexPositions[v];
-            r= unit_r.norm();
+            unit_r= Unit_rs[v.getIndex()];
+            r= rs[v];
             if(r<rc){
                 
             
             unit_r=unit_r.unit();
             
-            alpha=2*(rc2/(sigma*sigma))*pow( 3/(2*( (rc2/(sigma*sigma)) -1))  ,3 );
+            // alpha=2*(rc2/(sigma*sigma))*pow( 3/(2*( (rc2/(sigma*sigma)) -1))  ,3 );
             dual_area=Dual_areas[v.getIndex()];
             
             
-            F=dual_area*strength*alpha*(-2)*(  (sigma*sigma/(r*r*r))*pow(( (rc2/(r*r))-1),2 )+ 2*((sigma*sigma/(r*r))-1)*( (rc2/(r*r))-1 )*(rc2/(r*r*r)) )*unit_r;
+            F=4*dual_area*strength*( -12* pow(sigma/r,13 )/sigma + 6* pow(sigma/r,7 )/sigma )*unit_r;
             }
 
             F2={0,0,0};
@@ -228,6 +292,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
             // F=(4*strength*( -12*pow(sigma/r,12)+6*pow(sigma/r,6))/r)*unit_r;
             // Force[v]=dot(F,Normal_v)*Normal_v;
             Force[v]=F+F2;
+            
             Total_force-=F;
            // 0.817069 0.667744 1.22363 
 
@@ -597,246 +662,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
 
 
     }
-       if(interaction=="Shifted_LJ_Normal"){
 
-
-        int v1_idx;
-        int v2_idx;
-        int v3_idx;
-        double Face_area;
-    
-        double dual_area2;
-        double dual_area3;
-        Vector3 Face_normal;
-        Vector3 grad;
-        Vector3 grad2;
-        // Halfedge he;
-        Face f;
-        Vector3 Vertex_Normal;
-        Vector3 Vertex_Angle_Normal;
-        Vector3 Vertex_Angle_Normal2;
-        Vector3 Vertex_Angle_Normal3;
-        double Vertex_Angle_Normal_norm;
-        double Vertex_Angle_Normal_norm2;
-        double Vertex_Angle_Normal_norm3;
-        
-        Halfedge he2;
-        Vector3 unit_r;
-        Vector3 unit_r1;
-        Vector3 unit_r2;
-        Vector3 unit_r3;
-        double r;
-        double r2;
-        double r3;
-
-        Vector3 u;
-        // rc=1.2;
-        rc2=rc*rc;
-
-        // FOr the record, if i only consider one dot product the first term is correct in that vertex 
-        // I now want to add the contributions of the neighbors to this point.
-
-        
-        for(Vertex v : mesh->vertices()){
-            v1_idx=v.getIndex();
-        // Vertex v =mesh->vertex(0);
-            Force[v1_idx]={0,0,0};
-            
-            F={0,0,0};
-            unit_r= Unit_rs[v1_idx];
-            r = rs[v1_idx];
-            dual_area=Dual_areas[v1_idx];
-            
-            
-            if(r<rc){
-           
-            // Interaction force
-
-            alpha=2*(rc2/(sigma*sigma))*pow( 3/(2*( (rc2/(sigma*sigma)) -1))  ,3 );
-            
-            Vertex_Angle_Normal=Angle_Normals[v1_idx];
-        
-            if(Consider_vertex[v1_idx]){
-            F+=dual_area*dot(Vertex_Angle_Normal,unit_r)*strength*alpha*(-2)*(  (sigma*sigma/(r*r*r))*pow(( (rc2/(r*r))-1),2 )+ 2*((sigma*sigma/(r*r))-1)*( (rc2/(r*r))-1 )*(rc2/(r*r*r)) )*unit_r/Angle_Normals_norm[v1_idx];
-            Total_force-=F;
-
-            }
-
-
-            }
-     
-
-            // Vertex v=mesh->vertex(3);
-            for(Halfedge he : v.outgoingHalfedges()){
-            v2_idx=he.next().vertex().getIndex();
-            v3_idx=he.next().next().vertex().getIndex();
-        
-            if(!he.isInterior()){
-                continue;
-            }
-            
-            f =he.face();
-            Face_area=geometry->faceArea(f);
-            Face_normal=geometry->faceNormal(f);
-           
-
-            if( rs[v1_idx]> rc && rs[v2_idx]>rc && rs[v3_idx]>rc){
-                    // std::cout<<"are we skipping anything?\n";
-                    continue;
-            }
-
-            unit_r = Unit_rs[v1_idx];
-            r = rs[v1_idx];
-            unit_r2 = Unit_rs[v2_idx];
-            r2 = rs[v2_idx];
-            unit_r3 = Unit_rs[v3_idx];
-            r3 = rs[v3_idx];
-
-            Vertex_Angle_Normal = Angle_Normals[v1_idx];
-            Vertex_Angle_Normal_norm = Angle_Normals_norm[v1_idx];
-
-            Vertex_Angle_Normal2 = Angle_Normals[v2_idx];
-            Vertex_Angle_Normal_norm2 = Angle_Normals_norm[v2_idx];
-
-            Vertex_Angle_Normal3 = Angle_Normals[v3_idx];
-            Vertex_Angle_Normal_norm3 = Angle_Normals_norm[v3_idx];
-
-            u=geometry->inputVertexPositions[v2_idx]-geometry->inputVertexPositions[v3_idx];
-            Vector3 Grad_vec=(0.5)* cross(Normals[f.getIndex()],u);
-            
-         
-            if(Consider_vertex[v1_idx]){
-                F+=(1.0/3.0)*E_v[v]*dot(Vertex_Angle_Normal,unit_r)*Grad_vec/Vertex_Angle_Normal_norm;
-                }
-             
-            if(Consider_vertex[v2_idx]){
-               Force[v]+=(1.0/3.0)*E_v[v2_idx]*dot(Vertex_Angle_Normal2,unit_r2)*Grad_vec/Vertex_Angle_Normal_norm2;
-            }
-
-                if(Consider_vertex[v3_idx]){
-               Force[v]+=(1.0/3.0)*E_v[v3_idx]*dot(Vertex_Angle_Normal3,unit_r3)*Grad_vec/Vertex_Angle_Normal_norm3;
-                }
-
-            
-            dual_area=Dual_areas[v1_idx];
-            
-             // First vertex 
-            if(Consider_vertex[v1_idx]){
-                
-            grad =-1*dot(cross(geometry->inputVertexPositions[v3_idx]-geometry->inputVertexPositions[v2_idx],Face_normal),unit_r)*Face_normal/(2*Face_area);
-
-            grad2=-1*dot(cross(geometry->inputVertexPositions[v3_idx]-geometry->inputVertexPositions[v2_idx],Face_normal ),Vertex_Angle_Normal )*Face_normal/(2*Face_area);
-            
-            
-            F+=dual_area*E_v[v1_idx]*grad*geometry->angle(he.corner())/Vertex_Angle_Normal_norm;
-            
-            F+=dual_area*E_v[v1_idx]*geometry->Angle_grad(he.corner(),v,Face_normal)*dot(Face_normal,unit_r)/Vertex_Angle_Normal_norm;
-            
-            F+=dual_area*E_v[v1_idx]*geometry->angle(he.corner())*(Face_normal-unit_r*dot(unit_r,Face_normal))/(r*Vertex_Angle_Normal_norm);
-            
-            Total_force-=dual_area*E_v[v1_idx]*geometry->angle(he.corner())*(Face_normal-unit_r*dot(unit_r,Face_normal))/(r*Vertex_Angle_Normal_norm);
-
-            // // Lets add the terms associated with the norm
-            
-            
-            F+=-1*dual_area*E_v[v1_idx]*grad2*geometry->angle(he.corner())*dot(Vertex_Angle_Normal,unit_r)/pow(Vertex_Angle_Normal_norm,3);
-            
-            F+=-1*dual_area*E_v[v1_idx]*geometry->Angle_grad(he.corner(),v,Face_normal)*dot(Face_normal,Vertex_Angle_Normal)*dot(Vertex_Angle_Normal,unit_r)/pow(Vertex_Angle_Normal_norm,3);
-            
-            }
-
-
-            // // Second vertex
-
-            
-            he2 = he.next();
-            if(Consider_vertex[v2_idx]){
-            dual_area2=Dual_areas[v2_idx];
-            
-
-            
-            grad=-1*dot(cross(geometry->inputVertexPositions[v3_idx]-geometry->inputVertexPositions[v2_idx],Face_normal),unit_r2)*Face_normal/(2*Face_area);
-
-            grad2=-1*dot(cross(geometry->inputVertexPositions[v3_idx]-geometry->inputVertexPositions[v2_idx],Face_normal ),Vertex_Angle_Normal2 )*Face_normal/(2*Face_area);
-
-
-            Force[v1_idx]+=dual_area2*E_v[v2_idx]*grad*geometry->angle(he2.corner())/Vertex_Angle_Normal_norm2;
-
-            
-            Force[v1_idx]+=dual_area2*E_v[v2_idx]*geometry->Angle_grad(he2.corner(),v,Face_normal)*dot(Face_normal,unit_r2)/Vertex_Angle_Normal_norm2;
-
-       
-            // Now i add the terms associated with the norm
-           
-            Force[v1_idx]+=-1*dual_area2*E_v[v2_idx]*grad2*geometry->angle(he2.corner())*dot(Vertex_Angle_Normal2,unit_r2)/pow(Vertex_Angle_Normal_norm2,3);
-            // F5+=-1*dual_area2*E_v[he2.vertex()]*grad2*geometry->angle(he2.corner())*dot(Vertex_Angle_Normal2,unit_r)/pow(Vertex_Angle_Normal_norm2,3);
-
-            
-            Force[v1_idx]+=-1*dual_area2*E_v[v2_idx]*geometry->Angle_grad(he2.corner(),v,Face_normal)*dot(Face_normal,Vertex_Angle_Normal2)*dot(Vertex_Angle_Normal2,unit_r2)/pow(Vertex_Angle_Normal_norm2,3);
-
-            // F5+=-1*dual_area2*E_v[he2.vertex()]*geometry->Angle_grad(he2.corner(),v,Face_normal)*dot(Face_normal,Vertex_Angle_Normal2)*dot(Vertex_Angle_Normal2,unit_r)/pow(Vertex_Angle_Normal_norm2,3);
-            }
-
-            // // Third vertex
-             he2 = he2.next();
-            if(Consider_vertex[v3_idx]){
-     
-            dual_area3=Dual_areas[v3_idx];
-
-            // if(dot(Vertex_Angle_Normal3,unit_r)>0 && rs[he2.vertex().getIndex()]<1.2){
-
-                
-            grad=-1*dot(cross(geometry->inputVertexPositions[v3_idx]-geometry->inputVertexPositions[v2_idx],Face_normal),unit_r3)*Face_normal/(2*Face_area);
-
-            grad2=-1*dot(cross(geometry->inputVertexPositions[v3_idx]-geometry->inputVertexPositions[v2_idx],Face_normal ),Vertex_Angle_Normal3 )*Face_normal/(2*Face_area);
-
-            
-            Force[v1_idx]+=dual_area3*E_v[v3_idx]*grad*geometry->angle(he2.corner())/Vertex_Angle_Normal_norm3;
-            
-            
-          
-            Force[v1_idx]+=dual_area3*E_v[v3_idx]*geometry->Angle_grad(he2.corner(),v,Face_normal)*dot(Face_normal,unit_r3)/Vertex_Angle_Normal_norm3;
-
-    
-        //    // Now i add the terms associated with the norm
-
-       
-            Force[v1_idx]+=-1*dual_area3*E_v[v3_idx]*grad2*geometry->angle(he2.corner())*dot(Vertex_Angle_Normal3,unit_r3)/pow(Vertex_Angle_Normal_norm3,3);
-
-       
-     
-            Force[v1_idx]+=-1*dual_area3*E_v[v3_idx]*geometry->Angle_grad(he2.corner(),v,Face_normal)*dot(Face_normal,Vertex_Angle_Normal3)*dot(Vertex_Angle_Normal3,unit_r3)/pow(Vertex_Angle_Normal_norm3,3);
-
-            
-            }
-
-        }
-        
-      
-        Force[v]+=F;
-        F={0,0,0};
-        F2={0,0,0};
-        F3={0,0,0};
-        F4={0,0,0};
-        dual_area=0;
-        // THis is between the iteration of the halfedges and the vertex
-        
-
-
-        
-
-
-        // Force[v]+=F;
-        }
-        // std::cout<<"\n\n";
-        // 
-        // std::cout<<"Vertex number "<< v.getIndex()<< "Dot product equal to"<< dot(geometry->vertexNormalAngleWeighted(v),unit_r)<<"distance r ="<< rs[v.getIndex()]<<"SHould i consider?  \t "<< ((dot(geometry->vertexNormalAngleWeighted(v),(Pos-geometry->inputVertexPositions[v]).unit())>0) && (rs[v.getIndex()]<1.2)) <<"\n";
-        // }
-        // std::cout<<"\n\n\n";
-        return Force;
-
-
-    }
 
     if(interaction=="Shifted_LJ_Normal_nopush"){
 
@@ -1767,15 +1593,57 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
 }
 
 
+void Bead::Bead_interactions(){
+
+    if(interaction == "None") Total_force = Vector3({0,0,0});
+    Vector3 v_dist;
+    double dist;
+    Vector3 Force;
+    for(int i = 0 ; i < Beads.size() ; i++){
+
+        // Here i need to separate by interactions
+
+        if(Bond_type[i]=="Harmonic"){
+            // std::cout<<"Calculating armonic force\n";
+            v_dist = Pos- Beads[0]->Pos;
+            // std::cout<<"v_dist is"<< v_dist <<"\n";
+            // dist = v_dist.norm();
+            // v_dist = v_dist.unit();
+            // I have the distance
+            Total_force+= -1*Interaction_constants_vector[i][0]*v_dist;
+            // std::cout<<"The total force is "<< Total_force <<" \n";
+            // std::cout<<"THe interaction constants vectors is "<< Interaction_constants_vector[i][0] << " " <<Interaction_constants_vector[i][1] <<"\n";
+        }
+
+    }
+}
+
+
+
 void Bead::Set_Force(Vector3 Force){
     
     this->Total_force=Force;
     return ;
 }
 
+
+
+
 double Bead::Energy() {
     double Total_E=0.0;
     double r;
+
+    // I need to add the energy of the interaction between beads 
+    for(int bead =0 ; bead<Beads.size() ; bead++){
+        vector<double> params = Interaction_constants_vector[bead];
+        // Ok so i loaded de params of the interaction
+        if(Bond_type[bead]=="Harmonic" && state!="manual" && state!="froze" ){
+            // The armonic interaction has two parameters (stiffness and rest length) assuming first is the rest length 
+            Total_E+= params[0]*dot(Pos - Beads[bead]->Pos,Pos - Beads[bead]->Pos)/2.0;
+            // std::cout<<"ADDed harmonic energy"<< Total_E <<"\n";
+        }
+
+    }
 
     double dual_area;
     if(interaction=="Spring"){
@@ -1805,12 +1673,12 @@ double Bead::Energy() {
         if(r2>rc2){
             continue;
         }
-        alpha=2*(rc2/(sigma*sigma))*pow( 3/(2*( (rc2/(sigma*sigma)) -1))  ,3.0 );
+        
         dual_area=geometry->barycentricDualArea(v);
         // dual_area=geometry->circumcentricDualArea(v);
 
         
-        Total_E += dual_area*strength*alpha*( (sigma*sigma/r2)-1  )*pow( (rc2/r2)-1 ,2.0);
+        Total_E += dual_area*(4*strength*( pow(sigma*sigma/r2,6) - pow( (sigma*sigma/r2) ,3))+strength);
 
         // Total_E += strength*alpha*( (sigma*sigma/r2)-1  )*pow( (rc2/r2)-1 ,2.0);
 
@@ -1894,7 +1762,7 @@ double Bead::Energy() {
         }
         return Total_E;
     }
-    Total_E=0;
+   
 
 
         if(interaction == "test_angle_normal_r_normalized")
@@ -1920,7 +1788,7 @@ double Bead::Energy() {
 
         return Total_E;
         }
-        Total_E=0;
+   
         
           if(interaction == "test_angle_normal_r_normalized_LJ")
         {
@@ -1959,8 +1827,7 @@ double Bead::Energy() {
 
         return Total_E;
         }
-        
-        Total_E=0;
+
 
         if(interaction == "Shifted_LJ_Normal")
         {
@@ -2075,9 +1942,7 @@ double Bead::Energy() {
         
         
     
-    
-    
-        Total_E=0;
+  
     
         if(interaction == "test_angle_normal_r_normalized_LJ_Full")
         {
@@ -2141,7 +2006,14 @@ void Bead::Reset_bead(Vector3 Actual_pos){
 }
 
 void Bead::Move_bead(double dt,Vector3 center) {
-    this->Pos=this->Pos+Total_force*dt -center;
+    if(state == "default") this->Pos = this->Pos + Total_force*dt -center;
+
+    if(state == "froze") return;
+
+    if(state == "manual") {
+        this->Pos += Velocity*dt;
+        // std::cout<<"Moving manually\n";
+    }
     // std::cout<<"The bead is moving "<< norm(Total_force*dt -center)<<"\n";
     return;
 }

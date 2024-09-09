@@ -206,7 +206,7 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
     arcsim::Mesh mesh1;
   
     // std::cout<<"Adding vertices?\n";
-    for (int v = 0; v < mesh->nVertices(); v++) {
+    for (size_t v = 0; v < mesh->nVertices(); v++) {
             // const Vert *vert0 = mesh0.verts[v];
             Vector3 pos_orig= geometry->inputVertexPositions[v];
             arcsim::Vec3 pos;
@@ -219,7 +219,7 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
     }
 
     // std::cout<<"Adding nodes?\n";
-    for (int v = 0; v < mesh->nVertices(); v++) {
+    for (size_t v = 0; v < mesh->nVertices(); v++) {
             // const Vert *vert0 = mesh0.verts[v];
             Vector3 pos_orig= geometry->inputVertexPositions[v];
             arcsim::Vec3 pos;
@@ -238,7 +238,7 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
 
 
     // std::cout<<"Adding edges?\n";
-    for (int e = 0; e<mesh->nEdges();e++){
+    for (size_t e = 0; e<mesh->nEdges();e++){
         Edge e_orig= mesh->edge(e);
 
         arcsim::Edge *edge1 = new arcsim::Edge(mesh1.nodes[e_orig.firstVertex().getIndex()],mesh1.nodes[e_orig.secondVertex().getIndex()],0);
@@ -251,7 +251,7 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
 
 
     // std::cout<<"Adding faces?\n";
-    for(int f=0; f< mesh->nFaces(); f++){
+    for(size_t f=0; f< mesh->nFaces(); f++){
     Face f_orig = mesh->face(f);
     Halfedge he = f_orig.halfedge();
     arcsim::Face *face1 = new arcsim::Face(mesh1.verts[he.vertex().getIndex()],mesh1.verts[he.next().vertex().getIndex()],mesh1.verts[he.next().next().vertex().getIndex()],0,0 );        
@@ -304,7 +304,7 @@ SimplePolygonMesh simpleMesh;
     // flag_warning=false;
     // flags = vector<int>();
     // simpleMesh = SimplePolygonMesh();
-    for(int v = 0 ; v<mesh.verts.size(); v++){
+    for(size_t v = 0 ; v<mesh.verts.size(); v++){
         arcsim::Vec3 pos_old = mesh.nodes[v]->x;
         
         v_pos.x=pos_old[0];
@@ -350,13 +350,13 @@ SimplePolygonMesh simpleMesh;
     if(flag_warning){
     std::cout<<"THe number of flags is "<<flags.size()<<"\n";
     std::cout<<"THe flags are \n";
-    for (int flag = 0 ; flag< flags.size(); flag++){
+    for (size_t flag = 0 ; flag< flags.size(); flag++){
         std::cout<< flags[flag]<<"\t ";
     }
     }
     // std::cout<<"hihi\n";
     bool non_manifold = false;
-    for(int f = 0 ; f<mesh.faces.size();f++){
+    for(size_t f = 0 ; f<mesh.faces.size();f++){
         
         std::vector<size_t> polygon(3);
         
@@ -368,7 +368,7 @@ SimplePolygonMesh simpleMesh;
         int less_id2 = 0;
         int less_id3 = 0;
 
-        for(int flag =0 ; flag < flags.size(); flag++){
+        for(size_t flag =0 ; flag < flags.size(); flag++){
         if( id1 == flags[flag]|| id2 == flags[flag] || id3 == flags[flag]){
             non_manifold=true;
         }
@@ -520,12 +520,20 @@ int main(int argc, char** argv) {
     x_furthest+=1.4;
     double radius=1.0;
     
+    std::vector<Bead> Beads;
+
+
     Bead_1 = Bead(mesh,geometry,Vector3({x_furthest,0.0,0.0}),radius,Interaction_str,rc);
+    Bead_1.interaction="Shifted_LJ_Normal_nopush";
+    
+    Beads.push_back(Bead_1);
+
     
     // Bead_1.pulling_speed=pullin_force;
-    Bead_1.interaction="Shifted_LJ_Normal_nopush";
-    M3DG = Mem3DG(mesh,geometry,Bead_1);
     
+    M3DG = Mem3DG(mesh,geometry);
+    for( size_t i = 0 ; i< Beads.size() ; i++) M3DG.Add_bead(&Beads[i]);
+    // M3DG.Add_bead(&Beads);
     // Add visualization options.
     
     std::stringstream nustream;
@@ -573,6 +581,17 @@ int main(int argc, char** argv) {
     Sim_data<<"T_Volume T_Area time Volume Area E_vol E_sur E_bend grad_norm backtrackstep\n";
     Sim_data.close();
 
+    
+    std::vector<std::string> Bead_filenames;
+    std::ofstream Bead_datas;
+    for(size_t i = 0 ; i < Beads.size(); i++){
+        Bead_filenames.push_back(basic_name+ "Bead_"+std::to_string(i)+"_data.txt");
+        Bead_datas = std::ofstream(Bead_filenames[i]);
+        
+        Bead_datas<<"####### This data is taken every 250 steps just like the mesh radius is " << radius<<" \n";
+        Bead_datas.close();
+    }
+    
     std::string filename2 = basic_name + "Bead_data.txt";
     
     std::ofstream Bead_data(filename2);
@@ -580,12 +599,29 @@ int main(int argc, char** argv) {
     bool Save_bead_data=false;
     bool crash = false;
     bool Save_output_data=false;
+
+    
+
     Bead_data<<"####### This data is taken every 250 steps just like the mesh radius is " << radius<<" \n";
+    Bead_data.close();
+
+
+    std::vector<std::string> bead_filenames_SS;
+    std::ofstream Bead_datas_SS;
+
+
+    for( size_t i = 0 ; i < Beads.size() ; i++){
+        std::string filename5 = basic_name + "Bead_" + std::to_string(i) + "_SS_data.txt";
+        Bead_datas_SS = std::ofstream(filename5);
+        Bead_datas_SS<<"#### This data is taken everytime i do an increase in the interacion strength\n";
+        Bead_datas_SS.close();
+        bead_filenames_SS.push_back(filename5);
+    }
     
     std::string filename4 = basic_name + "Bead_data_SS.txt";
-    std::ofstream Bead_data_SS(filename4);
-    Bead_data_SS<<"#### This data is taken everytime i do an increase in the interacion strength\n";
-    Bead_data_SS.close();
+    std::ofstream Bead_data_SS;
+    // Bead_data_SS<<"#### This data is taken everytime i do an increase in the interacion strength\n";
+    // Bead_data_SS.close();
 
 
     bool flag_SS=true;
@@ -668,17 +704,29 @@ int main(int argc, char** argv) {
             // std::cout<<"defining pointers\n";
             mesh = mesh_uptr.release();
             geometry = geometry_uptr.release();
-            Bead_1 = Bead(mesh,geometry,Bead_1.Pos,radius,Interaction_str,rc);
-            Bead_1.prev_force = prev_force;
-            Bead_1.interaction = "Shifted_LJ_Normal_nopush";
-            Bead_1.strength = prev_strength;
-            Bead_1.prev_E_stationary = prev_E;
             
-            M3DG = Mem3DG(mesh,geometry,Bead_1);
+            // Bead_1 = Bead(mesh,geometry,Bead_1.Pos,radius,Interaction_str,rc);
+            // Bead_1.prev_force = prev_force;
+            // Bead_1.interaction = "Shifted_LJ_Normal_nopush";
+            // Bead_1.strength = prev_strength;
+            // Bead_1.prev_E_stationary = prev_E;
+                    
+
+
+            // M3DG = Mem3DG(mesh,geometry,Bead_1);
+            M3DG = Mem3DG(mesh,geometry);
             M3DG.Save_SS = Save_ss;
             M3DG.system_time = current_t;
             // std::cout<<"time is"<<time<<"\n";
             M3DG.stop_increasing = Stop_increasing;
+            
+            // M3DG.Add_bead(&Bead_1);
+            for(size_t i = 0 ; i<Beads.size(); i++){
+                Beads[i].Reasign_mesh(mesh,geometry);
+                M3DG.Add_bead(&Beads[i]);
+            }
+
+
             end_time_control=chrono::steady_clock::now();
             remeshing_elapsed_time+=chrono::duration_cast<chrono::milliseconds>(end_time_control-start_time_control).count();
             // std::cout<<"leaving remesher\n";
@@ -726,14 +774,20 @@ int main(int argc, char** argv) {
             SS_index=SS_index+1;
             // Ok lets try to do this
             if(SS_index%2==1){
-            Bead_data_SS = std::ofstream(filename4,std::ios_base::app);
-            if(Stop_increasing && current_t%500==0 && flag_SS  ){
-                flag_SS = false;
-                Bead_data_SS << "# STARTING THE CONSTANT TUBE GROWTH THEREFORE THIS COUNTS AS A STATIONARY STATE # # # # # # # # # # # # # # # # # # # # #\n";
+            // Bead_data_SS = std::ofstream(filename4,std::ios_base::app);
+            
+            for(size_t i = 0 ; i<Beads.size() ; i++){
+                Bead_data_SS = std::ofstream(bead_filenames_SS[i],std::ios_base::app);
+                if(Stop_increasing && current_t%500==0 && flag_SS  ){
+                    flag_SS = false;
+                    Bead_data_SS << "# STARTING THE CONSTANT TUBE GROWTH THEREFORE THIS COUNTS AS A STATIONARY STATE # # # # # # # # # # # # # # # # # # # # #\n";
+                    }
+                Bead_data_SS  << Beads[i].Pos.x << " "<< Beads[i].Pos.y << " " << Beads[i].Pos.z << " " << Beads[i].Total_force.x << " " << Beads[i].Total_force.y << " " << Beads[i].Total_force.z << " "<< Mem_Force.x << " "<< Mem_Force.y << " " << Mem_Force.z << " " << prev_strength << "\n";
+                Bead_data_SS.close();
             }
+            
             // Here we need to sabe the data
-            Bead_data_SS  << Bead_1.Pos.x << " "<< Bead_1.Pos.y << " " << Bead_1.Pos.z << " " << Bead_force.x << " " << Bead_force.y << " " << Bead_force.z << " "<< Mem_Force.x << " "<< Mem_Force.y << " " << Mem_Force.z << " " << prev_strength << "\n";
-            Bead_data_SS.close();
+            
 
             Save_mesh(basic_name,"Steady_state",SS_index);
             }
@@ -759,7 +813,14 @@ int main(int argc, char** argv) {
 
             Save_mesh(basic_name,current_t);
             Save_bead_data=true;
-            Bead_data = std::ofstream(filename2,std::ios_base::app);
+
+
+            // for(int i = 0 ; i<Beads.size() ; i++){
+            //     Bead_datas[i] = std::ofstream(Bead_filenames[i],std::ios_base::app);
+            // }
+            // Bead_data = std::ofstream(filename2,std::ios_base::app);
+            
+            
             Save_output_data=true;
             end_saving = chrono::steady_clock::now();
             saving_mesh_time+= chrono::duration_cast<chrono::milliseconds>(end_saving-start_saving).count();
@@ -777,7 +838,7 @@ int main(int argc, char** argv) {
             std::cout<< "THe number of vertices is "<< n_vert <<"\n";    
             std::cout<< "the avg edge lenghth is " <<geometry->meanEdgeLength()<<"\n";
             std::cout << "The avg edge length is = " << std::fixed << std::setprecision(10) << geometry->meanEdgeLength() << std::endl;
-            std::cout << "The interaction strength is "<< M3DG.Bead_1.strength <<" \n";
+            std::cout << "The interaction strength is "<< Beads[0].strength <<" \n";
             Volume= geometry->totalVolume();
             Area=geometry->totalArea();
             nu_obs=3*Volume/(4*PI*pow( Area/(4*PI) ,1.5 ));
@@ -809,15 +870,20 @@ int main(int argc, char** argv) {
             break;
         }
         start_time_control = chrono::steady_clock::now();
-        dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save_bead_data,Bead_data,Save_output_data,pulling);
+        dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save_bead_data,Bead_filenames,Save_output_data,pulling);
+
         end_time_control = chrono::steady_clock::now();
         integrate_elapsed_time += chrono::duration_cast<chrono::milliseconds>(end_time_control-start_time_control).count(); 
         Save_output_data=false;
         Save_bead_data=false;
+
+        // for(int i =0 ; i<Beads.size() ; i++) Bead_datas[i].close();
+        
+        
         Bead_data.close();
         Sim_data.close();
         if(current_t%1000==0){
-            std::cout<<"THe position of the bead is "<< M3DG.Bead_1.Pos<<"\n";
+            std::cout<<"THe position of the bead is "<< M3DG.Beads[0]->Pos<<"\n";
             std::cout<< "Remeshing has taken a total of "<< remeshing_elapsed_time <<" milliseconds\n" << "Saving the mesh has taken a total of "<< saving_mesh_time<< "milliseconds \n Integrating the forces has taken a total of "<< integrate_elapsed_time <<" milliseconds \n\n"; 
         }
         if(dt_sim==-1){

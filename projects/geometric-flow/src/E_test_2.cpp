@@ -265,7 +265,7 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
     arcsim::Mesh mesh1;
   
     // std::cout<<"Adding vertices?\n";
-    for (int v = 0; v < mesh->nVertices(); v++) {
+    for (size_t v = 0; v < mesh->nVertices(); v++) {
             // const Vert *vert0 = mesh0.verts[v];
             Vector3 pos_orig= geometry->inputVertexPositions[v];
             arcsim::Vec3 pos;
@@ -278,7 +278,7 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
     }
 
     // std::cout<<"Adding nodes?\n";
-    for (int v = 0; v < mesh->nVertices(); v++) {
+    for (size_t v = 0; v < mesh->nVertices(); v++) {
             // const Vert *vert0 = mesh0.verts[v];
             Vector3 pos_orig= geometry->inputVertexPositions[v];
             arcsim::Vec3 pos;
@@ -294,7 +294,7 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
 
 
     // std::cout<<"Adding edges?\n";
-    for (int e = 0; e<mesh->nEdges();e++){
+    for (size_t e = 0; e<mesh->nEdges();e++){
         Edge e_orig= mesh->edge(e);
 
         arcsim::Edge *edge1 = new arcsim::Edge(mesh1.nodes[e_orig.firstVertex().getIndex()],mesh1.nodes[e_orig.secondVertex().getIndex()],0);
@@ -307,7 +307,7 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
 
 
     // std::cout<<"Adding faces?\n";
-    for(int f=0; f< mesh->nFaces(); f++){
+    for(size_t f = 0; f< mesh->nFaces(); f++){
     Face f_orig = mesh->face(f);
     Halfedge he = f_orig.halfedge();
     arcsim::Face *face1 = new arcsim::Face(mesh1.verts[he.vertex().getIndex()],mesh1.verts[he.next().vertex().getIndex()],mesh1.verts[he.next().next().vertex().getIndex()],0,0 );        
@@ -352,7 +352,7 @@ translate_to_geometry(arcsim::Mesh mesh){
     vector<int> flags(0);
 
    
-    for(int v = 0 ; v<mesh.verts.size(); v++){
+    for(size_t v = 0 ; v<mesh.verts.size(); v++){
         arcsim::Vec3 pos_old = mesh.nodes[v]->x;
         v_pos.x=pos_old[0];
         v_pos.y=pos_old[1];
@@ -374,12 +374,12 @@ translate_to_geometry(arcsim::Mesh mesh){
     // int number_of_flags=0;
     std::cout<<"THe number of flags is "<<flags.size()<<"\n";
     std::cout<<"THe flags are \n";
-    for (int flag = 0 ; flag< flags.size(); flag++){
+    for (size_t flag = 0 ; flag< flags.size(); flag++){
         std::cout<< flags[flag]<<"\t ";
     }
     std::cout<<"hihi\n";
     bool non_manifold = false;
-    for(int f = 0 ; f<mesh.faces.size();f++){
+    for(size_t f = 0 ; f<mesh.faces.size();f++){
         
         std::vector<size_t> polygon(3);
         
@@ -391,7 +391,7 @@ translate_to_geometry(arcsim::Mesh mesh){
         int less_id2 = 0;
         int less_id3 = 0;
 
-        for(int flag =0 ; flag< flags.size(); flag++){
+        for(size_t flag =0 ; flag< flags.size(); flag++){
         if( id1 == flags[flag]|| id2 == flags[flag] || id3 == flags[flag]){
             non_manifold=true;
         }
@@ -587,7 +587,7 @@ int main(int argc, char** argv) {
 
 
 
-        for(int i =0 ; i<Cloth_1.mesh.nodes.size(); i++){
+        for(size_t i =0 ; i<Cloth_1.mesh.nodes.size(); i++){
             if(arcsim::is_seam_or_boundary( Cloth_1.mesh.nodes[i])) std::cout<<"THis node is a seam or boundary? wtf\n\n";
         }
 
@@ -630,7 +630,7 @@ int main(int argc, char** argv) {
 
             std::ofstream Dihedral_dist(basic_name+"Dihedral_distribution_before.txt");
             Dihedral_dist<<"# # # Dihedral angle distribution non problematic case\n";
-            for(int e = 0 ; e< mesh->nEdges(); e++){
+            for(size_t e = 0 ; e< mesh->nEdges(); e++){
                 Dihedral_dist << abs( geometry->dihedralAngle(mesh->edge(e).halfedge()))<< "\n";
             }
             Dihedral_dist.close();
@@ -638,7 +638,7 @@ int main(int argc, char** argv) {
 
         std::ofstream Edge_dist(basic_name+"Edge_dist_before.txt");
         Edge_dist<<"# # # Edge distribution before remeshing\n";
-        for(int e = 0 ; e < mesh->nEdges(); e++){
+        for(size_t e = 0 ; e < mesh->nEdges(); e++){
             Edge_dist << geometry->edgeLength(mesh->edge(e))<<"\n";
 
         }
@@ -653,7 +653,7 @@ int main(int argc, char** argv) {
         double max_sizing=0;
         double min_sizing=1e4;
 
-        for(int v=0; v<Cloth_1.mesh.verts.size();v++){
+        for(size_t v=0; v<Cloth_1.mesh.verts.size();v++){
             // I want to get the sizing 
             arcsim::Vert* Ve = Cloth_1.mesh.verts[v];
             sizing_val = Ve->sizing->M.col(0)[0];
@@ -675,7 +675,7 @@ int main(int argc, char** argv) {
         Edge_dist = std::ofstream(basic_name+"Edge_dist_after.txt");
         Edge_dist<<"# # # Edge distribution after remeshing\n";
 
-        for(int e = 0 ; e < Cloth_1.mesh.edges.size() ; e++){
+        for(size_t e = 0 ; e < Cloth_1.mesh.edges.size() ; e++){
             
             arcsim::Edge* Edg = Cloth_1.mesh.edges[e];
         
@@ -722,7 +722,7 @@ int main(int argc, char** argv) {
 
             std::ofstream Dihedral_dist(basic_name+"Dihedral_distribution_after.txt");
             Dihedral_dist<<"# # # Dihedral angle distribution non problematic case\n";
-            for(int e = 0 ; e< mesh->nEdges(); e++){
+            for(size_t e = 0 ; e< mesh->nEdges(); e++){
                 Dihedral_dist << abs( geometry->dihedralAngle(mesh->edge(e).halfedge()))<< "\n";
             }
             Dihedral_dist.close();
@@ -862,7 +862,7 @@ int main(int argc, char** argv) {
             Vector3 rhat;
             
             
-            for(int i =0 ; i<mesh->nVertices(); i++){
+            for(size_t i = 0; i < mesh->nVertices(); i++){
                 rhat = geometry->inputVertexPositions[i].unit();
                 geometry->inputVertexPositions[i]-=1e-2*rhat;
 
@@ -1272,7 +1272,7 @@ int main(int argc, char** argv) {
      
     nu_evol= time<50 ? nu_0 + (nu-nu_0)*time/50 : nu; 
     if(with_bead){
-        dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save_bead_data,Bead_data,Save_data,pulling);
+        // dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,Kd,Sim_data,time,Save_bead_data,Bead_data,Save_data,pulling);
         
     }
     else{

@@ -122,6 +122,14 @@ set(SRCSclusterpulling
   ../../utils/src/colormap.cpp
 )
 
+
+set(SRCSclusterpulling2 
+  src/main_pulling_two_beads.cpp  
+  src/Mem-3dg.cpp
+  src/Beads.cpp
+  ../../utils/src/colormap.cpp
+)
+
 set(SRCSprocessing 
   src/Post_processing.cpp  
   src/Mem-3dg.cpp
@@ -129,7 +137,12 @@ set(SRCSprocessing
   ../../utils/src/colormap.cpp
 )
 
-
+set(SRCSclusterforcefield 
+ src/main_force_field.cpp
+ src/Mem-3dg.cpp
+ src/Beads.cpp
+ ../../utils/src/colormap.cpp
+)
 # set(WindowSRCS 
 #   src/Window.cpp
 
@@ -247,7 +260,33 @@ target_include_directories(main_cluster_pulling PUBLIC "${CMAKE_CURRENT_SOURCE_D
 target_link_libraries(main_cluster_pulling PUBLIC geometry-central polyscope arcsim)
 
 
+add_executable(main_cluster_pulling_beads "${SRCSclusterpulling2}")
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT main_cluster_pulling_beads)
+target_include_directories(main_cluster_pulling_beads PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+target_include_directories(main_cluster_pulling_beads PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src_arcsim/")
 
+target_include_directories(main_cluster_pulling_beads PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
+target_include_directories(main_cluster_pulling_beads PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps")
+
+# add the args.hxx project which we use for command line args
+target_include_directories(main_cluster_pulling_beads PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
+
+target_include_directories(main_cluster_pulling_beads PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
+
+target_link_libraries(main_cluster_pulling_beads PUBLIC geometry-central polyscope arcsim)
+
+
+
+add_executable(main_cluster_field "${SRCSclusterforcefield}")
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT main_cluster_field)
+target_include_directories(main_cluster_field PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+target_include_directories(main_cluster_field PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
+target_include_directories(main_cluster_field PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src_arcsim/")
+target_include_directories(main_cluster_field PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps")
+# add the args.hxx project which we use for command line args
+target_include_directories(main_cluster_field PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
+target_include_directories(main_cluster_field PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
+target_link_libraries(main_cluster_field PUBLIC geometry-central polyscope arcsim)
 
 
 

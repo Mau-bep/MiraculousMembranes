@@ -98,6 +98,7 @@ Vector3 CoM;                   // original center of mass
 
 Mem3DG M3DG;
 Bead Bead_1;
+Bead Bead_2;
 
 std::array<double, 3> BLUE = {0.11, 0.388, 0.89};
 // glm::vec<3, float> ORANGE_VEC = {1, 0.65, 0};
@@ -136,7 +137,6 @@ void Save_mesh(std::string basic_name, size_t current_t) {
    // Build member variables: mesh, geometry
     Vector3 Pos;
 
-  
     std::ofstream o(basic_name+"membrane_"+std::to_string(current_t)+".obj");
     o << "#This is a meshfile from a saved state\n" ;
 
@@ -203,8 +203,7 @@ void Save_mesh(std::string basic_name,bool arcsim_remeshing, size_t current_t) {
 arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeometry* geometry){
 
     arcsim::Mesh mesh1;
-    // std::cout<< mesh1.verts.size()<<" number of vertices\n";
-
+  
     // std::cout<<"Adding vertices?\n";
     for (size_t v = 0; v < mesh->nVertices(); v++) {
             // const Vert *vert0 = mesh0.verts[v];
@@ -213,7 +212,7 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
             pos[0]=pos_orig.x;
             pos[1]=pos_orig.y;
             pos[2]=pos_orig.z;
-            arcsim::Vert *vert1 = new arcsim::Vert(pos, 1,0);
+            arcsim::Vert *vert1 = new arcsim::Vert(pos, 1);
             mesh1.add(vert1);
             
     }
@@ -228,26 +227,17 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
             pos[2]=pos_orig.z;
             // arcsim::Vert *vert1 = new arcsim::Vert(pos, 0, 1);
             // mesh1.add(vert1);
-            arcsim::Node *node1 = new arcsim::Node(pos, pos, pos, 0, false);
-            node1->preserve = false;
-            node1->temp = false;
-            node1->temp2 = false;
-            node1->verts.resize(1);
-            node1->verts[0] = mesh1.verts[v];
-            
-            mesh1.add(node1);
-            // mesh1.add(new arcsim::Node(pos,
-            //                      pos,
-            //                      pos,
-            //                      0,false));
-            // mesh1.verts[v]->node=mesh1.nodes[v];
-            // arcsim::include(mesh1.verts[v],mesh1.nodes[v]->verts);
-            // mesh1.nodes[v]->verts.push_back(mesh1.verts[v]);
+            mesh1.add(new arcsim::Node(pos,
+                                 pos,
+                                 pos,
+                                 0,false));
+            mesh1.verts[v]->node=mesh1.nodes[v];
+            mesh1.nodes[v]->verts.push_back(mesh1.verts[v]);
     }
 
 
     // std::cout<<"Adding edges?\n";
-    for (size_t e = 0; e<mesh->nEdges();e++){
+    for (size_t e = 0; e < mesh->nEdges();e++){
         Edge e_orig= mesh->edge(e);
 
         arcsim::Edge *edge1 = new arcsim::Edge(mesh1.nodes[e_orig.firstVertex().getIndex()],mesh1.nodes[e_orig.secondVertex().getIndex()],0);
@@ -260,7 +250,7 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
 
 
     // std::cout<<"Adding faces?\n";
-    for(size_t f = 0; f< mesh->nFaces(); f++){
+    for(size_t f=0; f< mesh->nFaces(); f++){
     Face f_orig = mesh->face(f);
     Halfedge he = f_orig.halfedge();
     arcsim::Face *face1 = new arcsim::Face(mesh1.verts[he.vertex().getIndex()],mesh1.verts[he.next().vertex().getIndex()],mesh1.verts[he.next().next().vertex().getIndex()],0,0 );        
@@ -313,7 +303,7 @@ SimplePolygonMesh simpleMesh;
     // flag_warning=false;
     // flags = vector<int>();
     // simpleMesh = SimplePolygonMesh();
-    for(size_t v = 0 ; v < mesh.verts.size(); v++){
+    for(size_t v = 0 ; v<mesh.verts.size(); v++){
         arcsim::Vec3 pos_old = mesh.nodes[v]->x;
         
         v_pos.x=pos_old[0];
@@ -359,14 +349,14 @@ SimplePolygonMesh simpleMesh;
     if(flag_warning){
     std::cout<<"THe number of flags is "<<flags.size()<<"\n";
     std::cout<<"THe flags are \n";
-    for (size_t flag = 0 ; flag < flags.size(); flag++){
+    for (size_t flag = 0 ; flag< flags.size(); flag++){
         std::cout<< flags[flag]<<"\t ";
     }
     std::cout<<" \n";
     }
     // std::cout<<"hihi\n";
     bool non_manifold = false;
-    for(size_t f = 0 ; f < mesh.faces.size();f++){
+    for(size_t f = 0 ; f<mesh.faces.size();f++){
         
         std::vector<size_t> polygon(3);
         
@@ -378,7 +368,7 @@ SimplePolygonMesh simpleMesh;
         int less_id2 = 0;
         int less_id3 = 0;
 
-        for(size_t flag = 0 ; flag < flags.size(); flag++){
+        for(size_t flag =0 ; flag< flags.size(); flag++){
         if( id1 == flags[flag]|| id2 == flags[flag] || id3 == flags[flag]){
             non_manifold=true;
         }
@@ -444,7 +434,6 @@ int main(int argc, char** argv) {
     // I will do it so i can give this values
  
     arcsim::Cloth Cloth_1;
-    Cloth_1.dump_info = false;
     arcsim::Cloth::Remeshing remeshing_params;
 
   
@@ -491,7 +480,7 @@ int main(int argc, char** argv) {
       if(arcsim){
         std::cout<<"Settin remesher params";
         remeshing_params.aspect_min=0.2;
-        remeshing_params.refine_angle=0.65;
+        remeshing_params.refine_angle=0.7;
         remeshing_params.refine_compression=1e-4;
         remeshing_params.refine_velocity=1.0;
         remeshing_params.size_max=trgt_len*2.5;
@@ -512,21 +501,42 @@ int main(int argc, char** argv) {
         }
 
     }
-    x_furthest+=1.4;
+    // x_furthest-=1.0;
     
     std::vector<Bead> Beads;
+    std::vector<std::string> bonds;
 
-    Bead_1 = Bead(mesh,geometry,Vector3({x_furthest,0.0,0.0}),radius,Interaction_str);
-    Bead_1.interaction="Shifted_LJ_Normal_nopush";
-    Bead_1.rc=radius*2.0;
+    bonds.push_back("Harmonic");
+    std::vector<std::vector<double>> constants;
+    constants.push_back(std::vector<double>{3.0,0.0});
+
+
+    Bead_1 = Bead(mesh,geometry,Vector3({x_furthest-1.5,0.0,0.0}),1.0,10);
+    Bead_1.interaction = "Shifted-LJ";
+    Bead_1.state = "default";
+    Bead_1.Bond_type = bonds;
+    Bead_1.Interaction_constants_vector=constants;
+    Bead_1.rc=pow(2,1.0/6.0);
+
+    Bead_2 = Bead(mesh,geometry,Vector3({x_furthest+75.0,0.0,0.0}),1.0,1.0);
+    Bead_2.interaction="None";
+    Bead_2.state = "froze";
+    Bead_2.Velocity = Vector3({1.0,0.0,0.0});
+    Bead_2.Bond_type = bonds;
+    Bead_2.Interaction_constants_vector=constants;
+    
+    
     Beads.push_back(Bead_1);
+    Beads.push_back(Bead_2);
+    Beads[0].Beads.push_back(&Beads[1]);
+    Beads[1].Beads.push_back(&Beads[0]);
 
-    // This is for big be
 
 
+    
     M3DG = Mem3DG(mesh,geometry);
     // M3DG.Add_bead(&Bead_1);
-    for( size_t i = 0 ; i < Beads.size() ; i++) M3DG.Add_bead(&Beads[i]);
+    for( size_t i = 0 ; i< Beads.size() ; i++) M3DG.Add_bead(&Beads[i]);
     
     std::stringstream nustream;
     std::stringstream c0stream;
@@ -556,7 +566,7 @@ int main(int argc, char** argv) {
     
     
 
-    std::string first_dir="../Results/Mem3DG_Bead_Reciprocal_arcsim_NO_crashh/";
+    std::string first_dir="../Results/Mem3DG_Bead_pulling_2_arcsim/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
@@ -608,10 +618,10 @@ int main(int argc, char** argv) {
     double nu_0;
     double c_null;
     size_t counter=0;
-    double time=0.01;
+    double time=0.0;
     double dt_sim=0.0;
     int sys_time = 0;
-    bool some_flag=false;
+
 
     bool seam = false;
     start = chrono::steady_clock::now();
@@ -629,29 +639,26 @@ int main(int argc, char** argv) {
             // std::cout<<"\n";
             Cloth_1.remeshing=remeshing_params;
             // std::cout<<"Remeshing\n";
-            // if( current_t>394 ){
-            //     arcsim::save_obj(Cloth_1.mesh, basic_name + "Debugging_before_"+ std::to_string(current_t)+".obj" );
-            //     Cloth_1.dump_info = true;
+            // if( current_t>1300 ){
+            //     arcsim::save_obj(Cloth_1.mesh, basic_name + "Debugging_before.obj" );
             // }
-            // std::cout<<"aaaa\n";
-            // if(current_t>240){
-            //  std::cout<<current_t << "\n";
-            // }
-            // std::cout<<current_t<<"\n";
             // std::cout<<"Remeshing 1\n";
-            // if(current_t>2300) std::cout<<"\t "+std::to_string(current_t) + "\t";
-            arcsim::dynamic_remesh(Cloth_1);
-        
             
-            // if( current_t>394){
-            //     std::cout<<"Saving mesh\n";
-            //     Save_mesh(basic_name,current_t); 
-            //     arcsim::save_obj(Cloth_1.mesh, basic_name + "Debugging_after_"+ std::to_string(current_t)+".obj" );
-            //     Cloth_1.dump_info = false;
+            arcsim::dynamic_remesh(Cloth_1);
+            // std::cout<<"Remeshing done\n";
+
+            // for(int val = 0 ; val< Cloth_1.mesh.edges.size() ; val++){
+            //     // std::cout<<"Trying edge "<< val <<"\n";
+            //     if(arcsim::is_seam_or_boundary(Cloth_1.mesh.edges[val])) {
+            //         arcsim::save_obj(Cloth_1.mesh,basic_name + "Seam_somewhere.obj");
+            //         seam = true;
+            //     }
             // }
-            // if(seam ){
-            //    std::cout<<"Seam\n";
-            //     break;
+            if(seam ){
+                break;
+            }
+            // if( current_t>1300 ){
+            //     arcsim::save_obj(Cloth_1.mesh, basic_name + "Debugging_after.obj" );
             // }
             // Bead_1 = M3DG.Bead_1;
             small_Ts = M3DG.small_TS;
@@ -716,10 +723,10 @@ int main(int argc, char** argv) {
         // psMesh->setEdgeWidth(1.0);
 
         
-        if(current_t%100==0 ){
+        if(current_t%100==0 || current_t==100){
             // Bead_data.close();
             // Sim_data.close();
-            
+            // std::cout<<"Saving\n";
             start_time_control=chrono::steady_clock::now();
             // if(current_t%100==0){
             Save_mesh(basic_name,current_t);
@@ -812,6 +819,9 @@ int main(int argc, char** argv) {
             // std::cout<<"Adding time\n";
             time+=dt_sim;
             // std::cout<<"SUccesfully\n";
+        }
+        if(time>10){
+            Beads[1].state="froze";
         }
 
 
