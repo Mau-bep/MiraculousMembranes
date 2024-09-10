@@ -491,7 +491,7 @@ int main(int argc, char** argv) {
       if(arcsim){
         std::cout<<"Settin remesher params";
         remeshing_params.aspect_min=0.2;
-        remeshing_params.refine_angle=0.65;
+        remeshing_params.refine_angle=0.7;
         remeshing_params.refine_compression=1e-4;
         remeshing_params.refine_velocity=1.0;
         remeshing_params.size_max=trgt_len*2.5;
@@ -629,7 +629,7 @@ int main(int argc, char** argv) {
             // std::cout<<"\n";
             Cloth_1.remeshing=remeshing_params;
             // std::cout<<"Remeshing\n";
-            // if( current_t>394 ){
+            // if( current_t>615 ){
             //     arcsim::save_obj(Cloth_1.mesh, basic_name + "Debugging_before_"+ std::to_string(current_t)+".obj" );
             //     Cloth_1.dump_info = true;
             // }
@@ -643,7 +643,7 @@ int main(int argc, char** argv) {
             arcsim::dynamic_remesh(Cloth_1);
         
             
-            // if( current_t>394){
+            // if( current_t>615){
             //     std::cout<<"Saving mesh\n";
             //     Save_mesh(basic_name,current_t); 
             //     arcsim::save_obj(Cloth_1.mesh, basic_name + "Debugging_after_"+ std::to_string(current_t)+".obj" );

@@ -699,15 +699,16 @@ while(true){
     //   alpha=-1.0;
       
     // }
-    if(system_time>3000 ){
-    small_TS = false;
+    if(system_time>1500 ){
+    small_TS = true;
+    break;
     }
     if(Projection>1e10){
     // return alpha;
     std::cout<<"The gradient got crazy\n";
     std::cout<<"The projections is "<< Projection<<"\n";
     geometry->inputVertexPositions = initial_pos;
-    return -1;
+    return 0.0;
     }
 
     }
@@ -720,12 +721,13 @@ while(true){
     break;
     
 
-  }else if (small_TS)
-  {
-    std::cout<<"Converging cancelled\n";
-    std::cout<<"Timestep is "<< alpha <<"\n";
-    small_TS = false;
   }
+  // else if (small_TS)
+  // {
+  //   std::cout<<"Converging cancelled\n";
+  //   std::cout<<"Timestep is "<< alpha <<"\n";
+  //   // small_TS = false;
+  // }
   
 
 
