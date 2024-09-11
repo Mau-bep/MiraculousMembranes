@@ -266,7 +266,7 @@ int main(int argc, char** argv) {
 
 
     int Init_cond=1;
-    int Nsim=3;
+    int Nsim=100;
 
     auto start = chrono::steady_clock::now();
     auto end = chrono::steady_clock::now();
@@ -307,7 +307,7 @@ int main(int argc, char** argv) {
     Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
     Min_rel_lengthstream << std::fixed << std::setprecision(4) <<Min_rel_length;
 
-    first_dir="../Results/Mem3DG_Bead_Reciprocal_arcsim/";
+    first_dir="../Results/Mem3DG_Bead_Reciprocal_arcsim_up/";
     filename = first_dir + "Coverage_final.txt" ;
     std::ofstream Coverage_final(filename,std::ios_base::app);
     Coverage_final<<"# # # Coverage data \n";
@@ -346,7 +346,7 @@ int main(int argc, char** argv) {
                 
                 num_steps=Last_ts/delta_steps+1;
                 Vector<Vector3> Bead_pos(num_steps);
-                filename = basic_name+ "Bead_data.txt";
+                filename = basic_name+ "Bead_0_data.txt";
                 // I now need to read the bead data 
                 std::ifstream Bead_data(filename);
                 if(!Bead_data.is_open()){
@@ -378,6 +378,7 @@ int main(int argc, char** argv) {
                 // I have the bead positions and the directories of the objs, Lesgo
 
                 std::cout<<"Bead data read\n";
+                std::cout<<"Counter is"<< counter <<"\n";
 
                 // filename = basic_name + "Coverage_evol.txt";
                 // std::ofstream Coverage(filename); 
