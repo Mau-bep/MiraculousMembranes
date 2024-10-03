@@ -14,11 +14,11 @@ def checking_radius_dist():
     minrel=0.1
     KA=100000.0
     KB=1.0
-    strength = 130
+    strength = 100
     init_cond=1 
     Nsim=12
 
-    basic_name="../Results/Mem3DG_Bead_Reciprocal_arcsim/".format(nu,radius,KA,KB,strength,init_cond,Nsim)
+    basic_name="../Results/Mem3DG_Bead_Reciprocal_arcsim_up/".format(nu,radius,KA,KB,strength,init_cond,Nsim)
 
 
 
@@ -65,7 +65,7 @@ def checking_radius_dist():
     #     plt.pause(.001)
 
 
-# checking_radius_dist()
+checking_radius_dist()
 
 def Ploting_coverage_2():
     file = open("../Results/Mem3DG_Bead_Reciprocal_arcsim/Coverage_final.txt")

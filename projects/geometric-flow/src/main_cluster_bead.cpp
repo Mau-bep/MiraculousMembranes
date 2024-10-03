@@ -3,6 +3,7 @@
 // #include <stdlib.h>
 #include <unistd.h>
 
+#include <sys/resource.h>
 
 // #include <omp.h>
 
@@ -59,6 +60,12 @@ std::unique_ptr<VertexPositionGeometry> geometry_uptr;
 // so we can more easily pass these to different classes
 ManifoldSurfaceMesh* mesh;
 VertexPositionGeometry* geometry;
+
+
+std::vector<arcsim::Mesh> Saved_meshes(3);
+std::vector<arcsim::Mesh> Saved_after_remesh(3);
+
+
 
 
 
@@ -128,6 +135,67 @@ void showSelected() {
 //     psMesh->updateVertexPositions(geometry->inputVertexPositions);
 //     polyscope::requestRedraw();
 // }
+
+long get_mem_usage()
+{
+    struct rusage usage;
+    int ret;
+    ret = getrusage(RUSAGE_SELF, &usage);
+    return usage.ru_maxrss; // in KB
+}
+
+
+bool measure_angles(){
+
+    // This function will check if the angles get close to Pi
+
+    double Pi = 3.1415926536;
+
+    double angle;
+
+    for(Vertex v : mesh->vertices()){
+        // For every vertex, check all the angles
+
+        for(Halfedge he : v.outgoingHalfedges()){
+            // 
+            angle = geometry->angle(he.corner());
+            
+            if(angle> Pi-Pi/20){
+                
+                std::cout<<"The angle on vertex "<< v.getIndex() << "is way too close to PI with a value of" << angle <<"\n";
+                return true;
+            }
+
+        }
+
+    }
+
+
+
+
+
+    return false;
+}
+
+void area_ratios(){
+    // 
+    double max_ratio=-1;
+    double min_ratio=100;
+    double mean_min_ratio=0;
+    double ratio;
+    for(Edge e : mesh->edges()){
+        Face f1 = e.halfedge().face();
+        Face f2 = e.halfedge().twin().face();
+        // Ok
+        ratio = geometry->faceArea(f1)/geometry->faceArea(f2);
+        ratio = min(ratio,1.0/ratio);
+        mean_min_ratio += ratio;
+        if(ratio<min_ratio) min_ratio = ratio;
+
+    }
+    std::cout<<"The average min ratio is"<< mean_min_ratio/mesh->nEdges()<< "and the min ratio is"<< min_ratio <<"\n";
+
+}
 
 
 
@@ -424,11 +492,11 @@ SimplePolygonMesh simpleMesh;
 
 int main(int argc, char** argv) {
 
+
     
     nu=1.0;
     Curv_adap=std::stod(argv[1]);
     // c0=std::stod(argv[2]);
-   
     // KB=std::stod(argv[4]);
     Interaction_str=std::stod(argv[2]);
     int Init_cond = std::stoi(argv[3]);
@@ -439,6 +507,8 @@ int main(int argc, char** argv) {
     Min_rel_length = 0.1;
     c0=0.0;
 
+    bool continue_sim = false;
+
     bool pulling = false;
     bool arcsim = true;
     // I will do it so i can give this values
@@ -446,6 +516,13 @@ int main(int argc, char** argv) {
     arcsim::Cloth Cloth_1;
     Cloth_1.dump_info = false;
     arcsim::Cloth::Remeshing remeshing_params;
+
+    int saved_mesh_idx = 0;
+    bool Saving_last_states=true;
+
+    std::vector<Vector3> Bead_pos_saved(3);
+
+
 
   
     auto start = chrono::steady_clock::now();
@@ -460,7 +537,7 @@ int main(int argc, char** argv) {
     double remeshing_elapsed_time=0;
     double integrate_elapsed_time=0;
     double saving_mesh_time=0;
-
+    
 
 
 
@@ -488,13 +565,15 @@ int main(int argc, char** argv) {
     V_bar=geometry->totalVolume();
     
     
+
+    
       if(arcsim){
         std::cout<<"Settin remesher params";
         remeshing_params.aspect_min=0.2;
         remeshing_params.refine_angle=0.7;
         remeshing_params.refine_compression=1e-4;
         remeshing_params.refine_velocity=1.0;
-        remeshing_params.size_max=trgt_len*2.5;
+        remeshing_params.size_max=trgt_len*3.0;
         remeshing_params.size_min=trgt_len*0.2;
 
         std::cout<<"Minimum edge length allowed is "<< trgt_len*0.2<<" muak\n";
@@ -505,28 +584,9 @@ int main(int argc, char** argv) {
 
     ORIG_VPOS = geometry->inputVertexPositions;
     CoM = geometry->centerOfMass();
-    double x_furthest=0.0;
-    for(Vertex v : mesh->vertices()){
-        if(geometry->inputVertexPositions[v].x>x_furthest){
-            x_furthest=geometry->inputVertexPositions[v].x;
-        }
 
-    }
-    x_furthest+=1.4;
-    
-    std::vector<Bead> Beads;
-
-    Bead_1 = Bead(mesh,geometry,Vector3({x_furthest,0.0,0.0}),radius,Interaction_str);
-    Bead_1.interaction="Shifted_LJ_Normal_nopush";
-    Bead_1.rc=radius*2.0;
-    Beads.push_back(Bead_1);
-
-    // This is for big be
-
-
-    M3DG = Mem3DG(mesh,geometry);
     // M3DG.Add_bead(&Bead_1);
-    for( size_t i = 0 ; i < Beads.size() ; i++) M3DG.Add_bead(&Beads[i]);
+
     
     std::stringstream nustream;
     std::stringstream c0stream;
@@ -556,7 +616,7 @@ int main(int argc, char** argv) {
     
     
 
-    std::string first_dir="../Results/Mem3DG_Bead_Reciprocal_arcsim_up/";
+    std::string first_dir="../Results/Mem3DG_Bead_Reciprocal_arcsim_up_oct/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
@@ -574,8 +634,79 @@ int main(int argc, char** argv) {
     Sim_data.close();
 
 
+    if(continue_sim){
+        // If i want to restart is a bit tricky.
+        std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(basic_name+"Final_state.obj");
+
+        mesh = mesh_uptr.release();
+        geometry = geometry_uptr.release();
+
+        // I need to load the positions from a text file 
+
+        std::ifstream inputFile(basic_name+"Saved_bead_info.txt");
+
+        string line;
+
+        std::getline(inputFile,line);
+        stringstream ss(line);
+        string pos;
+        std::vector<double> coords(0);
+        
+        std::cout<<"coords are \t ";
+        while(getline(ss,pos,' ')){
+            coords.push_back(std::stod(pos));
+            std::cout<<pos <<"\t";
+        }
+        std::cout<<"\n";
+        // Now i have a line that is x y z 
+        
+        Bead_1 = Bead(mesh,geometry,Vector3({coords[0],coords[1],coords[2]}),radius,Interaction_str);
+    
+
+    }
+    else{
+
+        double x_furthest=0.0;
+        for(Vertex v : mesh->vertices()){
+            if(geometry->inputVertexPositions[v].x>x_furthest){
+                x_furthest=geometry->inputVertexPositions[v].x;
+            }
+
+        }
+    
+        x_furthest+=1.4;
+        Bead_1 = Bead(mesh,geometry,Vector3({x_furthest,0.0,0.0}),radius,Interaction_str);
+    
+    
+    }
+    std::vector<Bead> Beads;
+
+
+    
+
+    Bead_1.interaction="Shifted_LJ_Normal_nopush";
+    Bead_1.rc=radius*2.0;
+    Beads.push_back(Bead_1);
+    
+
+    M3DG = Mem3DG(mesh,geometry);
+    for( size_t i = 0 ; i < Beads.size() ; i++) M3DG.Add_bead(&Beads[i]);
+
+
+
+
+
+
     std::vector<std::string> Bead_filenames;
     std::ofstream Bead_datas;
+
+    
+
+
+
+
+
+
 
     
 
@@ -615,35 +746,48 @@ int main(int argc, char** argv) {
 
     bool seam = false;
     start = chrono::steady_clock::now();
-    for(size_t current_t=0;current_t<=300000;current_t++ ){
+
+    long currentMem = get_mem_usage();
+    std::cout<<"THe code is using " << currentMem <<" in KB";
+ 
+
+    for(size_t current_t = 0; current_t <= 300000; current_t++ ){
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
         
         
         if(arcsim){
             start_time_control=chrono::steady_clock::now();
+            // Creo que aqui puedo guardar la mesh, 
+            
+
+            // if(measure_angles()) std::cout<<"The close to pi angle was due to integration\n";
             arcsim::Mesh remesher_mesh2 = translate_to_arcsim(mesh,geometry);
             Cloth_1.mesh=remesher_mesh2;
+            if(Saving_last_states){
+                saved_mesh_idx = (saved_mesh_idx+1)%3;
+                arcsim::delete_mesh(Saved_meshes[saved_mesh_idx]);
 
-            
-            // std::cout<<"\n";
+                Bead_pos_saved[saved_mesh_idx] = Beads[0].Pos;
+                Saved_meshes[saved_mesh_idx] = arcsim::deep_copy(remesher_mesh2);
+
+
+
+
+            }
             Cloth_1.remeshing=remeshing_params;
-            // std::cout<<"Remeshing\n";
-            // if( current_t>615 ){
-            //     arcsim::save_obj(Cloth_1.mesh, basic_name + "Debugging_before_"+ std::to_string(current_t)+".obj" );
-            //     Cloth_1.dump_info = true;
-            // }
-            // std::cout<<"aaaa\n";
-            // if(current_t>240){
-            //  std::cout<<current_t << "\n";
-            // }
-            // std::cout<<current_t<<"\n";
-            // std::cout<<"Remeshing 1\n";
+
+            // std::cout<<"\t \t \t Current ts is "<<current_t<<"\n";
             // if(current_t>2300) std::cout<<"\t "+std::to_string(current_t) + "\t";
             arcsim::dynamic_remesh(Cloth_1);
-        
+
+            if(Saving_last_states){
+                arcsim::delete_mesh(Saved_after_remesh[saved_mesh_idx]);
+                Saved_after_remesh[saved_mesh_idx] = arcsim::deep_copy(Cloth_1.mesh);
+            }
+
             
-            // if( current_t>615){
+            // if( current_t>366){
             //     std::cout<<"Saving mesh\n";
             //     Save_mesh(basic_name,current_t); 
             //     arcsim::save_obj(Cloth_1.mesh, basic_name + "Debugging_after_"+ std::to_string(current_t)+".obj" );
@@ -668,6 +812,12 @@ int main(int argc, char** argv) {
             geometry = geometry_uptr.release();
             // Bead_1 = Bead(mesh,geometry,Bead_1.Pos,radius,Interaction_str);
             // Bead_1.rc = 2.0;
+            // if(measure_angles()) std::cout<<"The close to pi angle was due to remeshing\n";
+            // area_ratios();
+
+            
+            
+            
             
             end_time_control=chrono::steady_clock::now();
             remeshing_elapsed_time+=chrono::duration_cast<chrono::milliseconds>(end_time_control-start_time_control).count();
@@ -716,7 +866,10 @@ int main(int argc, char** argv) {
         // psMesh->setEdgeWidth(1.0);
 
         
-        if(current_t%100==0 ){
+        if(current_t%100==0 || (continue_sim && current_t<3)){
+            // currentMem = get_mem_usage();
+            // std::cout<<"THe code is using " << currentMem <<" in KB\n";
+            // std::cout<<"WIth "<< mesh->nFaces()<<" faces\n";
             // Bead_data.close();
             // Sim_data.close();
             
@@ -823,6 +976,47 @@ int main(int argc, char** argv) {
     Bead_data.close();
 
     Vector3 Pos;
+    std::cout<<"Wrapping up\n";
+
+
+    if(continue_sim){
+    std::ofstream beads_saved(basic_name+"Saved_bead_info_cont.txt");
+    beads_saved << std::setprecision(std::numeric_limits<double>::max_digits10);
+
+
+    for( int k = 0 ; k < 3 ; k++){
+        std::cout<<Bead_pos_saved[k].x << " " << Bead_pos_saved[k].y << " " << Bead_pos_saved[k].z <<" \n";
+        std::cout<<"Saved mesh idx is " << saved_mesh_idx<<" \n";
+        arcsim::save_obj(Saved_meshes[saved_mesh_idx],basic_name+"Saved_continued_final_frame_"+std::to_string(3-k)+".obj");
+        
+
+        beads_saved<< Bead_pos_saved[saved_mesh_idx].x<<" "<<Bead_pos_saved[saved_mesh_idx].y<<" "<<Bead_pos_saved[saved_mesh_idx].z<<" \n";
+
+        
+        saved_mesh_idx = (saved_mesh_idx -1 +3)%3;
+
+    }
+    }
+    else{
+     std::ofstream beads_saved(basic_name+"Saved_bead_info.txt");
+    beads_saved << std::setprecision(std::numeric_limits<double>::max_digits10);
+
+
+    for( int k = 0 ; k < 3 ; k++){
+        std::cout<<Bead_pos_saved[k].x << " " << Bead_pos_saved[k].y << " " << Bead_pos_saved[k].z <<" \n";
+        std::cout<<"Saved mesh idx is " << saved_mesh_idx<<" \n";
+        arcsim::save_obj(Saved_meshes[saved_mesh_idx],basic_name+"Saved_final_frame_"+std::to_string(5-2*k)+".obj");
+        arcsim::save_obj(Saved_after_remesh[saved_mesh_idx],basic_name+"Saved_final_frame_"+std::to_string(6-2*k)+".obj");
+
+        beads_saved<< Bead_pos_saved[saved_mesh_idx].x<<" "<<Bead_pos_saved[saved_mesh_idx].y<<" "<<Bead_pos_saved[saved_mesh_idx].z<<" \n";
+
+        
+        saved_mesh_idx = (saved_mesh_idx -1 +3)%3;
+
+    }   
+    }
+
+
     std::ofstream o(basic_name+"Final_state.obj");
     o << "#This is a meshfile from a saved state\n" ;
 

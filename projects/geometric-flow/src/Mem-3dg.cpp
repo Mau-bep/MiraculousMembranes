@@ -691,25 +691,25 @@ while(true){
     std::cout<<"The energy diff is"<< abs(NewE-previousE)<<"\n";
     std::cout<<"THe relative energy diff  is"<<abs((NewE-previousE)/previousE)<<"\n";
     std::cout<<"The projection is"<< Projection<<"\n";
-    
-
+    std::cout<<"The projection is too big "<< (Projection>1.0e10) <<" \n";
+    if(Projection>1.0e10){
+    // return alpha;
+    std::cout<<"The gradient got crazy\n";
+    std::cout<<"The projections is "<< Projection<<"\n";
+    geometry->inputVertexPositions = initial_pos;
+    return -1;
+    }
 
     if(!pulling){
     // if(small_TS==true){
     //   alpha=-1.0;
       
     // }
-    if(system_time>1500 ){
+    if(system_time>5000 ){
     small_TS = true;
     break;
     }
-    if(Projection>1e10){
-    // return alpha;
-    std::cout<<"The gradient got crazy\n";
-    std::cout<<"The projections is "<< Projection<<"\n";
-    geometry->inputVertexPositions = initial_pos;
-    return 0.0;
-    }
+    
 
     }
     // if(Projection>1e10){
@@ -722,12 +722,12 @@ while(true){
     
 
   }
-  // else if (small_TS)
-  // {
-  //   std::cout<<"Converging cancelled\n";
-  //   std::cout<<"Timestep is "<< alpha <<"\n";
-  //   // small_TS = false;
-  // }
+  else if (small_TS)
+  {
+    // std::cout<<"Converging cancelled\n";
+    // std::cout<<"Timestep is "<< alpha <<"\n";
+    small_TS = false;
+  }
   
 
 
