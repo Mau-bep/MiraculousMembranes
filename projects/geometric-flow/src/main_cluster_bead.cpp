@@ -675,7 +675,7 @@ int main(int argc, char** argv) {
 
         }
     
-        x_furthest+=radius*1.7;
+        x_furthest+=radius*1.9;
         Bead_1 = Bead(mesh,geometry,Vector3({x_furthest,0.0,0.0}),radius,Interaction_str);
     
     
