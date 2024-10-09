@@ -94,12 +94,12 @@ VertexData<Vector3> Mem3DG::buildFlowOperator(double h, double V_bar, double nu,
     // Lets get our target area and curvature
     
     double V=geometry->totalVolume();
-    double D_P=-P0*(V-V_bar)/V_bar/V_bar;
+    double D_P=-P0*(V-V_bar)/(V_bar*V_bar);
     
     double A_bar=4*PI*pow(3*V_bar/(4*PI*nu),2.0/3.0);
     double H_bar=sqrt(4*PI/A_bar)*c0/2.0; //Coment this with another comment
     double A=geometry->totalArea();
-    double lambda=KA*(A-A_bar )/A_bar;
+    double lambda=KA*(A-A_bar )/(A_bar*A_bar);
     
     
     // This lines are for the bunny i need to delete them later
@@ -426,14 +426,14 @@ double Mem3DG::E_Pressure(double P0,double V, double V_bar) const {
 
 
     // double V = geometry->totalVolume();
-    
+      
     return -1*0.5*P0*(V-V_bar);
 }
 
 double Mem3DG::E_Surface(double KA,double A, double A_bar) const {
 
     // return 0.5*KA*A*A;
-    return 0.5*KA*(A-A_bar)*(A-A_bar)/A_bar;
+    return 0.5*KA*(A-A_bar)*(A-A_bar)/(A_bar*A_bar);
 }
 
 
@@ -707,11 +707,13 @@ while(true){
     // }
     if(system_time>5000 ){
     small_TS = true;
+    std::cout<<"small timestep\n";
     break;
     }
     
 
     }
+    
     // if(Projection>1e10){
     //   std::cout<<"Not moving forward\n";
     //   alpha=0.0;
@@ -1409,7 +1411,7 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
     std::ofstream Bead_data;
     // std::cout<<"1_2\n";
     Bead *Active_bead;
-    if(bead && system_time%100==0){
+    if(bead ){
       // std::cout<<"This is being called\n";
       // std::cout<<"There are "<< Beads.size() <<" beads\n";
       for(size_t i = 0; i < Beads.size(); i++){
@@ -1459,8 +1461,8 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
     A = geometry->totalArea();
     double A_bar=4*PI*pow(3*V_bar/(4*PI*nu),2.0/3.0);
     double H_bar=sqrt(4*PI/A_bar)*c0/2.0; //Coment this with another comment
-    double D_P=-1*P0*(V-V_bar)/V_bar/V_bar;
-    double lambda=KA*(A-A_bar )/A_bar;    
+    double D_P=-1*P0*(V-V_bar)/(V_bar*V_bar);
+    double lambda=KA*(A-A_bar )/(A_bar*A_bar);    
 
 
 
@@ -1495,7 +1497,7 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
 
     // Bead_1.Move_bead(backtrackstep,center);
 
-    if((Save_output_data&& system_time%100==0 ) || backtrackstep<0  ){
+    if((Save_output_data ) || backtrackstep<0  ){
     Sim_data << V_bar<<" "<< A_bar<<" "<< time <<" "<< V<<" " << A<<" " << E_Vol << " " << E_Sur << " " << E_Ben <<" " << E_Bead << " "<< grad_norm<<" " << backtrackstep << " \n";
     }
     system_time+=1;
@@ -1535,8 +1537,8 @@ double Mem3DG::integrate_field(double h, double V_bar, double nu, double P0,doub
     A = geometry->totalArea();
     double A_bar=4*PI*pow(3*V_bar/(4*PI*nu),2.0/3.0);
     double H_bar=sqrt(4*PI/A_bar)*c0/2.0; //Coment this with another comment
-    double D_P=-1*P0*(V-V_bar)/V_bar/V_bar;
-    double lambda=KA*(A-A_bar )/A_bar;    
+    double D_P=-1*P0*(V-V_bar)/(V_bar*V_bar);
+    double lambda=KA*(A-A_bar )/(A_bar*A_bar);    
 
 
 
@@ -1754,7 +1756,7 @@ double E_vol_back=0.0;
 double E_vol_front=0.0;
 double dr;
 Vector3 grad{0.0,0.0,0.0};
-double D_P=-P0*(V-V_bar)/V_bar/V_bar;
+double D_P=-P0*(V-V_bar)/(V_bar*V_bar);
 E_vol=E_Pressure(D_P,V,V_bar);
 
 

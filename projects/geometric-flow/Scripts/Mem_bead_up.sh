@@ -12,7 +12,7 @@ foreach Init_cond ( 1 )
 foreach Strg ( 1.0 5.0 10.0 20.0 30.0 40.0 50.0 60.0 70.0 80.0 90.0 100.0 110.0 120.0 130.0 140.0 150.0 )
 foreach KA ( 100000 )
 foreach radius ( 1.0 )
-foreach KB ( 1.0 )
+foreach KB ( 1.0 2.0 5.0 10.0 15.0 20.0 25.0 30.0 40.0 45.0 50.0)
 #python3 Create_subjob.py ${v} ${c0} ${KA} ${KB}
 
 python3 Create_subjob_beads.py ${v} ${Strg} ${Init_cond} ${Nsim} ${KA} ${radius} ${KB}

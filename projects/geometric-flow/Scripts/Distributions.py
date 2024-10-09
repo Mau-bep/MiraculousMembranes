@@ -65,10 +65,10 @@ def checking_radius_dist():
     #     plt.pause(.001)
 
 
-checking_radius_dist()
+# checking_radius_dist()
 
 def Ploting_coverage_2():
-    file = open("../Results/Mem3DG_Bead_Reciprocal_arcsim/Coverage_final.txt")
+    file = open("../Results/Mem3DG_Bead_Reciprocal_arcsim_up_oct/Coverage_final.txt")
   
     line = file.readline()
     print(line)

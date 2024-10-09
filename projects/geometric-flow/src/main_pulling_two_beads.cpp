@@ -199,11 +199,11 @@ void Save_mesh(std::string basic_name,bool arcsim_remeshing, size_t current_t) {
 }
 
 
-
 arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeometry* geometry){
 
     arcsim::Mesh mesh1;
-  
+    // std::cout<< mesh1.verts.size()<<" number of vertices\n";
+
     // std::cout<<"Adding vertices?\n";
     for (size_t v = 0; v < mesh->nVertices(); v++) {
             // const Vert *vert0 = mesh0.verts[v];
@@ -212,7 +212,7 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
             pos[0]=pos_orig.x;
             pos[1]=pos_orig.y;
             pos[2]=pos_orig.z;
-            arcsim::Vert *vert1 = new arcsim::Vert(pos, 1);
+            arcsim::Vert *vert1 = new arcsim::Vert(pos, 1,0);
             mesh1.add(vert1);
             
     }
@@ -227,17 +227,26 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
             pos[2]=pos_orig.z;
             // arcsim::Vert *vert1 = new arcsim::Vert(pos, 0, 1);
             // mesh1.add(vert1);
-            mesh1.add(new arcsim::Node(pos,
-                                 pos,
-                                 pos,
-                                 0,false));
-            mesh1.verts[v]->node=mesh1.nodes[v];
-            mesh1.nodes[v]->verts.push_back(mesh1.verts[v]);
+            arcsim::Node *node1 = new arcsim::Node(pos, pos, pos, 0, false);
+            node1->preserve = false;
+            node1->temp = false;
+            node1->temp2 = false;
+            node1->verts.resize(1);
+            node1->verts[0] = mesh1.verts[v];
+            
+            mesh1.add(node1);
+            // mesh1.add(new arcsim::Node(pos,
+            //                      pos,
+            //                      pos,
+            //                      0,false));
+            // mesh1.verts[v]->node=mesh1.nodes[v];
+            // arcsim::include(mesh1.verts[v],mesh1.nodes[v]->verts);
+            // mesh1.nodes[v]->verts.push_back(mesh1.verts[v]);
     }
 
 
     // std::cout<<"Adding edges?\n";
-    for (size_t e = 0; e < mesh->nEdges();e++){
+    for (size_t e = 0; e<mesh->nEdges();e++){
         Edge e_orig= mesh->edge(e);
 
         arcsim::Edge *edge1 = new arcsim::Edge(mesh1.nodes[e_orig.firstVertex().getIndex()],mesh1.nodes[e_orig.secondVertex().getIndex()],0);
@@ -250,7 +259,7 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
 
 
     // std::cout<<"Adding faces?\n";
-    for(size_t f=0; f< mesh->nFaces(); f++){
+    for(size_t f = 0; f< mesh->nFaces(); f++){
     Face f_orig = mesh->face(f);
     Halfedge he = f_orig.halfedge();
     arcsim::Face *face1 = new arcsim::Face(mesh1.verts[he.vertex().getIndex()],mesh1.verts[he.next().vertex().getIndex()],mesh1.verts[he.next().next().vertex().getIndex()],0,0 );        
@@ -271,6 +280,7 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
     // std::cout<<"done translating\n";
     return mesh1;
 }
+
 
 
 std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
@@ -303,7 +313,7 @@ SimplePolygonMesh simpleMesh;
     // flag_warning=false;
     // flags = vector<int>();
     // simpleMesh = SimplePolygonMesh();
-    for(size_t v = 0 ; v<mesh.verts.size(); v++){
+    for(size_t v = 0 ; v < mesh.verts.size(); v++){
         arcsim::Vec3 pos_old = mesh.nodes[v]->x;
         
         v_pos.x=pos_old[0];
@@ -349,14 +359,14 @@ SimplePolygonMesh simpleMesh;
     if(flag_warning){
     std::cout<<"THe number of flags is "<<flags.size()<<"\n";
     std::cout<<"THe flags are \n";
-    for (size_t flag = 0 ; flag< flags.size(); flag++){
+    for (size_t flag = 0 ; flag < flags.size(); flag++){
         std::cout<< flags[flag]<<"\t ";
     }
     std::cout<<" \n";
     }
     // std::cout<<"hihi\n";
     bool non_manifold = false;
-    for(size_t f = 0 ; f<mesh.faces.size();f++){
+    for(size_t f = 0 ; f < mesh.faces.size();f++){
         
         std::vector<size_t> polygon(3);
         
@@ -368,7 +378,7 @@ SimplePolygonMesh simpleMesh;
         int less_id2 = 0;
         int less_id3 = 0;
 
-        for(size_t flag =0 ; flag< flags.size(); flag++){
+        for(size_t flag = 0 ; flag < flags.size(); flag++){
         if( id1 == flags[flag]|| id2 == flags[flag] || id3 == flags[flag]){
             non_manifold=true;
         }
@@ -462,7 +472,7 @@ int main(int argc, char** argv) {
         filepath = "../../../input/sphere.obj";
     }
     if(Init_cond==2){
-        filepath = "../../../input/sphere_dense_40k.obj"; 
+        filepath = "../../../input/Icosphere.obj"; 
     }
     if(Init_cond==3){
         filepath = "../../../input/big_sphere.obj";
@@ -511,14 +521,15 @@ int main(int argc, char** argv) {
     constants.push_back(std::vector<double>{3.0,0.0});
 
 
-    Bead_1 = Bead(mesh,geometry,Vector3({x_furthest-1.5,0.0,0.0}),1.0,10);
+    Bead_1 = Bead(mesh,geometry,Vector3({x_furthest-1.5,0.0,0.0}),0.1,10);
     Bead_1.interaction = "Shifted-LJ";
     Bead_1.state = "default";
     Bead_1.Bond_type = bonds;
     Bead_1.Interaction_constants_vector=constants;
-    Bead_1.rc=pow(2,1.0/6.0);
+    Bead_1.rc=0.5*pow(2,1.0/6.0);
+    //  = 
 
-    Bead_2 = Bead(mesh,geometry,Vector3({x_furthest+75.0,0.0,0.0}),1.0,1.0);
+    Bead_2 = Bead(mesh,geometry,Vector3({x_furthest+40.0,0.0,0.0}),1.0,1.0);
     Bead_2.interaction="None";
     Bead_2.state = "froze";
     Bead_2.Velocity = Vector3({1.0,0.0,0.0});
@@ -566,7 +577,7 @@ int main(int argc, char** argv) {
     
     
 
-    std::string first_dir="../Results/Mem3DG_Bead_pulling_2_arcsim/";
+    std::string first_dir="../Results/Mem3DG_Bead_pulling_oct_arcsim/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
@@ -624,6 +635,7 @@ int main(int argc, char** argv) {
 
 
     bool seam = false;
+    Cloth_1.dump_info = false;
     start = chrono::steady_clock::now();
     for(size_t current_t=0;current_t<=300000;current_t++ ){
         // for(size_t non_used_var=0;non_used_var<100;)

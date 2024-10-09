@@ -550,7 +550,8 @@ int main(int argc, char** argv) {
         filepath = "../../../input/sphere.obj";
     }
     if(Init_cond==2){
-        filepath = "../../../input/sphere_dense_40k.obj"; 
+        std::cout<<"Icosphere condition\n";
+        filepath = "../../../input/Icosphere.obj"; 
     }
     if(Init_cond==3){
         filepath = "../../../input/big_sphere.obj";
@@ -616,7 +617,7 @@ int main(int argc, char** argv) {
     
     
 
-    std::string first_dir="../Results/Mem3DG_Bead_Reciprocal_arcsim_up_oct/";
+    std::string first_dir="../Results/Mem3DG_Bead_Reciprocal_arcsim_up_Phase/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
@@ -674,7 +675,7 @@ int main(int argc, char** argv) {
 
         }
     
-        x_furthest+=1.4;
+        x_furthest+=radius*1.4;
         Bead_1 = Bead(mesh,geometry,Vector3({x_furthest,0.0,0.0}),radius,Interaction_str);
     
     
@@ -750,7 +751,7 @@ int main(int argc, char** argv) {
     long currentMem = get_mem_usage();
     std::cout<<"THe code is using " << currentMem <<" in KB";
  
-
+    bool saving_state = true;
     for(size_t current_t = 0; current_t <= 300000; current_t++ ){
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
@@ -865,8 +866,24 @@ int main(int argc, char** argv) {
         // psMesh->setSurfaceColor({0.9607, 0.6627, 0.7215});
         // psMesh->setEdgeWidth(1.0);
 
+        // bool should_save  = false;
         
-        if(current_t%100==0 || (continue_sim && current_t<3)){
+
+        
+        // if(counter == 100) saving_state = false;
+        // if(current_t < 1000)  {
+        //     counter=99;
+        //     saving_state = true;
+        
+        // }
+        // if(current_t%1000==0)
+        // {
+        //     saving_state = true;
+        //     counter = 0;
+        //  }
+        
+        if(current_t%100==0 ){
+        // {
             // currentMem = get_mem_usage();
             // std::cout<<"THe code is using " << currentMem <<" in KB\n";
             // std::cout<<"WIth "<< mesh->nFaces()<<" faces\n";
@@ -875,7 +892,10 @@ int main(int argc, char** argv) {
             
             start_time_control=chrono::steady_clock::now();
             // if(current_t%100==0){
+
             Save_mesh(basic_name,current_t);
+            // counter+=1;
+            // should_save = false;
             // }
             end_time_control = chrono::steady_clock::now();
             saving_mesh_time+=chrono::duration_cast<chrono::milliseconds>(end_time_control-start_time_control).count();
@@ -885,6 +905,7 @@ int main(int argc, char** argv) {
             Sim_data = std::ofstream(filename3,std::ios_base::app);
             
 
+        
         }
         
         // if(current_t%100==0){

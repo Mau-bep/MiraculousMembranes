@@ -563,7 +563,7 @@ int main(int argc, char** argv) {
     
     
 
-    std::string first_dir="../Results/Mem3DG_Bead_Pulling_rc_august_arcsim/";
+    std::string first_dir="../Results/Mem3DG_Bead_Pulling_rc_october_arcsim/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
@@ -602,7 +602,7 @@ int main(int argc, char** argv) {
 
     
 
-    Bead_data<<"####### This data is taken every 250 steps just like the mesh radius is " << radius<<" \n";
+    Bead_data<<"####### This data is taken every 100 steps just like the mesh radius is " << radius<<" \n";
     Bead_data.close();
 
 
@@ -665,6 +665,7 @@ int main(int argc, char** argv) {
     start = chrono::steady_clock::now();
     // Save_mesh(basic_name,12345);
     for(size_t current_t=0;current_t<=400000;current_t++ ){
+        
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
         if(arcsim){
