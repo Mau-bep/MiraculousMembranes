@@ -130,7 +130,10 @@ int Last_step(std::string base_dir){
         // std::cout << str_index << endl;
         
         // I need to avoid the final state
-      
+        // std::cout<<"str_index is" << str_index <<"\n";
+        if(str_index[0]=='f'){
+            continue;
+        }
         current_index=stoi(str_index);
         // std::cout<<current_index<<endl;
         if(current_index>max_index){
@@ -236,7 +239,7 @@ int main(int argc, char** argv) {
     //
 
     // double arr[] = { 1.0, 2.0, 3.0 };
-    double arr[] = { 1.0}; 
+    double arr[] = { 0.2}; 
     int n = sizeof(arr) / sizeof(arr[0]); 
   
     vector<double> radius(arr,arr+n);
@@ -249,24 +252,31 @@ int main(int argc, char** argv) {
     n=sizeof(arr_2) / sizeof(arr_2[0]);
     vector<double> KAs(arr_2,arr_2+n);
     
-    KB=1.0;
     
-    double arr_3[] = {1.0,5.0,10.0,20.0,30.0,40.0,50.0, 60.0, 70.0, 80.0, 90.0,100.0, 110.0, 120.0, 130.0, 140.0, 150.0};
+    
+    double arr_3[] = {1.0,5.0,10.0,20.0,30.0,40.0,50.0, 60.0, 70.0, 80.0, 90.0,100.0, 110.0, 120.0, 130.0, 140.0, 150.0, 175.0, 200.0, 250.0, 275.0, 300.0, 400.0, 500.0};
     // double arr_3[] = {100.0, 110.0};
     
     n=sizeof(arr_3) / sizeof(arr_3[0]);
     
     vector<double> strengths(arr_3,arr_3+n);
     
+    KB=1.0;
+    
+    double arr_4[] = { 1.0, 2.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 40.0, 45.0, 50.0};
+    n = sizeof(arr_4) / sizeof(arr_4[0]);
+
+    vector<double> KBs(arr_4,arr_4+n);
+
     nu=1.0;
     c0=0.0;
 
-    double trgt_vol = 566.44;
-    double trgt_area = 331.09;
+    double trgt_vol = 4*3.1415/3.0;
+    double trgt_area = 4*3.1415;
 
 
     int Init_cond=1;
-    int Nsim=100;
+    int Nsim=1;
 
     auto start = chrono::steady_clock::now();
     auto end = chrono::steady_clock::now();
@@ -284,6 +294,10 @@ int main(int argc, char** argv) {
     bool check_coverage = true;
     bool check_forces = false;
 
+
+    for ( int KB_it = 0; KB_it < KBs.size(); KB_it++){
+        KB = KBs[KB_it];
+    
 
 
     std::stringstream nustream;
@@ -307,10 +321,10 @@ int main(int argc, char** argv) {
     Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
     Min_rel_lengthstream << std::fixed << std::setprecision(4) <<Min_rel_length;
 
-    first_dir="../Results/Mem3DG_Bead_Reciprocal_arcsim_up/";
+    first_dir="../Results/Mem3DG_Bead_Reciprocal_arcsim_up_Phase/";
     filename = first_dir + "Coverage_final.txt" ;
     std::ofstream Coverage_final(filename,std::ios_base::app);
-    Coverage_final<<"# # # Coverage data \n";
+    if(KB_it == 0) Coverage_final<<"# # # Coverage data \n";
     Coverage_final.close(); 
     int counter=0;
     for (int r_it = 0 ; r_it < radius.size(); r_it++){
@@ -515,7 +529,7 @@ int main(int argc, char** argv) {
                 filename = first_dir + "Coverage_final.txt" ;
                 Coverage_final =std::ofstream(filename,std::ios_base::app); 
     
-                Coverage_final<< rad<<" "<< KA << " "<< Interaction_str<<" "<< relative_coverage<<"\n";
+                Coverage_final<< rad<<" "<< KB << " "<< Interaction_str<<" "<< relative_coverage<<"\n";
                 Coverage_final.close();
 
                 // R_dist.close()
@@ -523,6 +537,8 @@ int main(int argc, char** argv) {
         }
     }
 
+
+    }
     // Coverage_final.close();
     
 

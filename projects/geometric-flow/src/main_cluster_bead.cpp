@@ -551,7 +551,7 @@ int main(int argc, char** argv) {
     }
     if(Init_cond==2){
         std::cout<<"Icosphere condition\n";
-        filepath = "../../../input/Icosphere.obj"; 
+        filepath = "../../../input/Simplesphere.obj"; 
     }
     if(Init_cond==3){
         filepath = "../../../input/big_sphere.obj";
@@ -562,7 +562,9 @@ int main(int argc, char** argv) {
     mesh = mesh_uptr.release();
     geometry = geometry_uptr.release();
     
-    trgt_len=geometry->meanEdgeLength();
+    trgt_len = 0.0725;
+    // 
+    // trgt_len=geometry->meanEdgeLength();
     V_bar=geometry->totalVolume();
     
     
