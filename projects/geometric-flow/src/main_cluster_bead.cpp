@@ -551,7 +551,7 @@ int main(int argc, char** argv) {
     }
     if(Init_cond==2){
         std::cout<<"Icosphere condition\n";
-        filepath = "../../../input/Simplesphere.obj"; 
+        filepath = "../../../input/Icosphere.obj"; 
     }
     if(Init_cond==3){
         filepath = "../../../input/big_sphere.obj";
@@ -563,6 +563,13 @@ int main(int argc, char** argv) {
     geometry = geometry_uptr.release();
     
     trgt_len = 0.0725;
+    trgt_len = geometry->meanEdgeLength();
+
+    
+
+   
+
+
     // 
     // trgt_len=geometry->meanEdgeLength();
     V_bar=geometry->totalVolume();
@@ -583,6 +590,16 @@ int main(int argc, char** argv) {
 
     
     }
+    arcsim::Mesh remesher_mesh = translate_to_arcsim(mesh,geometry);
+    Cloth_1.mesh = remesher_mesh;
+    Cloth_1.remeshing = remeshing_params; 
+    arcsim::dynamic_remesh(Cloth_1);
+    delete mesh;
+    delete geometry;
+    std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
+    arcsim::delete_mesh(Cloth_1.mesh);
+    mesh = mesh_uptr.release();
+    geometry = geometry_uptr.release();
     
 
     ORIG_VPOS = geometry->inputVertexPositions;
@@ -692,6 +709,11 @@ int main(int argc, char** argv) {
     Beads.push_back(Bead_1);
     
 
+
+
+
+
+
     M3DG = Mem3DG(mesh,geometry);
     for( size_t i = 0 ; i < Beads.size() ; i++) M3DG.Add_bead(&Beads[i]);
 
@@ -783,6 +805,8 @@ int main(int argc, char** argv) {
             // std::cout<<"\t \t \t Current ts is "<<current_t<<"\n";
             // if(current_t>2300) std::cout<<"\t "+std::to_string(current_t) + "\t";
             arcsim::dynamic_remesh(Cloth_1);
+            
+
 
             if(Saving_last_states){
                 arcsim::delete_mesh(Saved_after_remesh[saved_mesh_idx]);
