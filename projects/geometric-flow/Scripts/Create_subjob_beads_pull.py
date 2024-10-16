@@ -15,12 +15,13 @@ import os
 # fin_config=int(sys.argv[3])
 # Target_val=float(sys.argv[4])
 v=1.0
-rc=float(sys.argv[1])
+radius=float(sys.argv[1])
 # c0=float(sys.argv[2])
 # KA=float(sys.argv[3])
 # KB=float(sys.argv[4])
 Strength=sys.argv[2]
 Init_cond=sys.argv[3]
+Curv = 0.0
 Nsim=sys.argv[4]
 KB = sys.argv[5]
 KA = sys.argv[6]
@@ -28,23 +29,23 @@ os.makedirs('../Subjobs/',exist_ok=True)
 os.makedirs('../Outputs/',exist_ok=True)
 
 
-f=open('../Subjobs/subjob_serial_bead_pull_rc_{}_KA_{}_Strg_{}_init_cond_{}_Nsim_{}_KB_{}'.format(rc,KA,Strength,Init_cond,Nsim,KB),'w')
+f=open('../Subjobs/subjob_serial_bead_pull_radius_{}_KA_{}_Strg_{}_init_cond_{}_Nsim_{}_KB_{}'.format(radius,KA,Strength,Init_cond,Nsim,KB),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')
 
 f.write('#SBATCH --job-name=Mem3DGpa\n')
-f.write('#SBATCH --output=../Outputs/output_serial_bead_pull_rc_{}_KA_{}_Strg_{}_Init_cond_{}_Nsim_{}_KB_{}\n'.format(rc,KA,Strength,Init_cond,Nsim,KB))
+f.write('#SBATCH --output=../Outputs/output_serial_bead_pull_radius_{}_KA_{}_Strg_{}_Init_cond_{}_Nsim_{}_KB_{}\n'.format(radius,KA,Strength,Init_cond,Nsim,KB))
 f.write('#\n')
 f.write('#number of CPUs to be used\n')
 f.write('#SBATCH --ntasks=1\n')
 f.write('#Define the number of hours the job should run. \n')
 f.write('#Maximum runtime is limited to 10 days, ie. 240 hours\n')
-f.write('#SBATCH --time=5:00:00\n')
+f.write('#SBATCH --time=10:00:00\n')
 
 f.write('#\n')
 f.write('#Define the amount of system RAM used by your job in GigaBytes\n')
-f.write('#SBATCH --mem=16G\n')
+f.write('#SBATCH --mem=2G\n')
 f.write('#\n')
 
 #f.write('#Send emails when a job starts, it is finished or it exits\n')
@@ -107,7 +108,8 @@ f.write('echo $PATH\n')
 
 f.write('pwd\n')
 
-f.write('srun time -v ../build/bin/main_cluster_pulling {} {} {} {} {} {}\n'.format(rc,Strength,Init_cond,Nsim,KB,KA))
+# f.write('srun time -v ../build/bin/main_cluster_pulling {} {} {} {} {} {}\n'.format(rc,Strength,Init_cond,Nsim,KB,KA))
+f.write('srun time -v ../build/bin/main_cluster_pulling_beads {} {} {} {} {} {}\n'.format(Curv,Strength,Init_cond,Nsim,KA,radius,KB))
 
 
 
