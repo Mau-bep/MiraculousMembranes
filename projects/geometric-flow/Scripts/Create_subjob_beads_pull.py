@@ -109,7 +109,7 @@ f.write('echo $PATH\n')
 f.write('pwd\n')
 
 # f.write('srun time -v ../build/bin/main_cluster_pulling {} {} {} {} {} {}\n'.format(rc,Strength,Init_cond,Nsim,KB,KA))
-f.write('srun time -v ../build/bin/main_cluster_pulling_beads {} {} {} {} {} {}\n'.format(Curv,Strength,Init_cond,Nsim,KA,radius,KB))
+f.write('srun time -v ../build/bin/main_cluster_pulling_beads {} {} {} {} {} {} {}\n'.format(Curv,Strength,Init_cond,Nsim,KA,radius,KB))
 
 
 
