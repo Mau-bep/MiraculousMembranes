@@ -502,6 +502,19 @@ int main(int argc, char** argv) {
     }
     
 
+
+    arcsim::Mesh remesher_mesh = translate_to_arcsim(mesh,geometry);
+    Cloth_1.mesh = remesher_mesh;
+    Cloth_1.remeshing = remeshing_params; 
+    arcsim::dynamic_remesh(Cloth_1);
+    delete mesh;
+    delete geometry;
+    std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
+    arcsim::delete_mesh(Cloth_1.mesh);
+    mesh = mesh_uptr.release();
+    geometry = geometry_uptr.release();
+
+
     ORIG_VPOS = geometry->inputVertexPositions;
     CoM = geometry->centerOfMass();
     double x_furthest=0.0;
@@ -518,10 +531,10 @@ int main(int argc, char** argv) {
 
     bonds.push_back("Harmonic");
     std::vector<std::vector<double>> constants;
-    constants.push_back(std::vector<double>{3.0,0.0});
+    constants.push_back(std::vector<double>{Interaction_str,0.0});
 
 
-    Bead_1 = Bead(mesh,geometry,Vector3({x_furthest-1.5,0.0,0.0}),0.1,10);
+    Bead_1 = Bead(mesh,geometry,Vector3({x_furthest-1.5*radius,0.0,0.0}),0.1,10);
     Bead_1.interaction = "Shifted-LJ";
     Bead_1.state = "default";
     Bead_1.Bond_type = bonds;
@@ -529,7 +542,7 @@ int main(int argc, char** argv) {
     Bead_1.rc=0.5*pow(2,1.0/6.0);
     //  = 
 
-    Bead_2 = Bead(mesh,geometry,Vector3({x_furthest+40.0,0.0,0.0}),1.0,1.0);
+    Bead_2 = Bead(mesh,geometry,Vector3({x_furthest+20.0,0.0,0.0}),1.0,1.0);
     Bead_2.interaction="None";
     Bead_2.state = "froze";
     Bead_2.Velocity = Vector3({1.0,0.0,0.0});
@@ -577,7 +590,7 @@ int main(int argc, char** argv) {
     
     
 
-    std::string first_dir="../Results/Mem3DG_Bead_pulling_oct_arcsim/";
+    std::string first_dir="../Results/Mem3DG_Bead_pulling_up_oct_arcsim/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 

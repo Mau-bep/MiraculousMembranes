@@ -705,7 +705,7 @@ while(true){
     //   alpha=-1.0;
       
     // }
-    if(system_time>5000 ){
+    if(system_time>999 ){
     small_TS = true;
     std::cout<<"small timestep\n";
     break;

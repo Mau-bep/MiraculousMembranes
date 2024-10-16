@@ -636,7 +636,7 @@ int main(int argc, char** argv) {
     
     
 
-    std::string first_dir="../Results/Mem3DG_Bead_Reciprocal_arcsim_up_Phase/";
+    std::string first_dir="../Results/Mem3DG_Bead_Reciprocal_arcsim_Phase/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
