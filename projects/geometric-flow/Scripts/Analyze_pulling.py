@@ -12,11 +12,11 @@ Init_cond = 2
 
 
 
-
+base ="../Results/Mem3DG_Bead_pulling_up_oct_arcsim/"
 def main():
     dLs = []
     Force = []
-    base ="../Results/Mem3DG_Bead_pulling_up_oct_arcsim/"
+
     for strength in Strengths:
         folder = "../Results/Mem3DG_Bead_pulling_up_oct_arcsim/nu_1.000_radius_0.200_KA_100000.000_KB_{:.6f}_strength_{:.6f}_Init_cond_2_Nsim_1/".format(KB,strength)
         # I need to open 3 files bead fixed, bead moving and Last frame.
@@ -69,10 +69,7 @@ def main():
         print("DL is {} and Force is {}".format(dL,F_tot))
 
     plt.scatter(dLs,Force,c="black")
-    plt.xlabel(r"$\Delta L$")
-    plt.ylabel(r"Force")
-    plt.savefig(base+"Pulling_force_plot.jpg",bbox_inches = 'tight')
-
+    
 
 
 
@@ -105,6 +102,69 @@ def find_higher_lowest(filename):
         
 
 
+def intermediate_points():
+
+    folder = "../Results/Mem3DG_Bead_pulling_up_oct_arcsim/nu_1.000_radius_0.200_KA_100000.000_KB_{:.6f}_strength_{:.6f}_Init_cond_2_Nsim_1/".format(KB,6.0)
+    # I have the folder i now need to iterate
+
+    dLs = []
+    Forces = []
+
+    files = os.listdir(folder)
+    files = [f for f in files if os.path.isfile(folder+'/'+f)]
+    higher_index = 0
+
+    for file in files:
+        # I want to find the highest number
+        line = file.split("_")
+        if(line[0][0]=="m"):
+            line = line[1].split(".")
+            index = int(line[0])
+            if(index>higher_index):
+                higher_index = index
+
+    # I have the higher index
+
+    Bead_moving_file = open(folder+ "Bead_data_1.txt")
+    Bead_fixed_file = open(folder+"Bead_data_1.txt")
+
+    line1 = Bead_moving_file.readline()
+    line2 = Bead_fixed_file.readline()
+
+    for i in range(0,higher_index,100):
+        line1 = Bead_moving_file.readline()
+        line2 = Bead_fixed_file.readline()
+        [low,high] = find_higher_lowest(folder+"membrane_{}.obj".format(i))
+        if(high-low <2.7):
+            print("Point {} is not streched enough\n".format(i))
+            # In this case
+            continue
+        
+        # So its an extended tube.
+        #  
+        line_moving_bead = line1.split(" ")
+        F_moving = np.array([line_moving_bead[3], line_moving_bead[4], line_moving_bead
+        [5] ],dtype=float)
+        line_fixed_bead = line2.split(" ")
+        F_fixed = np.array([line_fixed_bead[3], line_fixed_bead[4], line_fixed_bead
+        [5] ],dtype=float)
 
 
+        dL = high-low
+        F_tot = F_fixed+ F_moving
+        F_tot = np.sqrt(np.sum(F_tot*F_tot))
+
+        dLs.append(dL)
+        Forces.append(F_tot)
+    
+    plt.scatter(dLs,Forces,color='magenta')
+
+
+    # 
 main()
+intermediate_points()
+
+
+plt.xlabel(r"$\Delta L$")
+plt.ylabel(r"Force")
+plt.savefig(base+"Pulling_force_plot.jpg",bbox_inches = 'tight')
