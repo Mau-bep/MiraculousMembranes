@@ -86,14 +86,18 @@ def find_higher_lowest(filename):
     highest = 0.0
     while(line):
 
-        x = line.split(" ")[1]
-        x = float(x)
+        if(line[0]=="v"):
+            x = line.split(" ")[1]
+        
+            x = float(x)
 
-        if(x > highest):
-            highest = x
-        if(x < lowest):
-            lowest = x
+            if(x > highest):
+                highest = x
+            if(x < lowest):
+                lowest = x
 
+        if(line[0]=="e"):
+            break
         line = f.readline()
 
     return [lowest,highest]
