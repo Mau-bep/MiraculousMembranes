@@ -69,7 +69,7 @@ def main():
     plt.xlabel(r"$\Delta L$")
     plt.ylabel(r"Force")
     plt.savefig(folder+"Pulling_force_plot.jpg",bbox_inches = 'tight')
-    
+
 
 
 
@@ -98,4 +98,6 @@ def find_higher_lowest(filename):
         
 
 
-    return 
+
+
+main()
