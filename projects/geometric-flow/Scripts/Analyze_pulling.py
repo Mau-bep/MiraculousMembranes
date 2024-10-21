@@ -56,17 +56,17 @@ def main():
                 if(index>higher_index):
                     higher_index = index
 
-        print("The highest index is {}".format(higher_index))
+        # print("The highest index is {}".format(higher_index))
         [low,high] = find_higher_lowest( folder+"membrane_{}.obj".format(higher_index))
         dL = high-low
         F_tot = F_fixed+ F_moving
         F_tot = np.sqrt(np.sum(F_tot*F_tot))
-        print("THen this value turns into {}".format(F_tot))
+        # print("THen this value turns into {}".format(F_tot))
         
         dLs.append(dL)
         
         Force.append(F_tot)
-        print("DL is {} and Force is {}".format(dL,F_tot))
+        # print("DL is {} and Force is {}".format(dL,F_tot))
 
     plt.scatter(dLs,Force,c="black")
     
