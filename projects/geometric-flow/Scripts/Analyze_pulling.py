@@ -60,14 +60,15 @@ def main():
         high, low = find_higher_lowest( folder+"membrane_{}.obj".format(higher_index))
         dL = high-low
         F_tot = F_fixed+ F_moving
-        print("F tot is {} {} {}".format(F_tot[0],F_tot[1],F_tot[2]))
         F_tot = np.sqrt(np.sum(F_tot*F_tot))
         print("THen this value turns into {}".format(F_tot))
+        
         dLs.append(dL)
+        
         Force.append(F_tot)
-    
+        print("DL is {} and Force is {}".format(dLs,F_tot))
 
-    plt.plot(Force,dLs)
+    plt.scatter(Force,dLs)
     plt.xlabel(r"$\Delta L$")
     plt.ylabel(r"Force")
     plt.savefig(base+"Pulling_force_plot.jpg",bbox_inches = 'tight')
