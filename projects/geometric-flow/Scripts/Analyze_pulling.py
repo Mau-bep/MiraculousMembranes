@@ -125,8 +125,8 @@ def intermediate_points():
 
     # I have the higher index
 
-    Bead_moving_file = open(folder+ "Bead_data_1.txt")
-    Bead_fixed_file = open(folder+"Bead_data_1.txt")
+    Bead_moving_file = open(folder+ "Bead_0_data.txt")
+    Bead_fixed_file = open(folder+"Bead_1_data.txt")
 
     line1 = Bead_moving_file.readline()
     line2 = Bead_fixed_file.readline()
