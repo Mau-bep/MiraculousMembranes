@@ -51,7 +51,7 @@ def main():
             line = file.split("_")
             if(line[0][0]=="m"):
                 line = line[1].split(".")
-                index = float(line[0])
+                index = int(line[0])
                 if(index>higher_index):
                     higher_index = index
 
