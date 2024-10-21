@@ -135,10 +135,10 @@ def intermediate_points(strength):
         line1 = Bead_moving_file.readline()
         line2 = Bead_fixed_file.readline()
         [low,high] = find_higher_lowest(folder+"membrane_{}.obj".format(i))
-        if(high-low <2.4):
-            # print("Point {} is not streched enough\n".format(i))
-            # In this case
-            continue
+        # if(high-low <2.4):
+        #     # print("Point {} is not streched enough\n".format(i))
+        #     # In this case
+        #     continue
         
         
         # So its an extended tube.
@@ -158,16 +158,17 @@ def intermediate_points(strength):
         dLs.append(dL)
         Forces.append(F_tot)
     
-    plt.scatter(dLs,Forces,color=str(strength/6.0),label=str(strength))
+    plt.scatter(dLs,Forces,color=cmap(1-strength/6.0),label=str(strength))
 
 
     # 
 main()
+cmap = plt.colormaps['viridis']
 intermediate_points(5.0)
 intermediate_points(5.5)
 intermediate_points(6.0)
 
-
+plt.legend()
 plt.xlabel(r"$\Delta L$")
 plt.ylabel(r"Force")
 plt.savefig(base+"Pulling_force_plot.jpg",bbox_inches = 'tight')

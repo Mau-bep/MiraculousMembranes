@@ -82,8 +82,14 @@ def main():
     x = Kbs  # len = 11
     y = Strengths  # len = 7
 
+
+
     cmap = plt.colormaps['spring']
     norm = mpl.colors.Normalize(vmin = 0, vmax =1.0)
+    
+    # x = np.linspace(0,100,3)
+    # plt.plot(x,x,c = cmap(0.5))
+    # plt.show()
     fig, ax = plt.subplots()
     im = ax.pcolormesh(x, y, Z,cmap=cmap,vmin=0.0,vmax = 1.0) 
     # im = ax.contour(x,y,Z, norm =norm, cmap = cmap,levels=[0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0],vmin=0.0,vmax = 1.0,extend = 'max')
