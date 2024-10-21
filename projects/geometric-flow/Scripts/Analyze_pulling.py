@@ -60,6 +60,7 @@ def main():
         high, low = find_higher_lowest( folder+"membrane_{}.obj".format(higher_index))
         dL = high-low
         F_tot = F_fixed+ F_moving
+        print("F tot is {} {} {}".format(F_tot[0],F_tot[1],F_tot[2]))
         F_tot = np.sqrt(np.sum(F_tot*F_tot))
 
         dLs.append(dL)
