@@ -54,6 +54,8 @@ def main():
     Z = np.zeros((len(Strengths),len(Kbs)))
     print(Z.shape)
 
+
+
     while(line):
 
         splitted_line = line.split(' ')
@@ -73,7 +75,21 @@ def main():
 
         line = file.readline()
 
-    print(Z)
+    # print(Z)
+    
+    cmap = plt.colormaps['viridis']
+    norm = mpl.colors.Normalize(vmin = 1.0,vmax = np.max(Kbs[4]))
+    print(Kbs)
+    print(Strengths)
+    plt.scatter(Strengths,Z[:,1],c =cmap(norm(Kbs[1])),label='Kb = {}'.format(Kbs[1]))
+    plt.scatter(Strengths,Z[:,2],c =cmap(norm(Kbs[2])),label='Kb = {}'.format(Kbs[2]))
+    
+    plt.scatter(Strengths,Z[:,3],c =cmap(norm(Kbs[3])),label='Kb = {}'.format(Kbs[3]))
+    plt.scatter(Strengths,Z[:,4],c =cmap(norm(Kbs[4])),label='Kb = {}'.format(Kbs[4]))
+    plt.axhline(1.0,ls ='dashed',c='black')
+    plt.legend()
+    plt.show()
+
 
 
     # plt.contour(Kbs,Strengths,Z,10)
@@ -84,7 +100,7 @@ def main():
 
 
 
-    cmap = plt.colormaps['spring']
+    # cmap = plt.colormaps['viridis']
     norm = mpl.colors.Normalize(vmin = 0, vmax =1.0)
     
     # x = np.linspace(0,100,3)
