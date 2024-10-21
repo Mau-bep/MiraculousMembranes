@@ -86,7 +86,7 @@ def main():
     norm = mpl.colors.Normalize(vmin = 0, vmax =1.0)
     fig, ax = plt.subplots()
     im = ax.pcolormesh(x, y, Z,cmap=cmap,vmin=0.0,vmax = 1.0) 
-    # im = ax.contourf(x,y,Z, norm =norm, cmap = cmap,levels=[0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0],vmin=0.0,vmax = 1.0,extend = 'max')
+    # im = ax.contour(x,y,Z, norm =norm, cmap = cmap,levels=[0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0],vmin=0.0,vmax = 1.0,extend = 'max')
     ax.set_xlabel("Kb")
     ax.set_ylabel("Interaction strength")
     
