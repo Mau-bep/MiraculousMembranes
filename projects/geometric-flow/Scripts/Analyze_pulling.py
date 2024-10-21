@@ -62,7 +62,7 @@ def main():
         F_tot = F_fixed+ F_moving
         print("F tot is {} {} {}".format(F_tot[0],F_tot[1],F_tot[2]))
         F_tot = np.sqrt(np.sum(F_tot*F_tot))
-
+        print("THen this value turns into {}".format(F_tot))
         dLs.append(dL)
         Force.append(F_tot)
     
