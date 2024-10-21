@@ -68,7 +68,7 @@ def main():
         Force.append(F_tot)
         print("DL is {} and Force is {}".format(dL,F_tot))
 
-    plt.scatter(dLs,Force)
+    plt.scatter(dLs,Force,c="black")
     plt.xlabel(r"$\Delta L$")
     plt.ylabel(r"Force")
     plt.savefig(base+"Pulling_force_plot.jpg",bbox_inches = 'tight')
