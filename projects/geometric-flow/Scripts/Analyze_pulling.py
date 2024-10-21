@@ -102,9 +102,9 @@ def find_higher_lowest(filename):
         
 
 
-def intermediate_points():
+def intermediate_points(strength):
 
-    folder = "../Results/Mem3DG_Bead_pulling_up_oct_arcsim/nu_1.000_radius_0.200_KA_100000.000_KB_{:.6f}_strength_{:.6f}_Init_cond_2_Nsim_1/".format(KB,6.0)
+    folder = "../Results/Mem3DG_Bead_pulling_up_oct_arcsim/nu_1.000_radius_0.200_KA_100000.000_KB_{:.6f}_strength_{:.6f}_Init_cond_2_Nsim_1/".format(KB,strength)
     # I have the folder i now need to iterate
 
     dLs = []
@@ -158,12 +158,14 @@ def intermediate_points():
         dLs.append(dL)
         Forces.append(F_tot)
     
-    plt.scatter(dLs,Forces,color='magenta')
+    plt.scatter(dLs,Forces,color=str(strength/6.0),label=str(strength))
 
 
     # 
 main()
-intermediate_points()
+intermediate_points(5.0)
+intermediate_points(5.5)
+intermediate_points(6.0)
 
 
 plt.xlabel(r"$\Delta L$")
