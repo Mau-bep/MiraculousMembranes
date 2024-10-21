@@ -16,6 +16,7 @@ Init_cond = 2
 def main():
     dLs = []
     Force = []
+    base ="../Results/Mem3DG_Bead_pulling_up_oct_arcsim/"
     for strength in Strengths:
         folder = "../Results/Mem3DG_Bead_pulling_up_oct_arcsim/nu_1.000_radius_0.200_KA_100000.000_KB_{:.6f}_strength_{:.6f}_Init_cond_2_Nsim_1/".format(KB,strength)
         # I need to open 3 files bead fixed, bead moving and Last frame.
@@ -68,7 +69,7 @@ def main():
     plt.plot(Force,dLs)
     plt.xlabel(r"$\Delta L$")
     plt.ylabel(r"Force")
-    plt.savefig(folder+"Pulling_force_plot.jpg",bbox_inches = 'tight')
+    plt.savefig(base+"Pulling_force_plot.jpg",bbox_inches = 'tight')
 
 
 
