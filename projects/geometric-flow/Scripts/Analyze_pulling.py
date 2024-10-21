@@ -50,7 +50,7 @@ def main():
             # I want to find the highest number
             line = file.split("_")
             if(line[0][0]=="m"):
-                line = line.split(".")
+                line = line[1].split(".")
                 index = float(line[0])
                 if(index>higher_index):
                     higher_index = index
