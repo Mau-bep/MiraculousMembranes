@@ -131,7 +131,7 @@ def intermediate_points(strength):
     line1 = Bead_moving_file.readline()
     line2 = Bead_fixed_file.readline()
 
-    for i in range(0,higher_index,500):
+    for i in range(0,higher_index,200):
         line1 = Bead_moving_file.readline()
         line2 = Bead_fixed_file.readline()
         [low,high] = find_higher_lowest(folder+"membrane_{}.obj".format(i))
@@ -158,12 +158,15 @@ def intermediate_points(strength):
         dLs.append(dL)
         Forces.append(F_tot)
     
-    plt.scatter(dLs,Forces,color=cmap(1-strength/6.0),label=str(strength))
+    plt.plot(dLs,Forces,color=cmap(strength/6.0),label=str(strength))
 
 
     # 
 main()
 cmap = plt.colormaps['viridis']
+intermediate_points(3.5)
+intermediate_points(4.0)
+intermediate_points(4.5)
 intermediate_points(5.0)
 intermediate_points(5.5)
 intermediate_points(6.0)
