@@ -66,7 +66,7 @@ def main():
         dLs.append(dL)
         
         Force.append(F_tot)
-        print("DL is {} and Force is {}".format(dLs,F_tot))
+        print("DL is {} and Force is {}".format(dL,F_tot))
 
     plt.scatter(Force,dLs)
     plt.xlabel(r"$\Delta L$")
