@@ -131,14 +131,15 @@ def intermediate_points():
     line1 = Bead_moving_file.readline()
     line2 = Bead_fixed_file.readline()
 
-    for i in range(0,higher_index,100):
+    for i in range(0,higher_index,500):
         line1 = Bead_moving_file.readline()
         line2 = Bead_fixed_file.readline()
         [low,high] = find_higher_lowest(folder+"membrane_{}.obj".format(i))
-        if(high-low <2.7):
-            print("Point {} is not streched enough\n".format(i))
+        if(high-low <2.4):
+            # print("Point {} is not streched enough\n".format(i))
             # In this case
             continue
+        
         
         # So its an extended tube.
         #  
