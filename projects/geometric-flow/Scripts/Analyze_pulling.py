@@ -57,7 +57,7 @@ def main():
                     higher_index = index
 
         print("The highest index is {}".format(higher_index))
-        high, low = find_higher_lowest( folder+"membrane_{}.obj".format(higher_index))
+        [high, low] = find_higher_lowest( folder+"membrane_{}.obj".format(higher_index))
         dL = high-low
         F_tot = F_fixed+ F_moving
         F_tot = np.sqrt(np.sum(F_tot*F_tot))
