@@ -532,6 +532,9 @@ int main(int argc, char** argv) {
     if(Init_cond==4){
         filepath ="../Results/Mem3DG_Bead_pulling_up_oct_arcsim/nu_1.000_radius_0.200_KA_100000.000_KB_1.000000_strength_6.000000_Init_cond_2_Nsim_1/membrane_" + to_string(Nsim*500) +".obj";
     }
+    if(Init_cond==5){
+        filepath ="../Results/Mem3DG_Bead_pulling_up_oct_arcsim/nu_1.000_radius_0.200_KA_100000.000_KB_1.000000_strength_6.000000_Init_cond_2_Nsim_1/membrane_" + to_string(100000) +".obj";
+    }
     // std::string filepath = "../../../input/sphere_dense_40k.obj";
     // Load mesh
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
@@ -586,7 +589,7 @@ int main(int argc, char** argv) {
 
     std::vector<std::vector<double>> constants;
     
-    if(Init_cond != 4 ){
+    if(Init_cond != 4 && Init_cond!= 5){
     bonds.push_back("Harmonic");
     // std::vector<std::vector<double>> constants;
     constants.push_back(std::vector<double>{Interaction_str,0.0});
@@ -610,10 +613,23 @@ int main(int argc, char** argv) {
     Beads[1].Beads.push_back(&Beads[0]);
     
     }
-    else{
+    if(Init_cond ==4){
     // I need to get the Vector3 that goes here
 
     Vector3 Initial_pos_bead = Get_bead_pos("../Results/Mem3DG_Bead_pulling_up_oct_arcsim/nu_1.000_radius_0.200_KA_100000.000_KB_1.000000_strength_6.000000_Init_cond_2_Nsim_1/Bead_0_data.txt",Nsim);
+    Bead_1 = Bead(mesh,geometry,Initial_pos_bead,0.1,10);
+    Bead_1.interaction = "Shifted-LJ";
+    Bead_1.state = "froze";
+    Bead_1.Bond_type = bonds;
+    Bead_1.Interaction_constants_vector=constants;
+    Bead_1.rc=0.5*pow(2,1.0/6.0);
+        
+    Beads.push_back(Bead_1);    
+    }
+    if(Init_cond ==5){
+    // I need to get the Vector3 that goes here
+
+    Vector3 Initial_pos_bead = Get_bead_pos("../Results/Mem3DG_Bead_pulling_up_oct_arcsim/nu_1.000_radius_0.200_KA_100000.000_KB_1.000000_strength_6.000000_Init_cond_2_Nsim_1/Bead_0_data.txt",200);
     Bead_1 = Bead(mesh,geometry,Initial_pos_bead,0.1,10);
     Bead_1.interaction = "Shifted-LJ";
     Bead_1.state = "froze";
