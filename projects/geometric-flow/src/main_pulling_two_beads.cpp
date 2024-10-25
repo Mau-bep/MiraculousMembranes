@@ -418,7 +418,59 @@ SimplePolygonMesh simpleMesh;
                                                              std::move(std::get<1>(lvals))); // geometry
 }
 
+std::vector<std::string> split(std::string s, std::string delimiter) {
+    size_t pos_start = 0, pos_end, delim_len = delimiter.length();
+    std::string token;
+    std::vector<std::string> res;
 
+    while ((pos_end = s.find(delimiter, pos_start)) != std::string::npos) {
+        token = s.substr (pos_start, pos_end - pos_start);
+        pos_start = pos_end + delim_len;
+        res.push_back (token);
+    }
+
+    res.push_back (s.substr (pos_start));
+    return res;
+}
+
+Vector3 Get_bead_pos(std::string filename, int Nsim){
+    std::cout<<"THe filename is" << filename <<" \n";
+    // Ok i need to get the vector for the position;
+    std::ifstream Bead_data(filename);
+
+    if(!Bead_data.is_open()){
+        cerr << "Error opening the file! "<< endl;
+        return Vector3({0.0,0.0,0.0}); 
+    }
+    string line ;
+    int counter = 0;
+    Vector3 Bead_pos({0.0,0.0,0.0});
+    // the frame i want is (500*nsim)/100 = 5*nsim
+
+    while(std::getline(Bead_data,line)){
+        std::vector<std::string> splitted = split(line, " ");
+        if(line[0]=='#'){
+            continue;
+        }
+        
+        if(counter == 5*Nsim){
+            // We get the things we need
+            // Bead_pos.x = std::stod(splitted[0]);
+            Bead_pos = Vector3({std::stod(splitted[0]),std::stod(splitted[1]),std::stod(splitted[2])});
+            break;
+        }  
+        counter+=1;            
+
+    }
+    if(counter<5*Nsim){
+        std::cout<<"The output file doesnt get that far\n";
+    }
+
+    std::cout<<"The initial bead position is "<< Bead_pos.x << " " << Bead_pos.y <<" " << Bead_pos.z <<" \n";
+
+
+    return Bead_pos;
+}
 
 
 
@@ -477,6 +529,9 @@ int main(int argc, char** argv) {
     if(Init_cond==3){
         filepath = "../../../input/big_sphere.obj";
     }
+    if(Init_cond==4){
+        filepath ="../Results/Mem3DG_Bead_pulling_up_oct_arcsim/nu_1.000_radius_0.200_KA_100000.000_KB_1.000000_strength_6.000000_Init_cond_2_Nsim_1/membrane_" + to_string(Nsim*500) +".obj";
+    }
     // std::string filepath = "../../../input/sphere_dense_40k.obj";
     // Load mesh
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
@@ -529,33 +584,46 @@ int main(int argc, char** argv) {
     std::vector<Bead> Beads;
     std::vector<std::string> bonds;
 
-    bonds.push_back("Harmonic");
     std::vector<std::vector<double>> constants;
+    
+    if(Init_cond != 4 ){
+    bonds.push_back("Harmonic");
+    // std::vector<std::vector<double>> constants;
     constants.push_back(std::vector<double>{Interaction_str,0.0});
-
-
     Bead_1 = Bead(mesh,geometry,Vector3({x_furthest-1.5*radius,0.0,0.0}),0.1,10);
     Bead_1.interaction = "Shifted-LJ";
     Bead_1.state = "default";
-    Bead_1.Bond_type = bonds;
-    Bead_1.Interaction_constants_vector=constants;
-    Bead_1.rc=0.5*pow(2,1.0/6.0);
-    //  = 
-
+    
     Bead_2 = Bead(mesh,geometry,Vector3({x_furthest+20.0,0.0,0.0}),1.0,1.0);
     Bead_2.interaction="None";
     Bead_2.state = "froze";
     Bead_2.Velocity = Vector3({1.0,0.0,0.0});
     Bead_2.Bond_type = bonds;
     Bead_2.Interaction_constants_vector=constants;
-    
-    
+    Bead_1.Bond_type = bonds;
+    Bead_1.Interaction_constants_vector=constants;
+    Bead_1.rc=0.5*pow(2,1.0/6.0);
+        
     Beads.push_back(Bead_1);
     Beads.push_back(Bead_2);
     Beads[0].Beads.push_back(&Beads[1]);
     Beads[1].Beads.push_back(&Beads[0]);
+    
+    }
+    else{
+    // I need to get the Vector3 that goes here
 
-
+    Vector3 Initial_pos_bead = Get_bead_pos("../Results/Mem3DG_Bead_pulling_up_oct_arcsim/nu_1.000_radius_0.200_KA_100000.000_KB_1.000000_strength_6.000000_Init_cond_2_Nsim_1/Bead_0_data.txt",Nsim);
+    Bead_1 = Bead(mesh,geometry,Initial_pos_bead,0.1,10);
+    Bead_1.interaction = "Shifted-LJ";
+    Bead_1.state = "froze";
+    Bead_1.Bond_type = bonds;
+    Bead_1.Interaction_constants_vector=constants;
+    Bead_1.rc=0.5*pow(2,1.0/6.0);
+        
+    Beads.push_back(Bead_1);    
+    }
+    
 
     
     M3DG = Mem3DG(mesh,geometry);
@@ -590,7 +658,9 @@ int main(int argc, char** argv) {
     
     
 
-    std::string first_dir="../Results/Mem3DG_Bead_pulling_up_oct_arcsim/";
+    std::string first_dir;
+    if(Init_cond == 4 ) first_dir ="../Results/Mem3DG_Bead_pulling_relaxation_arcsim/";
+    if(Init_cond != 4 ) first_dir ="../Results/Mem3DG_Bead_pulling_oct_growth_arcsim/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
@@ -845,7 +915,7 @@ int main(int argc, char** argv) {
             time+=dt_sim;
             // std::cout<<"SUccesfully\n";
         }
-        if(time>10){
+        if(time>10 && Init_cond != 4){
             Beads[1].state="froze";
         }
 

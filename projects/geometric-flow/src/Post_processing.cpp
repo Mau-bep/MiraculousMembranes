@@ -292,7 +292,7 @@ int main(int argc, char** argv) {
     
     
     
-    double arr_3[] = {1.0,5.0,10.0,20.0,30.0,40.0,50.0, 60.0, 70.0, 80.0, 90.0,100.0, 110.0, 120.0, 130.0, 140.0, 150.0, 175.0, 200.0, 250.0, 275.0, 300.0, 400.0, 500.0};
+    double arr_3[] = {1.0,5.0,10.0,20.0,30.0,40.0,50.0, 60.0, 70.0, 80.0, 90.0,100.0, 110.0, 120.0, 130.0, 140.0, 150.0, 200.0, 250.0, 300.0, 350.0 , 400.0, 500.0, 600.0, 700.0};
     // double arr_3[] = {100.0, 110.0};
     
     n=sizeof(arr_3) / sizeof(arr_3[0]);
@@ -301,7 +301,7 @@ int main(int argc, char** argv) {
     
     KB=1.0;
     
-    double arr_4[] = { 1.0, 2.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 40.0, 45.0, 50.0};
+    double arr_4[] = { 0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 15.0, 20.0};
     n = sizeof(arr_4) / sizeof(arr_4[0]);
 
     vector<double> KBs(arr_4,arr_4+n);
@@ -313,8 +313,8 @@ int main(int argc, char** argv) {
     double trgt_area = 4*3.1415;
 
 
-    int Init_cond=1;
-    int Nsim=1;
+    int Init_cond=2;
+    int Nsim=1000;
 
     auto start = chrono::steady_clock::now();
     auto end = chrono::steady_clock::now();
@@ -359,12 +359,15 @@ int main(int argc, char** argv) {
     Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
     Min_rel_lengthstream << std::fixed << std::setprecision(4) <<Min_rel_length;
 
-    first_dir="../Results/Mem3DG_Bead_Reciprocal_arcsim_up_Phase/";
+    first_dir="../Results/Mem3DG_Bead_Reciprocal_arcsim_Phase/";
     filename = first_dir + "Coverage_final.txt" ;
     std::ofstream Coverage_final(filename,std::ios_base::app);
     if(KB_it == 0) Coverage_final<<"# # # Coverage data \n";
     Coverage_final.close(); 
     int counter=0;
+
+    double avg_rmin =0.0;
+    int avg_rmin_counter =0;
     for (int r_it = 0 ; r_it < radius.size(); r_it++){
         std::cout<<"Hre\n";
         rad = radius[r_it];    
@@ -523,7 +526,7 @@ int main(int argc, char** argv) {
                     if(check_coverage){
                     // Now i need to do my part
 
-                    if( (dot(rij,Normal)>0.0 && r_dist<1.25 ) ){
+                    if( (dot(rij,Normal)>0.0 && r_dist<rad*1.25 ) ){
                         
 
                         
@@ -562,7 +565,10 @@ int main(int argc, char** argv) {
                 R_dist.close();
                 Touching_data.close();
                 // std::cout<<"The amount touching is"<< touching_count<<" \n";
-                relative_coverage=covered_area/(4*PI*(rmin)*(rmin));
+                
+                relative_coverage=covered_area/(4*PI*(rad*1.1)*(rad*1.25));
+                avg_rmin += rmin;
+                avg_rmin_counter+=1;
                 // Coverage<<relative_coverage<<"\n";
                 // R_dist.close();
                 
@@ -579,7 +585,7 @@ int main(int argc, char** argv) {
             }
         }
     }
-
+    std::cout<<"The average rmin overall is "<< avg_rmin/avg_rmin_counter <<"\n";
 
     }
     // Coverage_final.close();
