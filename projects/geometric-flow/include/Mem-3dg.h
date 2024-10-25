@@ -50,6 +50,9 @@ class Mem3DG {
     double E_Sur;
     double E_Ben;
     double E_Bead;
+
+    std::vector<double> Energy_vals;
+
     Vector3 Total_force;
 
 
@@ -75,7 +78,9 @@ class Mem3DG {
     virtual VertexData<Vector3> SurfaceTension() const;
     virtual VertexData<Vector3> SurfaceGrad() const;
     
-    virtual VertexData<Vector3> Bending(double H0,double KB) const;
+    virtual VertexData<Vector3> Bending(double H0) const;
+    virtual double E_Volume_constraint(double P0,double V ,double V_bar) const;
+    virtual double E_Area_constraint(double KA,double A, double A_bar) const;
     virtual double E_Pressure(double P0,double V ,double V_bar) const;
     virtual double E_Surface(double KA,double A, double A_bar) const;
     virtual double E_Bending(double H0, double KB) const;
@@ -95,7 +100,7 @@ class Mem3DG {
     VertexData<Vector3> Grad_Bead(std::ofstream& Gradient_file,bool Save,bool Projection);
     virtual VertexData<Vector3> Grad_tot_Area(std::ofstream& Gradient_file, bool Save) const;
     
-
+    double Backtracking(VertexData<Vector3> Force, std::vector<std::string> Energies, std::vector< std::vector<double>> Energy_constants);
     double Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar,bool bead, bool pulling) ;
     double Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar) ;
     double Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double KA);
@@ -103,6 +108,7 @@ class Mem3DG {
     virtual VertexData<Vector3> Project_force(VertexData<Vector3> Force) const; 
     virtual bool Area_sanity_check();  
     
+    double integrate(std::vector<std::string> Energies,  std::vector<std::vector<double>> Energy_constants,std::ofstream& Sim_data , double time, std::vector<std::string>Bead_data_filenames, bool Save_output_data);
     double integrate(double h, double V_bar, double nu, double c0,double P0,double KA,double KB, double Kd ,std::ofstream& Sim_data, double time, bool bead,std::vector<std::string> Bead_data_filenames,bool Save_output_data,bool pulling);
     double integrate(double h, double V_bar,double P0,double KA,std::ofstream& Sim_data, double time,bool Save);
     double integrate(double h, double V_bar, double nu, double c0,double P0,double KA,double KB, double Kd ,std::ofstream& Sim_data, double time,bool Save);

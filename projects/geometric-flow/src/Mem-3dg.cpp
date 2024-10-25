@@ -108,7 +108,7 @@ VertexData<Vector3> Mem3DG::buildFlowOperator(double h, double V_bar, double nu,
     // return (SurfaceTension(lambda)+OsmoticPressure(D_P));
 
 
-    return (Bending(H_bar,KB)+OsmoticPressure(D_P)+lambda*SurfaceTension());
+    return (KB*Bending(H_bar)+OsmoticPressure(D_P)+lambda*SurfaceTension());
     // return (Bending(H_bar,KB)+SurfaceTension(lambda));
     
     // 
@@ -133,7 +133,7 @@ VertexData<Vector3> Mem3DG::buildFlowOperator(double V_bar, double P0,double KA,
     // return (SurfaceTension(lambda)+OsmoticPressure(D_P));
     // return (Bending(H_bar,KB)+lambda*SurfaceTension());
 
-    return (Bending(H_bar,KB)+OsmoticPressure(D_P)+lambda*SurfaceTension());
+    return (KB*Bending(H_bar)+OsmoticPressure(D_P)+lambda*SurfaceTension());
     // return (Bending(H_bar,KB)+SurfaceTension(lambda));
     
     // 
@@ -311,7 +311,7 @@ return Vector3{0, 0, 0};
 
 
 
-VertexData<Vector3> Mem3DG::Bending(double H0,double KB) const {
+VertexData<Vector3> Mem3DG::Bending(double H0) const {
 
     
     size_t neigh_index;
@@ -413,14 +413,18 @@ VertexData<Vector3> Mem3DG::Bending(double H0,double KB) const {
 
     }
 
+ 
 
-
-
-    return KB*Force;
+ 
+    return Force;
 }
 
 
 // 
+double Mem3DG::E_Volume_constraint(double KV, double V, double V_bar) const {
+  return 0.5*KV*(V-V_bar)*(V-V_bar)/(V_bar*V_bar);
+}
+
 
 double Mem3DG::E_Pressure(double P0,double V, double V_bar) const {
 
@@ -430,6 +434,10 @@ double Mem3DG::E_Pressure(double P0,double V, double V_bar) const {
     return -1*0.5*P0*(V-V_bar);
 }
 
+double Mem3DG::E_Area_constraint(double KA, double A, double A_bar) const{
+
+  return 0.5*KA*(A-A_bar)*(A-A_bar)/(A_bar*A_bar);
+}
 double Mem3DG::E_Surface(double KA,double A, double A_bar) const {
 
     // return 0.5*KA*A*A;
@@ -517,7 +525,245 @@ Input:
 Returns:
 
 
+
+
 */
+double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> Energies, std::vector< std::vector<double>> Energy_constants){
+
+  double c1 = 1e-4;
+  double rho = 0.5;
+  double alpha = 1e-3;
+  double position_Projeection = 0;
+  double X_pos;
+
+  double previousE = 0;
+  for(size_t i = 0; i < Energies.size(); i++) previousE += Energy_vals[i];
+
+  double NewE;
+  VertexData<Vector3> initial_pos(*mesh);
+  geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+  initial_pos = geometry->inputVertexPositions;
+
+  std::vector<Vector3> Bead_init;
+
+  for( size_t i = 0 ; i < Beads.size() ; i++) Bead_init.push_back( Beads[i]->Pos);
+
+  double Projection = 0;
+  Vector3 center;  
+
+
+  // We start the evolution
+  // We move the vertices
+  geometry->inputVertexPositions+=alpha * Force;
+  geometry->refreshQuantities();
+  center = geometry->centerOfMass();
+  Vector3 Vertex_pos;
+
+  // We move the beads;
+  for(size_t i = 0 ; i < Beads.size(); i++) Beads[i]->Move_bead(alpha,Vector3({0,0,0})); 
+
+  Total_force = Vector3({0.0, 0.0, 0.0});
+  for(Vertex v : mesh->vertices()){
+    Projection += Force[v.getIndex()].norm2();
+    Total_force += Force[v.getIndex()];
+
+  }
+
+  grad_norm = Projection;
+
+  double V_bar;
+  double A_bar;
+  size_t bead_count = 0;
+  NewE = 0.0;
+  for(size_t i = 0; i < Energies.size(); i++){
+  // We will do the calculations here
+    if(Energies[i]=="Volume_constraint"){
+      double V = geometry->totalVolume();
+      V_bar = Energy_constants[i][1];
+      double D_P = -1*Energy_constants[i][0]*(V-V_bar)/(V_bar*V_bar);
+
+      // We calculate the energy
+      Energy_vals[i] = E_Volume_constraint(Energy_constants[i][0],V,V_bar);
+      NewE += Energy_vals[i];
+      continue;
+    }
+    if(Energies[i]=="Area_constraint"){
+      
+      double A = geometry->totalArea();
+      A_bar = Energy_constants[i][1];
+      double KA = Energy_constants[i][0];
+
+      Energy_vals[i] = E_Area_constraint(KA,A,A_bar);
+      NewE += Energy_vals[i];
+      continue;
+    }
+    if(Energies[i]=="Bending"){
+      double KB = Energy_constants[i][0];
+      double H0 = 0.0;
+
+      Energy_vals[i] = E_Bending(H0, KB);
+      NewE += Energy_vals[i];
+      continue;
+
+    }
+
+    if(Energies[i]=="Bead"){
+
+      // The energy
+      Energy_vals[i] = Beads[bead_count]->Energy(); 
+
+      bead_count +=1;
+      NewE += Energy_vals[i];
+      continue;
+
+
+    }
+    if(Energies[i]=="Surface_tension"){
+      // What if the energy is surface tension 
+      double sigma = Energy_constants[i][0];
+      // I need to add an energy term here;
+      NewE += Energy_vals[i];
+      continue;
+
+    }
+
+  }
+
+  size_t counter = 0;
+  // Now we start the backtracking
+  
+  bool displacement_cond = true;
+
+
+  while(true) {
+    displacement_cond = true;
+    for(size_t i = 0 ; i< Beads.size() ; i++) displacement_cond && Beads[i]->Total_force.norm()*alpha<0.1;
+
+    if(NewE <= previousE - c1 * alpha * Projection && displacement_cond && abs(NewE-previousE) <10 ) {
+      break;
+    }
+
+    if(std::isnan(NewE)){
+      alpha = -1.0;
+      break;
+
+    }
+     
+    alpha *=rho;
+
+    if(alpha<1e-10){
+      std::cout<<"THe timestep got small so the simulation would end \n";
+      std::cout<<"THe timestep is "<< alpha <<" \n";
+      std::cout<<"The energy diff is"<< abs(NewE-previousE)<<"\n";
+      std::cout<<"THe relative energy diff  is"<<abs((NewE-previousE)/previousE)<<"\n";
+      std::cout<<"The projection is"<< Projection<<"\n";
+      std::cout<<"The projection is too big "<< (Projection>1.0e10) <<" \n";
+      if(Projection>1.0e10){
+      // return alpha;
+      std::cout<<"The gradient got crazy\n";
+      std::cout<<"The projections is "<< Projection<<"\n";
+      geometry->inputVertexPositions = initial_pos;
+      return -1;
+      }
+      if(system_time>999 ){
+      small_TS = true;
+      std::cout<<"small timestep\n";
+      break;
+
+    }
+      break;
+
+    }
+    else if(small_TS) small_TS = false;
+
+
+    geometry->inputVertexPositions = initial_pos + alpha*Force;
+
+    for(size_t i = 0; i<Beads.size(); i++){
+      Beads[i]->Reset_bead(Bead_init[i]);
+      Beads[i]->Move_bead(alpha, Vector3({0,0,0}));
+    }
+
+    geometry->refreshQuantities();
+
+    bead_count = 0;
+
+    NewE = 0.0;
+    for(size_t i = 0; i < Energies.size(); i++){
+    // We will do the calculations here
+      if(Energies[i]=="Volume_constraint"){
+        double V = geometry->totalVolume();
+        V_bar = Energy_constants[i][1];
+        double D_P = -1*Energy_constants[i][0]*(V-V_bar)/(V_bar*V_bar);
+
+        // We calculate the energy
+        Energy_vals[i] = E_Volume_constraint(Energy_constants[i][0],V,V_bar);
+        NewE += Energy_vals[i];
+        continue;
+      }
+      if(Energies[i]=="Area_constraint"){
+        
+        double A = geometry->totalArea();
+        A_bar = Energy_constants[i][1];
+        double KA = Energy_constants[i][0];
+
+        Energy_vals[i] = E_Area_constraint(KA,A,A_bar);
+        NewE += Energy_vals[i];
+        continue;
+      }
+      if(Energies[i]=="Bending"){
+        double KB = Energy_constants[i][0];
+        double H0 = 0.0;
+
+        Energy_vals[i] = E_Bending(H0, KB);
+        NewE += Energy_vals[i];
+        continue;
+
+      }
+
+      if(Energies[i]=="Bead"){
+
+        // The energy
+        Energy_vals[i] = Beads[bead_count]->Energy(); 
+
+        bead_count +=1;
+        NewE += Energy_vals[i];
+        continue;
+
+
+      }
+      if(Energies[i]=="Surface_tension"){
+        // What if the energy is surface tension 
+        double sigma = Energy_constants[i][0];
+        // I need to add an energy term here;
+        NewE += Energy_vals[i];
+        continue;
+
+      }
+
+    }
+
+    
+
+
+
+
+  }
+
+  if(alpha<0.0) geometry->inputVertexPositions = initial_pos;
+
+  geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+  geometry->refreshQuantities();
+
+
+
+
+
+
+  return alpha;
+}
+
+
 double Mem3DG::Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar,bool bead, bool pulling) {
 
 // std::cout<<"Backtracking\n";
@@ -743,7 +989,7 @@ while(true){
       for( size_t i = 0; i < Beads.size(); i++){
         
         if(Beads[i]->state == "default" || Beads[i]->state == "froze") {
-          std::cout<<"TWo here\n";
+          // std::cout<<"TWo here\n";
           Beads[i]->Move_bead(alpha,Vector3({0,0,0}));
           Beads[i]->Reset_bead(Bead_init[i]);
         }
@@ -1399,6 +1645,165 @@ return alpha;
 
 
 
+double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::vector<double>> Energy_constants, std::ofstream& Sim_data , double time, std::vector<std::string>Bead_data_filenames, bool Save_output_data){
+
+  size_t bead_count = 0;
+
+  if(Bead_data_filenames.size()!=0 && Save_output_data){
+    std::ofstream Bead_data;
+    for(size_t i = 0; i < Beads.size(); i++){
+      
+      Bead_data = std::ofstream(Bead_data_filenames[i],std::ios_base::app);
+      Bead_data<<Beads[i]->Pos.x <<" "<< Beads[i]->Pos.y << " "<< Beads[i]->Pos.z<< " "<< Beads[i]->Total_force.x <<" "<< Beads[i]->Total_force.y << " "<< Beads[i]->Total_force.z <<" \n";
+      // std::cout<<Bead_1.Pos.x << " "<< Bead_1.Pos.y << " "<< Bead_1.Pos.z<<" \n";
+      // std::cout<<"The total force is "<<Bead_1.Total_force <<"\n";
+      Bead_data.close();
+      }
+
+  }
+
+
+  // I need to get the force and their gradients
+  std::vector<double> Gradient_norms;
+  double grad_value;
+  VertexData<Vector3> Force(*mesh,Vector3({0.0,0.0,0.0}));
+  VertexData<Vector3> Force_temp(*mesh);
+  if(Energy_vals.size()==0) Energy_vals.resize(Energies.size());
+  
+  double A_bar = 4.0*3.1415926535;
+  double V_bar = 4.0*3.14115926535/3.0;
+  double V;
+  double A;
+
+  for(size_t i = 0; i < Energies.size(); i++){
+    // We will do the calculations here
+    if(Energies[i]=="Volume_constraint"){
+      // std::cout<<"Volume constraint\n";
+      V = geometry->totalVolume();
+      V_bar = Energy_constants[i][1];
+      double D_P = -1*Energy_constants[i][0]*(V-V_bar)/(V_bar*V_bar);
+
+      // We calculate the energy
+      Energy_vals[i] = E_Volume_constraint(Energy_constants[i][0],V,V_bar);
+
+      Force_temp = OsmoticPressure(D_P);
+      grad_value = 0;
+      for(size_t j = 0; j < mesh->nVertices(); j++){
+        grad_value+= Force_temp[j].norm2();
+      }
+      Gradient_norms.push_back(grad_value);
+      Force+=Force_temp;
+      continue;
+    }
+    if(Energies[i]=="Area_constraint"){
+      // std::cout<<"Area constraint\n";
+     
+      A = geometry->totalArea();
+      A_bar = Energy_constants[i][1];
+      double KA = Energy_constants[i][0];
+
+      Energy_vals[i] = E_Area_constraint(KA,A,A_bar);
+
+      Force_temp = (KA*(A-A_bar)/(A_bar*A_bar))*SurfaceTension() ;
+      grad_value = 0;
+      for(size_t j = 0; j < mesh->nVertices(); j++){
+        grad_value+= Force_temp[j].norm2();
+      }
+      Gradient_norms.push_back(grad_value);
+      Force+=Force_temp;
+      continue;
+    }
+    if(Energies[i]=="Bending"){
+      // std::cout<<"Bending\n";
+      double KB = Energy_constants[i][0];
+      double H0 = 0.0;
+
+      Energy_vals[i] = E_Bending(H0, KB);
+
+      Force_temp = KB*Bending(H0);
+      grad_value = 0;
+      for(size_t j = 0; j < mesh->nVertices(); j++){
+        grad_value+= Force_temp[j].norm2();
+      }
+      Gradient_norms.push_back(grad_value);
+      Force+=Force_temp;
+      continue;
+
+    }
+
+    if(Energies[i]=="Bead"){
+      // std::cout<<"Bead\n";
+
+      // The energy
+      Energy_vals[i] = Beads[bead_count]->Energy(); 
+      // std::cout<<"Bead count is" << bead_count <<"\n";
+      Force_temp = Beads[bead_count]->Gradient();
+      Beads[bead_count]->Bead_interactions();
+      grad_value = 0;
+      for(size_t j = 0; j < mesh->nVertices(); j++){
+        grad_value+= Force_temp[j].norm2();
+      }
+      Gradient_norms.push_back(grad_value);
+      Force+=Force_temp;
+      bead_count +=1;
+      // std::cout<<"Here\n";
+      continue;
+
+
+    }
+    if(Energies[i]=="Surface_tension"){
+      // std::cout<<"Surface tension\n";
+      // What if the energy is surface tension 
+      double sigma = Energy_constants[i][0];
+      Force_temp = sigma*SurfaceGrad();
+      grad_value = 0;
+      for(size_t j = 0; j < mesh->nVertices(); j++){
+        grad_value+= Force_temp[i].norm2();
+      }
+      Gradient_norms.push_back(grad_value);
+      Force+=Force_temp;
+      continue;
+
+    }
+
+  }
+
+  // Ok now i have the force
+  double alpha = 1e-3;
+  double backtrackstep;
+  Total_force = Vector3({0.0, 0.0, 0.0});
+  // std::cout<<"Moving to backtracking\n";
+  backtrackstep = Backtracking(Force,Energies,Energy_constants);
+  // std::cout<<"Passed backtracking\n";
+
+  // After backtracking i have to save.
+
+  // 
+  if(Save_output_data || backtrackstep <0 ){
+
+  double tot_E=0;
+  Sim_data << V_bar<<" "<< A_bar<<" "<< time <<" "<< V<<" " << A<<" ";
+  for(size_t i = 0; i < Energies.size(); i++){
+    Sim_data << Energy_vals[i] << " ";
+    tot_E += Energy_vals[i];
+  }
+  Sim_data<< tot_E <<" ";
+  for(size_t i = 0; i < Energies.size(); i++){
+    Sim_data << Gradient_norms[i]<< " ";
+  }
+  Sim_data<< backtrackstep<<" \n";
+  //  << E_Vol << " " << E_Sur << " " << E_Ben <<" " << E_Bead << " "<< grad_norm<<" " << backtrackstep << " \n";
+    }
+
+  
+
+
+
+
+  return backtrackstep;
+}
+
+
 
 /*
  * Performs integration with the bead
@@ -2035,7 +2440,7 @@ double norm_whole_finite=0;
 double norm_whole_theory=0;
 
 
-VertexData<Vector3> Calc_grad=Bending(H_bar,KB);
+VertexData<Vector3> Calc_grad=KB*Bending(H_bar);
 
 dr=1e-6;
 
@@ -2137,7 +2542,7 @@ double norm_diff=0;
 
 
 
-VertexData<Vector3> Calc_grad=Bending(H_bar,KB);
+VertexData<Vector3> Calc_grad=KB*Bending(H_bar);
 
 dr=1e-6;
 

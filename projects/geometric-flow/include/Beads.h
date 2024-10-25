@@ -18,7 +18,7 @@ class Bead {
     double pulling_speed;
     double rc;
     double prev_force;
-    double prev_E_stationary;
+    double prev_E_stationary; 
 
     std::string state;
     Vector3 Velocity;

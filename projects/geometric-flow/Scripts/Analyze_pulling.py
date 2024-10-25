@@ -161,6 +161,8 @@ def intermediate_points(strength):
     plt.plot(dLs,Forces,color=cmap(strength/6.0),label=str(strength))
 
 
+
+
     # 
 main()
 cmap = plt.colormaps['viridis']
@@ -175,3 +177,69 @@ plt.legend()
 plt.xlabel(r"$\Delta L$")
 plt.ylabel(r"Force")
 plt.savefig(base+"Pulling_force_plot.jpg",bbox_inches = 'tight')
+
+
+
+
+
+def Get_files(strength):
+
+    folder = "../Results/Mem3DG_Bead_pulling_up_oct_arcsim/nu_1.000_radius_0.200_KA_100000.000_KB_{:.6f}_strength_{:.6f}_Init_cond_2_Nsim_1/".format(KB,strength)
+    # I have the folder i now need to iterate
+
+    dLs = []
+    Forces = []
+
+    files = os.listdir(folder)
+    files = [f for f in files if os.path.isfile(folder+'/'+f)]
+    higher_index = 0
+
+    for file in files:
+        # I want to find the highest number
+        line = file.split("_")
+        if(line[0][0]=="m"):
+            line = line[1].split(".")
+            index = int(line[0])
+            if(index>higher_index):
+                higher_index = index
+
+    # I have the higher index
+
+    Bead_moving_file = open(folder+ "Bead_0_data.txt")
+    Bead_fixed_file = open(folder+"Bead_1_data.txt")
+
+    line1 = Bead_moving_file.readline()
+    line2 = Bead_fixed_file.readline()
+    Bead_positions = []
+    for i in range(0,higher_index,200):
+        line1 = Bead_moving_file.readline()
+        line2 = Bead_fixed_file.readline()
+        [low,high] = find_higher_lowest(folder+"membrane_{}.obj".format(i))
+        # if(high-low <2.4):
+        #     # print("Point {} is not streched enough\n".format(i))
+        #     # In this case
+        #     continue
+        
+        splitted_line = Bead_fixed_file.split(" ")
+        Bead_positions.append( [float(splitted_line[0]),float(splitted_line[1]), float(splitted_line[2])])
+        
+        
+        # So its an extended tube.
+        #  
+        line_moving_bead = line1.split(" ")
+        F_moving = np.array([line_moving_bead[3], line_moving_bead[4], line_moving_bead
+        [5] ],dtype=float)
+        line_fixed_bead = line2.split(" ")
+        F_fixed = np.array([line_fixed_bead[3], line_fixed_bead[4], line_fixed_bead
+        [5] ],dtype=float)
+
+
+        dL = high-low
+        F_tot = F_fixed+ F_moving
+        F_tot = np.sqrt(np.sum(F_tot*F_tot))
+
+        dLs.append(dL)
+        Forces.append(F_tot)
+    
+    # plt.plot(dLs,Forces,color=cmap(strength/6.0),label=str(strength))
+

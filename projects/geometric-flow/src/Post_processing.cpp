@@ -181,6 +181,9 @@ void Save_mesh(std::string basic_name, size_t current_t) {
     return ;
 }
 
+
+
+
 void Save_mesh(std::string basic_name,bool arcsim_remeshing, size_t current_t) {
    // Build member variables: mesh, geometry
     Vector3 Pos;
@@ -230,6 +233,41 @@ std::vector<std::string> split(std::string s, std::string delimiter) {
     return res;
 }
 
+
+double Interaction_E_from_Output(std::string  filename){
+
+    
+    std::ifstream Output_data(filename);
+    if(!Output_data.is_open()){
+        cerr<<"Error opening the file!"<< endl;
+        return 1;
+    }
+
+    string line;
+    int counter=0;
+    double E_I = 0.0;
+
+    while (std::getline(Output_data,line)){
+        std::vector<std::string> splitted = split(line," ");
+        if(line[0]=='#') {
+            std::cout<<"First line\n";
+            continue;
+        }
+        if(splitted.size()>10){
+        E_I  = std::stod(splitted[8]);    
+
+        }
+        
+        // I want the first three
+    }
+    Output_data.close();
+
+
+
+
+
+    return  E_I;
+}
 
 
 int main(int argc, char** argv) {
@@ -401,6 +439,11 @@ int main(int argc, char** argv) {
                 double rmin = 12;
                 double x_max_mem = 0.0;
                 bool first=true;
+
+
+                double E_I = Interaction_E_from_Output(basic_name + "Output_data.txt");
+
+
                 for(int step = counter-1 ; step<counter;step++){
                     
                 // Mesh related data 
@@ -529,7 +572,7 @@ int main(int argc, char** argv) {
                 filename = first_dir + "Coverage_final.txt" ;
                 Coverage_final =std::ofstream(filename,std::ios_base::app); 
     
-                Coverage_final<< rad<<" "<< KB << " "<< Interaction_str<<" "<< relative_coverage<<"\n";
+                Coverage_final<< rad<<" "<< KB << " "<< E_I<<" "<< relative_coverage<<" "<< Interaction_str<<"\n";
                 Coverage_final.close();
 
                 // R_dist.close()
