@@ -79,17 +79,18 @@ def main():
     norm = mpl.colors.Normalize(vmin = 1.0,vmax = np.max(Kbs[4]))
 
     plt.scatter(EKB1_plot,KB1_plot, label = 'Kb = 1.0', color = cmap(norm(1.0)))
-    plt.plot(EKB1_plot,KB1_plot, ls = 'dashed', color = cmap(norm(1.0)))
+    # plt.plot(EKB1_plot,KB1_plot, ls = 'dashed', color = cmap(norm(1.0)))
     
     plt.scatter(EKB2_plot,KB2_plot, label = 'Kb = 2.0', color = cmap(norm(2.0)))
-    plt.plot(EKB2_plot,KB2_plot, ls = 'dashed', color = cmap(norm(2.0)))
+    # plt.plot(EKB2_plot,KB2_plot, ls = 'dashed', color = cmap(norm(2.0)))
     
     plt.scatter(EKB5_plot,KB5_plot, label = 'Kb = 5.0', color = cmap(norm(5.0)))
-    plt.plot(EKB5_plot,KB5_plot, ls = 'dashed', color = cmap(norm(5.0)))
-
+    # plt.plot(EKB5_plot,KB5_plot, ls = 'dashed', color = cmap(norm(5.0)))
+    plt.axhline(y=1.0,ls='dashed',color='black')
     plt.legend()
     plt.xlabel("Interaction Energy")
     plt.ylabel("Coverage")
+    plt.savefig(main_dir+"Coverage_plot.png",bbox_inches = 'tight')
     plt.show()
 
 

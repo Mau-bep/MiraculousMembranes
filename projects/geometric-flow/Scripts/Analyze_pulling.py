@@ -12,7 +12,53 @@ Init_cond = 2
 
 
 
-base ="../Results/Mem3DG_Bead_pulling_up_oct_arcsim/"
+base ="../Results/Mem3DG_Bead_pulling_relaxation_arcsim/"
+
+def measure_force():
+    dLs = []
+    Force = []
+    Nsims = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 45, 50, 55, 60, 65, 70]
+    for Nsim in Nsims:
+        folder = "../Results/Mem3DG_Bead_pulling_relaxation_arcsim/nu_1.000_radius_0.200_KA_100000.000_KB_{:.6f}_strength_{:.6f}_Init_cond_4_Nsim_{}/".format(KB,0.0,Nsim)
+        filename_bead = folder + "Bead_0_data.txt"
+        f = open(filename_bead)
+        Lines = f.readlines()
+        line_first_bead = Lines[-1]
+        line_first_bead = line_first_bead.split(" ")
+        F_bead = np.array([line_first_bead[3], line_first_bead[4], line_first_bead[5] ],dtype=float)
+        f.close()
+
+        files = os.listdir(folder)
+        files = [f for f in files if os.path.isfile(folder+'/'+f)]
+        higher_index = 0
+
+        for file in files:
+            # I want to find the highest number
+            line = file.split("_")
+            if(line[0][0]=="m"):
+                line = line[1].split(".")
+                index = int(line[0])
+                if(index>higher_index):
+                    higher_index = index
+
+        # print("The highest index is {}".format(higher_index))
+        [low,high] = find_higher_lowest( folder+"membrane_{}.obj".format(higher_index))
+        dL = high-low
+        F_tot = F_bead
+        F_tot = np.sqrt(np.sum(F_tot*F_tot))
+        # print("THen this value turns into {}".format(F_tot))
+        
+        dLs.append(dL)
+        
+        Force.append(F_tot)
+    
+    plt.scatter(dLs,Force,c="black")
+    plt.savefig(base+"Mem_resistance_pulling.png",bbox_inches = 'tight')
+    plt.clf()
+
+
+
+
 def main():
     dLs = []
     Force = []
@@ -263,7 +309,7 @@ def Tube_growth_data(folder,Kb):
             # This is a vertex line
             # Now i just want the vertices with certain values 
             x = float(line.split(" ")[1])
-            if(x>1.3 and x<2.3):
+            if(x>1.4 and x<2.3):
                 Output.write(line[2:])
             line = membrane.readline()
             continue
@@ -285,10 +331,19 @@ def Tube_growth_check(folder,Kb):
     ax.axis('equal')
     ax.set(xlim =(1.0, 2.5),ylim = (-0.5,0.5),zlim =(-0.5,0.5))
     ax.scatter(Data[:,0],Data[:,1],Data[:,2],color='purple')
+    
     plt.show()
-    plt.xlim(-0.1,0.1)
-    plt.ylim(-0.1,0.1)
+    plt.clf()
+    plt.close()
+    # plt.xlim(-0.1,0.1)
+    # plt.ylim(-0.1,0.1)
+    
+    plt.title("Kb = {:.2f}".format(Kb))
+    
+    
     plt.scatter(Data[:,1],Data[:,2])
+    plt.axis('equal')
+    plt.savefig(folder+"Radius_plot_{:.1f}.png".format(Kb),bbox_inches = 'tight')
     plt.show()
 
 
@@ -303,7 +358,7 @@ def Tube_growth_radius(folder,Kb):
     # Now i need to find the radius of this circle.
     avg_y=np.mean(y)
     avg_z=np.mean(z)
-
+    plt.title("Kb = {}".format(Kb))
     r= np.mean(np.sqrt((np.array(y)-avg_y)**2+(np.array(z)-avg_z)**2))
     err=np.std(np.sqrt((np.array(y)-avg_y)**2+(np.array(z)-avg_z)**2))
 
@@ -314,17 +369,57 @@ def Tube_growth_radius(folder,Kb):
 folder_path_growth = "../Results/Mem3DG_Bead_pulling_oct_growth_arcsim/"
 
 
-Strengths =[1.0, 2.0, 3.0, 4.0, 5.0, 9.0, 10.0, 12.0, 15.0, 16.0, 20.0, 22.0, 25.0, 28.0, 32.0, 36.0]
-for strength in Strengths:
-    Tube_growth_data(folder_path_growth,5.0)
+def fit():
+    Strengths =[1.0, 2.0, 3.0, 4.0, 5.0, 9.0, 10.0, 12.0, 15.0, 16.0, 20.0, 22.0, 25.0, 28.0, 32.0, 36.0]
+    radius = []
+    for strength in Strengths:
+        # Tube_growth_data(folder_path_growth,strength)
 
 
-# Tube_growth_check(folder_path_growth,5.0)
+        # Tube_growth_check(folder_path_growth, strength)
 
-# Tube_growth_radius(folder_path_growth,5.0)
+        r = Tube_growth_radius(folder_path_growth, strength)
+        radius.append(r)
+
+
+    plt.clf()
+    plt.xlabel("Kb",fontsize=15.0)
+    plt.ylabel("Tube radius",fontsize=15.0)
+    plt.scatter(Strengths,radius,color="black")
+    plt.savefig(folder_path_growth+"NoFit_radius_curve.png",bbox_inches='tight')
+    plt.show()
+
+
+    # ok so i want to do a linear fit to the thing
+
+    x = np.log(Strengths)
+    y = np.log(radius)
+
+
+    p = np.polyfit(x,y,1)
+
+    x_fit = np.linspace(np.log(1.0),np.log(36))
+    y_fit = p[1]+x_fit*p[0]
+    plt.plot(x_fit,y_fit,ls='dashed')
+    plt.scatter(x,y,color='black')
+    print("The values for the fit are m = {} and c = {}".format(p[0],p[1]))
+    plt.show()
+
+    y_fit = np.exp(y_fit)
+    x_fit = np.exp(x_fit)
+
+    plt.plot(x_fit,y_fit,ls='dashed',color='magenta')
+    plt.scatter(Strengths,radius,color='black')
+    plt.savefig(folder_path_growth+"Fit_radius_curve.png",bbox_inches='tight')
+    plt.xlabel("Kb",fontsize=15.0)
+    plt.ylabel("Tube radius",fontsize=15.0)
+    plt.show()
 
 
 
+
+
+measure_force()
 
 # main()
 # cmap = plt.colormaps['viridis']
