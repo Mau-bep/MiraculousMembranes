@@ -76,7 +76,7 @@ Center=np.array([0,0,0])
 
 
 pre_folder='../Results/Mem3DG_Bead_Reciprocal_arcsim_up_Phase/nu_1.000_radius_0.200_KA_{:.3f}_KB_{:.6f}_strength_{:.6f}_Init_cond_{}_Nsim_{}/'.format(KA,KB,strg,Init_cond,Nsim)
-
+pre_folder='../Results/Mem3DG_Bead_pulling_up_oct_arcsim/nu_1.000_radius_0.200_KA_100000.000_KB_1.000000_strength_6.000000_Init_cond_2_Nsim_1/'
 Bead_orig_data=open(pre_folder+'Bead_0_data.txt')
 line_bead=Bead_orig_data.readline()
 print(line_bead)
