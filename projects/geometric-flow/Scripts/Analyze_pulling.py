@@ -164,32 +164,8 @@ def intermediate_points(strength):
 
 
     # 
-main()
-cmap = plt.colormaps['viridis']
-intermediate_points(3.5)
-intermediate_points(4.0)
-intermediate_points(4.5)
-intermediate_points(5.0)
-intermediate_points(5.5)
-intermediate_points(6.0)
 
-plt.legend()
-plt.xlabel(r"$\Delta L$")
-plt.ylabel(r"Force")
-plt.savefig(base+"Pulling_force_plot.jpg",bbox_inches = 'tight')
-
-
-
-
-
-def Get_files(strength):
-
-    folder = "../Results/Mem3DG_Bead_pulling_up_oct_arcsim/nu_1.000_radius_0.200_KA_100000.000_KB_{:.6f}_strength_{:.6f}_Init_cond_2_Nsim_1/".format(KB,strength)
-    # I have the folder i now need to iterate
-
-    dLs = []
-    Forces = []
-
+def Get_higher_index(folder):
     files = os.listdir(folder)
     files = [f for f in files if os.path.isfile(folder+'/'+f)]
     higher_index = 0
@@ -202,6 +178,19 @@ def Get_files(strength):
             index = int(line[0])
             if(index>higher_index):
                 higher_index = index
+
+    return higher_index
+
+
+def Get_files(strength):
+
+    folder = "../Results/Mem3DG_Bead_pulling_up_oct_arcsim/nu_1.000_radius_0.200_KA_100000.000_KB_{:.6f}_strength_{:.6f}_Init_cond_2_Nsim_1/".format(KB,strength)
+    # I have the folder i now need to iterate
+
+    dLs = []
+    Forces = []
+    
+    higher_index = Get_higher_index(folder)
 
     # I have the higher index
 
@@ -242,4 +231,113 @@ def Get_files(strength):
         Forces.append(F_tot)
     
     # plt.plot(dLs,Forces,color=cmap(strength/6.0),label=str(strength))
+
+
+
+
+
+
+
+
+
+
+def Tube_growth_data(folder,Kb):
+    # So i 
+   
+    
+    # So i have the file
+    # The file is folder+"membrane_{}.obj".format(higher_index)
+    # We need to read the file and write one that contains only the vertex position data.
+    directory = folder+"nu_1.000_radius_0.200_KA_100000.000_KB_{:.6f}_strength_0.000000_Init_cond_5_Nsim_1/".format(Kb)
+    higher_index = Get_higher_index(directory)
+    print("The higher index is {}".format(higher_index))
+    membrane = open(folder+"nu_1.000_radius_0.200_KA_100000.000_KB_{:.6f}_strength_0.000000_Init_cond_5_Nsim_1/".format(Kb)+"membrane_{}.obj".format(higher_index),"r")
+    line = membrane.readline()
+    # Ok i need to write in another file right away right?
+
+    Output = open(folder+"Vertex_tube_KB_{:.6f}.txt".format(Kb),"w")
+
+    line = membrane.readline()
+    while(line):
+        if(line[0]=='v'):
+            # This is a vertex line
+            # Now i just want the vertices with certain values 
+            x = float(line.split(" ")[1])
+            if(x>1.3 and x<2.3):
+                Output.write(line[2:])
+            line = membrane.readline()
+            continue
+        break
+
+
+    membrane.close()
+    Output.close()
+
+    return 
+
+
+def Tube_growth_check(folder,Kb):
+    # Now its easier cause i have the data
+    Data = np.loadtxt(folder+"Vertex_tube_KB_{:.6f}.txt".format(Kb))
+    # print(Data[:,0])
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    ax.axis('equal')
+    ax.set(xlim =(1.0, 2.5),ylim = (-0.5,0.5),zlim =(-0.5,0.5))
+    ax.scatter(Data[:,0],Data[:,1],Data[:,2],color='purple')
+    plt.show()
+    plt.xlim(-0.1,0.1)
+    plt.ylim(-0.1,0.1)
+    plt.scatter(Data[:,1],Data[:,2])
+    plt.show()
+
+
+    return
+
+
+def Tube_growth_radius(folder,Kb):
+    Data = np.loadtxt(folder+"Vertex_tube_KB_{:.6f}.txt".format(Kb))
+
+    y = Data[:,1]
+    z = Data[:,2]
+    # Now i need to find the radius of this circle.
+    avg_y=np.mean(y)
+    avg_z=np.mean(z)
+
+    r= np.mean(np.sqrt((np.array(y)-avg_y)**2+(np.array(z)-avg_z)**2))
+    err=np.std(np.sqrt((np.array(y)-avg_y)**2+(np.array(z)-avg_z)**2))
+
+    print("The radius is {} with an error of {}".format(r,err))
+
+    return r
+
+folder_path_growth = "../Results/Mem3DG_Bead_pulling_oct_growth_arcsim/"
+
+
+Strengths =[1.0, 2.0, 3.0, 4.0, 5.0, 9.0, 10.0, 12.0, 15.0, 16.0, 20.0, 22.0, 25.0, 28.0, 32.0, 36.0]
+for strength in Strengths:
+    Tube_growth_data(folder_path_growth,5.0)
+
+
+# Tube_growth_check(folder_path_growth,5.0)
+
+# Tube_growth_radius(folder_path_growth,5.0)
+
+
+
+
+# main()
+# cmap = plt.colormaps['viridis']
+# intermediate_points(3.5)
+# intermediate_points(4.0)
+# intermediate_points(4.5)
+# intermediate_points(5.0)
+# intermediate_points(5.5)
+# intermediate_points(6.0)
+
+# plt.legend()
+# plt.xlabel(r"$\Delta L$")
+# plt.ylabel(r"Force")
+# plt.savefig(base+"Pulling_force_plot.jpg",bbox_inches = 'tight')
+
 
