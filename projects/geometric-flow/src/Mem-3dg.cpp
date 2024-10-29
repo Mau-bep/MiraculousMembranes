@@ -764,7 +764,7 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
 }
 
 
-double Mem3DG::Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar,bool bead, bool pulling) {
+double Mem3DG::Backtracking(VertexData<Vector3> Force,double P0,double V_bar,double A_bar,double KA,double KB,double H_bar,bool bead, bool pulling) {
 
 // std::cout<<"Backtracking\n";
 bool other_pulling=false;
@@ -830,6 +830,7 @@ grad_norm=Projection;
 
 A=geometry->totalArea();
 V=geometry->totalVolume();
+double D_P = -1*P0*(V-V_bar)/(V_bar*V_bar);
 E_Vol=E_Pressure(D_P,V,V_bar);
 E_Sur=E_Surface(KA,A,A_bar);
 E_Ben=E_Bending(H_bar,KB);
@@ -1891,7 +1892,7 @@ double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,
     // else{
       // std::cout<<"Backtracking is being called\n";
     Total_force = Vector3({0,0,0});
-    backtrackstep=Backtracking(Force,D_P,V_bar,A_bar,KA,KB,H_bar,bead,pulling);
+    backtrackstep=Backtracking(Force,P0,V_bar,A_bar,KA,KB,H_bar,bead,pulling);
     // Total_force*=backtrackstep;
     // I need to find the stop increasing bt
     // }

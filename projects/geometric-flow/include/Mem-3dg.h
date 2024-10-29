@@ -101,7 +101,7 @@ class Mem3DG {
     virtual VertexData<Vector3> Grad_tot_Area(std::ofstream& Gradient_file, bool Save) const;
     
     double Backtracking(VertexData<Vector3> Force, std::vector<std::string> Energies, std::vector< std::vector<double>> Energy_constants);
-    double Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar,bool bead, bool pulling) ;
+    double Backtracking(VertexData<Vector3> Force,double P0,double V_bar,double A_bar,double KA,double KB,double H_bar,bool bead, bool pulling) ;
     double Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar) ;
     double Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double KA);
     double Backtracking_field(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB, double H_bar);
