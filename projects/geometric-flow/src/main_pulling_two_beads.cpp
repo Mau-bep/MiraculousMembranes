@@ -491,6 +491,54 @@ int main(int argc, char** argv) {
     Min_rel_length = 0.1;
     c0=0.0;
 
+
+
+    std::vector<std::string> Energies(0);
+    std::vector<std::vector<double>> Energy_constants(0);
+    std::vector<double> Constants(0);
+
+
+    Energies.push_back("Volume_constraint");
+    Constants.push_back(100000);
+    Constants.push_back(4.0*3.1415926535/3.0);
+    Energy_constants.push_back(Constants);
+    Constants.resize(0);
+
+
+    if(Init_cond == 2){
+        Energies.push_back("Surface_tension");
+        Constants.push_back(KA);
+        Energy_constants.push_back(Constants);
+        Constants.resize(0);
+    }
+    if(Init_cond == 4 || Init_cond == 5){
+    Energies.push_back("Area_constraint");
+    Constants.push_back(KA);
+    Constants.push_back(4*3.1415926535);
+    Energy_constants.push_back(Constants);
+    Constants.resize(0);
+    }
+
+    Energies.push_back("Bending");
+    Constants.push_back(KB);
+    Energy_constants.push_back(Constants);
+    Constants.resize(0);
+
+    Energies.push_back("Bead");
+    Energy_constants.push_back(Constants);
+
+    if(Init_cond != 4 && Init_cond != 5){
+    Energies.push_back("Bead");
+    Energy_constants.push_back(Constants);
+    }
+
+    std::cout<<"The energy elements are \n";
+    for(size_t z = 0 ; z < Energies.size(); z++){
+        std::cout<<Energies[z]<<" ";
+    }
+    std::cout<<"\n";
+
+
     bool pulling = false;
     bool arcsim = true;
     // I will do it so i can give this values
@@ -593,7 +641,7 @@ int main(int argc, char** argv) {
     bonds.push_back("Harmonic");
     // std::vector<std::vector<double>> constants;
     constants.push_back(std::vector<double>{Interaction_str,0.0});
-    Bead_1 = Bead(mesh,geometry,Vector3({x_furthest-1.5*radius,0.0,0.0}),0.1,10);
+    Bead_1 = Bead(mesh,geometry,Vector3({x_furthest-2.0*radius,0.0,0.0}),radius,10);
     Bead_1.interaction = "Shifted-LJ";
     Bead_1.state = "default";
     
@@ -605,7 +653,7 @@ int main(int argc, char** argv) {
     Bead_2.Interaction_constants_vector=constants;
     Bead_1.Bond_type = bonds;
     Bead_1.Interaction_constants_vector=constants;
-    Bead_1.rc=0.5*pow(2,1.0/6.0);
+    Bead_1.rc=0.1*pow(2,1.0/6.0);
         
     Beads.push_back(Bead_1);
     Beads.push_back(Bead_2);
@@ -703,7 +751,7 @@ int main(int argc, char** argv) {
         Bead_filenames.push_back(basic_name+ "Bead_"+std::to_string(i)+"_data.txt");
         Bead_datas = std::ofstream(Bead_filenames[i]);
         
-        Bead_datas<<"####### This data is taken every 250 steps just like the mesh radius is " << radius<<" \n";
+        Bead_datas<<"####### This data is taken every 100 steps just like the mesh radius is " << radius<<" \n";
         Bead_datas.close();
     }
 
@@ -715,7 +763,7 @@ int main(int argc, char** argv) {
     bool Save_bead_data=false;
     bool Save_output_data=false;
     bool small_Ts;
-    Bead_data<<"####### This data is taken every 500 steps just like the mesh dump, radius is " << radius<<" \n";
+    Bead_data<<"####### This data is taken every 00 steps just like the mesh dump, radius is " << radius<<" \n";
     Bead_data.close();
     // Here i want to run my video
     size_t n_vert;
@@ -903,7 +951,8 @@ int main(int argc, char** argv) {
         // std::cout<<"3\n";
         // std::cout<<"Integrating\n";
         
-        dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,sigma,Sim_data, time,Save_bead_data,Bead_filenames,Save_output_data,pulling);
+        // dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,sigma,Sim_data, time,Save_bead_data,Bead_filenames,Save_output_data,pulling);
+        dt_sim = M3DG.integrate(Energies, Energy_constants , Sim_data, time, Bead_filenames, Save_output_data);
         Bead_data.close();
         Sim_data.close();
         // Bead_data = std::ofstream(filename2,std::ios_base::app);

@@ -774,7 +774,7 @@ int main(int argc, char** argv) {
         Bead_filenames.push_back(basic_name+ "Bead_"+std::to_string(i)+"_data.txt");
         Bead_datas = std::ofstream(Bead_filenames[i]);
         
-        Bead_datas<<"####### This data is taken every 250 steps just like the mesh radius is " << radius<<" \n";
+        Bead_datas<<"####### This data is taken every 100 steps just like the mesh radius is " << radius<<" \n";
         Bead_datas.close();
     }
 
@@ -786,7 +786,7 @@ int main(int argc, char** argv) {
     bool Save_bead_data=false;
     bool Save_output_data=false;
     bool small_Ts;
-    Bead_data<<"####### This data is taken every 500 steps just like the mesh dump, radius is " << radius<<" \n";
+    Bead_data<<"####### This data is taken every 100 steps just like the mesh dump, radius is " << radius<<" \n";
     Bead_data.close();
     // Here i want to run my video
     size_t n_vert;
