@@ -1016,7 +1016,7 @@ while(true){
   
   A=geometry->totalArea();
   V=geometry->totalVolume();
-  D_P = -1*P0*(V-V_bar)/(V_bar*V_bar)
+  D_P = -1*P0*(V-V_bar)/(V_bar*V_bar);
   E_Vol=E_Pressure(D_P,V,V_bar);
   E_Sur=E_Surface(KA,A,A_bar);
   E_Ben=E_Bending(H_bar,KB);
