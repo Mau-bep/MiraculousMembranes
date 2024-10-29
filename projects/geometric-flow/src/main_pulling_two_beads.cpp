@@ -600,7 +600,7 @@ int main(int argc, char** argv) {
         remeshing_params.refine_compression=1e-4;
         remeshing_params.refine_velocity=1.0;
         remeshing_params.size_max=trgt_len*2.5;
-        remeshing_params.size_min=trgt_len*0.2;
+        remeshing_params.size_min=trgt_len*0.3;
 
         std::cout<<"Minimum edge length allowed is "<< trgt_len*0.2<<" muak\n";
 
