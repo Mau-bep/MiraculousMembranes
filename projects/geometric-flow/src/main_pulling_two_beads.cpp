@@ -457,7 +457,7 @@ Vector3 Get_bead_pos(std::string filename, int step){
             continue;
         }
         
-        if(counter+1 == int(step/50)){
+        if(counter == int(step/50)){
             // We get the things we need
             // Bead_pos.x = std::stod(splitted[0]);
             Bead_pos = Vector3({std::stod(splitted[0]),std::stod(splitted[1]),std::stod(splitted[2])});
