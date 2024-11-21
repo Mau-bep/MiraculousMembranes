@@ -27,10 +27,11 @@ set Init_cond=2
 # end
 
 set Init_cond2=2
+
 set Nsim2=1
 foreach radius (0.2)
 foreach Strg ( 100.0 )
-foreach KB ( 10.0 14.0 18.0 22.0 26.0 30.0 3.4 38.0 42.0 46.0 50.0 )
+foreach KB ( 10.0 14.0 18.0 22.0 26.0 30.0 34.0 38.0 42.0 46.0 50.0 )
 foreach KA ( 0.05)
 #python3 Create_subjob.py ${v} ${c0} ${KA} ${KB}
 python3 Create_subjob_beads_pull.py ${radius} ${Strg} ${Init_cond2} ${Nsim2} ${KB} ${KA}
