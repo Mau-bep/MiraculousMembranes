@@ -297,6 +297,8 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
             // arcsim::Vert *vert1 = new arcsim::Vert(pos, 0, 1);
             // mesh1.add(vert1);
             arcsim::Node *node1 = new arcsim::Node(pos, pos, pos, 0, false);
+            Vector3 normal = geometry->vertexNormalAreaWeighted(mesh->vertex(v));
+            node1->n = arcsim::Vec3(normal.x,normal.y,normal.z); 
             node1->preserve = false;
             node1->temp = false;
             node1->temp2 = false;
@@ -339,6 +341,7 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
 
     // std::cout<<"computing data?\n";
     arcsim::compute_ms_data(mesh1);
+    // arcsim::compute_masses(cloth);
 
 
 
@@ -518,9 +521,13 @@ int main(int argc, char** argv) {
     Energy_constants.push_back(Constants);
     Constants.resize(0);
 
-    Energies.push_back("Area_constraint");
+    // Energies.push_back("Area_constraint");
+    // Constants.push_back(KA);
+    // Constants.push_back(4*3.1415926535);
+    // Energy_constants.push_back(Constants);
+    // Constants.resize(0);
+    Energies.push_back("Surface_tension");
     Constants.push_back(KA);
-    Constants.push_back(4*3.1415926535);
     Energy_constants.push_back(Constants);
     Constants.resize(0);
 
@@ -591,6 +598,9 @@ int main(int argc, char** argv) {
     if(Init_cond==3){
         filepath = "../../../input/big_sphere.obj";
     }
+    if(Init_cond==4){
+        filepath = "../../../input/Saved_final_frame_1.obj";
+    }
     // std::string filepath = "../../../input/sphere_dense_40k.obj";
     // Load mesh
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
@@ -614,21 +624,24 @@ int main(int argc, char** argv) {
     
       if(arcsim){
         std::cout<<"Settin remesher params";
-        remeshing_params.aspect_min=0.2;
-        remeshing_params.refine_angle=0.65;
+        remeshing_params.aspect_min=0.4;
+        remeshing_params.refine_angle=0.5;
         remeshing_params.refine_compression=1e-4;
         remeshing_params.refine_velocity=1.0;
-        remeshing_params.size_max=trgt_len*3.0;
-        remeshing_params.size_min=trgt_len*0.2;
+        remeshing_params.size_max=0.2;
+        remeshing_params.size_min=0.001;
 
-        std::cout<<"Minimum edge length allowed is "<< trgt_len*0.2<<" muak\n";
+        std::cout<<"Minimum edge length allowed is "<< remeshing_params.size_min<<" muak\n";
 
     
     }
     arcsim::Mesh remesher_mesh = translate_to_arcsim(mesh,geometry);
     Cloth_1.mesh = remesher_mesh;
     Cloth_1.remeshing = remeshing_params; 
-    arcsim::dynamic_remesh(Cloth_1);
+    arcsim::compute_masses(Cloth_1);
+    arcsim::compute_ws_data(Cloth_1.mesh);
+    // arcsim::compute_ws_data(cloth.mesh)
+    // arcsim::dynamic_remesh(Cloth_1);
     delete mesh;
     delete geometry;
     std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
@@ -671,7 +684,7 @@ int main(int argc, char** argv) {
     
     
 
-    std::string first_dir="../Results/Mem3DG_Bead_Reciprocal_arcsim_Phase/";
+    std::string first_dir="../Results/Mem3DG_Bead_Reciprocal_nov_phase/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
@@ -811,10 +824,11 @@ int main(int argc, char** argv) {
     std::cout<<"THe code is using " << currentMem <<" in KB";
  
     bool saving_state = true;
-    for(size_t current_t = 0; current_t <= 300000; current_t++ ){
+    Save_mesh(basic_name,0);
+    for(size_t current_t = 1; current_t <= 100000; current_t++ ){
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
-        
+        // std::cout<<"current t is \t \t "<< current_t <<" \n"; 
         
         if(arcsim){
             start_time_control=chrono::steady_clock::now();
@@ -839,6 +853,13 @@ int main(int argc, char** argv) {
 
             // std::cout<<"\t \t \t Current ts is "<<current_t<<"\n";
             // if(current_t>2300) std::cout<<"\t "+std::to_string(current_t) + "\t";
+            if(current_t==10){
+                Cloth_1.dump_info = true;
+            }
+            else{
+                Cloth_1.dump_info = false;
+            }
+            arcsim::compute_ws_data(Cloth_1.mesh);
             arcsim::dynamic_remesh(Cloth_1);
             
 
@@ -878,6 +899,37 @@ int main(int argc, char** argv) {
             // area_ratios();
 
             
+            if(current_t==10){
+                //I want to calculate the same quantities
+                double avg_dih = 0;
+                double min_dih = 1e8;
+                double max_dih = -1;
+                double dih;
+                double avg_area=0;
+                double min_area = 1e9;
+                double max_area = -1;
+                double area;
+
+                for(Face f: mesh->faces()){
+                    area = geometry->faceArea(f);
+                    if( area > max_area ) max_area = area;
+                    if( area < min_area ) min_area = area;
+                    avg_area +=area;
+                }
+                std::cout<<"The average area is" << avg_area/mesh->nFaces() << " \n";
+                std::cout<<"The minimum area is "<< min_area <<" the max area is "<< max_area <<" \n";
+
+                for(Edge e: mesh->edges()){
+                    dih = fabs(geometry->dihedralAngle(e.halfedge()));
+                    if( dih > max_dih ) max_dih = dih;
+                    if( dih < min_dih ) min_dih = dih;
+
+                    avg_dih+= dih;
+                }
+                std::cout<<"The average dih is" << avg_dih/mesh->nEdges() << " \n";
+                std::cout<<"The minimum dih is "<< min_dih <<" the max dih is "<< max_dih <<" \n";
+
+            }
             
             
             
@@ -942,8 +994,8 @@ int main(int argc, char** argv) {
         //     saving_state = true;
         //     counter = 0;
         //  }
-        
-        if(current_t%100==0  ){
+            //  || || 
+        if(current_t%50==0   ) {
         // {
             // currentMem = get_mem_usage();
             // std::cout<<"THe code is using " << currentMem <<" in KB\n";
@@ -1052,7 +1104,7 @@ int main(int argc, char** argv) {
 
 
 
-
+        // if(current_t==41) break;
 
     }
     Sim_data.close();
@@ -1121,7 +1173,41 @@ int main(int argc, char** argv) {
     o<<"\n";
     
     }
+    o.close();
     
+
+
+
+
+
+    // // Lets try smt
+    // double area;
+    // for(Face f: mesh->faces()){
+
+    //     // I want to measure the areas and check their state
+    //     area = geometry->faceArea(f);
+    //     if(area < 1e-6){
+    //         std::cout<<"The area value is"<< area<<" \n";
+
+    //     }
+
+
+    // }
+    double area1, area2;
+    // vector<double> areas(0);
+    for(Edge e: mesh->edges()){
+        area1 = geometry->faceArea( e.halfedge().face());
+        area2 = geometry->faceArea( e.halfedge().twin().face());
+        // The idea is to measure the difference
+        if(area1 < 1e-7 || area2 < 1e-7){
+            std::cout<<" Area 1  is" << area1 <<" and area 2 is "<< area2 <<" \n";
+        }
+
+
+    }
+
+
+
 
 
 

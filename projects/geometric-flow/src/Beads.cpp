@@ -1599,7 +1599,7 @@ void Bead::Bead_interactions(){
     Vector3 v_dist;
     double dist;
     Vector3 Force;
-    for(int i = 0 ; i < Beads.size() ; i++){
+    for(size_t i = 0 ; i < Beads.size() ; i++){
 
         // Here i need to separate by interactions
 
@@ -1638,7 +1638,7 @@ double Bead::Energy() {
         vector<double> params = Interaction_constants_vector[bead];
         // Ok so i loaded de params of the interaction
         if(Bond_type[bead]=="Harmonic" && state!="manual" && state!="froze" ){
-            // The armonic interaction has two parameters (stiffness and rest length) assuming first is the rest length 
+            // The armonic interaction has two parameters (stiffness and rest length) assuming first is the sitffness and there is restlength - 
             Total_E+= params[0]*dot(Pos - Beads[bead]->Pos,Pos - Beads[bead]->Pos)/2.0;
             // std::cout<<"ADDed harmonic energy"<< Total_E <<"\n";
         }

@@ -36,7 +36,7 @@
 
 #include "Mem-3dg.h"
 #include "Beads.h"
-
+#include "math.h"
 
 
 #include "libarcsim/include/cloth.hpp"
@@ -60,6 +60,10 @@ std::unique_ptr<VertexPositionGeometry> geometry_uptr;
 ManifoldSurfaceMesh* mesh;
 VertexPositionGeometry* geometry;
 
+
+
+std::vector<arcsim::Mesh> Saved_meshes(6);
+std::vector<arcsim::Mesh> Saved_after_remesh(6);
 
 
 // Polyscope visualization handle, to quickly add data to the surface
@@ -546,12 +550,15 @@ int main(int argc, char** argv) {
     arcsim::Cloth Cloth_1;
     arcsim::Cloth::Remeshing remeshing_params;
 
-  
+    int saved_mesh_idx = 0;
+    bool Saving_last_states=true;
+
+    
+
     auto start = chrono::steady_clock::now();
     auto end = chrono::steady_clock::now();
 
-
-
+    std::vector<Vector3> Bead_pos_saved(6);
 
     auto start_time_control= chrono::steady_clock::now();
     auto end_time_control= chrono::steady_clock::now();
@@ -595,23 +602,40 @@ int main(int argc, char** argv) {
     
       if(arcsim){
         std::cout<<"Settin remesher params";
-        remeshing_params.aspect_min=0.2;
-        remeshing_params.refine_angle=0.7;
+        remeshing_params.aspect_min=0.4;
+        remeshing_params.refine_angle=0.6;
         remeshing_params.refine_compression=1e-4;
         remeshing_params.refine_velocity=1.0;
-        remeshing_params.size_max=trgt_len*3.0;
-        remeshing_params.size_min=trgt_len*0.3;
+        remeshing_params.size_max=0.2;
+        remeshing_params.size_min=0.001;
 
-        std::cout<<"Minimum edge length allowed is "<< trgt_len*0.2<<" muak\n";
+        std::cout<<"Minimum edge length allowed is "<< remeshing_params.size_max<<" muak\n";
 
     
     }
-    
 
+
+    double avg_dih = 0;
+    double max_dih = 0;
+    double min_dih = 0.1;
+    double dih;
+        
+
+    for( Edge e : mesh->edges()){ 
+    dih = fabs(geometry->dihedralAngle(e.halfedge()));
+    avg_dih+=dih;
+    if(dih > max_dih) max_dih = dih;
+    if(dih < min_dih) min_dih = dih;
+    }
+    std::cout<<"First checkThe average dihedral is"<< avg_dih/mesh->nEdges()<<" \n";
+    std::cout<<"The min dih is"<< min_dih << " and the max dih is " << max_dih <<" \n";
+    avg_dih =0.0;
 
     arcsim::Mesh remesher_mesh = translate_to_arcsim(mesh,geometry);
     Cloth_1.mesh = remesher_mesh;
     Cloth_1.remeshing = remeshing_params; 
+    arcsim::compute_masses(Cloth_1);
+    arcsim::compute_ws_data(Cloth_1.mesh);
     arcsim::dynamic_remesh(Cloth_1);
     delete mesh;
     delete geometry;
@@ -643,6 +667,8 @@ int main(int argc, char** argv) {
     constants.push_back(std::vector<double>{Interaction_str,0.0});
     Bead_1 = Bead(mesh,geometry,Vector3({x_furthest-2.0*radius,0.0,0.0}),radius,10);
     Bead_1.interaction = "Shifted-LJ";
+    Bead_1.rc=radius*pow(2,1.0/6.0);
+    
     Bead_1.state = "default";
     
     Bead_2 = Bead(mesh,geometry,Vector3({x_furthest+20.0,0.0,0.0}),1.0,1.0);
@@ -651,9 +677,9 @@ int main(int argc, char** argv) {
     Bead_2.Velocity = Vector3({1.0,0.0,0.0});
     Bead_2.Bond_type = bonds;
     Bead_2.Interaction_constants_vector=constants;
+
     Bead_1.Bond_type = bonds;
     Bead_1.Interaction_constants_vector=constants;
-    Bead_1.rc=0.1*pow(2,1.0/6.0);
         
     Beads.push_back(Bead_1);
     Beads.push_back(Bead_2);
@@ -664,7 +690,7 @@ int main(int argc, char** argv) {
     if(Init_cond ==4){
     // I need to get the Vector3 that goes here
 
-    Vector3 Initial_pos_bead = Get_bead_pos("../Results/Mem3DG_Bead_pulling_up_oct_arcsim/nu_1.000_radius_0.200_KA_100000.000_KB_1.000000_strength_6.000000_Init_cond_2_Nsim_1/Bead_0_data.txt",Nsim);
+    Vector3 Initial_pos_bead = Get_bead_pos("../Results/Mem3DG_Bead_pulling_nov/nu_1.000_radius_0.200_KA_100000.000_KB_1.000000_strength_6.000000_Init_cond_2_Nsim_1/Bead_0_data.txt",Nsim);
     Bead_1 = Bead(mesh,geometry,Initial_pos_bead,0.1,10);
     Bead_1.interaction = "Shifted-LJ";
     Bead_1.state = "froze";
@@ -683,7 +709,7 @@ int main(int argc, char** argv) {
     Bead_1.state = "froze";
     Bead_1.Bond_type = bonds;
     Bead_1.Interaction_constants_vector=constants;
-    Bead_1.rc=0.5*pow(2,1.0/6.0);
+    Bead_1.rc=radius*pow(2,1.0/6.0);
         
     Beads.push_back(Bead_1);    
     }
@@ -723,8 +749,8 @@ int main(int argc, char** argv) {
     
 
     std::string first_dir;
-    if(Init_cond == 4 ) first_dir ="../Results/Mem3DG_Bead_pulling_relaxation_arcsim/";
-    if(Init_cond != 4 ) first_dir ="../Results/Mem3DG_Bead_pulling_oct_growth_arcsim/";
+    if(Init_cond == 4 ) first_dir ="../Results/Mem3DG_Bead_pulling_nov_relaxation_arcsim/";
+    if(Init_cond != 4 ) first_dir ="../Results/Mem3DG_Bead_pulling_radius_arcsim/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
@@ -781,18 +807,37 @@ int main(int argc, char** argv) {
     int sys_time = 0;
 
 
+
+
+
+
+
+
+
+
     bool seam = false;
     Cloth_1.dump_info = false;
     start = chrono::steady_clock::now();
     for(size_t current_t=0;current_t<=300000;current_t++ ){
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
-        
-        
+        // std::cout<<"Current t is \t\t\t\t "<< current_t <<" \n";
+         
         if(arcsim){
             start_time_control=chrono::steady_clock::now();
             arcsim::Mesh remesher_mesh2 = translate_to_arcsim(mesh,geometry);
             Cloth_1.mesh=remesher_mesh2;
+            if(Saving_last_states){
+                saved_mesh_idx = (saved_mesh_idx+1)%6;
+                arcsim::delete_mesh(Saved_meshes[saved_mesh_idx]);
+
+                Bead_pos_saved[saved_mesh_idx] = Beads[0].Pos;
+                Saved_meshes[saved_mesh_idx] = arcsim::deep_copy(remesher_mesh2);
+
+
+
+
+            }
 
             
             // std::cout<<"\n";
@@ -802,8 +847,9 @@ int main(int argc, char** argv) {
             //     arcsim::save_obj(Cloth_1.mesh, basic_name + "Debugging_before.obj" );
             // }
             // std::cout<<"Remeshing 1\n";
-            
+            arcsim::compute_ws_data(Cloth_1.mesh);
             arcsim::dynamic_remesh(Cloth_1);
+            
             // std::cout<<"Remeshing done\n";
 
             // for(int val = 0 ; val< Cloth_1.mesh.edges.size() ; val++){
@@ -813,9 +859,19 @@ int main(int argc, char** argv) {
             //         seam = true;
             //     }
             // }
+            if(Saving_last_states){
+                arcsim::delete_mesh(Saved_after_remesh[saved_mesh_idx]);
+                Saved_after_remesh[saved_mesh_idx] = arcsim::deep_copy(Cloth_1.mesh);
+                if(Cloth_1.dump_info == true){
+                    
+                    std::cout<<"Breaking the sim due to high sizing\n";
+                    break;
+                }
+            }
             if(seam ){
                 break;
             }
+
             // if( current_t>1300 ){
             //     arcsim::save_obj(Cloth_1.mesh, basic_name + "Debugging_after.obj" );
             // }
@@ -834,6 +890,8 @@ int main(int argc, char** argv) {
             geometry = geometry_uptr.release();
             // Bead_1 = Bead(mesh,geometry,Bead_1.Pos,radius,Interaction_str);
             // Bead_1.rc = 2.0;
+
+
             
             end_time_control=chrono::steady_clock::now();
             remeshing_elapsed_time+=chrono::duration_cast<chrono::milliseconds>(end_time_control-start_time_control).count();
@@ -882,7 +940,7 @@ int main(int argc, char** argv) {
         // psMesh->setEdgeWidth(1.0);
 
         
-        if(current_t%100==0 || current_t==100){
+        if(current_t%50==0 || current_t==100 ){
             // Bead_data.close();
             // Sim_data.close();
             // std::cout<<"Saving\n";
@@ -928,7 +986,18 @@ int main(int argc, char** argv) {
             std::cout << "Current t is " << current_t <<"\n";
             std::cout << "The system time is " << time <<"\n\n";
             
-            std::cout<<"A thousand iterations took "<<chrono::duration_cast<chrono::milliseconds>(end-start).count()<<" miliseconds\n";
+            for( Edge e : mesh->edges()){ 
+                dih = fabs(geometry->dihedralAngle(e.halfedge()));
+                avg_dih+=dih;
+                if(dih > max_dih) max_dih = dih;
+                if(dih < min_dih) min_dih = dih;
+                }
+            std::cout<<"The average dihedral is"<< avg_dih/mesh->nEdges()<<" \n";
+            std::cout<<"The min dih is"<< min_dih << " and the max dih is " << max_dih <<" \n";
+            avg_dih =0.0;
+            
+
+            std::cout<<"A thousand iterations took "<<chrono::duration_cast<chrono::milliseconds>(end-start).count()<<" miliseconds\n\n";
 
             
             // polyscope::screenshot(basic_name+std::to_string(current_t)+".jpg",true);
@@ -991,6 +1060,24 @@ int main(int argc, char** argv) {
     }
     Sim_data.close();
     Bead_data.close();
+
+
+    std::ofstream beads_saved(basic_name+"Saved_bead_info.txt");
+    beads_saved << std::setprecision(std::numeric_limits<double>::max_digits10);
+
+
+    for( int k = 0 ; k < 6 ; k++){
+        std::cout<<Bead_pos_saved[k].x << " " << Bead_pos_saved[k].y << " " << Bead_pos_saved[k].z <<" \n";
+        std::cout<<"Saved mesh idx is " << saved_mesh_idx<<" \n";
+        arcsim::save_obj(Saved_meshes[saved_mesh_idx],basic_name+"Saved_final_frame_"+std::to_string(11-2*k)+".obj");
+        arcsim::save_obj(Saved_after_remesh[saved_mesh_idx],basic_name+"Saved_final_frame_"+std::to_string(12-2*k)+".obj");
+
+        beads_saved<< Bead_pos_saved[saved_mesh_idx].x<<" "<<Bead_pos_saved[saved_mesh_idx].y<<" "<<Bead_pos_saved[saved_mesh_idx].z<<" \n";
+
+        
+        saved_mesh_idx = (saved_mesh_idx -1 +6)%6;
+
+    }   
 
     Vector3 Pos;
     std::ofstream o(basic_name+"Final_state.obj");

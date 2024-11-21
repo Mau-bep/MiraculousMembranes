@@ -23,7 +23,7 @@ Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo)
     H_Vector_0 = VertexData<double>(*mesh,0.0);
     dH_Vector = VertexData<double> (*mesh,0.0);
     // H_target = VertexData<double> (*mesh,0.0);
-    system_time=0;
+    system_time=0; 
     grad_norm=0.0;
     is_test=false;
     pulling=false;
@@ -542,6 +542,16 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
   double NewE;
   VertexData<Vector3> initial_pos(*mesh);
   geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+  Vector3 CoM = geometry->centerOfMass();
+    
+  for(size_t i = 0; i < Beads.size(); i++){
+
+    // Here i need to move the bead
+    if(Beads[i]->state!= "froze"){
+      Beads[i]->Pos -= CoM;
+    }
+
+  }
   initial_pos = geometry->inputVertexPositions;
 
   std::vector<Vector3> Bead_init;
@@ -622,6 +632,8 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
       // What if the energy is surface tension 
       double sigma = Energy_constants[i][0];
       // I need to add an energy term here;
+      A  = geometry->totalArea();
+      Energy_vals[i] = sigma*100*100*A; 
       NewE += Energy_vals[i];
       continue;
 
@@ -637,8 +649,8 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
 
   while(true) {
     displacement_cond = true;
-    for(size_t i = 0 ; i< Beads.size() ; i++) displacement_cond && Beads[i]->Total_force.norm()*alpha<0.1;
-
+    for(size_t i = 0 ; i< Beads.size() ; i++) displacement_cond = displacement_cond && Beads[i]->Total_force.norm()*alpha<0.25*Beads[i]->sigma;
+    // if(!displacement_cond ) std::cout<<"Displacement cond not ready, decreasing ts\n";
     if(NewE <= previousE - c1 * alpha * Projection && displacement_cond && abs(NewE-previousE) <10 ) {
       break;
     }
@@ -657,8 +669,8 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
       std::cout<<"The energy diff is"<< abs(NewE-previousE)<<"\n";
       std::cout<<"THe relative energy diff  is"<<abs((NewE-previousE)/previousE)<<"\n";
       std::cout<<"The projection is"<< Projection<<"\n";
-      std::cout<<"The projection is too big "<< (Projection>1.0e10) <<" \n";
-      if(Projection>1.0e10){
+      std::cout<<"The projection is too big "<< (Projection>1.0e8) <<" \n";
+      if(Projection>1.0e8){
       // return alpha;
       std::cout<<"The gradient got crazy\n";
       std::cout<<"The projections is "<< Projection<<"\n";
@@ -736,6 +748,8 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
         // What if the energy is surface tension 
         double sigma = Energy_constants[i][0];
         // I need to add an energy term here;
+        A = geometry->totalArea();
+        Energy_vals[i] = sigma*100*100*A;
         NewE += Energy_vals[i];
         continue;
 
@@ -753,6 +767,16 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
   if(alpha<0.0) geometry->inputVertexPositions = initial_pos;
 
   geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+  CoM = geometry->centerOfMass();
+    
+  for(size_t i = 0; i < Beads.size(); i++){
+
+    // Here i need to move the bead
+    if(Beads[i]->state!= "froze"){
+      Beads[i]->Pos -= CoM;
+    }
+
+  }
   geometry->refreshQuantities();
 
 
@@ -1757,7 +1781,9 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
       // std::cout<<"Surface tension\n";
       // What if the energy is surface tension 
       double sigma = Energy_constants[i][0];
-      Force_temp = sigma*SurfaceGrad();
+      A = geometry->totalArea();
+      Energy_vals[i] = A*100*100*sigma;
+      Force_temp = sigma*100*100*SurfaceGrad();
       grad_value = 0;
       for(size_t j = 0; j < mesh->nVertices(); j++){
         grad_value+= Force_temp[i].norm2();

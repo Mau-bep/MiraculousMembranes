@@ -299,6 +299,8 @@ double smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom
   return smoothByLaplacian(mesh, geom, mm, stepSize, bc);
 }
 
+// doub;e smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPosi)
+
 double smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm, double stepSize,
                          RemeshBoundaryCondition bc) {
   VertexData<Vector3> vertexOffsets(mesh);

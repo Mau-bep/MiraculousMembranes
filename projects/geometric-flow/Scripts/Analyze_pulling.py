@@ -364,7 +364,7 @@ def Tube_growth_radius(folder,Kb):
 
     print("The radius is {} with an error of {}".format(r,err))
 
-    return r
+    return [r,err]
 
 folder_path_growth = "../Results/Mem3DG_Bead_pulling_oct_growth_arcsim/"
 
@@ -372,22 +372,24 @@ folder_path_growth = "../Results/Mem3DG_Bead_pulling_oct_growth_arcsim/"
 def fit():
     Strengths =[1.0, 2.0, 3.0, 4.0, 5.0, 9.0, 10.0, 12.0, 15.0, 16.0, 20.0, 22.0, 25.0, 28.0, 32.0, 36.0]
     radius = []
+    errors = []
     for strength in Strengths:
         # Tube_growth_data(folder_path_growth,strength)
 
 
         # Tube_growth_check(folder_path_growth, strength)
 
-        r = Tube_growth_radius(folder_path_growth, strength)
+        [r,sigma] = Tube_growth_radius(folder_path_growth, strength)
         radius.append(r)
-
+        errors.append(sigma)
 
     plt.clf()
     plt.xlabel("Kb",fontsize=15.0)
     plt.ylabel("Tube radius",fontsize=15.0)
     plt.scatter(Strengths,radius,color="black")
     plt.savefig(folder_path_growth+"NoFit_radius_curve.png",bbox_inches='tight')
-    plt.show()
+    # plt.show()
+    plt.clf()
 
 
     # ok so i want to do a linear fit to the thing
@@ -403,23 +405,27 @@ def fit():
     plt.plot(x_fit,y_fit,ls='dashed')
     plt.scatter(x,y,color='black')
     print("The values for the fit are m = {} and c = {}".format(p[0],p[1]))
-    plt.show()
+    # plt.show()
+    plt.clf()
 
     y_fit = np.exp(y_fit)
     x_fit = np.exp(x_fit)
-
+    plt.errorbar(Strengths,radius,errors,capsize=3.0,fmt='o',color='black' )
     plt.plot(x_fit,y_fit,ls='dashed',color='magenta')
     plt.scatter(Strengths,radius,color='black')
-    plt.savefig(folder_path_growth+"Fit_radius_curve.png",bbox_inches='tight')
+    # plt.savefig(folder_path_growth+"Fit_radius_curve.png",bbox_inches='tight')
     plt.xlabel("Kb",fontsize=15.0)
     plt.ylabel("Tube radius",fontsize=15.0)
+    plt.savefig(folder_path_growth+"Fit_radius_curve.png",bbox_inches='tight')
+    
     plt.show()
 
 
 
 
-
-measure_force()
+fit()
+    
+# measure_force()
 
 # main()
 # cmap = plt.colormaps['viridis']
