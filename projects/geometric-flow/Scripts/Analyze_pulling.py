@@ -10,16 +10,18 @@ KA = 100000
 Nsim = 1
 Init_cond = 2
 
-
+strength = 0.7
 
 base ="../Results/Mem3DG_Bead_pulling_relaxation_arcsim/"
 
 def measure_force():
     dLs = []
     Force = []
-    Nsims = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 45, 50, 55, 60, 65, 70]
+    Nsims = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 45, 50, 55, 60, 65, 70,75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170,175, 180, 185, 190, 195, 200, 205, 210, 215, 220, 225, 230, 235, 240, 245, 250, 255, 260, 265, 270 ]
+    Nsims = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70,75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170,175, 180, 185, 190, 195, 200, 205, 210, 215, 220, 225, 230, 235, 240, 245, 250, 255, 260, 265, 270 ]
+    
     for Nsim in Nsims:
-        folder = "../Results/Mem3DG_Bead_pulling_relaxation_arcsim/nu_1.000_radius_0.200_KA_100000.000_KB_{:.6f}_strength_{:.6f}_Init_cond_4_Nsim_{}/".format(KB,0.0,Nsim)
+        folder = "../Results/Mem3DG_Bead_pulling_relaxation_arcsim/nu_1.000_radius_0.200_KA_100000.000_KB_{:.6f}_strength_{:.6f}_Init_cond_4_Nsim_{}/".format(KB,strength,Nsim)
         filename_bead = folder + "Bead_0_data.txt"
         f = open(filename_bead)
         Lines = f.readlines()
@@ -51,10 +53,18 @@ def measure_force():
         dLs.append(dL)
         
         Force.append(F_tot)
-    
-    plt.scatter(dLs,Force,c="black")
-    plt.savefig(base+"Mem_resistance_pulling.png",bbox_inches = 'tight')
+    plt.xlim()
+    plt.scatter(dLs[1:],Force[1:],c="purple")
+    plt.xlabel(r"$\Delta L$",fontsize=15) 
+    plt.ylabel(r"Force",fontsize=15)
+    plt.savefig(base+"Mem_resistance_pulling_9.png",bbox_inches = 'tight')
     plt.clf()
+    plt.scatter(range(1,len(dLs)),dLs[1:],c="purple")
+    plt.xlabel(r"Frame",fontsize=15)
+    plt.ylabel(r"$\Delta L$",fontsize=15)
+    plt.savefig(base+"Extensions_9.png",bbox_inches = 'tight')
+    plt.clf()
+    
 
 
 
@@ -364,7 +374,7 @@ def Tube_growth_radius(folder,Kb):
 
     print("The radius is {} with an error of {}".format(r,err))
 
-    return [r,err]
+    return r
 
 folder_path_growth = "../Results/Mem3DG_Bead_pulling_oct_growth_arcsim/"
 
@@ -372,24 +382,22 @@ folder_path_growth = "../Results/Mem3DG_Bead_pulling_oct_growth_arcsim/"
 def fit():
     Strengths =[1.0, 2.0, 3.0, 4.0, 5.0, 9.0, 10.0, 12.0, 15.0, 16.0, 20.0, 22.0, 25.0, 28.0, 32.0, 36.0]
     radius = []
-    errors = []
     for strength in Strengths:
         # Tube_growth_data(folder_path_growth,strength)
 
 
         # Tube_growth_check(folder_path_growth, strength)
 
-        [r,sigma] = Tube_growth_radius(folder_path_growth, strength)
+        r = Tube_growth_radius(folder_path_growth, strength)
         radius.append(r)
-        errors.append(sigma)
+
 
     plt.clf()
     plt.xlabel("Kb",fontsize=15.0)
     plt.ylabel("Tube radius",fontsize=15.0)
     plt.scatter(Strengths,radius,color="black")
     plt.savefig(folder_path_growth+"NoFit_radius_curve.png",bbox_inches='tight')
-    # plt.show()
-    plt.clf()
+    plt.show()
 
 
     # ok so i want to do a linear fit to the thing
@@ -405,27 +413,23 @@ def fit():
     plt.plot(x_fit,y_fit,ls='dashed')
     plt.scatter(x,y,color='black')
     print("The values for the fit are m = {} and c = {}".format(p[0],p[1]))
-    # plt.show()
-    plt.clf()
+    plt.show()
 
     y_fit = np.exp(y_fit)
     x_fit = np.exp(x_fit)
-    plt.errorbar(Strengths,radius,errors,capsize=3.0,fmt='o',color='black' )
+
     plt.plot(x_fit,y_fit,ls='dashed',color='magenta')
     plt.scatter(Strengths,radius,color='black')
-    # plt.savefig(folder_path_growth+"Fit_radius_curve.png",bbox_inches='tight')
+    plt.savefig(folder_path_growth+"Fit_radius_curve.png",bbox_inches='tight')
     plt.xlabel("Kb",fontsize=15.0)
     plt.ylabel("Tube radius",fontsize=15.0)
-    plt.savefig(folder_path_growth+"Fit_radius_curve.png",bbox_inches='tight')
-    
     plt.show()
 
 
 
 
-fit()
-    
-# measure_force()
+
+measure_force()
 
 # main()
 # cmap = plt.colormaps['viridis']
