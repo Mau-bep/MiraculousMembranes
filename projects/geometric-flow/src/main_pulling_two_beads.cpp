@@ -457,7 +457,7 @@ Vector3 Get_bead_pos(std::string filename, int step){
             continue;
         }
         
-        if(counter == int(step/50)){
+        if(counter+1 == int(step/50)){
             // We get the things we need
             // Bead_pos.x = std::stod(splitted[0]);
             Bead_pos = Vector3({std::stod(splitted[0]),std::stod(splitted[1]),std::stod(splitted[2])});
@@ -466,7 +466,7 @@ Vector3 Get_bead_pos(std::string filename, int step){
         counter+=1;            
 
     }
-    if(counter<step){
+    if(counter<step/50.0){
         std::cout<<"The output file doesnt get that far\n";
     }
 
@@ -604,7 +604,7 @@ int main(int argc, char** argv) {
       if(arcsim){
         std::cout<<"Settin remesher params";
         remeshing_params.aspect_min=0.4;
-        remeshing_params.refine_angle=0.6;
+        remeshing_params.refine_angle=0.7;
         remeshing_params.refine_compression=1e-4;
         remeshing_params.refine_velocity=1.0;
         remeshing_params.size_max=0.2;
