@@ -588,7 +588,8 @@ int main(int argc, char** argv) {
         filepath ="../Results/Mem3DG_Bead_pulling_up_oct_arcsim/nu_1.000_radius_0.200_KA_100000.000_KB_1.000000_strength_6.000000_Init_cond_2_Nsim_1/membrane_" + to_string(Nsim*500) +".obj";
     }
     if(Init_cond==5){
-        filepath ="/Results/Mem3DG_Bead_pulling_radius_arcsim/nu_1.000_radius_0.200_KA_0.050_KB_10.000000_strength_100.000000_Init_cond_2_Nsim_1/membrane_13800.obj";
+        filepath ="../Results/Mem3DG_Bead_pulling_radius_arcsim/nu_1.000_radius_0.200_KA_0.050_KB_10.000000_strength_50.000000_Init_cond_2_Nsim_1/membrane_30000.obj";
+        
     }
     // std::string filepath = "../../../input/sphere_dense_40k.obj";
     // Load mesh
@@ -703,7 +704,7 @@ int main(int argc, char** argv) {
     if(Init_cond ==5){
     // I need to get the Vector3 that goes here
 
-    Vector3 Initial_pos_bead = Get_bead_pos("../Results/Mem3DG_Bead_pulling_radius_arcsim/nu_1.000_radius_0.200_KA_0.050_KB_10.000000_strength_100.000000_Init_cond_2_Nsim_1/Bead_0_data.txt",13800);
+    Vector3 Initial_pos_bead = Get_bead_pos("../Results/Mem3DG_Bead_pulling_radius_arcsim/nu_1.000_radius_0.200_KA_0.050_KB_10.000000_strength_50.000000_Init_cond_2_Nsim_1/Bead_0_data.txt",30000);
     Bead_1 = Bead(mesh,geometry,Initial_pos_bead,0.1,10);
     Bead_1.interaction = "Shifted-LJ";
     Bead_1.state = "froze";
