@@ -282,7 +282,7 @@ int main(int argc, char** argv) {
 
 
     // double arr[] = { 1.0, 2.0, 3.0 };
-    double arr[] = { 0.2};
+    double arr[] = { 0.2 };
     
     int n = sizeof(arr) / sizeof(arr[0]); 
   
@@ -298,7 +298,7 @@ int main(int argc, char** argv) {
     
     
     
-    double arr_3[] = {10.0, 14.0, 18.0, 22.0, 26.0, 30.0, 34.0, 38.0, 42.0, 46.0, 50.0 };
+    double arr_3[] = {50.0, 100.0 };
     // double arr_3[] = {100.0, 110.0};
     
     n=sizeof(arr_3) / sizeof(arr_3[0]);
@@ -307,7 +307,7 @@ int main(int argc, char** argv) {
     
     KB=1.0;
     
-    double arr_4[] = { 0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 15.0, 20.0};
+    double arr_4[] = { 10.0, 14.0, 18.0, 22.0, 26.0, 30.0, 34.0, 38.0, 42.0, 46.0, 50.0};
     n = sizeof(arr_4) / sizeof(arr_4[0]);
 
     vector<double> KBs(arr_4,arr_4+n);
@@ -320,7 +320,7 @@ int main(int argc, char** argv) {
 
 
     int Init_cond=2;
-    int Nsim=1000;
+    int Nsim=1;
 
     auto start = chrono::steady_clock::now();
     auto end = chrono::steady_clock::now();
@@ -332,7 +332,7 @@ int main(int argc, char** argv) {
     double Interaction_str;
     int Last_ts;
     int num_steps;
-    int delta_steps=100;
+    int delta_steps=50;
     Vector3 Bead_pos;
     std::cout<< "Current path is " << argv[0]<<"\n";
     bool check_coverage = true;
@@ -365,17 +365,18 @@ int main(int argc, char** argv) {
     Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
     Min_rel_lengthstream << std::fixed << std::setprecision(4) <<Min_rel_length;
 
-    first_dir="../Results/Mem3DG_Bead_Reciprocal_arcsim_Phase/";
-    filename = first_dir + "Coverage_final.txt" ;
+    first_dir="../Results/Mem3DG_Bead_pulling_radius_arcsim/";
+    double Tube_r;
+    filename = first_dir + "Tube_radius.txt" ;
     std::ofstream Coverage_final(filename,std::ios_base::app);
-    if(KB_it == 0) Coverage_final<<"# # # Coverage data \n";
+    if(KB_it == 0) Coverage_final<<"# # # Tube data \n";
     Coverage_final.close(); 
     int counter=0;
 
     double avg_rmin =0.0;
     int avg_rmin_counter =0;
     for (int r_it = 0 ; r_it < radius.size(); r_it++){
-        std::cout<<"Hre\n";
+        // std::cout<<"Hre\n";
         rad = radius[r_it];    
         radiusstream.str(std::string());
         radiusstream.clear();
@@ -399,7 +400,7 @@ int main(int argc, char** argv) {
                 
                 // We now load the directory
                 basic_name=first_dir+"nu_"+nustream.str()+"_radius_"+radiusstream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"_strength_"+Interactionstrstream.str()+"_Init_cond_"+std::to_string(Init_cond)+"_Nsim_"+std::to_string(Nsim)+"/";
-
+                                                                                                    
                 // 
                 // This is the last step to consider
 
@@ -441,6 +442,16 @@ int main(int argc, char** argv) {
                 std::cout<<"Bead data read\n";
                 std::cout<<"Counter is"<< counter <<"\n";
 
+                // Ok  from here i have the bead Pos
+
+                double x_right;
+                double x_left;
+
+
+
+
+
+
                 // filename = basic_name + "Coverage_evol.txt";
                 // std::ofstream Coverage(filename); 
                 double covered_area=0;
@@ -451,6 +462,8 @@ int main(int argc, char** argv) {
 
 
                 double E_I = Interaction_E_from_Output(basic_name + "Output_data.txt");
+
+                // Do i need the interaction energy? No
 
 
                 for(int step = counter-1 ; step<counter;step++){
@@ -469,114 +482,143 @@ int main(int argc, char** argv) {
                 ORIG_VPOS = geometry->inputVertexPositions;
                 CoM = geometry->centerOfMass();
                 
+
+
                 // The mesh and the bead position are loaded, time to measure
+                // 
 
-                Vector3 Vert_pos;
-                Vector3 Bead_current;
-                Vector3 Normal;
-                Vector3 rij;
-                double r_dist;
+                // Ok so what do i do
 
-                double mag_Vol;
-                double mag_Area;
-                double mag_Bend;
-                double mag_Bead;
-                // I want to check
-                
-                
-                // I can check the rdist
-                Bead_current=Bead_pos[step];
-                std::cout<<Bead_current<<"This is the bead position\n";
-                // std::cout<<"The bead position is"<< Bead_current<<"\n";
-                int touching_count=0;
-                filename = first_dir + "Radius_distribution_strength_"+to_string(Interaction_str)+".txt";
-                std::ofstream R_dist(filename);
-                
-                filename = first_dir + "Touching_strength_"+to_string(Interaction_str)+".txt";
-                std::ofstream Touching_data(filename);
+                double leftmost = 0.0;
+                double rightmost = Bead_pos[step].x-1.0;
 
-                covered_area=0.0;
-                // std::cout<<"Iterating over vertices\n";
+                // So those are the measurements
+                // Now lets measure things
+                double Tot_H = 0.0;
+                double Tot_A = 0.0;
+                for( Vertex v : mesh->vertices()){
 
-                for(int v = 0 ; v < mesh->nVertices() ; v++){
-                    Vert_pos=geometry->inputVertexPositions[v];
-                    // if(Vert_pos.x>x_max_mem) x_max_mem = Vert_pos.x;
-                    rij = (Bead_current-Vert_pos);
-                    r_dist = rij.norm();
-                    if(r_dist<rmin) rmin = r_dist;
-
+                    // I need to now that the position of the vertex is correct
+                    if(geometry->inputVertexPositions[v].x > leftmost && geometry->inputVertexPositions[v].x < rightmost){
+                    double H = geometry->scalarMeanCurvature(v);
+                    double A = geometry->vertexDualArea(v);
+                    // double area
+                    Tot_H+=H;
+                    Tot_A+=A;
+                    }
                 }
-                // x_max_mem+=1.0;
-                // Vector3 Second_bead({x_max_mem,0.0,0.0});
-                // double second_dist=0.0;
-                for(int v =0; v<mesh->nVertices(); v++){
-                    // So i have the radius and the 
-                    Vert_pos=geometry->inputVertexPositions[v];
-                    rij = (Bead_current-Vert_pos);
-                    r_dist = rij.norm();
-                    // second_dist = (Vert_pos-Second_bead).norm();
 
-                    Normal = geometry->vertexNormalAreaWeighted(mesh->vertex(v));
-                    Normal = Normal.unit();
-                    Vector3 x_dir;
+                std::cout<<"The mean H of the tube is " << Tot_H <<" the radius should be " << Tot_A/(2*Tot_H) <<" inferring from the area this is" << Tot_A/(2*3.14159265*(rightmost-leftmost)) << " \n";
+
+                Tube_r = Tot_A/(2*Tot_H);
+
+
+                // Vector3 Vert_pos;
+                // Vector3 Bead_current;
+                // Vector3 Normal;
+                // Vector3 rij;
+                // double r_dist;
+
+                // double mag_Vol;
+                // double mag_Area;
+                // double mag_Bend;
+                // double mag_Bead;
+                // // I want to check
+                
+                
+                // // I can check the rdist
+                // Bead_current=Bead_pos[step];
+                // // std::cout<<Bead_current<<"This is the bead position\n";
+                // // std::cout<<"The bead position is"<< Bead_current<<"\n";
+                // int touching_count=0;
+                // filename = first_dir + "Radius_distribution_strength_"+to_string(Interaction_str)+".txt";
+                // std::ofstream R_dist(filename);
+                
+                // filename = first_dir + "Touching_strength_"+to_string(Interaction_str)+".txt";
+                // std::ofstream Touching_data(filename);
+
+                // covered_area=0.0;
+                // // std::cout<<"Iterating over vertices\n";
+
+                // for(int v = 0 ; v < mesh->nVertices() ; v++){
+                //     Vert_pos=geometry->inputVertexPositions[v];
+                //     // if(Vert_pos.x>x_max_mem) x_max_mem = Vert_pos.x;
+                //     rij = (Bead_current-Vert_pos);
+                //     r_dist = rij.norm();
+                //     if(r_dist<rmin) rmin = r_dist;
+
+                // }
+                // // x_max_mem+=1.0;
+                // // Vector3 Second_bead({x_max_mem,0.0,0.0});
+                // // double second_dist=0.0;
+                // for(int v =0; v<mesh->nVertices(); v++){
+                //     // So i have the radius and the 
+                //     Vert_pos=geometry->inputVertexPositions[v];
+                //     rij = (Bead_current-Vert_pos);
+                //     r_dist = rij.norm();
+                //     // second_dist = (Vert_pos-Second_bead).norm();
+
+                //     Normal = geometry->vertexNormalAreaWeighted(mesh->vertex(v));
+                //     Normal = Normal.unit();
+                //     Vector3 x_dir;
                     
-                    if(first) {
-                        R_dist<<r_dist;
-                        first = false;
-                        }
-                    else R_dist<<" "<<r_dist;
-                    rij = rij.unit();
-                    // I want the distribution saved so 
+                //     if(first) {
+                //         R_dist<<r_dist;
+                //         first = false;
+                //         }
+                //     else R_dist<<" "<<r_dist;
+                //     rij = rij.unit();
+                //     // I want the distribution saved so 
                     
                 
-                    if(check_coverage){
-                    // Now i need to do my part
+                //     if(check_coverage){
+                //     // Now i need to do my part
 
-                    if( (dot(rij,Normal)>0.0 && r_dist<rad*1.25 ) ){
+                //     if( (dot(rij,Normal)>0.0 && r_dist<rad*1.25 ) ){
                         
 
                         
-                        // if(r_dist<rmin) rmin = r_dist;
-                        Touching_data<<Vert_pos.x <<" "<< Vert_pos.y <<" "<<Vert_pos.z<<"\n";
-                        touching_count+=1;
-                        covered_area+=geometry->barycentricDualArea(mesh->vertex(v));
-                        // std::cout<<"Dot"<< dot(rij,Normal)<<"\t";
+                //         // if(r_dist<rmin) rmin = r_dist;
+                //         Touching_data<<Vert_pos.x <<" "<< Vert_pos.y <<" "<<Vert_pos.z<<"\n";
+                //         touching_count+=1;
+                //         covered_area+=geometry->barycentricDualArea(mesh->vertex(v));
+                //         // std::cout<<"Dot"<< dot(rij,Normal)<<"\t";
 
-                    }
+                //     }
                     
 
                     
 
 
-                    }
-                    // if(check_forces){
-                    //     if(r_dist<rad*1.1 && dot(rij,Normal)>0){
-                    //         // This are the vertices interacting with the bead
+                //     }
+                //     // if(check_forces){
+                //     //     if(r_dist<rad*1.1 && dot(rij,Normal)>0){
+                //     //         // This are the vertices interacting with the bead
                             
 
-                    //     }
-                    // // There are multiple ways to go about this
-                    // // I will check 
+                //     //     }
+                //     // // There are multiple ways to go about this
+                //     // // I will check 
 
 
 
 
-                    // }
+                //     // }
                 
-                    // 
+                //     // 
                 
                 
-                }
-                std::cout<<"\n";
-                R_dist.close();
-                Touching_data.close();
-                // std::cout<<"The amount touching is"<< touching_count<<" \n";
-                
-                relative_coverage=covered_area/(4*PI*(rad*1.1)*(rad*1.25));
-                avg_rmin += rmin;
-                avg_rmin_counter+=1;
-                // Coverage<<relative_coverage<<"\n";
+                // }
+                // std::cout<<"\n";
                 // R_dist.close();
+                // Touching_data.close();
+                // // std::cout<<"The amount touching is"<< touching_count<<" \n";
+                
+                // relative_coverage=covered_area/(4*PI*(rad*1.1)*(rad*1.25));
+                // avg_rmin += rmin;
+                // avg_rmin_counter+=1;
+                // // Coverage<<relative_coverage<<"\n";
+                // // R_dist.close();
                 
 
                 }
@@ -584,14 +626,14 @@ int main(int argc, char** argv) {
                 filename = first_dir + "Coverage_final.txt" ;
                 Coverage_final =std::ofstream(filename,std::ios_base::app); 
     
-                Coverage_final<< rad<<" "<< KB << " "<< E_I<<" "<< relative_coverage<<" "<< Interaction_str<<"\n";
+                Coverage_final<< rad<<" "<< KB << " "<< E_I<<" "<< Tube_r <<" "<< Interaction_str<<"\n";
                 Coverage_final.close();
 
                 // R_dist.close()
             }
         }
     }
-    std::cout<<"The average rmin overall is "<< avg_rmin/avg_rmin_counter <<"\n";
+    // std::cout<<"The average rmin overall is "<< avg_rmin/avg_rmin_counter <<"\n";
 
     }
     // Coverage_final.close();

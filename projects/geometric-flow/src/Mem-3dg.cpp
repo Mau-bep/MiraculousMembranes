@@ -620,7 +620,7 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
     if(Energies[i]=="Bead"){
 
       // The energy
-      Energy_vals[i] = Beads[bead_count]->Energy(); 
+      Energy_vals[i] = 100*100*Beads[bead_count]->Energy(); 
 
       bead_count +=1;
       NewE += Energy_vals[i];
@@ -1761,9 +1761,9 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
       // std::cout<<"Bead\n";
 
       // The energy
-      Energy_vals[i] = Beads[bead_count]->Energy(); 
+      Energy_vals[i] = 100*100*Beads[bead_count]->Energy(); 
       // std::cout<<"Bead count is" << bead_count <<"\n";
-      Force_temp = Beads[bead_count]->Gradient();
+      Force_temp =100* Beads[bead_count]->Gradient();
       Beads[bead_count]->Bead_interactions();
       grad_value = 0;
       for(size_t j = 0; j < mesh->nVertices(); j++){

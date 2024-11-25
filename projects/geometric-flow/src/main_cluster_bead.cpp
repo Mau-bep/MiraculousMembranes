@@ -612,6 +612,20 @@ int main(int argc, char** argv) {
 
     
 
+
+
+    // Lets measure here
+
+    // double total_h = 0;
+    // for(Vertex v : mesh->vertices()){
+
+    //     double H = geometry->scalarMeanCurvature(v);
+    //     // double area = geometry->vertexDualArea(v);
+    //     // total_h+= H;
+
+    // }
+    // std::cout<<"The total mean curvature for the sphere is "<< total_h <<" Which should be "<< 4*3.14159265 << "\n";
+
    
 
 
