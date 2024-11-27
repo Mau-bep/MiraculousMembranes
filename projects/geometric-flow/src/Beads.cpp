@@ -1610,7 +1610,7 @@ void Bead::Bead_interactions(){
             // dist = v_dist.norm();
             // v_dist = v_dist.unit();
             // I have the distance
-            Total_force+= -1*100*Interaction_constants_vector[i][0]*v_dist;
+            Total_force+= -1*Interaction_constants_vector[i][0]*v_dist;
             // std::cout<<"The total force is "<< Total_force <<" \n";
             // std::cout<<"THe interaction constants vectors is "<< Interaction_constants_vector[i][0] << " " <<Interaction_constants_vector[i][1] <<"\n";
         }
@@ -1639,7 +1639,7 @@ double Bead::Energy() {
         // Ok so i loaded de params of the interaction
         if(Bond_type[bead]=="Harmonic" && state!="manual" && state!="froze" ){
             // The armonic interaction has two parameters (stiffness and rest length) assuming first is the sitffness and there is restlength - 
-            Total_E+= 100*100*params[0]*dot(Pos - Beads[bead]->Pos,Pos - Beads[bead]->Pos)/2.0;
+            Total_E+= params[0]*dot(Pos - Beads[bead]->Pos,Pos - Beads[bead]->Pos)/2.0;
             // std::cout<<"ADDed harmonic energy"<< Total_E <<"\n";
         }
 

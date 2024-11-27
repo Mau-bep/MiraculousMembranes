@@ -504,6 +504,8 @@ int main(int argc, char** argv) {
 
     Energies.push_back("Volume_constraint");
     Constants.push_back(100000);
+    // Constants.push_back(0);
+    
     Constants.push_back(4.0*3.1415926535/3.0);
     Energy_constants.push_back(Constants);
     Constants.resize(0);
@@ -516,9 +518,9 @@ int main(int argc, char** argv) {
         Constants.resize(0);
     }
     if(Init_cond == 4 || Init_cond == 5){
-    Energies.push_back("Area_constraint");
+    Energies.push_back("Surface_tension");
     Constants.push_back(KA);
-    Constants.push_back(4*3.1415926535);
+    // Constants.push_back(4*3.1415926535);
     Energy_constants.push_back(Constants);
     Constants.resize(0);
     }
@@ -588,7 +590,7 @@ int main(int argc, char** argv) {
         filepath ="../Results/Mem3DG_Bead_pulling_up_oct_arcsim/nu_1.000_radius_0.200_KA_100000.000_KB_1.000000_strength_6.000000_Init_cond_2_Nsim_1/membrane_" + to_string(Nsim*500) +".obj";
     }
     if(Init_cond==5){
-        filepath ="Results/Mem3DG_Bead_pulling_radius_arcsim/nu_1.000_radius_0.200_KA_0.050_KB_22.000000_strength_50.000000_Init_cond_2_Nsim_1/membrane_39000.obj";
+        filepath ="../Results/Mem3DG_Bead_pulling_radius_arcsim/nu_1.000_radius_0.200_KA_0.050_KB_5.000000_strength_50.000000_Init_cond_2_Nsim_118/membrane_20600.obj";
     }
     // std::string filepath = "../../../input/sphere_dense_40k.obj";
     // Load mesh
@@ -703,7 +705,7 @@ int main(int argc, char** argv) {
     if(Init_cond == 5){
     // I need to get the Vector3 that goes here
 
-    Vector3 Initial_pos_bead = Get_bead_pos("../Results/Mem3DG_Bead_pulling_radius_arcsim/nu_1.000_radius_0.200_KA_0.050_KB_22.000000_strength_50.000000_Init_cond_2_Nsim_1/Bead_0_data.txt",39000);
+    Vector3 Initial_pos_bead = Get_bead_pos("../Results/Mem3DG_Bead_pulling_radius_arcsim/nu_1.000_radius_0.200_KA_0.050_KB_5.000000_strength_50.000000_Init_cond_2_Nsim_118/Bead_0_data.txt",20600);
     Bead_1 = Bead(mesh,geometry,Initial_pos_bead,0.2,10);
     Bead_1.interaction = "Shifted-LJ";
     Bead_1.state = "froze";
@@ -941,7 +943,7 @@ int main(int argc, char** argv) {
         // psMesh->setEdgeWidth(1.0);
 
         
-        if(current_t%50==0 || current_t==100 ){
+        if(current_t%50==0 || current_t==100){
             // Bead_data.close();
             // Sim_data.close();
             // std::cout<<"Saving\n";
