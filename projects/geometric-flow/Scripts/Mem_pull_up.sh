@@ -26,16 +26,16 @@ set Init_cond=2
 # end 
 # end
 
-set Init_cond2=2
+set Init_cond2=5
 
-set Nsim2=1
+set Nsim2=2
 foreach radius (0.2)
 foreach Strg ( 100.0 )
-foreach KB ( 10.0 14.0 18.0 22.0 26.0 30.0 34.0 38.0 42.0 46.0 50.0 )
+foreach KB ( 6.0 10.0 12.0 14.0 16.0 18.0 20.0 22.0 24.0 26.0 28.0 30.0 32.0 34.0 36.0 38.0 40.0 42.0 44.0 46.0 48.0 50.0 )
 foreach KA ( 0.05)
 #python3 Create_subjob.py ${v} ${c0} ${KA} ${KB}
 python3 Create_subjob_beads_pull.py ${radius} ${Strg} ${Init_cond2} ${Nsim2} ${KB} ${KA}
-sbatch ../Subjobs/subjob_serial_bead_pull_radius_${radius}_KA_${KA}_Strg_${Strg}_init_cond_${Init_cond}_Nsim_${Nsim2}_KB_${KB}
+sbatch ../Subjobs/subjob_serial_bead_pull_radius_${radius}_KA_${KA}_Strg_${Strg}_init_cond_${Init_cond2}_Nsim_${Nsim2}_KB_${KB}
 #sbatch subjob_parallel_memshape_v_${v}_c0_${c0}_KA_${KA}_KB_${KB}
 end
 end

@@ -497,52 +497,52 @@ int main(int argc, char** argv) {
 
 
 
-    std::vector<std::string> Energies(0);
-    std::vector<std::vector<double>> Energy_constants(0);
-    std::vector<double> Constants(0);
+    // std::vector<std::string> Energies(0);
+    // std::vector<std::vector<double>> Energy_constants(0);
+    // std::vector<double> Constants(0);
 
 
-    Energies.push_back("Volume_constraint");
-    Constants.push_back(100000);
-    // Constants.push_back(0);
-    
-    Constants.push_back(4.0*3.1415926535/3.0);
-    Energy_constants.push_back(Constants);
-    Constants.resize(0);
+    // Energies.push_back("Volume_constraint");
+    // Constants.push_back(100000);
+    // // Constants.push_back(0);
+    // double trgt_vol = 4.0*3.1415926535/3.0
+    // Constants.push_back(trgt_vol);
+    // Energy_constants.push_back(Constants);
+    // Constants.resize(0);
 
 
-    if(Init_cond == 2){
-        Energies.push_back("Surface_tension");
-        Constants.push_back(KA);
-        Energy_constants.push_back(Constants);
-        Constants.resize(0);
-    }
-    if(Init_cond == 4 || Init_cond == 5){
-    Energies.push_back("Surface_tension");
-    Constants.push_back(KA);
-    // Constants.push_back(4*3.1415926535);
-    Energy_constants.push_back(Constants);
-    Constants.resize(0);
-    }
+    // if(Init_cond == 2){
+    //     Energies.push_back("Surface_tension");
+    //     Constants.push_back(KA);
+    //     Energy_constants.push_back(Constants);
+    //     Constants.resize(0);
+    // }
+    // if(Init_cond == 4 || Init_cond == 5){
+    // Energies.push_back("Surface_tension");
+    // Constants.push_back(KA);
+    // // Constants.push_back(4*3.1415926535);
+    // Energy_constants.push_back(Constants);
+    // Constants.resize(0);
+    // }
 
-    Energies.push_back("Bending");
-    Constants.push_back(KB);
-    Energy_constants.push_back(Constants);
-    Constants.resize(0);
+    // Energies.push_back("Bending");
+    // Constants.push_back(KB);
+    // Energy_constants.push_back(Constants);
+    // Constants.resize(0);
 
-    Energies.push_back("Bead");
-    Energy_constants.push_back(Constants);
+    // Energies.push_back("Bead");
+    // Energy_constants.push_back(Constants);
 
-    if(Init_cond != 4 && Init_cond != 5){
-    Energies.push_back("Bead");
-    Energy_constants.push_back(Constants);
-    }
+    // if(Init_cond != 4 && Init_cond != 5){
+    // Energies.push_back("Bead");
+    // Energy_constants.push_back(Constants);
+    // }
 
-    std::cout<<"The energy elements are \n";
-    for(size_t z = 0 ; z < Energies.size(); z++){
-        std::cout<<Energies[z]<<" ";
-    }
-    std::cout<<"\n";
+    // std::cout<<"The energy elements are \n";
+    // for(size_t z = 0 ; z < Energies.size(); z++){
+    //     std::cout<<Energies[z]<<" ";
+    // }
+    // std::cout<<"\n";
 
 
     bool pulling = false;
@@ -601,6 +601,53 @@ int main(int argc, char** argv) {
     trgt_len=geometry->meanEdgeLength();
     V_bar=geometry->totalVolume();
     
+    std::vector<std::string> Energies(0);
+    std::vector<std::vector<double>> Energy_constants(0);
+    std::vector<double> Constants(0);
+
+
+    Energies.push_back("Volume_constraint");
+    Constants.push_back(100000);
+    // Constants.push_back(0);
+    double trgt_vol = 4.0*3.1415926535/3.0;
+    Constants.push_back(V_bar);
+    Energy_constants.push_back(Constants);
+    Constants.resize(0);
+
+
+    if(Init_cond == 2){
+        Energies.push_back("Surface_tension");
+        Constants.push_back(KA);
+        Energy_constants.push_back(Constants);
+        Constants.resize(0);
+    }
+    if(Init_cond == 4 || Init_cond == 5){
+    Energies.push_back("Surface_tension");
+    Constants.push_back(KA);
+    // Constants.push_back(4*3.1415926535);
+    Energy_constants.push_back(Constants);
+    Constants.resize(0);
+    }
+
+    Energies.push_back("Bending");
+    Constants.push_back(KB);
+    Energy_constants.push_back(Constants);
+    Constants.resize(0);
+
+    Energies.push_back("Bead");
+    Energy_constants.push_back(Constants);
+
+    if(Init_cond != 4 && Init_cond != 5){
+    Energies.push_back("Bead");
+    Energy_constants.push_back(Constants);
+    }
+
+    std::cout<<"The energy elements are \n";
+    for(size_t z = 0 ; z < Energies.size(); z++){
+        std::cout<<Energies[z]<<" ";
+    }
+    std::cout<<"\n";
+
     
       if(arcsim){
         std::cout<<"Settin remesher params";

@@ -1746,7 +1746,7 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
       double H0 = 0.0;
 
       Energy_vals[i] = E_Bending(H0, KB);
-
+      // std::cout<<"The bending energy is " << E_Bending(H0,KB) << "\n";
       Force_temp = KB*Bending(H0);
       grad_value = 0;
       for(size_t j = 0; j < mesh->nVertices(); j++){
@@ -1813,9 +1813,13 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
   double tot_E=0;
   Sim_data << V_bar<<" "<< A_bar<<" "<< time <<" "<< V<<" " << A<<" ";
   for(size_t i = 0; i < Energies.size(); i++){
+    // std::cout<<"Printing " << Energies[i] << " ";
+
     Sim_data << Energy_vals[i] << " ";
+    // std::cout<<"the val is " << Energy_vals[i] << " ";
     tot_E += Energy_vals[i];
   }
+  // std::cout<<" \n";
   Sim_data<< tot_E <<" ";
   for(size_t i = 0; i < Energies.size(); i++){
     Sim_data << Gradient_norms[i]<< " ";

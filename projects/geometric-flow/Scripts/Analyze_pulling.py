@@ -429,7 +429,9 @@ def fit():
 
 
 
-measure_force()
+# measure_force()
+
+
 
 # main()
 # cmap = plt.colormaps['viridis']
@@ -446,3 +448,73 @@ measure_force()
 # plt.savefig(base+"Pulling_force_plot.jpg",bbox_inches = 'tight')
 
 
+
+def Tube_growth_radius_2(folder):
+    Data = np.loadtxt(folder+"Tube_radius.txt")
+
+    y = Data[:,1]
+    z = Data[:,3]
+    # Now i need to find the radius of this circle.
+    # avg_y=np.mean(y)
+    # avg_z=np.mean(z)
+    # plt.title("Kb = {}".format(Kb))
+    # r= np.mean(np.sqrt((np.array(y)-avg_y)**2+(np.array(z)-avg_z)**2))
+    # err=np.std(np.sqrt((np.array(y)-avg_y)**2+(np.array(z)-avg_z)**2))
+
+    # print("The radius is {} with an error of {}".format(r,err))
+
+    return [y,z]
+
+
+def fit2():
+    # Strengths =[ 6.0, 10.0, 14.0, 18.0, 22.0, 26.0, 30.0, 34.0, 38.0, 42.0, 46.0, 50.0]
+    radius = []
+    
+    folder_path_growth = "../Results/Mem3DG_Bead_pulling_radius_growth_arcsim/"
+    [Strengths,radius] = Tube_growth_radius_2(folder_path_growth)
+        # radius.append(r)
+
+
+
+    plt.clf()
+    plt.xlabel("Kb",fontsize=15.0)
+    plt.ylabel("Tube radius",fontsize=15.0)
+    plt.scatter(Strengths,radius,color="black")
+    plt.savefig(folder_path_growth+"NoFit_radius_curve.png",bbox_inches='tight')
+    plt.show()
+
+
+    # ok so i want to do a linear fit to the thing
+
+    x = np.log(Strengths)
+    y = np.log(radius)
+
+
+    p = np.polyfit(x,y,1)
+
+    x_fit = np.linspace(np.log(1.0),np.log(50.0))
+    y_fit = p[1]+x_fit*p[0]
+
+
+    
+    plt.plot(x_fit,y_fit,ls='dashed')
+    plt.scatter(x,y,color='black')
+    print("The values for the fit are m = {} and c = {}".format(p[0],p[1]))
+    plt.show()
+
+    y_fit = np.exp(y_fit)
+    x_fit = np.exp(x_fit)
+
+    y_fit2 = np.sqrt( x_fit/(4*0.05))/100.0
+
+    plt.plot(x_fit,y_fit,ls='dashed',color='magenta')
+    plt.plot(x_fit,y_fit2,ls='dashed',color='purple')
+    plt.scatter(Strengths,radius,color='black')
+    plt.savefig(folder_path_growth+"Fit_radius_curve.png",bbox_inches='tight')
+    plt.xlabel("Kb",fontsize=15.0)
+    plt.ylabel("Tube radius",fontsize=15.0)
+    plt.show()
+
+
+
+fit2()
