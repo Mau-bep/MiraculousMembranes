@@ -298,7 +298,7 @@ int main(int argc, char** argv) {
     
     
     
-    double arr_3[] = {50.0, 100.0 };
+    double arr_3[] = {100.0 };
     // double arr_3[] = {100.0, 110.0};
     
     n=sizeof(arr_3) / sizeof(arr_3[0]);
@@ -307,7 +307,7 @@ int main(int argc, char** argv) {
     
     KB=1.0;
     
-    double arr_4[] = { 10.0, 14.0, 18.0, 22.0, 26.0, 30.0, 34.0, 38.0, 42.0, 46.0, 50.0};
+    double arr_4[] = { 6.0, 10.0, 14.0, 18.0, 22.0, 26.0, 30.0, 34.0, 38.0, 42.0, 46.0, 50.0};
     n = sizeof(arr_4) / sizeof(arr_4[0]);
 
     vector<double> KBs(arr_4,arr_4+n);
@@ -319,8 +319,8 @@ int main(int argc, char** argv) {
     double trgt_area = 4*3.1415;
 
 
-    int Init_cond=2;
-    int Nsim=1;
+    int Init_cond=5;
+    int Nsim=3;
 
     auto start = chrono::steady_clock::now();
     auto end = chrono::steady_clock::now();
@@ -365,7 +365,7 @@ int main(int argc, char** argv) {
     Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
     Min_rel_lengthstream << std::fixed << std::setprecision(4) <<Min_rel_length;
 
-    first_dir="../Results/Mem3DG_Bead_pulling_radius_arcsim/";
+    first_dir="../Results/Mem3DG_Bead_pulling_radius_growth_arcsim/";
     double Tube_r;
     filename = first_dir + "Tube_radius.txt" ;
     std::ofstream Coverage_final(filename,std::ios_base::app);
@@ -489,9 +489,9 @@ int main(int argc, char** argv) {
 
                 // Ok so what do i do
 
-                double leftmost = 0.0;
+                double leftmost = 1.1;
                 double rightmost = Bead_pos[step].x-1.0;
-
+                rightmost = 3.2;
                 // So those are the measurements
                 // Now lets measure things
                 double Tot_H = 0.0;
@@ -623,7 +623,7 @@ int main(int argc, char** argv) {
 
                 }
                 // Coverage.close();
-                filename = first_dir + "Coverage_final.txt" ;
+                filename = first_dir + "Tube_radius.txt" ;
                 Coverage_final =std::ofstream(filename,std::ios_base::app); 
     
                 Coverage_final<< rad<<" "<< KB << " "<< E_I<<" "<< Tube_r <<" "<< Interaction_str<<"\n";
