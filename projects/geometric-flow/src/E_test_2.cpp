@@ -258,12 +258,11 @@ void Save_mesh(std::string basic_name,bool arcsim_remeshing, size_t current_t) {
     return ;
 }
 
-
-
 arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeometry* geometry){
 
     arcsim::Mesh mesh1;
-  
+    // std::cout<< mesh1.verts.size()<<" number of vertices\n";
+
     // std::cout<<"Adding vertices?\n";
     for (size_t v = 0; v < mesh->nVertices(); v++) {
             // const Vert *vert0 = mesh0.verts[v];
@@ -272,7 +271,7 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
             pos[0]=pos_orig.x;
             pos[1]=pos_orig.y;
             pos[2]=pos_orig.z;
-            arcsim::Vert *vert1 = new arcsim::Vert(pos, 1);
+            arcsim::Vert *vert1 = new arcsim::Vert(pos, 1,0);
             mesh1.add(vert1);
             
     }
@@ -287,9 +286,21 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
             pos[2]=pos_orig.z;
             // arcsim::Vert *vert1 = new arcsim::Vert(pos, 0, 1);
             // mesh1.add(vert1);
-            mesh1.add(new arcsim::Node(pos,arcsim::Vec3(0)));
-            mesh1.verts[v]->node=mesh1.nodes[v];
-            mesh1.nodes[v]->verts.push_back(mesh1.verts[v]);
+            arcsim::Node *node1 = new arcsim::Node(pos, pos, pos, 0, false);
+            node1->preserve = false;
+            node1->temp = false;
+            node1->temp2 = false;
+            node1->verts.resize(1);
+            node1->verts[0] = mesh1.verts[v];
+            
+            mesh1.add(node1);
+            // mesh1.add(new arcsim::Node(pos,
+            //                      pos,
+            //                      pos,
+            //                      0,false));
+            // mesh1.verts[v]->node=mesh1.nodes[v];
+            // arcsim::include(mesh1.verts[v],mesh1.nodes[v]->verts);
+            // mesh1.nodes[v]->verts.push_back(mesh1.verts[v]);
     }
 
 
@@ -330,11 +341,11 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
 }
 
 
+
 std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
 translate_to_geometry(arcsim::Mesh mesh){
 
-
-  SimplePolygonMesh simpleMesh;
+SimplePolygonMesh simpleMesh;
 
     // std::cout<<"This is being called\n";
 //   processLoadedMesh(simpleMesh, loadType);
@@ -351,35 +362,70 @@ translate_to_geometry(arcsim::Mesh mesh){
     // int flag=0;
     vector<int> flags(0);
 
-   
-    for(size_t v = 0 ; v<mesh.verts.size(); v++){
+    // double avg_neigh = 0;
+    // double verts = 0;
+    // std::cout<<"Something\n";
+    // while(flag_warning){
+
+    // arcsim::update_indices(mesh);
+    // std::cout<<"The number of vertices is "<< mesh.verts.size()<<" \n";
+    // flag_warning=false;
+    // flags = vector<int>();
+    // simpleMesh = SimplePolygonMesh();
+    for(size_t v = 0 ; v < mesh.verts.size(); v++){
         arcsim::Vec3 pos_old = mesh.nodes[v]->x;
+        
         v_pos.x=pos_old[0];
         v_pos.y=pos_old[1];
         v_pos.z=pos_old[2];
-        
+        // avg_neigh+=mesh.verts[v]->adjf.size();
+        // verts+=1;
         if(mesh.verts[v]->adjf.size()<=2){
-            std::cout<<"The vertex index to not consider are"<< v<<"\n";
+            std::cout<<"The number of neighbors is "<< mesh.verts[v]->adjf.size()<<"\n";
+        
+    
+            
+            // for(int f_index = 0 ; f_index < mesh.verts[v]->adjf.size();f_index++)
+            // { 
+            // std::cout<<"Deleting face \n";
+            // mesh.remove(mesh.verts[v]->adjf[f_index]);    
+            // }
+            // std::cout<<"Now we delete the vert\n";
+            // mesh.remove(mesh.verts[v]);
+            
+            // // mesh.remove(mesh.verts[v]->adjf[0]);
+
+            std::cout<<"The vertex index to not consider are"<< v<<" out of a total of"<< mesh.verts.size()<<"\n";
             flag_warning=true;
             // flag=v;
             flags.push_back(v);
             continue;
         }
+        
+        
         simpleMesh.vertexCoordinates.push_back(v_pos);
     }
+
+    // }
     int id1;
     int id2;
     int id3;
     // int flag_idx=0;
     // int number_of_flags=0;
+
+    
+
+    if(flag_warning){
     std::cout<<"THe number of flags is "<<flags.size()<<"\n";
     std::cout<<"THe flags are \n";
-    for (size_t flag = 0 ; flag< flags.size(); flag++){
+    for (size_t flag = 0 ; flag < flags.size(); flag++){
         std::cout<< flags[flag]<<"\t ";
     }
-    std::cout<<"hihi\n";
+    std::cout<<" \n";
+    }
+    // std::cout<<"hihi\n";
     bool non_manifold = false;
-    for(size_t f = 0 ; f<mesh.faces.size();f++){
+    for(size_t f = 0 ; f < mesh.faces.size();f++){
         
         std::vector<size_t> polygon(3);
         
@@ -391,7 +437,7 @@ translate_to_geometry(arcsim::Mesh mesh){
         int less_id2 = 0;
         int less_id3 = 0;
 
-        for(size_t flag =0 ; flag< flags.size(); flag++){
+        for(size_t flag = 0 ; flag < flags.size(); flag++){
         if( id1 == flags[flag]|| id2 == flags[flag] || id3 == flags[flag]){
             non_manifold=true;
         }
@@ -417,16 +463,18 @@ translate_to_geometry(arcsim::Mesh mesh){
         simpleMesh.polygons.push_back(polygon);
         
     }
+    
     // std::cout<<"Does this happen after loading the data to create the mesh?\n";
     // std::cout<<" THe information in the mesh is, "<< simpleMesh.vertexCoordinates.size()<<"number of vertices\n";
   auto lvals = makeManifoldSurfaceMeshAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
-
+    if(flag_warning){
+    std::cout<<"The problem is not the translation\n";
+    }
 
 
  return std::tuple<std::unique_ptr<ManifoldSurfaceMesh>,
                     std::unique_ptr<VertexPositionGeometry>>(std::move(std::get<0>(lvals)),  // mesh
                                                              std::move(std::get<1>(lvals))); // geometry
-
 }
 
 
@@ -458,9 +506,187 @@ int main(int argc, char** argv) {
     bool preserving_vol=false;
     bool dihedral_dist= true;
 
+    bool sizing_test = true;
     std::cout<< "Current path is " << argv[0]<<"\n";
 
     std::string filepath = "../../../input/sphere.obj";
+
+    // 
+    
+
+
+
+
+    if(sizing_test ){
+
+        // So we are doing our silly test here 
+
+        filepath = "../../../input/Mew_5k.obj";
+
+        std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
+
+        mesh = mesh_uptr.release();
+        geometry = geometry_uptr.release();
+
+        arcsim::Mesh remesher_mesh;
+        remesher_mesh = translate_to_arcsim(mesh,geometry);
+
+        arcsim::Cloth Cloth_1;
+        Cloth_1.mesh=remesher_mesh;
+        arcsim::Cloth::Remeshing remeshing_params;
+    
+        remeshing_params.aspect_min=0.4;
+        remeshing_params.refine_angle=0.7;
+        remeshing_params.refine_compression=1e-4;
+        remeshing_params.refine_velocity=1.0;
+        remeshing_params.size_max=0.2;
+        remeshing_params.size_min=0.001;
+
+        Cloth_1.remeshing=remeshing_params;
+        Cloth_1.dump_info = true;
+        
+        std::cout<<"First remeshing\n";
+        arcsim::compute_ws_data(Cloth_1.mesh);
+        arcsim::dynamic_remesh(Cloth_1);
+        std::cout<<"Remeshing done\n";
+
+
+        vector<double> sizings_pre_rot(0);
+        vector<double> sizings_post_rot(0);
+        double sizing;
+
+        for(size_t i = 0; i < Cloth_1.mesh.verts.size(); i ++){
+            // Can i get the sizing if i didnt destroy it?
+        
+            sizing = Cloth_1.mesh.verts[i]->sizing->M.col(0)[0];
+            sizings_pre_rot.push_back(sizing);
+
+        }
+        // std::cout<<"\n";
+        delete mesh;
+        delete geometry;
+        std::cout<<"translating back?\n";
+        std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
+        
+        std::cout<<"defining pointers\n";
+        mesh = mesh_uptr.release();
+        geometry = geometry_uptr.release();
+
+        arcsim::delete_mesh(Cloth_1.mesh);
+
+        
+        // OK so lets do the following, we rotte them in the other reference system
+
+        // DenseMatrix<double> Values(3,3);
+
+
+
+        // Cloth_1.mesh = translate_to_arcsim(mesh,geometry);
+        
+
+        // Ok so now what i need to do is rotate the whole thing
+        double theta_1 = 0.123;
+        double theta_2 = 2.65;
+        double theta_3 = 1.9265;
+        
+        arcsim::Mat3x3 Rot_1(arcsim::Vec3(1.0,0.0,0.0) , arcsim::Vec3(0.0, cos(theta_1) , sin(theta_1) ) , arcsim::Vec3(0.0, -1* sin(theta_1), cos(theta_1))  );
+        // arcsim::Mat3x3 Rot_2(arcsim::Vec3() , arcsim::Vec3() , arcsim::Vec3()  );
+        // arcsim::Mat3x3 Rot_3(arcsim::Vec3() , arcsim::Vec3() , arcsim::Vec3()  );
+
+        Eigen::Matrix3d Rotation(3,3);
+        
+        Rotation.col(0) = Eigen::Array3d(1.0,0.0,0.0);
+        Rotation.col(1) = Eigen::Array3d(0.0, cos(theta_1) , sin(theta_1));
+        Rotation.col(2) = Eigen::Array3d(0.0, -1* sin(theta_1), cos(theta_1)); 
+
+        Eigen::Matrix3d Rotation2(3,3);
+        
+        Rotation2.col(0) = Eigen::Array3d(cos(theta_2),0.0,-sin(theta_2));
+        Rotation2.col(1) = Eigen::Array3d(0.0, 1.0 , 0.0 );
+        Rotation2.col(2) = Eigen::Array3d(sin(theta_2), 0, cos(theta_2)); 
+
+
+        Eigen::Matrix3d Rotation3(3,3);
+        
+        Rotation3.col(0) = Eigen::Array3d(cos(theta_3),sin(theta_3),0.0);
+        Rotation3.col(1) = Eigen::Array3d(-sin(theta_3), cos(theta_3) , 0.0 );
+        Rotation3.col(2) = Eigen::Array3d(0.0, 0, 1.0); 
+
+        Eigen::Vector3d Test({1.0,0.0,0.0});
+        Eigen::Vector3d Test2({0.0,1.0,0.0});
+        Eigen::Vector3d Test3({0.0, 0.0,1.0});
+        
+
+
+        std::cout<<"After rotating they are " << (Rotation2*Test)[0] <<" " << (Rotation2*Test)[1] << " " << (Rotation2*Test)[2] << " \n";// <<" " << Rotation*Test2 << " " << Rotation*Test3 <<" \n";
+        std::cout<<"After rotating they are " << (Rotation3*Test2)[0] <<" " << (Rotation3*Test2)[1] << " " << (Rotation3*Test2)[2] << " \n";// <<" " << Rotation*Test2 << " " << Rotation*Test3 <<" \n";
+        std::cout<<"After rotating they are " << (Rotation*Test3)[0] <<" " << (Rotation*Test3)[1] << " " << (Rotation*Test3)[2] << " \n";// <<" " << Rotation*Test2 << " " << Rotation*Test3 <<" \n";
+
+
+
+        for(int v = 0; v < mesh->nVertices() ; v++){
+            // I want to rotate all my vertices
+            Vector3 Pos = geometry->inputVertexPositions[v];
+            // std::cout<<"Pos is" << Pos.x << " " << Pos.y << " " << Pos.z << " \n";
+            Eigen::Vector3d TrPos({Pos.x,Pos.y,Pos.z});
+            TrPos = Rotation3*Rotation2*Rotation*TrPos;
+            // std::cout<<"After rotation is " << TrPos[0] << " " << TrPos[1] <<" " << TrPos[2] <<" \n";
+            geometry->inputVertexPositions[v] = Vector3({TrPos[0],TrPos[1],TrPos[2]});
+
+        } 
+        geometry->refreshQuantities();
+
+
+        Cloth_1.mesh = translate_to_arcsim(mesh,geometry);
+
+
+        // arcsim::Vec3 Test(1.0,0.0,0.0);
+        // arcsim::Vec3 Test2(0.0,1.0,0.0);
+        // arcsim::Vec3 Test3(0.0,0.0,1.0);
+        
+        // std::cout<<"After rotating they are " << Rot_1*Test <<" " << Rot_1*Test2 << " " << Rot_1*Test3 <<" \n";
+
+        // return 1;
+        // for(size_t i = 0; i < Cloth_1.mesh.verts.size(); i ++){
+        //     Cloth_1.mesh.nodes[i]->x = Rot_1 * Cloth_1.mesh.nodes[i]->x ;
+
+        // }
+
+        arcsim::compute_ws_data(Cloth_1.mesh);
+        arcsim::dynamic_remesh(Cloth_1);
+        std::cout<<"Getting sizings\n";
+        for(size_t i = 0; i < Cloth_1.mesh.verts.size(); i ++){
+            // Can i get the sizing if i didnt destroy it?
+        
+            sizing = Cloth_1.mesh.verts[i]->sizing->M.col(0)[0];
+            sizings_post_rot.push_back(sizing);
+
+        }
+
+        std::cout<<"Sizing differences ";
+        for(size_t i = 0; i < sizings_post_rot.size(); i++){
+
+            if(fabs(sizings_pre_rot[i])-fabs(sizings_post_rot[i]) > 1e-5){
+                // std::cout<<"ALa\n";
+                std::cout<< fabs(sizings_pre_rot[i])-fabs(sizings_post_rot[i]) << "\n ";
+                std::cout<<"The values are" << sizings_pre_rot[i] << "and " << sizings_post_rot[i] <<" \n";
+            }
+            // std::cout<< fabs(sizings_pre_rot[i])-fabs(sizings_post_rot[i]) << "\n ";
+
+        }
+        // std::cout<<"\n";
+
+        delete mesh;
+        delete geometry;
+        std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
+        arcsim::delete_mesh(Cloth_1.mesh);
+        mesh = mesh_uptr.release();
+        geometry = geometry_uptr.release();
+        Save_mesh("SOme_name",1);
+
+
+        return 0;
+    }
 
 
     if(preserving_vol){
