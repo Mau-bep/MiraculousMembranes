@@ -639,7 +639,7 @@ int main(int argc, char** argv) {
       if(arcsim){
         std::cout<<"Settin remesher params";
         remeshing_params.aspect_min=0.4;
-        remeshing_params.refine_angle=0.5;
+        remeshing_params.refine_angle=0.7;
         remeshing_params.refine_compression=1e-4;
         remeshing_params.refine_velocity=1.0;
         remeshing_params.size_max=0.2;
@@ -698,7 +698,7 @@ int main(int argc, char** argv) {
     
     
 
-    std::string first_dir="../Results/Mem3DG_Bead_Reciprocal_nov_phase/";
+    std::string first_dir="../Results/Mem3DG_Bead_Reciprocal_dic_phase/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
@@ -1009,7 +1009,7 @@ int main(int argc, char** argv) {
         //     counter = 0;
         //  }
             //  || || 
-        if(current_t%50==0   ) {
+        if(current_t%100==0   ) {
         // {
             // currentMem = get_mem_usage();
             // std::cout<<"THe code is using " << currentMem <<" in KB\n";

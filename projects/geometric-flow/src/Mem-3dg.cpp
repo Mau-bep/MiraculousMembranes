@@ -544,14 +544,14 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
   geometry->normalize(Vector3({0.0,0.0,0.0}),false);
   Vector3 CoM = geometry->centerOfMass();
     
-  for(size_t i = 0; i < Beads.size(); i++){
+  // for(size_t i = 0; i < Beads.size(); i++){
 
-    // Here i need to move the bead
-    if(Beads[i]->state!= "froze"){
-      Beads[i]->Pos -= CoM;
-    }
+  //   // Here i need to move the bead
+  //   // if(Beads[i]->state!= "froze"){
+  //      Beads[i]->Pos -= CoM;
+  //   // }
 
-  }
+  // }
   initial_pos = geometry->inputVertexPositions;
 
   std::vector<Vector3> Bead_init;
@@ -766,16 +766,16 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
   }
 
   if(alpha<0.0) geometry->inputVertexPositions = initial_pos;
-
-  geometry->normalize(Vector3({0.0,0.0,0.0}),false);
   CoM = geometry->centerOfMass();
+  geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+  // CoM = geometry->centerOfMass();
     
   for(size_t i = 0; i < Beads.size(); i++){
 
     // Here i need to move the bead
-    if(Beads[i]->state!= "froze"){
+    // if(Beads[i]->state!= "froze"){
       Beads[i]->Pos -= CoM;
-    }
+    // }
 
   }
   geometry->refreshQuantities();
@@ -1801,6 +1801,12 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
   double alpha = 1e-3;
   double backtrackstep;
   Total_force = Vector3({0.0, 0.0, 0.0});
+  double Grad_tot_norm  = 0;
+  for(size_t i = 0; i < mesh->nVertices(); i++){
+    Grad_tot_norm+=Force[i].norm2();
+  }
+  
+  V = geometry->totalVolume();
   // std::cout<<"Moving to backtracking\n";
   backtrackstep = Backtracking(Force,Energies,Energy_constants);
   // std::cout<<"Passed backtracking\n";
@@ -1824,6 +1830,7 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
   for(size_t i = 0; i < Energies.size(); i++){
     Sim_data << Gradient_norms[i]<< " ";
   }
+  Sim_data << Grad_tot_norm << " ";
   Sim_data<< backtrackstep<<" \n";
   //  << E_Vol << " " << E_Sur << " " << E_Ben <<" " << E_Bead << " "<< grad_norm<<" " << backtrackstep << " \n";
     }

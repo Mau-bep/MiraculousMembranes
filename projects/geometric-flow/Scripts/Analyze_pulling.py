@@ -507,14 +507,39 @@ def fit2():
 
     y_fit2 = np.sqrt( x_fit/(4*0.05))/100.0
 
-    plt.plot(x_fit,y_fit,ls='dashed',color='magenta')
-    plt.plot(x_fit,y_fit2,ls='dashed',color='purple')
+    plt.plot(x_fit,y_fit,ls='dashed',color='magenta',label=" 0.58")
+    plt.plot(x_fit,y_fit2,ls='dashed',color='purple', label = "0.5")
     plt.scatter(Strengths,radius,color='black')
     plt.savefig(folder_path_growth+"Fit_radius_curve.png",bbox_inches='tight')
     plt.xlabel("Kb",fontsize=15.0)
     plt.ylabel("Tube radius",fontsize=15.0)
+    plt.legend()
     plt.show()
 
 
 
-fit2()
+# fit2()
+
+
+
+
+def Hist_sizing():
+    folder_path_growth = "../Results/Mem3DG_Bead_pulling_radius_growth_arcsim/"
+    Data_folder = folder_path_growth + "nu_1.000_radius_0.200_KA_0.050_KB_5.000000_strength_100.000000_Init_cond_5_Nsim_119/"; 
+
+    
+
+    Data = np.loadtxt(Data_folder + "Sizing_tube.txt")
+    plt.xlabel("Mean H value", fontsize = 20)
+    plt.ylabel("Count", fontsize = 20)
+    plt.hist(Data/7500,bins=100 )
+    Data = np.loadtxt(Data_folder + "Curvature_tube.txt")
+
+    # plt.hist(1.0/Data,bins=100 )
+
+    plt.show()
+    return
+
+
+
+Hist_sizing()

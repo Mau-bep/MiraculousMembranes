@@ -520,13 +520,38 @@ int main(int argc, char** argv) {
     if(sizing_test ){
 
         // So we are doing our silly test here 
-
+        std::cout<<"LOGIC ERROR?\n";
         filepath = "../../../input/Mew_5k.obj";
+        filepath = "../Results/Mem3DG_Bead_pulling_radius_growth_arcsim/nu_1.000_radius_0.200_KA_0.050_KB_5.000000_strength_100.000000_Init_cond_5_Nsim_119/membrane_1300.obj";
+        std::cout<<"Filepath is " << filepath << "\n";
+        std::string Basic_name = "../Results/Mem3DG_Bead_pulling_radius_growth_arcsim/nu_1.000_radius_0.200_KA_0.050_KB_5.000000_strength_100.000000_Init_cond_5_Nsim_119/";
 
         std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
 
         mesh = mesh_uptr.release();
         geometry = geometry_uptr.release();
+
+        // Here
+
+        vector<double> Mean_Hs(0);
+
+
+        for(Vertex v : mesh->vertices()){
+            Mean_Hs.push_back(geometry->scalarMeanCurvature(v));
+        }
+
+         std::ofstream o1(Basic_name + "Curvature_tube.txt");
+
+        o1 << "## This are the sizings for each vertex in the mesh\n";
+
+        for( size_t i = 0; i < Mean_Hs.size(); i++){
+
+            o1 << Mean_Hs[i] <<" \n";
+        }
+
+        o1.close();
+
+
 
         arcsim::Mesh remesher_mesh;
         remesher_mesh = translate_to_arcsim(mesh,geometry);
@@ -562,6 +587,26 @@ int main(int argc, char** argv) {
             sizings_pre_rot.push_back(sizing);
 
         }
+        // Ok i need to save this sizings
+
+        
+        std::ofstream o(Basic_name + "Sizing_tube.txt");
+
+        o << "## This are the sizings for each vertex in the mesh\n";
+
+        for( size_t i = 0; i < sizings_pre_rot.size(); i++){
+
+            o << sizings_pre_rot[i] <<" \n";
+        }
+
+        o.close();
+
+        return 0 ;
+
+
+
+
+
         // std::cout<<"\n";
         delete mesh;
         delete geometry;

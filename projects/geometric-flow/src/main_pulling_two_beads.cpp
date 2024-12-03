@@ -577,20 +577,23 @@ int main(int argc, char** argv) {
 
     std::cout<< "Current path is " << argv[0];
     std::string filepath;
-    if(Init_cond==1){
+    if(Init_cond == 1){
         filepath = "../../../input/sphere.obj";
     }
-    if(Init_cond==2){
+    if(Init_cond == 2){
         filepath = "../../../input/Icosphere.obj"; 
     }
-    if(Init_cond==3){
+    if(Init_cond == 3){
         filepath = "../../../input/big_sphere.obj";
     }
-    if(Init_cond==4){
+    if(Init_cond == 4){
         filepath ="../Results/Mem3DG_Bead_pulling_up_oct_arcsim/nu_1.000_radius_0.200_KA_100000.000_KB_1.000000_strength_6.000000_Init_cond_2_Nsim_1/membrane_" + to_string(Nsim*500) +".obj";
     }
-    if(Init_cond==5){
+    if(Init_cond == 5){
         filepath ="../Results/Mem3DG_Bead_pulling_radius_arcsim/nu_1.000_radius_0.200_KA_0.050_KB_5.000000_strength_50.000000_Init_cond_2_Nsim_118/membrane_20600.obj";
+    }
+    if(Init_cond == 6){
+        filepath = "../../../input/Barbell_init.obj";
     }
     // std::string filepath = "../../../input/sphere_dense_40k.obj";
     // Load mesh
@@ -606,6 +609,7 @@ int main(int argc, char** argv) {
     std::vector<double> Constants(0);
 
 
+    if(Init_cond != 5 && Init_cond !=6){
     Energies.push_back("Volume_constraint");
     Constants.push_back(100000);
     // Constants.push_back(0);
@@ -613,21 +617,14 @@ int main(int argc, char** argv) {
     Constants.push_back(V_bar);
     Energy_constants.push_back(Constants);
     Constants.resize(0);
-
-
-    if(Init_cond == 2){
-        Energies.push_back("Surface_tension");
-        Constants.push_back(KA);
-        Energy_constants.push_back(Constants);
-        Constants.resize(0);
     }
-    if(Init_cond == 4 || Init_cond == 5){
+
     Energies.push_back("Surface_tension");
     Constants.push_back(KA);
     // Constants.push_back(4*3.1415926535);
     Energy_constants.push_back(Constants);
     Constants.resize(0);
-    }
+    
 
     Energies.push_back("Bending");
     Constants.push_back(KB);
@@ -637,7 +634,7 @@ int main(int argc, char** argv) {
     Energies.push_back("Bead");
     Energy_constants.push_back(Constants);
 
-    if(Init_cond != 4 && Init_cond != 5){
+    if(Init_cond != 4 ){
     Energies.push_back("Bead");
     Energy_constants.push_back(Constants);
     }
@@ -658,7 +655,7 @@ int main(int argc, char** argv) {
         remeshing_params.size_max=0.2;
         remeshing_params.size_min=0.001;
 
-        std::cout<<"Minimum edge length allowed is "<< remeshing_params.size_max<<" muak\n";
+        std::cout<<"Minimum edge length allowed is "<< remeshing_params.size_min<<" muak\n";
 
     
     }
@@ -710,7 +707,7 @@ int main(int argc, char** argv) {
 
     std::vector<std::vector<double>> constants;
     
-    if(Init_cond != 4 && Init_cond != 5){
+    if(Init_cond != 4 && Init_cond != 5 && Init_cond !=6){
     bonds.push_back("Harmonic");
     // std::vector<std::vector<double>> constants;
     constants.push_back(std::vector<double>{Interaction_str,0.0});
@@ -745,7 +742,7 @@ int main(int argc, char** argv) {
     Bead_1.state = "froze";
     Bead_1.Bond_type = bonds;
     Bead_1.Interaction_constants_vector=constants;
-    Bead_1.rc=0.5*pow(2,1.0/6.0);
+    Bead_1.rc=radius*pow(2,1.0/6.0);
         
     Beads.push_back(Bead_1);    
     }
@@ -759,10 +756,40 @@ int main(int argc, char** argv) {
     Bead_1.Bond_type = bonds;
     Bead_1.Interaction_constants_vector=constants;
     Bead_1.rc=radius*pow(2,1.0/6.0);
-        
-    Beads.push_back(Bead_1);    
-    }
+
+    Bead_2 = Bead(mesh,geometry,Vector3({0.0,0.0,0.0}),0.2,10);
+    Bead_2.interaction = "Shifted-LJ";
+    Bead_2.state = "froze";
+    Bead_2.Bond_type = bonds;
+    Bead_2.Interaction_constants_vector=constants;
+    Bead_2.rc=radius*pow(2,1.0/6.0);
+
     
+    Beads.push_back(Bead_1);    
+    Beads.push_back(Bead_2);    
+    }
+    if(Init_cond == 6){
+    // I need to get the Vector3 that goes here
+
+    Vector3 Initial_pos_bead = Vector3({1.982, 0.0, 0.0});
+    Bead_1 = Bead(mesh,geometry,Initial_pos_bead,0.2,10);
+    Bead_1.interaction = "Shifted-LJ";
+    Bead_1.state = "froze";
+    Bead_1.Bond_type = bonds;
+    Bead_1.Interaction_constants_vector=constants;
+    Bead_1.rc=radius*pow(2,1.0/6.0);
+
+    Bead_2 = Bead(mesh,geometry,Vector3({-1.982, 0.0, 0.0}),0.2,10);
+    Bead_2.interaction = "Shifted-LJ";
+    Bead_2.state = "froze";
+    Bead_2.Bond_type = bonds;
+    Bead_2.Interaction_constants_vector=constants;
+    Bead_2.rc=radius*pow(2,1.0/6.0);
+
+    
+    Beads.push_back(Bead_1);    
+    Beads.push_back(Bead_2);    
+    }
 
     
     M3DG = Mem3DG(mesh,geometry);
@@ -800,7 +827,9 @@ int main(int argc, char** argv) {
     std::string first_dir;
     if(Init_cond == 4 ) first_dir ="../Results/Mem3DG_Bead_pulling_nov_relaxation_arcsim/";
     if(Init_cond == 5 ) first_dir ="../Results/Mem3DG_Bead_pulling_radius_growth_arcsim/";
-    if(Init_cond != 4 && Init_cond != 5 ) first_dir ="../Results/Mem3DG_Bead_pulling_radius_arcsim/";
+    if(Init_cond == 2 ) first_dir ="../Results/Mem3DG_Bead_pulling_radius_arcsim/";
+    if(Init_cond == 6 ) first_dir ="../Results/Mem3DG_Bead_barbell_arcsim/";
+    
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
@@ -839,7 +868,7 @@ int main(int argc, char** argv) {
     bool Save_bead_data=false;
     bool Save_output_data=false;
     bool small_Ts;
-    Bead_data<<"####### This data is taken every 00 steps just like the mesh dump, radius is " << radius<<" \n";
+    Bead_data<<"####### This data is taken every 100 steps just like the mesh dump, radius is " << radius<<" \n";
     Bead_data.close();
     // Here i want to run my video
     size_t n_vert;
@@ -990,7 +1019,7 @@ int main(int argc, char** argv) {
         // psMesh->setEdgeWidth(1.0);
 
         
-        if(current_t%50==0 || current_t==100){
+        if(current_t%500==0 || current_t%100 ==0){
             // Bead_data.close();
             // Sim_data.close();
             // std::cout<<"Saving\n";
