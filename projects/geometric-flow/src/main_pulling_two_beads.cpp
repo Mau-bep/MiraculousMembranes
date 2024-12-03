@@ -496,55 +496,7 @@ int main(int argc, char** argv) {
     c0=0.0;
 
 
-
-    // std::vector<std::string> Energies(0);
-    // std::vector<std::vector<double>> Energy_constants(0);
-    // std::vector<double> Constants(0);
-
-
-    // Energies.push_back("Volume_constraint");
-    // Constants.push_back(100000);
-    // // Constants.push_back(0);
-    // double trgt_vol = 4.0*3.1415926535/3.0
-    // Constants.push_back(trgt_vol);
-    // Energy_constants.push_back(Constants);
-    // Constants.resize(0);
-
-
-    // if(Init_cond == 2){
-    //     Energies.push_back("Surface_tension");
-    //     Constants.push_back(KA);
-    //     Energy_constants.push_back(Constants);
-    //     Constants.resize(0);
-    // }
-    // if(Init_cond == 4 || Init_cond == 5){
-    // Energies.push_back("Surface_tension");
-    // Constants.push_back(KA);
-    // // Constants.push_back(4*3.1415926535);
-    // Energy_constants.push_back(Constants);
-    // Constants.resize(0);
-    // }
-
-    // Energies.push_back("Bending");
-    // Constants.push_back(KB);
-    // Energy_constants.push_back(Constants);
-    // Constants.resize(0);
-
-    // Energies.push_back("Bead");
-    // Energy_constants.push_back(Constants);
-
-    // if(Init_cond != 4 && Init_cond != 5){
-    // Energies.push_back("Bead");
-    // Energy_constants.push_back(Constants);
-    // }
-
-    // std::cout<<"The energy elements are \n";
-    // for(size_t z = 0 ; z < Energies.size(); z++){
-    //     std::cout<<Energies[z]<<" ";
-    // }
-    // std::cout<<"\n";
-
-
+    bool resize_vol = true;
     bool pulling = false;
     bool arcsim = true;
     // I will do it so i can give this values
@@ -608,12 +560,15 @@ int main(int argc, char** argv) {
     std::vector<std::vector<double>> Energy_constants(0);
     std::vector<double> Constants(0);
 
+    
+    // double trgt_vol = 4.0*3.1415926535/3.0;
 
-    if(Init_cond != 5 && Init_cond !=6){
+    double V;
+    if(Init_cond != 5 && Init_cond !=6 && !resize_vol){
     Energies.push_back("Volume_constraint");
     Constants.push_back(100000);
     // Constants.push_back(0);
-    double trgt_vol = 4.0*3.1415926535/3.0;
+    // double trgt_vol = 4.0*3.1415926535/3.0;
     Constants.push_back(V_bar);
     Energy_constants.push_back(Constants);
     Constants.resize(0);
@@ -1101,12 +1056,20 @@ int main(int argc, char** argv) {
         
         // dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,sigma,Sim_data, time,Save_bead_data,Bead_filenames,Save_output_data,pulling);
         dt_sim = M3DG.integrate(Energies, Energy_constants , Sim_data, time, Bead_filenames, Save_output_data);
+
         Bead_data.close();
         Sim_data.close();
-        // Bead_data = std::ofstream(filename2,std::ios_base::app);
-        // Sim_data = std::ofstream(filename3,std::ios_base::app);
-        // std::cout<<"4\n";
         
+        V = geometry->totalVolume();
+
+
+        double  k = pow(V_bar/V,1.0/3.0);
+        // Then i need to multiply all the vertices by this value
+        geometry->inputVertexPositions *=k;
+        geometry->refreshQuantities();
+        std::cout<<"The current volume is " << geometry->totalVolume() << " \n";
+
+
         end_time_control = chrono::steady_clock::now();
         // std::cout<<"5\n";
         
