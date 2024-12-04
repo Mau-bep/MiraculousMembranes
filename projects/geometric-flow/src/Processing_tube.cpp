@@ -365,8 +365,9 @@ int main(int argc, char** argv) {
     Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
     Min_rel_lengthstream << std::fixed << std::setprecision(4) <<Min_rel_length;
 
-    first_dir="../Results/Mem3DG_Bead_pulling_radius_growth_arcsim/";
+    first_dir="../Results/Mem3DG_Bead_barbell_arcsim/";
     double Tube_r;
+    double Tube_r_2;
     filename = first_dir + "Tube_radius.txt" ;
     std::ofstream Coverage_final(filename,std::ios_base::app);
     if(KB_it == 0) Coverage_final<<"# # # Tube data \n";
@@ -489,9 +490,9 @@ int main(int argc, char** argv) {
 
                 // Ok so what do i do
 
-                double leftmost = 1.1;
+                double leftmost = -1.0;
                 double rightmost = Bead_pos[step].x-1.0;
-                rightmost = 3.2;
+                rightmost = 1.0;
                 // So those are the measurements
                 // Now lets measure things
                 double Tot_H = 0.0;
@@ -511,6 +512,7 @@ int main(int argc, char** argv) {
                 std::cout<<"The mean H of the tube is " << Tot_H <<" the radius should be " << Tot_A/(2*Tot_H) <<" inferring from the area this is" << Tot_A/(2*3.14159265*(rightmost-leftmost)) << " \n";
 
                 Tube_r = Tot_A/(2*Tot_H);
+                Tube_r_2 = Tot_A/(2*3.14159265*(rightmost-leftmost));
 
 
                 // Vector3 Vert_pos;
@@ -626,7 +628,7 @@ int main(int argc, char** argv) {
                 filename = first_dir + "Tube_radius.txt" ;
                 Coverage_final =std::ofstream(filename,std::ios_base::app); 
     
-                Coverage_final<< rad<<" "<< KB << " "<< E_I<<" "<< Tube_r <<" "<< Interaction_str<<"\n";
+                Coverage_final<< rad<<" "<< KB << " "<< E_I<<" "<< Tube_r << " " << Tube_r_2 <<" "<< Interaction_str<<"\n";
                 Coverage_final.close();
 
                 // R_dist.close()

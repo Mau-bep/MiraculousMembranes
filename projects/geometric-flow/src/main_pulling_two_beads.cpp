@@ -1067,7 +1067,7 @@ int main(int argc, char** argv) {
         // Then i need to multiply all the vertices by this value
         geometry->inputVertexPositions *=k;
         geometry->refreshQuantities();
-        std::cout<<"The current volume is " << geometry->totalVolume() << " \n";
+        // std::cout<<"The current volume is " << geometry->totalVolume() << " \n";
 
 
         end_time_control = chrono::steady_clock::now();

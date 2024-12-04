@@ -450,7 +450,7 @@ def fit():
 
 
 def Tube_growth_radius_2(folder):
-    Data = np.loadtxt(folder+"Tube_radius.txt")
+    Data = np.loadtxt(folder+"Tube_radius.txt", skiprows= 1)
 
     y = Data[:,1]
     z = Data[:,3]
@@ -518,7 +518,7 @@ def fit2():
 
 
 
-# fit2()
+fit2()
 
 
 
@@ -541,5 +541,7 @@ def Hist_sizing():
     return
 
 
+# Tube_growth_radius_2()
 
-Hist_sizing()
+
+# Hist_sizing()
