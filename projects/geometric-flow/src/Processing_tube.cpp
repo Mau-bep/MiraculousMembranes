@@ -307,7 +307,7 @@ int main(int argc, char** argv) {
     
     KB=1.0;
     
-    double arr_4[] = { 6.0, 10.0, 14.0, 18.0, 22.0, 26.0, 30.0, 34.0, 38.0, 42.0, 46.0, 50.0};
+    double arr_4[] = { 2.0, 4.0, 6.0, 10.0, 12.0 , 14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 26.0, 28.0, 30.0, 32.0, 34.0, 36.0, 38.0, 40.0, 42.0, 44.0, 46.0, 48.0, 50.0};
     n = sizeof(arr_4) / sizeof(arr_4[0]);
 
     vector<double> KBs(arr_4,arr_4+n);
@@ -319,8 +319,8 @@ int main(int argc, char** argv) {
     double trgt_area = 4*3.1415;
 
 
-    int Init_cond=5;
-    int Nsim=3;
+    int Init_cond=6;
+    int Nsim=1;
 
     auto start = chrono::steady_clock::now();
     auto end = chrono::steady_clock::now();

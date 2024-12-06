@@ -325,27 +325,27 @@ SimplePolygonMesh simpleMesh;
         v_pos.z=pos_old[2];
         // avg_neigh+=mesh.verts[v]->adjf.size();
         // verts+=1;
-        if(mesh.verts[v]->adjf.size()<=2){
-            std::cout<<"The number of neighbors is "<< mesh.verts[v]->adjf.size()<<"\n";
+        // if(mesh.verts[v]->adjf.size()<=2){
+        //     std::cout<<"The number of neighbors is "<< mesh.verts[v]->adjf.size()<<"\n";
         
     
             
-            // for(int f_index = 0 ; f_index < mesh.verts[v]->adjf.size();f_index++)
-            // { 
-            // std::cout<<"Deleting face \n";
-            // mesh.remove(mesh.verts[v]->adjf[f_index]);    
-            // }
-            // std::cout<<"Now we delete the vert\n";
-            // mesh.remove(mesh.verts[v]);
+        //     // for(int f_index = 0 ; f_index < mesh.verts[v]->adjf.size();f_index++)
+        //     // { 
+        //     // std::cout<<"Deleting face \n";
+        //     // mesh.remove(mesh.verts[v]->adjf[f_index]);    
+        //     // }
+        //     // std::cout<<"Now we delete the vert\n";
+        //     // mesh.remove(mesh.verts[v]);
             
-            // // mesh.remove(mesh.verts[v]->adjf[0]);
+        //     // // mesh.remove(mesh.verts[v]->adjf[0]);
 
-            std::cout<<"The vertex index to not consider are"<< v<<" out of a total of"<< mesh.verts.size()<<"\n";
-            flag_warning=true;
-            // flag=v;
-            flags.push_back(v);
-            continue;
-        }
+        //     std::cout<<"The vertex index to not consider are"<< v<<" out of a total of"<< mesh.verts.size()<<"\n";
+        //     flag_warning=true;
+        //     // flag=v;
+        //     flags.push_back(v);
+        //     continue;
+        // }
         
         
         simpleMesh.vertexCoordinates.push_back(v_pos);
@@ -357,8 +357,6 @@ SimplePolygonMesh simpleMesh;
     int id3;
     // int flag_idx=0;
     // int number_of_flags=0;
-
-    
 
     if(flag_warning){
     std::cout<<"THe number of flags is "<<flags.size()<<"\n";
@@ -378,25 +376,25 @@ SimplePolygonMesh simpleMesh;
         id2 = mesh.faces[f]->v[1]->index;
         id3 = mesh.faces[f]->v[2]->index;
 
-        int less_id1 = 0;
-        int less_id2 = 0;
-        int less_id3 = 0;
+        // int less_id1 = 0;
+        // int less_id2 = 0;
+        // int less_id3 = 0;
 
-        for(size_t flag = 0 ; flag < flags.size(); flag++){
-        if( id1 == flags[flag]|| id2 == flags[flag] || id3 == flags[flag]){
-            non_manifold=true;
-        }
-        if(id1>flags[flag]&& flag_warning) less_id1+=1;
-        if(id2>flags[flag]&& flag_warning) less_id2+=1;
-        if(id3>flags[flag]&& flag_warning) less_id3+=1;
-        }
-        if(non_manifold){
-            non_manifold=false;
-            continue;
-        }
-        id1 = id1 - less_id1;
-        id2 = id2 - less_id2;
-        id3 = id3 - less_id3; 
+        // for(size_t flag = 0 ; flag < flags.size(); flag++){
+        // if( id1 == flags[flag]|| id2 == flags[flag] || id3 == flags[flag]){
+        //     non_manifold=true;
+        // }
+        // if(id1>flags[flag]&& flag_warning) less_id1+=1;
+        // if(id2>flags[flag]&& flag_warning) less_id2+=1;
+        // if(id3>flags[flag]&& flag_warning) less_id3+=1;
+        // }
+        // if(non_manifold){
+        //     non_manifold=false;
+        //     continue;
+        // }
+        // id1 = id1 - less_id1;
+        // id2 = id2 - less_id2;
+        // id3 = id3 - less_id3; 
 
         // if(id1==6075 || id2==6075 || id3 ==6075) std::cout<<" 2. This is is being called\n";
 
@@ -421,7 +419,6 @@ SimplePolygonMesh simpleMesh;
                     std::unique_ptr<VertexPositionGeometry>>(std::move(std::get<0>(lvals)),  // mesh
                                                              std::move(std::get<1>(lvals))); // geometry
 }
-
 std::vector<std::string> split(std::string s, std::string delimiter) {
     size_t pos_start = 0, pos_end, delim_len = delimiter.length();
     std::string token;
@@ -495,8 +492,8 @@ int main(int argc, char** argv) {
     Min_rel_length = 0.1;
     c0=0.0;
 
-
-    bool resize_vol = true;
+    int save_interval = 50;
+    bool resize_vol = false;
     bool pulling = false;
     bool arcsim = true;
     // I will do it so i can give this values
@@ -547,6 +544,9 @@ int main(int argc, char** argv) {
     if(Init_cond == 6){
         filepath = "../../../input/Barbell_init.obj";
     }
+    if(Init_cond == 7){
+        filepath = "../../../input/disk_init.obj";
+    }
     // std::string filepath = "../../../input/sphere_dense_40k.obj";
     // Load mesh
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
@@ -564,7 +564,7 @@ int main(int argc, char** argv) {
     // double trgt_vol = 4.0*3.1415926535/3.0;
 
     double V;
-    if(Init_cond != 5 && Init_cond !=6 && !resize_vol){
+    if(Init_cond != 5 && Init_cond != 6 &&  Init_cond != 7 &&!resize_vol){
     Energies.push_back("Volume_constraint");
     Constants.push_back(100000);
     // Constants.push_back(0);
@@ -586,8 +586,12 @@ int main(int argc, char** argv) {
     Energy_constants.push_back(Constants);
     Constants.resize(0);
 
+
+    // Just for testing
+    // if(Init_cond != 7){
     Energies.push_back("Bead");
     Energy_constants.push_back(Constants);
+    // }
 
     if(Init_cond != 4 ){
     Energies.push_back("Bead");
@@ -662,11 +666,14 @@ int main(int argc, char** argv) {
 
     std::vector<std::vector<double>> constants;
     
-    if(Init_cond != 4 && Init_cond != 5 && Init_cond !=6){
+    if(Init_cond != 4 && Init_cond != 5 && Init_cond !=6 ){
     bonds.push_back("Harmonic");
     // std::vector<std::vector<double>> constants;
     constants.push_back(std::vector<double>{Interaction_str,0.0});
-    Bead_1 = Bead(mesh,geometry,Vector3({x_furthest-2.0*radius,0.0,0.0}),radius,10);
+    std::cout<<"X furthest is " << x_furthest << " \n";
+    Bead_1 = Bead(mesh,geometry,Vector3({x_furthest-1*radius,0.0,0.0}),radius,10);
+    // Bead_1 = Bead(mesh,geometry,Vector3({-5.0,0.0,0.0}),radius,10);
+    
     Bead_1.interaction = "Shifted-LJ";
     Bead_1.rc=radius*pow(2,1.0/6.0);
     
@@ -688,7 +695,7 @@ int main(int argc, char** argv) {
     Beads[1].Beads.push_back(&Beads[0]);
     
     }
-    if(Init_cond ==4){
+    if(Init_cond == 4){
     // I need to get the Vector3 that goes here
 
     Vector3 Initial_pos_bead = Get_bead_pos("../Results/Mem3DG_Bead_pulling_nov/nu_1.000_radius_0.200_KA_100000.000_KB_1.000000_strength_6.000000_Init_cond_2_Nsim_1/Bead_0_data.txt",Nsim);
@@ -748,7 +755,12 @@ int main(int argc, char** argv) {
 
     
     M3DG = Mem3DG(mesh,geometry);
-    // M3DG.Add_bead(&Bead_1);
+
+    if(Init_cond == 7 ) {
+        M3DG.recentering = false;
+        M3DG.boundary = true;
+        }
+    
     for( size_t i = 0 ; i< Beads.size() ; i++) M3DG.Add_bead(&Beads[i]);
     
     std::stringstream nustream;
@@ -784,6 +796,7 @@ int main(int argc, char** argv) {
     if(Init_cond == 5 ) first_dir ="../Results/Mem3DG_Bead_pulling_radius_growth_arcsim/";
     if(Init_cond == 2 ) first_dir ="../Results/Mem3DG_Bead_pulling_radius_arcsim/";
     if(Init_cond == 6 ) first_dir ="../Results/Mem3DG_Bead_barbell_arcsim/";
+    if(Init_cond == 7 ) first_dir ="../Results/Mem3DG_Bead_disk_arcsim/";
     
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
@@ -852,20 +865,33 @@ int main(int argc, char** argv) {
     bool seam = false;
     Cloth_1.dump_info = false;
     start = chrono::steady_clock::now();
-    for(size_t current_t=0;current_t<=300000;current_t++ ){
+
+    // Save_mesh(basic_name,-1);
+
+
+    for(size_t current_t=0;current_t <= 100000 ;current_t++ ){
+        // std::cout<<"Current t is " <
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
         // std::cout<<"Current t is \t\t\t\t "<< current_t <<" \n";
-         
+        bool nanvertex = false;
         if(arcsim){
             start_time_control=chrono::steady_clock::now();
+
+            // for(Vertex v : mesh->vertices()){
+            //     if( isnan(geometry->inputVertexPositions[v].norm2())) nanvertex = true; 
+            // }
+            // if(nanvertex) std::cout << "Before remeshing one of the vertices position is nan ugh \n";
+
+
             arcsim::Mesh remesher_mesh2 = translate_to_arcsim(mesh,geometry);
             Cloth_1.mesh=remesher_mesh2;
             if(Saving_last_states){
                 saved_mesh_idx = (saved_mesh_idx+1)%6;
                 arcsim::delete_mesh(Saved_meshes[saved_mesh_idx]);
-
+                if(Beads.size()>=01){
                 Bead_pos_saved[saved_mesh_idx] = Beads[0].Pos;
+                }
                 Saved_meshes[saved_mesh_idx] = arcsim::deep_copy(remesher_mesh2);
 
 
@@ -881,6 +907,8 @@ int main(int argc, char** argv) {
             //     arcsim::save_obj(Cloth_1.mesh, basic_name + "Debugging_before.obj" );
             // }
             // std::cout<<"Remeshing 1\n";
+            // arcsim::save_obj(Cloth_1.mesh,basic_name + "Beforeremesh_"  + to_string(current_t)+".obj");
+            
             arcsim::compute_ws_data(Cloth_1.mesh);
             arcsim::dynamic_remesh(Cloth_1);
             
@@ -889,7 +917,7 @@ int main(int argc, char** argv) {
             // for(int val = 0 ; val< Cloth_1.mesh.edges.size() ; val++){
             //     // std::cout<<"Trying edge "<< val <<"\n";
             //     if(arcsim::is_seam_or_boundary(Cloth_1.mesh.edges[val])) {
-            //         arcsim::save_obj(Cloth_1.mesh,basic_name + "Seam_somewhere.obj");
+            // arcsim::save_obj(Cloth_1.mesh,basic_name + "Afterremesh_"  + to_string(current_t)+".obj");
             //         seam = true;
             //     }
             // }
@@ -930,6 +958,12 @@ int main(int argc, char** argv) {
             end_time_control=chrono::steady_clock::now();
             remeshing_elapsed_time+=chrono::duration_cast<chrono::milliseconds>(end_time_control-start_time_control).count();
             M3DG= Mem3DG(mesh,geometry);
+            if(Init_cond == 7)
+                { 
+                M3DG.recentering = false;
+                M3DG.boundary = true;
+                }
+            // std::cout<<"Readding beads\n";
             for(size_t i = 0 ; i<Beads.size(); i++){
                 Beads[i].Reasign_mesh(mesh,geometry);
                 M3DG.Add_bead(&Beads[i]);
@@ -974,10 +1008,11 @@ int main(int argc, char** argv) {
         // psMesh->setEdgeWidth(1.0);
 
         
-        if(current_t%500==0 || current_t%100 ==0){
+        if(current_t%save_interval == 0){
             // Bead_data.close();
             // Sim_data.close();
             // std::cout<<"Saving\n";
+
             start_time_control=chrono::steady_clock::now();
             // if(current_t%100==0){
             Save_mesh(basic_name,current_t);
@@ -1056,17 +1091,32 @@ int main(int argc, char** argv) {
         
         // dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,sigma,Sim_data, time,Save_bead_data,Bead_filenames,Save_output_data,pulling);
         dt_sim = M3DG.integrate(Energies, Energy_constants , Sim_data, time, Bead_filenames, Save_output_data);
+        nanvertex = false;
+        for(Vertex v : mesh->vertices()) if(isnan(geometry->inputVertexPositions[v].x+ geometry->inputVertexPositions[v].y  + geometry->inputVertexPositions[v].z )) nanvertex = true;  
+
+        if(nanvertex) std::cout<< "After integrating one vertex is nan :( also the value of alpha is"<< dt_sim << " \n";
+
+
+
 
         Bead_data.close();
         Sim_data.close();
         
+
+        // Then i need to multiply all the vertices by this value
+        if(resize_vol){
+        double  k;
+        
+        
         V = geometry->totalVolume();
 
-
-        double  k = pow(V_bar/V,1.0/3.0);
-        // Then i need to multiply all the vertices by this value
+        k = pow(V_bar/V,1.0/3.0);
+        
         geometry->inputVertexPositions *=k;
         geometry->refreshQuantities();
+        
+        
+        }
         // std::cout<<"The current volume is " << geometry->totalVolume() << " \n";
 
 
@@ -1107,7 +1157,7 @@ int main(int argc, char** argv) {
     std::ofstream beads_saved(basic_name+"Saved_bead_info.txt");
     beads_saved << std::setprecision(std::numeric_limits<double>::max_digits10);
 
-
+    std::cout<<"Printing bead info\n";
     for( int k = 0 ; k < 6 ; k++){
         std::cout<<Bead_pos_saved[k].x << " " << Bead_pos_saved[k].y << " " << Bead_pos_saved[k].z <<" \n";
         std::cout<<"Saved mesh idx is " << saved_mesh_idx<<" \n";

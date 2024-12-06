@@ -30,7 +30,8 @@ Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo)
     Area_evol_steps=100000;
     stop_increasing = false;
     small_TS = false;
-
+    recentering = true;
+    boundary = false;
 }
 Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, Bead input_Bead) {
 
@@ -451,10 +452,13 @@ double Mem3DG::E_Bending(double H0,double KB) const{
     double H;
     
     for(Vertex v : mesh->vertices()) {
+        //boundary_fix
+        if(v.isBoundary()) continue;
         index=v.getIndex();
         // Scalar_MC.coeffRef(index)
         H=abs(geometry->scalarMeanCurvature(v)/geometry->barycentricDualArea(v));
         if(std::isnan(H)){
+          continue;
           std::cout<<"Dual area: "<< geometry->barycentricDualArea(v);
           std::cout<<"Scalar mean Curv"<< geometry->scalarMeanCurvature(v);
           std::cout<<"One of the H is not a number\n";
@@ -537,11 +541,16 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
   double X_pos;
 
   double previousE = 0;
-  for(size_t i = 0; i < Energies.size(); i++) previousE += Energy_vals[i];
+  for(size_t i = 0; i < Energies.size(); i++) {
+    previousE += Energy_vals[i];
+    if(isnan(Energy_vals[i])) std::cout<<"Energy " << Energies[i] << " is nan\n";
+  }
 
   double NewE;
   VertexData<Vector3> initial_pos(*mesh);
+  if(recentering){
   geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+  }
   Vector3 CoM = geometry->centerOfMass();
     
   // for(size_t i = 0; i < Beads.size(); i++){
@@ -564,20 +573,42 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
 
   // We start the evolution
   // We move the vertices
+  for(Vertex v : mesh->vertices()){
+    if(isnan(Force[v].x || Force[v].y || Force[v].z)) std::cout<<" Is this force nan at vertex but norm2 is " << Force[v.getIndex()].norm2() <<"\n";
+  
+  }
+
+
   geometry->inputVertexPositions+=alpha * Force;
+  bool nanflag = false;
+  for(Vertex v : mesh->vertices()){
+    if(isnan( geometry->inputVertexPositions[v].norm2()))  nanflag = true;
+  }
+
+  if(nanflag) std::cout<<"At least one vertex has nan position\n";
+
   geometry->refreshQuantities();
   center = geometry->centerOfMass();
   Vector3 Vertex_pos;
 
   // We move the beads;
   for(size_t i = 0 ; i < Beads.size(); i++) Beads[i]->Move_bead(alpha,Vector3({0,0,0})); 
+ 
+  // i NEED TO EITHER MAKE A FLAG OR DO IT ANYWAY
 
   Total_force = Vector3({0.0, 0.0, 0.0});
+  double Force_norm2 = 0;
   for(Vertex v : mesh->vertices()){
-    Projection += Force[v.getIndex()].norm2();
+    Force_norm2 = Force[v.getIndex()].norm2();
+    // if(Force_norm2 > 1e5) std::cout<<"How did this happen? the radius is " << geometry->inputVertexPositions[v].norm2() << " \n";
+    Projection += Force_norm2;
+    // std::cout<< Force[v.getIndex()].norm2() << " \n";
     Total_force += Force[v.getIndex()];
 
   }
+
+
+  // std::cout<<"The projection is " << Projection <<" And the total force is " << Total_force << " \n";
 
   grad_norm = Projection;
 
@@ -590,7 +621,7 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
     if(Energies[i]=="Volume_constraint"){
       double V = geometry->totalVolume();
       V_bar = Energy_constants[i][1];
-      double D_P = -1*Energy_constants[i][0]*(V-V_bar)/(V_bar*V_bar);
+      // double D_?P = -1*Energy_constants[i][0]*(V-V_bar)/(V_bar*V_bar);
 
       // We calculate the energy
       Energy_vals[i] = E_Volume_constraint(Energy_constants[i][0],V,V_bar);
@@ -641,9 +672,12 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
 
   }
 
+  
+  // std::cout<<" \n";
   size_t counter = 0;
   // Now we start the backtracking
-  
+ 
+  // std::cout<<" \n";
   bool displacement_cond = true;
 
 
@@ -765,7 +799,17 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
 
   }
 
+
+
+  nanflag = false;
+
+  for(Vertex v : mesh->vertices()) if(isnan(geometry->inputVertexPositions[v].x+ geometry->inputVertexPositions[v].y  + geometry->inputVertexPositions[v].z )) nanflag = true;  
+
+  if(nanflag) std::cout<< "After backtracking one vertex is nan :( also the value of alpha is"<< alpha << " \n";
+
   if(alpha<0.0) geometry->inputVertexPositions = initial_pos;
+  if(recentering) {
+    std::cout<<"rENORMALIZING\n";
   CoM = geometry->centerOfMass();
   geometry->normalize(Vector3({0.0,0.0,0.0}),false);
   // CoM = geometry->centerOfMass();
@@ -778,8 +822,9 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
     // }
 
   }
+  
   geometry->refreshQuantities();
-
+  }
 
 
 
@@ -811,9 +856,9 @@ double X_pos;
 double previousE=E_Vol+E_Sur+E_Ben+E_Bead;
 double NewE;
 VertexData<Vector3> initial_pos(*mesh);
-
+if(recentering){
 geometry->normalize(Vector3({0.0,0.0,0.0}),false);
-
+}
 initial_pos= geometry->inputVertexPositions;
 
 std::vector<Vector3> Bead_init;
@@ -1797,6 +1842,12 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
 
   }
 
+  //  std::cout<<"The energy vals are ";
+  // for(size_t i = 0; i < Energy_vals.size(); i++){
+  //   std::cout<< Energy_vals[i] <<" ";
+
+  // }
+  // std::cout<<" \n";
   // Ok now i have the force
   double alpha = 1e-3;
   double backtrackstep;
@@ -1807,6 +1858,37 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
   }
   
   V = geometry->totalVolume();
+  
+  // std::ofstream F_dist("../Results/Tests/Force_dist.txt");
+  // F_dist <<"##### Force and position \n";
+  
+
+  // This only makes sense when there is a boundary 
+
+
+  double r_eff = 0;
+
+
+  
+  Vector3 Pos;
+  for(Vertex v: mesh->vertices()){
+    
+    Pos = geometry->inputVertexPositions[v];
+    r_eff = Pos.z*Pos.z + Pos.y*Pos.y ;
+    // F_dist << Pos.x <<" "<<Pos.y <<" "<< Pos.z <<" "<< r_eff <<" "<< Force[v.getIndex()].x <<" "<< Force[v.getIndex()].y <<" "<< Force[v.getIndex()].z <<" "<< Force[v.getIndex()].norm2()<<" \n";
+  
+
+    // if(Force[v.getIndex()].norm2() > 1e5 && r_eff < 0.5) std::cout<< r_eff <<" " << Force[v.getIndex()].norm2() << " \n";
+    // if(v.isBoundary() || isnan(Force[v.getIndex()].norm2()) ) {
+    if(v.isBoundary() || isnan(Force[v.getIndex()].norm2()) || r_eff >1.6 ) {
+      Force[v.getIndex()] = Vector3({0.0,0.0,0.0});
+        // std::cout<<"Setting this force to 0 \n";
+    }
+    
+  }
+
+
+  // F_dist.close();
   // std::cout<<"Moving to backtracking\n";
   backtrackstep = Backtracking(Force,Energies,Energy_constants);
   // std::cout<<"Passed backtracking\n";

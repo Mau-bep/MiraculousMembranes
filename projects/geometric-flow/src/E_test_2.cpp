@@ -380,27 +380,27 @@ SimplePolygonMesh simpleMesh;
         v_pos.z=pos_old[2];
         // avg_neigh+=mesh.verts[v]->adjf.size();
         // verts+=1;
-        if(mesh.verts[v]->adjf.size()<=2){
-            std::cout<<"The number of neighbors is "<< mesh.verts[v]->adjf.size()<<"\n";
+        // if(mesh.verts[v]->adjf.size()<=2){
+        //     std::cout<<"The number of neighbors is "<< mesh.verts[v]->adjf.size()<<"\n";
         
     
             
-            // for(int f_index = 0 ; f_index < mesh.verts[v]->adjf.size();f_index++)
-            // { 
-            // std::cout<<"Deleting face \n";
-            // mesh.remove(mesh.verts[v]->adjf[f_index]);    
-            // }
-            // std::cout<<"Now we delete the vert\n";
-            // mesh.remove(mesh.verts[v]);
+        //     // for(int f_index = 0 ; f_index < mesh.verts[v]->adjf.size();f_index++)
+        //     // { 
+        //     // std::cout<<"Deleting face \n";
+        //     // mesh.remove(mesh.verts[v]->adjf[f_index]);    
+        //     // }
+        //     // std::cout<<"Now we delete the vert\n";
+        //     // mesh.remove(mesh.verts[v]);
             
-            // // mesh.remove(mesh.verts[v]->adjf[0]);
+        //     // // mesh.remove(mesh.verts[v]->adjf[0]);
 
-            std::cout<<"The vertex index to not consider are"<< v<<" out of a total of"<< mesh.verts.size()<<"\n";
-            flag_warning=true;
-            // flag=v;
-            flags.push_back(v);
-            continue;
-        }
+        //     std::cout<<"The vertex index to not consider are"<< v<<" out of a total of"<< mesh.verts.size()<<"\n";
+        //     flag_warning=true;
+        //     // flag=v;
+        //     flags.push_back(v);
+        //     continue;
+        // }
         
         
         simpleMesh.vertexCoordinates.push_back(v_pos);
@@ -412,8 +412,6 @@ SimplePolygonMesh simpleMesh;
     int id3;
     // int flag_idx=0;
     // int number_of_flags=0;
-
-    
 
     if(flag_warning){
     std::cout<<"THe number of flags is "<<flags.size()<<"\n";
@@ -433,25 +431,25 @@ SimplePolygonMesh simpleMesh;
         id2 = mesh.faces[f]->v[1]->index;
         id3 = mesh.faces[f]->v[2]->index;
 
-        int less_id1 = 0;
-        int less_id2 = 0;
-        int less_id3 = 0;
+        // int less_id1 = 0;
+        // int less_id2 = 0;
+        // int less_id3 = 0;
 
-        for(size_t flag = 0 ; flag < flags.size(); flag++){
-        if( id1 == flags[flag]|| id2 == flags[flag] || id3 == flags[flag]){
-            non_manifold=true;
-        }
-        if(id1>flags[flag]&& flag_warning) less_id1+=1;
-        if(id2>flags[flag]&& flag_warning) less_id2+=1;
-        if(id3>flags[flag]&& flag_warning) less_id3+=1;
-        }
-        if(non_manifold){
-            non_manifold=false;
-            continue;
-        }
-        id1 = id1 - less_id1;
-        id2 = id2 - less_id2;
-        id3 = id3 - less_id3; 
+        // for(size_t flag = 0 ; flag < flags.size(); flag++){
+        // if( id1 == flags[flag]|| id2 == flags[flag] || id3 == flags[flag]){
+        //     non_manifold=true;
+        // }
+        // if(id1>flags[flag]&& flag_warning) less_id1+=1;
+        // if(id2>flags[flag]&& flag_warning) less_id2+=1;
+        // if(id3>flags[flag]&& flag_warning) less_id3+=1;
+        // }
+        // if(non_manifold){
+        //     non_manifold=false;
+        //     continue;
+        // }
+        // id1 = id1 - less_id1;
+        // id2 = id2 - less_id2;
+        // id3 = id3 - less_id3; 
 
         // if(id1==6075 || id2==6075 || id3 ==6075) std::cout<<" 2. This is is being called\n";
 
@@ -506,7 +504,8 @@ int main(int argc, char** argv) {
     bool preserving_vol=false;
     bool dihedral_dist= true;
 
-    bool sizing_test = true;
+    bool sizing_test = false;
+    bool disk_test = true;
     std::cout<< "Current path is " << argv[0]<<"\n";
 
     std::string filepath = "../../../input/sphere.obj";
@@ -514,7 +513,62 @@ int main(int argc, char** argv) {
     // 
     
 
+    if(disk_test){
+        std::cout<<"Testing flat disk \n";
+        filepath  = "../../../input/disk_2.obj";
+        std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
 
+        mesh = mesh_uptr.release();
+        geometry = geometry_uptr.release();
+
+
+        arcsim::Mesh remesher_mesh;
+        remesher_mesh = translate_to_arcsim(mesh,geometry);
+
+        arcsim::Cloth Cloth_1;
+        Cloth_1.mesh=remesher_mesh;
+        arcsim::Cloth::Remeshing remeshing_params;
+    
+        remeshing_params.aspect_min=0.4;
+        remeshing_params.refine_angle=0.7;
+        remeshing_params.refine_compression=1e-4;
+        remeshing_params.refine_velocity=1.0;
+        remeshing_params.size_max=0.2;
+        remeshing_params.size_min=0.001;
+
+        Cloth_1.remeshing=remeshing_params;
+
+        
+        std::cout<<"First remeshing\n";
+        arcsim::compute_ws_data(Cloth_1.mesh);
+        arcsim::dynamic_remesh(Cloth_1);
+
+        arcsim::save_obj(Cloth_1.mesh, "../Results/Tests/Disk_arcsim.obj");
+
+        
+
+        delete mesh;
+        delete geometry;
+        std::cout<<"translating back?\n";
+        std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
+        
+        std::cout<<"defining pointers\n";
+        mesh = mesh_uptr.release();
+        geometry = geometry_uptr.release();
+
+        arcsim::delete_mesh(Cloth_1.mesh);
+
+        remesher_mesh = translate_to_arcsim(mesh,geometry);
+        Cloth_1.mesh=remesher_mesh;
+        arcsim::compute_ws_data(Cloth_1.mesh);
+        arcsim::dynamic_remesh(Cloth_1);
+        arcsim::save_obj(Cloth_1.mesh, "../Results/Tests/Disk_arcsim_2.obj");
+
+
+        Save_mesh("../Results/Tests/Disk_",1);
+
+        return 0;
+    }
 
 
     if(sizing_test ){

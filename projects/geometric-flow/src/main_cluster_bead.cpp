@@ -354,6 +354,7 @@ arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeomet
 }
 
 
+
 std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
 translate_to_geometry(arcsim::Mesh mesh){
 
@@ -392,27 +393,27 @@ SimplePolygonMesh simpleMesh;
         v_pos.z=pos_old[2];
         // avg_neigh+=mesh.verts[v]->adjf.size();
         // verts+=1;
-        if(mesh.verts[v]->adjf.size()<=2){
-            std::cout<<"The number of neighbors is "<< mesh.verts[v]->adjf.size()<<"\n";
+        // if(mesh.verts[v]->adjf.size()<=2){
+        //     std::cout<<"The number of neighbors is "<< mesh.verts[v]->adjf.size()<<"\n";
         
     
             
-            // for(int f_index = 0 ; f_index < mesh.verts[v]->adjf.size();f_index++)
-            // { 
-            // std::cout<<"Deleting face \n";
-            // mesh.remove(mesh.verts[v]->adjf[f_index]);    
-            // }
-            // std::cout<<"Now we delete the vert\n";
-            // mesh.remove(mesh.verts[v]);
+        //     // for(int f_index = 0 ; f_index < mesh.verts[v]->adjf.size();f_index++)
+        //     // { 
+        //     // std::cout<<"Deleting face \n";
+        //     // mesh.remove(mesh.verts[v]->adjf[f_index]);    
+        //     // }
+        //     // std::cout<<"Now we delete the vert\n";
+        //     // mesh.remove(mesh.verts[v]);
             
-            // // mesh.remove(mesh.verts[v]->adjf[0]);
+        //     // // mesh.remove(mesh.verts[v]->adjf[0]);
 
-            std::cout<<"The vertex index to not consider are"<< v<<" out of a total of"<< mesh.verts.size()<<"\n";
-            flag_warning=true;
-            // flag=v;
-            flags.push_back(v);
-            continue;
-        }
+        //     std::cout<<"The vertex index to not consider are"<< v<<" out of a total of"<< mesh.verts.size()<<"\n";
+        //     flag_warning=true;
+        //     // flag=v;
+        //     flags.push_back(v);
+        //     continue;
+        // }
         
         
         simpleMesh.vertexCoordinates.push_back(v_pos);
@@ -424,8 +425,6 @@ SimplePolygonMesh simpleMesh;
     int id3;
     // int flag_idx=0;
     // int number_of_flags=0;
-
-    
 
     if(flag_warning){
     std::cout<<"THe number of flags is "<<flags.size()<<"\n";
@@ -445,25 +444,25 @@ SimplePolygonMesh simpleMesh;
         id2 = mesh.faces[f]->v[1]->index;
         id3 = mesh.faces[f]->v[2]->index;
 
-        int less_id1 = 0;
-        int less_id2 = 0;
-        int less_id3 = 0;
+        // int less_id1 = 0;
+        // int less_id2 = 0;
+        // int less_id3 = 0;
 
-        for(size_t flag = 0 ; flag < flags.size(); flag++){
-        if( id1 == flags[flag]|| id2 == flags[flag] || id3 == flags[flag]){
-            non_manifold=true;
-        }
-        if(id1>flags[flag]&& flag_warning) less_id1+=1;
-        if(id2>flags[flag]&& flag_warning) less_id2+=1;
-        if(id3>flags[flag]&& flag_warning) less_id3+=1;
-        }
-        if(non_manifold){
-            non_manifold=false;
-            continue;
-        }
-        id1 = id1 - less_id1;
-        id2 = id2 - less_id2;
-        id3 = id3 - less_id3; 
+        // for(size_t flag = 0 ; flag < flags.size(); flag++){
+        // if( id1 == flags[flag]|| id2 == flags[flag] || id3 == flags[flag]){
+        //     non_manifold=true;
+        // }
+        // if(id1>flags[flag]&& flag_warning) less_id1+=1;
+        // if(id2>flags[flag]&& flag_warning) less_id2+=1;
+        // if(id3>flags[flag]&& flag_warning) less_id3+=1;
+        // }
+        // if(non_manifold){
+        //     non_manifold=false;
+        //     continue;
+        // }
+        // id1 = id1 - less_id1;
+        // id2 = id2 - less_id2;
+        // id3 = id3 - less_id3; 
 
         // if(id1==6075 || id2==6075 || id3 ==6075) std::cout<<" 2. This is is being called\n";
 
@@ -488,7 +487,6 @@ SimplePolygonMesh simpleMesh;
                     std::unique_ptr<VertexPositionGeometry>>(std::move(std::get<0>(lvals)),  // mesh
                                                              std::move(std::get<1>(lvals))); // geometry
 }
-
 
 
 
@@ -601,6 +599,9 @@ int main(int argc, char** argv) {
     if(Init_cond==4){
         filepath = "../../../input/Saved_final_frame_1.obj";
     }
+    if(Init_cond == 7){
+        filepath = "../../../input/disk_init.obj"
+    }
     // std::string filepath = "../../../input/sphere_dense_40k.obj";
     // Load mesh
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
@@ -699,6 +700,8 @@ int main(int argc, char** argv) {
     
 
     std::string first_dir="../Results/Mem3DG_Bead_Reciprocal_dic_phase/";
+
+    if(Init_cond == 7) first_dir = "../Results/Mem3DG_Bead_Reciprocal_disk/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
@@ -778,7 +781,11 @@ int main(int argc, char** argv) {
 
     M3DG = Mem3DG(mesh,geometry);
     for( size_t i = 0 ; i < Beads.size() ; i++) M3DG.Add_bead(&Beads[i]);
-
+    
+    if(Init_cond == 7){
+        M3DG.boundary = true;
+        M3DG.recentering = false;
+        }
 
 
 
@@ -956,6 +963,10 @@ int main(int argc, char** argv) {
             }
             M3DG.small_TS = small_Ts;
             M3DG.system_time = sys_time;
+            if(Init_cond == 7){
+                M3DG.boundary = true;
+                M3DG.recentering = false;
+            }
         }
         else{
 

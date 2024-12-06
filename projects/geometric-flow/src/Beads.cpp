@@ -1644,6 +1644,7 @@ double Bead::Energy() {
         }
 
     }
+    // std::cout<<"Total E is " << Total_E <<" \n";
 
     double dual_area;
     if(interaction=="Spring"){

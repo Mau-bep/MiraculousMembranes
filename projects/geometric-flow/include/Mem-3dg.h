@@ -43,7 +43,8 @@ class Mem3DG {
     bool stop_increasing;
     double pulling_force;
     bool small_TS;
-  
+    bool recentering;
+    bool boundary;
     double A;
     double V;
     double E_Vol;

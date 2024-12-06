@@ -75,9 +75,19 @@ double VertexPositionGeometry::meanEdgeLength() const {
 double VertexPositionGeometry::totalArea() const {
 
     double total = 0.0;
+    // std::cout<<"The number of faces is " << mesh.nFaces() << " \n";
+    int counter = 0;
     for (Face f : mesh.faces()) {
+        if(std::isnan(faceArea(f))) continue;
+        
+        // if(f.isBoundaryLoop()) std::cout<<"The face is a boundary loop?\n";
+        counter+=1;
         total += faceArea(f);
+        // std::cout<< faceArea(f) << " ";
     }
+    // std::cout<<"The number of considered faces is " << counter <<" \n";
+    // std::cout<<" \n";
+    // std::cout<<"The total area is " << total <<" \n";
     return total;
 }
 

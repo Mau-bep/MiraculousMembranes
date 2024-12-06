@@ -507,8 +507,8 @@ def fit2():
 
     y_fit2 = np.sqrt( x_fit/(4*0.05))/100.0
 
-    plt.plot(x_fit,y_fit,ls='dashed',color='magenta',label=" 0.58")
-    plt.plot(x_fit,y_fit2,ls='dashed',color='purple', label = "0.5")
+    # plt.plot(x_fit,y_fit,ls='dashed',color='magenta',label=" {}".format(p[0]))
+    plt.plot(x_fit,y_fit2,ls='dashed',color='purple', label = "Theory")
     plt.scatter(Strengths,radius,color='black')
     plt.savefig(folder_path_growth+"Fit_radius_curve.png",bbox_inches='tight')
     plt.xlabel("Kb",fontsize=15.0)
