@@ -507,18 +507,19 @@ int main(int argc, char** argv) {
     KB = std::stod(argv[7]);
     Min_rel_length = 0.1;
     c0=0.0;
+    int save_interval = 200;
 
     std::vector<std::string> Energies(0);
     std::vector<std::vector<double>> Energy_constants(0);
     std::vector<double> Constants(0);
     
-
+    if(Init_cond != 7){
     Energies.push_back("Volume_constraint");
     Constants.push_back(100000);
     Constants.push_back(4.0*3.1415926535/3.0);
     Energy_constants.push_back(Constants);
     Constants.resize(0);
-
+    }
     // Energies.push_back("Area_constraint");
     // Constants.push_back(KA);
     // Constants.push_back(4*3.1415926535);
@@ -600,7 +601,7 @@ int main(int argc, char** argv) {
         filepath = "../../../input/Saved_final_frame_1.obj";
     }
     if(Init_cond == 7){
-        filepath = "../../../input/disk_init.obj"
+        filepath = "../../../input/disk_init.obj";
     }
     // std::string filepath = "../../../input/sphere_dense_40k.obj";
     // Load mesh
@@ -656,7 +657,7 @@ int main(int argc, char** argv) {
     arcsim::compute_masses(Cloth_1);
     arcsim::compute_ws_data(Cloth_1.mesh);
     // arcsim::compute_ws_data(cloth.mesh)
-    // arcsim::dynamic_remesh(Cloth_1);
+    arcsim::dynamic_remesh(Cloth_1);
     delete mesh;
     delete geometry;
     std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
@@ -759,7 +760,7 @@ int main(int argc, char** argv) {
 
         }
     
-        x_furthest+=radius*1.9;
+        x_furthest+=radius*1.8;
         Bead_1 = Bead(mesh,geometry,Vector3({x_furthest,0.0,0.0}),radius,Interaction_str);
     
     
@@ -768,7 +769,7 @@ int main(int argc, char** argv) {
 
 
     
-
+    Bead_1.state ="default";
     Bead_1.interaction="Shifted_LJ_Normal_nopush";
     Bead_1.rc=radius*2.0;
     Beads.push_back(Bead_1);
@@ -874,12 +875,12 @@ int main(int argc, char** argv) {
 
             // std::cout<<"\t \t \t Current ts is "<<current_t<<"\n";
             // if(current_t>2300) std::cout<<"\t "+std::to_string(current_t) + "\t";
-            if(current_t==10){
-                Cloth_1.dump_info = true;
-            }
-            else{
-                Cloth_1.dump_info = false;
-            }
+            // if(current_t==10){
+            //     Cloth_1.dump_info = true;
+            // }
+            // else{
+            //     Cloth_1.dump_info = false;
+            // }
             arcsim::compute_ws_data(Cloth_1.mesh);
             arcsim::dynamic_remesh(Cloth_1);
             
@@ -1020,7 +1021,7 @@ int main(int argc, char** argv) {
         //     counter = 0;
         //  }
             //  || || 
-        if(current_t%100==0   ) {
+        if(current_t%save_interval ==0   ) {
         // {
             // currentMem = get_mem_usage();
             // std::cout<<"THe code is using " << currentMem <<" in KB\n";
