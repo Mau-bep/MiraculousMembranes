@@ -587,10 +587,14 @@ int main(int argc, char** argv) {
         
         if(Energies[z] == "Bead"){
             stream.str(std::string());
-            stream << std::fixed << std::setprecision(4) << Beads[bead_counter].strength;
-            Directory = Directory + stream.str() +"_";
+            stream << std::fixed << std::setprecision(4) << Beads[bead_counter].sigma;
+            Directory = Directory +"radius_" +stream.str() +"_";
 
-            bead_counter+=1
+            stream.str(std::string());
+            stream << std::fixed << std::setprecision(4) << Beads[bead_counter].strength;
+            Directory = Directory + "str_" +stream.str() +"_";
+
+            bead_counter +=1 ;
         }
         for(size_t j = 0; j < Energy_constants[z].size(); j++) 
         {
