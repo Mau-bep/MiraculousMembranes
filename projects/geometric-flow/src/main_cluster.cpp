@@ -581,9 +581,17 @@ int main(int argc, char** argv) {
     std::string Directory = "";
     std::stringstream stream;
     std::string s;
+    int bead_counter = 0;
     for(size_t z = 0; z < Energies.size(); z++){
         Directory = Directory + Energies[z]+"_";
         
+        if(Energies[z] == "Bead"){
+            stream.str(std::string());
+            stream << std::fixed << std::setprecision(4) << Beads[bead_counter].strength;
+            Directory = Directory + stream.str() +"_";
+
+            bead_counter+=1
+        }
         for(size_t j = 0; j < Energy_constants[z].size(); j++) 
         {
             stream.str(std::string());
@@ -592,6 +600,7 @@ int main(int argc, char** argv) {
             Directory = Directory + stream.str() +"_";
             // stream << std::fixed << std::setprecision(2) << pi;
         }
+        
     }
     
     // I need to add something that includes the bonds because then i will change that parameter(problem is)

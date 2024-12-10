@@ -1,7 +1,7 @@
 {
     "init_file": "../../../input/disk_init.obj",
-    "save_interval": 100,
-    "timesteps": 10000,
+    "save_interval": 200,
+    "timesteps": 100000,
     "continue_sim": false,
     "resize_vol": false,
     "arcsim": true,
@@ -19,7 +19,7 @@
         "state" : "default" ,
         "Pos": [{{xpos}}, 0.0, 0.0], 
         "mem_inter": "Shifted_LJ_Normal_nopush",
-        "inter_str": "{{ interaction }}",
+        "inter_str": {{ interaction }},
         "bonds": [],
         "bonds_constants":[],
         "Beads": []
