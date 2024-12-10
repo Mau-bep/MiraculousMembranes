@@ -824,7 +824,7 @@ int main(int argc, char** argv) {
         Bead_filenames.push_back(basic_name+ "Bead_"+std::to_string(i)+"_data.txt");
         Bead_datas = std::ofstream(Bead_filenames[i]);
         
-        Bead_datas<<"####### This data is taken every 100 steps just like the mesh radius is " << radius<<" \n";
+        Bead_datas<<"####### This data is taken ever y" << save_interval <<" steps just like the mesh radius is " << radius<<" \n";
         Bead_datas.close();
     }
 
@@ -836,7 +836,7 @@ int main(int argc, char** argv) {
     bool Save_bead_data=false;
     bool Save_output_data=false;
     bool small_Ts;
-    Bead_data<<"####### This data is taken every 100 steps just like the mesh dump, radius is " << radius<<" \n";
+    Bead_data<<"####### This data is taken every"<< save_interval <<" steps just like the mesh dump, radius is " << radius<<" \n";
     Bead_data.close();
     // Here i want to run my video
     size_t n_vert;
@@ -852,11 +852,6 @@ int main(int argc, char** argv) {
     double time=0.0;
     double dt_sim=0.0;
     int sys_time = 0;
-
-
-
-
-
 
 
 
@@ -886,6 +881,7 @@ int main(int argc, char** argv) {
 
             arcsim::Mesh remesher_mesh2 = translate_to_arcsim(mesh,geometry);
             Cloth_1.mesh=remesher_mesh2;
+
             if(Saving_last_states){
                 saved_mesh_idx = (saved_mesh_idx+1)%6;
                 arcsim::delete_mesh(Saved_meshes[saved_mesh_idx]);

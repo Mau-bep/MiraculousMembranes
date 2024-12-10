@@ -4,7 +4,11 @@ import os
 
 #Lets assume we are on the directory where i can store all the data 
 
+# Lets do a rework here
+import json
+from jinja2 import Environment, FileSystemLoader
 
+# We need jinja and json here
 
 
 
@@ -15,27 +19,55 @@ import os
 # fin_config=int(sys.argv[3])
 # Target_val=float(sys.argv[4])
 
-v=float(sys.argv[1])
+# v=float(sys.argv[1])
 # c0=float(sys.argv[2])
 # KA=float(sys.argv[3])
 # KB=float(sys.argv[4])
-Strength=sys.argv[2]
-Init_cond=sys.argv[3]
-Nsim=sys.argv[4]
-KA = sys.argv[5]
-radius = sys.argv[6]
-KB = sys.argv[7]
+Strength=sys.argv[1]
+radius = float(sys.argv[2])
+
+KA = sys.argv[3]
+KB = sys.argv[4]
+
+# Init_cond=sys.argv[3]
+Nsim=sys.argv[5]
+
+
+
+
+
+
+def Create_json_wrapping(ka,kb,r,inter_str):
+
+    os.makedirs("../Config_files/",exist_ok = True)
+    env = Environment(loader=FileSystemLoader('../Templates/'))
+
+    template = env.get_template('Wrapping.txt')
+    output_from_parsed_template = template.render(KA = ka, KB = kb,radius = r,xpos = r*0.2 ,interaction=inter_str)
+
+    data = json.loads(output_from_parsed_template)
+
+    Config_path = '../Config_files/Wrapping_strg_{}_radius_{}_KA_{}_KB_{}.json'.format(inter_str,r,ka,kb) 
+    with open(Config_path, 'w') as file:
+        json.dump(data, file, indent=4)
+
+    return Config_path
+
+
+
 os.makedirs('../Subjobs/',exist_ok=True)
 os.makedirs('../Outputs/',exist_ok=True)
 
+Config_path = Create_json_wrapping(KA,KB,radius,Strength)
 
-f=open('../Subjobs/subjob_serial_bead_arcsim_radius_{}_Strg_{}_init_cond_{}_Nsim_{}_KA_{}_KB_{}'.format(radius,Strength,Init_cond,Nsim,KA,KB),'w')
+
+f=open('../Subjobs/subjob_serial_wrapping_Strg_{}_radius_{}_KA_{}_KB_{}_Nsim_{}'.format(Strength,radius,KA,KB,Nsim),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')
 
 f.write('#SBATCH --job-name=Mem3DGpa\n')
-f.write('#SBATCH --output=../Outputs/output_serial_bead_arcsim_radius_{}_Strg_{}_init_cond_{}_Nsim_{}_KA_{}_KB_{}'.format(radius,Strength,Init_cond,Nsim,KA,KB))
+f.write('#SBATCH --output=../Outputs/output_serial_wrapping_Strg_{}_radius_{}_KA_{}_KB_{}_Nsim_{}'.format(Strength,radius,KA,KB,Nsim))
 f.write('#\n')
 f.write('#number of CPUs to be used\n')
 f.write('#SBATCH --ntasks=1\n')
@@ -53,22 +85,10 @@ f.write('#\n')
 #f.write('#SBATCH --mail-type=ALL\n')
 #f.write('#\n')
 
-f.write('#Pick whether you prefer requeue or not. If you use the --requeue\n')
-f.write('#option, the requeued job script will start from the beginning, \n')
-f.write('#potentially overwriting your previous progress, so be careful.\n')
-f.write('#For some people the --requeue option might be desired if their\n')
 
-f.write('#application will continue from the last state.\n')
-f.write('#Do not requeue the job in the case it fails.\n')
 f.write('#SBATCH --no-requeue\n')
 f.write('#\n')
 
-f.write('#Define the "gpu" partition for GPU-accelerated jobs\n')
-f.write('#####SBATCH --partition=gpu\n')
-f.write('#Define the number of GPUs used by your job\n')
-f.write('#######SBATCH --gres=gpu:1\n')
-f.write('#Define the GPU architecture (GTX980 in the example, other options are GTX1080Ti, K40)\n')
-f.write('########SBATCH --constraint=GTX980\n')
 
 f.write('\n')
 f.write('#Do not export the local environment to the compute nodes\n')
@@ -77,38 +97,21 @@ f.write('\n')
 
 f.write('unset SLURM_EXPORT_ENV\n')
 f.write('#for single-CPU jobs make sure that they use a single thread\n')
-f.write('export OMP_NUM_THREADS=2\n')
+f.write('export OMP_NUM_THREADS=1\n')
 f.write('#SBATCH --nodes=1\n')
-f.write('#SBATCH --cpus-per-task=2\n')
+f.write('#SBATCH --cpus-per-task=1\n')
 
 f.write('\n')
 
-f.write('#load an CUDA software module\n')
-f.write('#module load cuda/11.1.0\n')
-f.write('#export XLA_FLAGS=--xla_gpu_cuda_data_dir=/usr/lib/cuda\n')
-f.write('#print out the list of GPUs before the job is started\n')
-f.write('#srun /usr/bin/nvidia-smi\n')
-f.write("#run your CUDA binary through SLURM's srun\n")
-f.write("#scontrol -o show nodes | awk '{ print $1, $6, $4, $15, $16}' | sort -n | grep gpu62'\n")
-# f.write(" #printf ' \n' \n")
 
 # f.write('source /nfs/scistore16/wojtgrp/mrojasve/.bashrc\n')
 f.write('export PATH="/nfs/scistore16/wojtgrp/mrojasve/.local/bin:$PATH"\n')
 f.write('echo $PATH\n')
 
-# f.write('source ~/anaconda3/etc/profile.d/conda.sh\n')
-# f.write('conda activate: jax_cpu\n')
-
-
-# f.write("#printf ' \n' \n")
-# f.write("#printf '==========================================================================\n'\n")
-# f.write("#printf ' \n'\n")
-
-
 
 f.write('pwd\n')
 
-f.write('srun time -v ../build/bin/main_cluster_beads {} {} {} {} {} {} {}\n'.format(v,Strength,Init_cond,Nsim,KA,radius,KB))
+f.write('srun time -v ../build/bin/main_cluster {} {}\n'.format(Config_path,Nsim))
 
 
 

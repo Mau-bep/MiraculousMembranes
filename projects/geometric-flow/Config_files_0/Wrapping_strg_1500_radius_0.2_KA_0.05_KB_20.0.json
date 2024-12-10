@@ -1,0 +1,50 @@
+{
+    "init_file": "../../../input/disk_init.obj",
+    "save_interval": 100,
+    "timesteps": 10000,
+    "continue_sim": false,
+    "resize_vol": false,
+    "arcsim": true,
+    "first_dir": "../Results/Particle_wrapping_on_plane/",
+    "boundary": true,
+    "recentering": false,
+    "saving_states": false,
+    "Energies": [
+        {
+            "Name": "Surface_tension",
+            "constants": [
+                0.05
+            ]
+        },
+        {
+            "Name": "Bending",
+            "constants": [
+                20.0
+            ]
+        }
+    ],
+    "Beads": [
+        {
+            "radius": 0.2,
+            "state": "default",
+            "Pos": [
+                0.04000000000000001,
+                0.0,
+                0.0
+            ],
+            "mem_inter": "Shifted_LJ_Normal_nopush",
+            "inter_str": "1500",
+            "bonds": [],
+            "bonds_constants": [],
+            "Beads": []
+        }
+    ],
+    "remesher": {
+        "aspect_min": 0.4,
+        "refine_angle": 0.7,
+        "refine_compression": 0.0001,
+        "refine_velocity": 1.0,
+        "size_max": 0.2,
+        "size_min": 0.001
+    }
+}

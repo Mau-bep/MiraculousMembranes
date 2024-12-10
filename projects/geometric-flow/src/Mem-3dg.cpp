@@ -1768,6 +1768,7 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
       continue;
     }
     if(Energies[i]=="Area_constraint"){
+    
       // std::cout<<"Area constraint\n";
      
       A = geometry->totalArea();
@@ -1786,6 +1787,7 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
       continue;
     }
     if(Energies[i]=="Bending"){
+      // std::cout<<"We got bending ";
       // std::cout<<"Bending\n";
       double KB = Energy_constants[i][0];
       double H0 = 0.0;
@@ -1805,7 +1807,7 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
 
     if(Energies[i]=="Bead"){
       // std::cout<<"Bead\n";
-
+      // std::cout<<"We got bead \n";
       // The energy
       Energy_vals[i] = Beads[bead_count]->Energy(); 
       // std::cout<<"Bead count is" << bead_count <<"\n";
@@ -1826,6 +1828,7 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
     if(Energies[i]=="Surface_tension"){
       // std::cout<<"Surface tension\n";
       // What if the energy is surface tension 
+      // std::cout<<" We got tension ";
       double sigma = Energy_constants[i][0];
       A = geometry->totalArea();
       Energy_vals[i] = A*100*100*sigma;
@@ -1841,7 +1844,7 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
     }
 
   }
-
+  // std::cout<<" \n";
   //  std::cout<<"The energy vals are ";
   // for(size_t i = 0; i < Energy_vals.size(); i++){
   //   std::cout<< Energy_vals[i] <<" ";

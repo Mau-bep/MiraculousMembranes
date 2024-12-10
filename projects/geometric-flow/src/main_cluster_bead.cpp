@@ -759,8 +759,9 @@ int main(int argc, char** argv) {
             }
 
         }
-    
+        std::cout<<"x FURTHEST IS " << x_furthest <<" ";
         x_furthest+=radius*1.8;
+        std::cout<<"After multiplying it is" << x_furthest <<" \n";
         Bead_1 = Bead(mesh,geometry,Vector3({x_furthest,0.0,0.0}),radius,Interaction_str);
     
     
@@ -777,10 +778,13 @@ int main(int argc, char** argv) {
 
 
 
-
+    std::cout<<"got here\n";
 
 
     M3DG = Mem3DG(mesh,geometry);
+    // M3DG.mesh = mesh;
+    // M3DG.geometry = geometry;
+
     for( size_t i = 0 ; i < Beads.size() ; i++) M3DG.Add_bead(&Beads[i]);
     
     if(Init_cond == 7){
@@ -847,7 +851,7 @@ int main(int argc, char** argv) {
  
     bool saving_state = true;
     Save_mesh(basic_name,0);
-    for(size_t current_t = 1; current_t <= 100000; current_t++ ){
+    for(size_t current_t = 0; current_t <= 100000; current_t++ ){
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
         // std::cout<<"current t is \t \t "<< current_t <<" \n"; 
@@ -957,17 +961,19 @@ int main(int argc, char** argv) {
             
             end_time_control=chrono::steady_clock::now();
             remeshing_elapsed_time+=chrono::duration_cast<chrono::milliseconds>(end_time_control-start_time_control).count();
-            M3DG= Mem3DG(mesh,geometry);
+            // M3DG= Mem3DG(mesh,geometry);
+            M3DG.mesh = mesh;
+            M3DG.geometry = geometry;
             for(size_t i = 0 ; i<Beads.size(); i++){
                 Beads[i].Reasign_mesh(mesh,geometry);
-                M3DG.Add_bead(&Beads[i]);
+                // M3DG.Add_bead(&Beads[i]);
             }
-            M3DG.small_TS = small_Ts;
-            M3DG.system_time = sys_time;
-            if(Init_cond == 7){
-                M3DG.boundary = true;
-                M3DG.recentering = false;
-            }
+            // M3DG.small_TS = small_Ts;
+            // M3DG.system_time = sys_time;
+            // if(Init_cond == 7){
+            //     M3DG.boundary = true;
+            //     M3DG.recentering = false;
+            // }
         }
         else{
 
