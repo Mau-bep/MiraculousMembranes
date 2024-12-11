@@ -277,7 +277,7 @@ int main(int argc, char** argv) {
     //
 
     // double arr[] = { 1.0, 2.0, 3.0 };
-    double arr[] = { 0.2}; 
+    double arr[] = { 0.2 0.3 0.4}; 
     int n = sizeof(arr) / sizeof(arr[0]); 
   
     vector<double> radius(arr,arr+n);
@@ -286,13 +286,13 @@ int main(int argc, char** argv) {
 
     // double arr_2[] = {100.0};
 
-    double arr_2[] = {100000.0};
+    double arr_2[] = {0.05};
     n=sizeof(arr_2) / sizeof(arr_2[0]);
     vector<double> KAs(arr_2,arr_2+n);
     
     
     
-    double arr_3[] = {1.0,5.0,10.0,20.0,30.0,40.0,50.0, 60.0, 70.0, 80.0, 90.0,100.0, 110.0, 120.0, 130.0, 140.0, 150.0, 200.0, 250.0, 300.0, 350.0 , 400.0, 500.0, 600.0, 700.0};
+    double arr_3[] = {100.0, 200.0, 300.0, 400.0, 500.0, 600.0, 700.0, 800.0, 900.0, 1000.0, 1100.0, 1200.0, 1300.0, 1400.0, 1500.0, 1600.0, 1700.0, 1800.0, 1900.0, 2000.0 };
     // double arr_3[] = {100.0, 110.0};
     
     n=sizeof(arr_3) / sizeof(arr_3[0]);
@@ -301,7 +301,7 @@ int main(int argc, char** argv) {
     
     KB=1.0;
     
-    double arr_4[] = { 0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 15.0, 20.0};
+    double arr_4[] = { 10.0, 20.0, 30.0};
     n = sizeof(arr_4) / sizeof(arr_4[0]);
 
     vector<double> KBs(arr_4,arr_4+n);
@@ -314,7 +314,7 @@ int main(int argc, char** argv) {
 
 
     int Init_cond=2;
-    int Nsim=1000;
+    int Nsim=1;
 
     auto start = chrono::steady_clock::now();
     auto end = chrono::steady_clock::now();
@@ -338,14 +338,11 @@ int main(int argc, char** argv) {
     
 
 
-    std::stringstream nustream;
-    std::stringstream c0stream;
+
     std::stringstream KAstream;
     std::stringstream KBstream;
     
     
-    std::stringstream Curv_adapstream;
-    std::stringstream Min_rel_lengthstream;
     std::stringstream radiusstream;
     std::stringstream Interactionstrstream;
 
@@ -353,13 +350,11 @@ int main(int argc, char** argv) {
     std::string first_dir;
     std::string filename;
 
-    nustream << std::fixed << std::setprecision(3) << nu;
-    c0stream << std::fixed << std::setprecision(3) << c0;
-    KBstream << std::fixed << std::setprecision(6) << KB;
-    Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
-    Min_rel_lengthstream << std::fixed << std::setprecision(4) <<Min_rel_length;
+   
+    KBstream << std::fixed << std::setprecision(4) << KB;
 
-    first_dir="../Results/Mem3DG_Bead_Reciprocal_arcsim_Phase/";
+    first_dir="../Results/Particle_wrapping_on_plane/";
+    
     filename = first_dir + "Coverage_final.txt" ;
     std::ofstream Coverage_final(filename,std::ios_base::app);
     if(KB_it == 0) Coverage_final<<"# # # Coverage data \n";
@@ -374,25 +369,26 @@ int main(int argc, char** argv) {
         radiusstream.str(std::string());
         radiusstream.clear();
 
-        radiusstream << std::fixed << std::setprecision(3) << rad;
+        radiusstream << std::fixed << std::setprecision(4) << rad;
     
         for(int KA_it = 0 ; KA_it<KAs.size(); KA_it++){
             KA = KAs[KA_it];
             KAstream.str(std::string());
             KAstream.clear();
             
-            KAstream << std::fixed << std::setprecision(3) << KA;
+            KAstream << std::fixed << std::setprecision(4) << KA;
     
             for(int str_it = 0; str_it<strengths.size(); str_it++){
                 // std::cout<<"How many?\n";
                 Interaction_str=strengths[str_it];
                 Interactionstrstream.str(std::string());
                 Interactionstrstream.clear();
-                Interactionstrstream << std::fixed << std::setprecision(6) << Interaction_str;
+                Interactionstrstream << std::fixed << std::setprecision(4) << Interaction_str;
                 // Those are all the manual parameters
                 
                 // We now load the directory
-                basic_name=first_dir+"nu_"+nustream.str()+"_radius_"+radiusstream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"_strength_"+Interactionstrstream.str()+"_Init_cond_"+std::to_string(Init_cond)+"_Nsim_"+std::to_string(Nsim)+"/";
+                basic_name = first_dir +"Surface_tension_"+KAstream.str() + "_Bending_"+KBstream.str()+"_Bead_radius_" + radiusstream.str() + "_str_" + Interactionstrstream.str()+ "_Nsim_" + std::to_string(Nsim) + "/";
+    
 
                 // 
                 // This is the last step to consider

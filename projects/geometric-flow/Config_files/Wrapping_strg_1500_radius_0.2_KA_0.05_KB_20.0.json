@@ -25,15 +25,15 @@
     ],
     "Beads": [
         {
-            "radius": 0.2,
+            "radius": 0.4,
             "state": "default",
             "Pos": [
-                0.04000000000000001,
+                0.72,
                 0.0,
                 0.0
             ],
             "mem_inter": "Shifted_LJ_Normal_nopush",
-            "inter_str": 1500,
+            "inter_str": 100,
             "bonds": [],
             "bonds_constants": [],
             "Beads": []
