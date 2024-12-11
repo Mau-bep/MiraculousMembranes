@@ -1588,7 +1588,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
 
 
 
-    
+    // std::cout<<"After interaction is "<< Total_force<<" \n";
     return Force;
 }
 
@@ -1602,10 +1602,14 @@ void Bead::Bead_interactions(){
     for(size_t i = 0 ; i < Beads.size() ; i++){
 
         // Here i need to separate by interactions
+        if(Bond_type[i]=="Lineal"){
+            v_dist = Pos-Beads[0]->Pos;
+        }
+
 
         if(Bond_type[i]=="Harmonic"){
             // std::cout<<"Calculating armonic force\n";
-            v_dist = Pos- Beads[0]->Pos;
+            v_dist = Pos- Beads[i]->Pos;
             // std::cout<<"v_dist is"<< v_dist <<"\n";
             // dist = v_dist.norm();
             // v_dist = v_dist.unit();
@@ -1634,7 +1638,7 @@ double Bead::Energy() {
     double r;
 
     // I need to add the energy of the interaction between beads 
-    for(int bead =0 ; bead<Beads.size() ; bead++){
+    for(size_t bead = 0 ; bead < Beads.size() ; bead++){
         vector<double> params = Interaction_constants_vector[bead];
         // Ok so i loaded de params of the interaction
         if(Bond_type[bead]=="Harmonic" && state!="manual" && state!="froze" ){
