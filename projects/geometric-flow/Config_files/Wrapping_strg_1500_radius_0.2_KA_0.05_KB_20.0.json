@@ -41,7 +41,7 @@
     ],
     "remesher": {
         "aspect_min": 0.4,
-        "refine_angle": 0.7,
+        "refine_angle": 0.65,
         "refine_compression": 0.0001,
         "refine_velocity": 1.0,
         "size_max": 0.2,

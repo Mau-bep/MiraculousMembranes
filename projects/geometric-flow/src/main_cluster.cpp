@@ -452,11 +452,15 @@ int main(int argc, char** argv) {
         interaction_mem = Bead_data["mem_inter"];
         PBead = Bead(mesh, geometry, BPos, radius, interaction_str);
         PBead.interaction = interaction_mem;
-        // PBead.Bond_type = Bead_data["bonds"].get<vector<std::string>>();
+        PBead.Bond_type = Bead_data["bonds"].get<vector<std::string>>();
         PBead.Interaction_constants_vector = Bead_data["bonds_constants"].get<std::vector<std::vector<double>>>();
         PBead.state = state;
-        PBead.rc = 2.0*radius;
-        
+        if(Bead_data["inter_str"]=="Shifter_LJ"){
+            PBead.rc = radius*pow(2,1.0/6.0);
+        }
+        else{
+            PBead.rc = 2.0*radius;
+        }
         std::cout<<"The bead has radius" << PBead.sigma <<" cutoff of " << PBead.rc <<" Interaction of " << PBead.interaction << " \n";
         Beads.push_back(PBead);
 
@@ -473,6 +477,8 @@ int main(int argc, char** argv) {
         }
     }
     std::cout<<"There are " << counter/2 <<" bonds \n";
+
+    if(counter>0) std::cout<< "The bead with radius " << Beads[0].sigma <<" is connected to the bead with radius " << Beads[0].Beads[0]->sigma << " \n";
 
     for(size_t i = 0; i < Beads.size(); i++) std::cout<<"The bead has " << Beads[i].Bond_type.size() << " bonds and interaction "<< Beads[i].interaction << " \n"; 
     // Now the beads point to each other ()
@@ -822,11 +828,12 @@ int main(int argc, char** argv) {
 
             
             // polyscope::screenshot(basic_name+std::to_string(current_t)+".jpg",true);
-   
+            // std::cout<<"SMALL TS?\n";
             start = chrono::steady_clock::now();
             if(M3DG.small_TS){
                 break;
             }
+            // std::cout<<"No\n";
     
 
         }
@@ -883,6 +890,11 @@ int main(int argc, char** argv) {
 
         if(current_t%1000==0){
             std::cout<< "Remeshing has taken a total of "<< remeshing_elapsed_time <<" milliseconds\n" << "Saving the mesh has taken a total of "<< saving_mesh_time<< "milliseconds \n Integrating the forces has taken a total of "<< integrate_elapsed_time <<" milliseconds \n\n"; 
+
+        if(M3DG.small_TS) {
+            std::cout<<"Ending sim due to small TS \n";
+            break;
+        }
         }
 
         if(dt_sim==-1){
@@ -897,8 +909,6 @@ int main(int argc, char** argv) {
         if(time>10 && Beads.size()>1 ){
             Beads[1].state="froze";
         }
-
-
 
 
 

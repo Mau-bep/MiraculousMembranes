@@ -698,7 +698,7 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
      
     alpha *=rho;
 
-    if(alpha<1e-10){
+    if(alpha<1e-9){
       std::cout<<"THe timestep got small so the simulation would end \n";
       std::cout<<"THe timestep is "<< alpha <<" \n";
       std::cout<<"The energy diff is"<< abs(NewE-previousE)<<"\n";
@@ -721,7 +721,7 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
       break;
 
     }
-    else if(small_TS) small_TS = false;
+    // else if(small_TS) small_TS = false;
 
 
     geometry->inputVertexPositions = initial_pos + alpha*Force;

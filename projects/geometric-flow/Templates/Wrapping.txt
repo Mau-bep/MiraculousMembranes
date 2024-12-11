@@ -26,7 +26,7 @@
         }
     ],
     "remesher":{
-        "aspect_min": 0.4, "refine_angle": 0.6, "refine_compression": 1e-4, "refine_velocity": 1.0, "size_max": 0.2, "size_min": 0.001
+        "aspect_min": 0.4, "refine_angle": 0.65, "refine_compression": 1e-4, "refine_velocity": 1.0, "size_max": 0.2, "size_min": 0.001
         }
     
 }
