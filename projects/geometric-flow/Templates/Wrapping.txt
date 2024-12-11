@@ -5,7 +5,7 @@
     "continue_sim": false,
     "resize_vol": false,
     "arcsim": true,
-    "first_dir": "../Results/Particle_wrapping_on_plane/",
+    "first_dir": "../Results/Particle_wrapping_on_plane_2/",
     "boundary": true,
     "recentering": false, 
     "saving_states": false,
