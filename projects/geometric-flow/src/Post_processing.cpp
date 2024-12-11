@@ -254,7 +254,7 @@ double Interaction_E_from_Output(std::string  filename){
             continue;
         }
         if(splitted.size()>10){
-        E_I  = std::stod(splitted[8]);    
+        E_I  = std::stod(splitted[7]);    
 
         }
         
