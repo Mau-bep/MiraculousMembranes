@@ -1856,19 +1856,8 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
   double backtrackstep;
   Total_force = Vector3({0.0, 0.0, 0.0});
   double Grad_tot_norm  = 0;
-  for(size_t i = 0; i < mesh->nVertices(); i++){
-    Grad_tot_norm+=Force[i].norm2();
-  }
-  
+ 
   V = geometry->totalVolume();
-  
-  // std::ofstream F_dist("../Results/Tests/Force_dist.txt");
-  // F_dist <<"##### Force and position \n";
-  
-
-  // This only makes sense when there is a boundary 
-
-
   double r_eff = 0;
 
 
@@ -1887,6 +1876,7 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
       Force[v.getIndex()] = Vector3({0.0,0.0,0.0});
         // std::cout<<"Setting this force to 0 \n";
     }
+    Grad_tot_norm+=Force[v].norm2();
     
   }
 

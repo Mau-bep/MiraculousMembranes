@@ -277,7 +277,7 @@ int main(int argc, char** argv) {
     //
 
     // double arr[] = { 1.0, 2.0, 3.0 };
-    double arr[] = { 0.2 0.3 0.4}; 
+    double arr[] = { 0.2, 0.3, 0.4}; 
     int n = sizeof(arr) / sizeof(arr[0]); 
   
     vector<double> radius(arr,arr+n);

@@ -1,13 +1,13 @@
 {
     "init_file": "../../../input/disk_init.obj",
-    "save_interval": 200,
-    "timesteps": 100000,
+    "save_interval": 500,
+    "timesteps": 500000,
     "continue_sim": false,
     "resize_vol": false,
     "arcsim": true,
     "first_dir": "../Results/Particle_wrapping_on_plane/",
     "boundary": true,
-    "recentering": false,
+    "recentering": false, 
     "saving_states": false,
     "Energies": [ 
         {"Name": "Surface_tension", "constants": [ {{KA}} ] },

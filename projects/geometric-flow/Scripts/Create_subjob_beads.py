@@ -43,7 +43,7 @@ def Create_json_wrapping(ka,kb,r,inter_str):
     env = Environment(loader=FileSystemLoader('../Templates/'))
 
     template = env.get_template('Wrapping.txt')
-    output_from_parsed_template = template.render(KA = ka, KB = kb,radius = r,xpos = r*1.8 ,interaction=inter_str)
+    output_from_parsed_template = template.render(KA = ka, KB = kb,radius = r,xpos = r*1.9 ,interaction=inter_str)
 
     data = json.loads(output_from_parsed_template)
 
@@ -73,11 +73,11 @@ f.write('#number of CPUs to be used\n')
 f.write('#SBATCH --ntasks=1\n')
 f.write('#Define the number of hours the job should run. \n')
 f.write('#Maximum runtime is limited to 10 days, ie. 240 hours\n')
-f.write('#SBATCH --time=20:00:00\n')
+f.write('#SBATCH --time=40:00:00\n')
 
 f.write('#\n')
 f.write('#Define the amount of system RAM used by your job in GigaBytes\n')
-f.write('#SBATCH --mem=2G\n')
+f.write('#SBATCH --mem=3G\n')
 f.write('#\n')
 
 #f.write('#Send emails when a job starts, it is finished or it exits\n')

@@ -91,7 +91,7 @@ def Ploting_coverage_2():
     plt.show()
 
 
-Ploting_coverage_2()
+# Ploting_coverage_2()
 def Plotting_coverage():
 
     # So i will have 3 radius
@@ -230,7 +230,7 @@ def Plotting_coverage_varKB():
     file = open("../Results/Mem3DG_Bead_Reciprocal_finemesh/Coverage_final.txt")
     line = file.readline()
     print(line)
-    line = file.readline()
+    line = file.readline() 
 
     plot_rad_1_x_3 = [[],[],[],[]]
     plot_rad_1_y_3 = [[],[],[],[]]
@@ -299,8 +299,79 @@ def Plotting_coverage_varKB():
 # Plotting_coverage_varKB()
 
 
+def Plotting_coverage_varKB_2():
+
+    # So i will have 3 radius
+    # For every radius there will be a curve with a different KA
+    # All the KA curves are plotted as a function of Strenght
+
+    file = open("../Results/Particle_wrapping_on_plane/Coverage_final.txt")
+    line = file.readline()
+    print(line)
+    line = file.readline()
+    # I have 3 radius
+    # For every radius i have 3 values of KB 
+    # And there is the interaction strength constant
+    # I think i should plot every radius differently
+
+
+    # 
+    # The thin is that for every radius there is one KB
+    # [rad][KB]
+    # I can make this 
+
+    Coverages_rads= [[[],[],[]], [[],[],[]], [[],[],[]]]
+
+    Interaction_strenghts_rads = [[[],[],[]], [[],[],[]], [[],[],[]]]
+
+    
+    # The radius is 0.2 0.3 and 0.4 
+    # The Kbs are 10 20 30 
+    while(line):
+        splitted= line.split(' ')
+        
+        i = int(float(splitted[0])*10)-2
+        j = int(float(splitted[1])/10)-1
+        print(" {} and {}".format(i,j))
+
+        Coverages_rads[i][j].append(float(splitted[3]))
+        Interaction_strenghts_rads[i][j].append( abs(float(splitted[4])))
+
+
+
+        line =file.readline()
+        # I need to decide the plots
+
+
+    file.close()
+
+    print(Coverages_rads)
+
+    for i in range(3):
+        # For every radius
+        for j in range(3):
+            # For every KB 
+
+            plt.scatter(Interaction_strenghts_rads[i][j],Coverages_rads[i][j],label = "KB = {}".format( (j+1)*10))
+
+
+            plt.xlabel("Interacion strenght")
+            plt.ylabel(" % Coverage")
+            plt.legend()
+            plt.ylim(0.0,1.1)
+
+        plt.title("Radius = {}".format((i+2)/10))
+        plt.show()
+    
+        plt.clf()
+
+
+
+
 
 # I want to show the distribution of edgelengths before and after remeshing
+
+Plotting_coverage_varKB_2()
 
 
 def Edge_dist():
