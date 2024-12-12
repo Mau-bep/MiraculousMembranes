@@ -450,19 +450,29 @@ double Mem3DG::E_Bending(double H0,double KB) const{
     size_t index;
     double Eb=0;
     double H;
-    
+    double r_eff2;
+    Vector3 Pos;
     for(Vertex v : mesh->vertices()) {
         //boundary_fix
         if(v.isBoundary()) continue;
         index=v.getIndex();
         // Scalar_MC.coeffRef(index)
+        Pos = geometry->inputVertexPositions[v];
+        r_eff2 = Pos.z*Pos.z + Pos.y*Pos.y ;      
+        if(r_eff2 > 1.6 && boundary ) continue;
+        
         H=abs(geometry->scalarMeanCurvature(v)/geometry->barycentricDualArea(v));
+        
         if(std::isnan(H)){
           continue;
           std::cout<<"Dual area: "<< geometry->barycentricDualArea(v);
           std::cout<<"Scalar mean Curv"<< geometry->scalarMeanCurvature(v);
           std::cout<<"One of the H is not a number\n";
         }
+
+        
+        
+
         Eb+=KB*H*H*geometry->barycentricDualArea(v);
         
         }   
@@ -1746,6 +1756,10 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
   double V_bar = 4.0*3.14115926535/3.0;
   double V;
   double A;
+
+
+  
+
 
   for(size_t i = 0; i < Energies.size(); i++){
     // We will do the calculations here

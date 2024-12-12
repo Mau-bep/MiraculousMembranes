@@ -5,7 +5,7 @@
 
 # #   SARIConGPT143!
 # set v=1.0
-set Nsim=2
+set Nsim=1
 # set Init_cond=1
 # foreach v ( 1.0 )
 # foreach Init_cond ( 2 )
