@@ -701,7 +701,7 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
 
   while(true) {
     displacement_cond = true;
-    for(size_t i = 0 ; i< Beads.size() ; i++) displacement_cond = displacement_cond && Beads[i]->Total_force.norm()*alpha<0.25*Beads[i]->sigma;
+    for(size_t i = 0 ; i< Beads.size() ; i++) displacement_cond = displacement_cond && Beads[i]->Total_force.norm()*alpha<0.1*Beads[i]->sigma;
     // if(!displacement_cond ) std::cout<<"Displacement cond not ready, decreasing ts\n";
     // if(NewE <= previousE - c1 * alpha * Projection && displacement_cond && abs(NewE-previousE) <10 ) {
       if(NewE <= previousE - c1 * alpha * Projection && displacement_cond  ) {
@@ -739,7 +739,7 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
       if(system_time>999 ){
       small_TS = true;
       // std::cout<<"small timestep\n";
-      break;
+      // break;
 
     }
       break;
@@ -820,7 +820,15 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
 
 
 
-
+    // Calculate the maximum displacement of the vertices
+    
+    // // Check if the maximum displacement exceeds a threshold
+    // if (maxDisplacement > threshold) {
+    //   // Reduce the step size to prevent sudden changes
+    //   alpha *= rho;
+    // }
+  
+  
   }
 
 
