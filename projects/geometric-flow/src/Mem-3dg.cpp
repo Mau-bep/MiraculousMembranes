@@ -542,6 +542,16 @@ Returns:
 
 
 */
+/**
+ * @brief Performs the backtracking algorithm for the Mem3DG class.
+ *
+ * This function is responsible for performing the backtracking algorithm in the Mem3DG class. It takes in the force vector, a vector of energy names, and a matrix of energy constants as input. It updates the position of the vertices and beads based on the force, and calculates the energy values for each energy term. It then performs backtracking to find the optimal step size that minimizes the energy.
+ *
+ * @param Force The force vector applied to the vertices.
+ * @param Energies A vector of energy names.
+ * @param Energy_constants A matrix of energy constants.
+ * @return The optimal step size for the backtracking algorithm.
+ */
 double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> Energies, std::vector< std::vector<double>> Energy_constants){
 
   double c1 = 1e-4;
@@ -710,6 +720,14 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
           std::cout<<"The energies are ";
           for(size_t i = 0; i < Energies.size(); i++) std::cout<< Energies[i] << " is " << Energy_vals[i] << " ";
           std::cout<<" \n";
+          double maxDisplacement = 0.0;
+          for (Vertex v : mesh->vertices()) {
+            double displacement = (geometry->inputVertexPositions[v] - initial_pos[v]).norm();
+            if (displacement > maxDisplacement) {
+              maxDisplacement = displacement;
+            }
+          }
+          std::cout<<"The max displacement is " << maxDisplacement <<" \n";
         }
       break;
     }
@@ -1072,12 +1090,6 @@ while(true){
     break;
     
 
-  }
-  else if (small_TS)
-  {
-    // std::cout<<"Converging cancelled\n";
-    // std::cout<<"Timestep is "<< alpha <<"\n";
-    small_TS = false;
   }
   
 
