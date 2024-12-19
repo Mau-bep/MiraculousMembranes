@@ -484,19 +484,19 @@ int main(int argc, char** argv) {
     c0=std::stod(argv[2]);
     KA=std::stod(argv[3]);
     KB=std::stod(argv[4]);
-    bool evolve=false;
+    bool evolve=true;
     size_t target_index=120;
     // I will do it so i can give this values
     auto start = chrono::steady_clock::now();
     auto end = chrono::steady_clock::now();
     
-    bool with_bead=false;
+    bool with_bead=true;
 
     bool Save_data=false;
     TS=5*pow(10,-3);
     double time;
     double dt_sim;
-    bool test_remesher = true;
+    bool test_remesher = false;
     bool evaluate_remesher = false;
 
     bool debug_remesher = true;
@@ -505,7 +505,7 @@ int main(int argc, char** argv) {
     bool dihedral_dist= true;
 
     bool sizing_test = false;
-    bool disk_test = true;
+    bool disk_test = false;
     std::cout<< "Current path is " << argv[0]<<"\n";
 
     std::string filepath = "../../../input/sphere.obj";
@@ -829,7 +829,10 @@ int main(int argc, char** argv) {
     double radius=1.0;
     double Interaction_str=1.0;
     Bead_1 = Bead(mesh,geometry,Vector3({5.8,0.0,0.0}),radius,Interaction_str);
+    Bead_1.interaction = "Shifted_LJ_Normal_nopush";
+    Bead_1.rc = 2.0*radius;
     Bead_1.interaction="pulling";
+    
     M3DG = Mem3DG(mesh,geometry,Bead_1);
 
 
@@ -1348,9 +1351,9 @@ int main(int argc, char** argv) {
     std::ofstream Gradient_data_tot_area;
 
     std::string filename;
-
-    if(with_bead){
     std::ofstream Gradient_data_bead;
+    if(with_bead){
+    // std::ofstream Gradient_data_bead;
 
     std::ofstream Gradient_data_bead_dx;
     
@@ -1452,6 +1455,8 @@ int main(int argc, char** argv) {
 
 
     if(evolve){
+        std::cout<<"Doing evolve\n";
+
     for(size_t current_t=0; current_t <1000;current_t++){
     if(current_t==0){
     Sim_data.open(filename_basic);
@@ -1534,53 +1539,56 @@ int main(int argc, char** argv) {
         }
     
     if(current_t%200==0){
-        filename = basic_name+"Vol_Gradient_evaluation_"+std::to_string(current_t) + ".txt";
-        // std::ofstream Gradient_data(filename);
-        Gradient_data.open(filename);
-        // std::ofstream o(basic_name+std::to_string(current_t)+".obj");
-        Gradient_data<< "Volume grad\n";
-        M3DG.Grad_Vol(Gradient_data,P0,V_bar,true);
+        std::cout<<"Calculating grads\n";
+        // filename = basic_name+"Vol_Gradient_evaluation_"+std::to_string(current_t) + ".txt";
+        // // std::ofstream Gradient_data(filename);
+        // Gradient_data.open(filename);
+        // // std::ofstream o(basic_name+std::to_string(current_t)+".obj");
+        // Gradient_data<< "Volume grad\n";
+        // M3DG.Grad_Vol(Gradient_data,P0,V_bar,true);
 
-        Gradient_data.close();
+        // Gradient_data.close();
         double A_bar=4*PI*pow(3*V_bar/(4*PI*nu_evol),2.0/3.0);
 
-        filename = basic_name+"Area_Gradient_evaluation_"+std::to_string(current_t) + ".txt";
-        Gradient_data_area.open(filename);
-        Gradient_data_area<< "Area grad\n";
-        M3DG.Grad_Area(Gradient_data_area,A_bar,KA,true);
+        // filename = basic_name+"Area_Gradient_evaluation_"+std::to_string(current_t) + ".txt";
+        // Gradient_data_area.open(filename);
+        // Gradient_data_area<< "Area grad\n";
+        // M3DG.Grad_Area(Gradient_data_area,A_bar,KA,true);
 
-        Gradient_data_area.close();
+        // Gradient_data_area.close();
 
-        filename = basic_name+"Bending_Gradient_evaluation_"+std::to_string(current_t) + ".txt";
-        Gradient_data_bending.open(filename);
-        Gradient_data_bending<< "Bending grad\n";
-        double H_bar=sqrt(4*PI/A_bar)*c0/2.0;
-        M3DG.Grad_Bending(Gradient_data_bending,H_bar,KB,true);
-        Gradient_data_bending.close();
-
-
-        filename = basic_name+"Bending_Gradient_evaluation_2_"+std::to_string(current_t) + ".txt";
-        Gradient_data_bending_norms.open(filename);
-        Gradient_data_bending_norms<< "Bending grad norm diff\n";
+        // filename = basic_name+"Bending_Gradient_evaluation_"+std::to_string(current_t) + ".txt";
+        // Gradient_data_bending.open(filename);
+        // Gradient_data_bending<< "Bending grad\n";
         // double H_bar=sqrt(4*PI/A_bar)*c0/2.0;
-        M3DG.Grad_Bending_2(Gradient_data_bending_norms,H_bar,KB);
-        Gradient_data_bending_norms.close();
+        // M3DG.Grad_Bending(Gradient_data_bending,H_bar,KB,true);
+        // Gradient_data_bending.close();
+
+
+        // filename = basic_name+"Bending_Gradient_evaluation_2_"+std::to_string(current_t) + ".txt";
+        // Gradient_data_bending_norms.open(filename);
+        // Gradient_data_bending_norms<< "Bending grad norm diff\n";
+        // // double H_bar=sqrt(4*PI/A_bar)*c0/2.0;
+        // M3DG.Grad_Bending_2(Gradient_data_bending_norms,H_bar,KB);
+        // Gradient_data_bending_norms.close();
         
 
 
-        filename = basic_name+"Area_tot_Gradient_evaluation_"+std::to_string(current_t) + ".txt";
-        Gradient_data_tot_area.open(filename);
-        Gradient_data_tot_area<<"Area tot grad\n";
-        M3DG.Grad_tot_Area(Gradient_data_tot_area,true);
-        Gradient_data_tot_area.close();
+        // filename = basic_name+"Area_tot_Gradient_evaluation_"+std::to_string(current_t) + ".txt";
+        // Gradient_data_tot_area.open(filename);
+        // Gradient_data_tot_area<<"Area tot grad\n";
+        // M3DG.Grad_tot_Area(Gradient_data_tot_area,true);
+        // Gradient_data_tot_area.close();
 
 
-        // filename = basic_name+"Bead_Gradient_evaluation_"+std::to_string(current_t) + ".txt";
-        // Gradient_data_bead.open(filename);
-        // Gradient_data_bead<< "Bead grad\n";
-        // // double H_bar=sqrt(4*PI/A_bar)*c0/2.0;
-        // M3DG.Grad_Bead(Gradient_data_bead,true,false);
-        // Gradient_data_bead.close();
+        filename = basic_name+"Bead_Gradient_evaluation_"+std::to_string(current_t) + ".txt";
+        Gradient_data_bead.open(filename);
+        Gradient_data_bead<< "Bead grad\n";
+        // double H_bar=sqrt(4*PI/A_bar)*c0/2.0;
+
+        std::cout<<"\t\t\t\t HERE\n";
+        M3DG.Grad_Bead(Gradient_data_bead,true,false);
+        Gradient_data_bead.close();
 
 
         Volume= geometry->totalVolume();

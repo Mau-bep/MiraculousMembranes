@@ -608,12 +608,20 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
 
   Total_force = Vector3({0.0, 0.0, 0.0});
   double Force_norm2 = 0;
+  // Maybe i should use r_eff2 to ease the transition
+  double r_eff_2;
+  Vector3 Pos;
   for(Vertex v : mesh->vertices()){
+    Pos = geometry->inputVertexPositions[v];
+    r_eff_2 = Pos.z*Pos.z+Pos.y*Pos.y;
+    if(r_eff_2 < 1.6 && boundary){
     Force_norm2 = Force[v.getIndex()].norm2();
+    
     // if(Force_norm2 > 1e5) std::cout<<"How did this happen? the radius is " << geometry->inputVertexPositions[v].norm2() << " \n";
     Projection += Force_norm2;
     // std::cout<< Force[v.getIndex()].norm2() << " \n";
     Total_force += Force[v.getIndex()];
+    }
 
   }
 
@@ -697,6 +705,12 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
     // if(!displacement_cond ) std::cout<<"Displacement cond not ready, decreasing ts\n";
     // if(NewE <= previousE - c1 * alpha * Projection && displacement_cond && abs(NewE-previousE) <10 ) {
       if(NewE <= previousE - c1 * alpha * Projection && displacement_cond  ) {
+        // std::cout<<"THe energy diff is" << fabs(NewE-previousE) <<" \n";
+        if(fabs(NewE-previousE) > 1e3){
+          std::cout<<"The energies are ";
+          for(size_t i = 0; i < Energies.size(); i++) std::cout<< Energies[i] << " is " << Energy_vals[i] << " ";
+          std::cout<<" \n";
+        }
       break;
     }
 
@@ -708,7 +722,7 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
      
     alpha *=rho;
 
-    if(alpha<1e-9){
+    if(alpha<1e-10){
       std::cout<<"THe timestep got small so the simulation would end \n";
       std::cout<<"THe timestep is "<< alpha <<" \n";
       std::cout<<"The energy diff is"<< abs(NewE-previousE)<<"\n";
@@ -724,7 +738,7 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
       }
       if(system_time>999 ){
       small_TS = true;
-      std::cout<<"small timestep\n";
+      // std::cout<<"small timestep\n";
       break;
 
     }
@@ -2917,9 +2931,11 @@ VertexData<Vector3> Grad_area=SurfaceGrad();
 dr=1e-7;
 
 size_t N_vert = mesh->nVertices();
+std::cout<<"The number of vertices is "<< N_vert <<" \n";
 // for(size_t index=0; index<N_vert; index++){
 size_t index;
 for(Vertex v : mesh->vertices()){
+  // std::cout<<"One vertex\n";
   index=v.getIndex();
   grad_theory=Calc_grad[v];
  

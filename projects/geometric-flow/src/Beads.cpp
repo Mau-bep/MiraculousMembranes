@@ -25,7 +25,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
     Velocity = Vector3({0,0,0});
     
     pulling_speed = 1.0;
-    rc =sigma*1.2;
+    rc =sigma*2.0;
     prev_force=0.0;
     // rc = 1.2;
     // interaction = "test_angle_normal_r_normalized";
@@ -703,9 +703,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
         // rc=1.2;
         rc2=this->rc*this->rc;
 
-        // FOr the record, if i only consider one dot product the first term is correct in that vertex 
-        // I now want to add the contributions of the neighbors to this point.
-
+     
         for(Face f : mesh->faces()){
 
             Face_normal=Normals[f.getIndex()];
@@ -719,7 +717,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
                 unit_r = Unit_rs[v1_idx];
                 unit_r2 = Unit_rs[v2_idx];
                 unit_r3 = Unit_rs[v3_idx];
-                if((dot(unit_r,Face_normal)<0 || rs[v1_idx]>this->rc ) && (dot(unit_r2,Face_normal)<0|| rs[v2_idx]>this->rc )&& (dot(unit_r3,Face_normal)<0 || rs[v3_idx]>this->rc) ){
+                if((dot(unit_r,Face_normal)<0 || rs[v1_idx] > this->rc ) && (dot(unit_r2,Face_normal) < 0|| rs[v2_idx] > this->rc )&& (dot(unit_r3,Face_normal) < 0 || rs[v3_idx] > this->rc) ){
                     break;
                 }
                 // if(rs[v1_idx]>this->rc  && (rs[v2_idx]>this->rc )&& (rs[v3_idx]>this->rc) ){
@@ -857,7 +855,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
                 unit_r = Unit_rs[v1_idx];
                 unit_r2 = Unit_rs[v2_idx];
                 unit_r3 = Unit_rs[v3_idx];
-                if((dot(unit_r,Face_normal)<0 || rs[v1_idx]>this->rc ) && (dot(unit_r2,Face_normal)<0|| rs[v2_idx]>this->rc )&& (dot(unit_r3,Face_normal)<0 || rs[v3_idx]>this->rc) ){
+                if(( rs[v1_idx] > this->rc ) && ( rs[v2_idx] > this->rc )&& (rs[v3_idx] > this->rc) ){
                     break;
                 }
                 // if(rs[v1_idx]>this->rc  && (rs[v2_idx]>this->rc )&& (rs[v3_idx]>this->rc) ){
@@ -1604,6 +1602,9 @@ void Bead::Bead_interactions(){
         // Here i need to separate by interactions
         if(Bond_type[i]=="Lineal"){
             v_dist = Pos-Beads[0]->Pos;
+            // I mean the force is 
+            Total_force+= -1*Interaction_constants_vector[i][0]*v_dist.unit();
+
         }
 
 
@@ -1641,6 +1642,10 @@ double Bead::Energy() {
     for(size_t bead = 0 ; bead < Beads.size() ; bead++){
         vector<double> params = Interaction_constants_vector[bead];
         // Ok so i loaded de params of the interaction
+        if(Bond_type[bead]=="Lineal"&& state!="manual" && state!="froze"){
+            Total_E += params[0]*(Pos-Beads[bead]->Pos).norm();
+        }
+
         if(Bond_type[bead]=="Harmonic" && state!="manual" && state!="froze" ){
             // The armonic interaction has two parameters (stiffness and rest length) assuming first is the sitffness and there is restlength - 
             Total_E+= params[0]*dot(Pos - Beads[bead]->Pos,Pos - Beads[bead]->Pos)/2.0;
@@ -1648,6 +1653,7 @@ double Bead::Energy() {
         }
 
     }
+    // std::cout<<"THe interaction is " << interaction <<" \n";
     // std::cout<<"Total E is " << Total_E <<" \n";
 
     double dual_area;
@@ -1865,7 +1871,8 @@ double Bead::Energy() {
         return Total_E;
         
         }
-        
+
+        // std::cout<<"Energy is here still" << Total_E << " \n";
         if(interaction == "Shifted_LJ_Normal_nopush")
         {
         double val;
@@ -1904,6 +1911,8 @@ double Bead::Energy() {
         return Total_E;
         
         }        
+        // std::cout<<"Should never be here\n";
+
         if(interaction == "Shifted_LJ_Normal_var")
         {
         double val;

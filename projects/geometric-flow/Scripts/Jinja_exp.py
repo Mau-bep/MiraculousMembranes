@@ -12,7 +12,7 @@ def Create_json_wrapping(ka,kb,r,inter_str):
     env = Environment(loader=FileSystemLoader('../Templates/'))
 
     template = env.get_template('Wrapping.txt')
-    output_from_parsed_template = template.render(KA = ka, KB = kb,radius = r,xpos = r*1.95 ,interaction=inter_str)
+    output_from_parsed_template = template.render(KA = ka, KB = kb,radius = r,xpos = r*1.9 ,interaction=inter_str)
 
     data = json.loads(output_from_parsed_template)
 
@@ -24,5 +24,5 @@ def Create_json_wrapping(ka,kb,r,inter_str):
 
 
 
-Create_json_wrapping(0.05,30.0,0.4,2000)
+Create_json_wrapping(0.05,20.0,0.2,1000)
 

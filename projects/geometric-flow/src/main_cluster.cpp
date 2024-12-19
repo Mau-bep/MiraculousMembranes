@@ -712,9 +712,9 @@ int main(int argc, char** argv) {
     // Save_mesh(basic_name,-1);
 
 
-    for(size_t current_t=0;current_t <= Final_t ;current_t++ ){
+    for(size_t current_t=0; current_t <= Final_t ;current_t++ ){
 
-        // std::cout<<"Current t is " <
+        // std::cout<<"Current t is " << current_t <<" \n";
 
         if(arcsim){
             start_time_control=chrono::steady_clock::now();
@@ -735,6 +735,7 @@ int main(int argc, char** argv) {
 
             
             Cloth_1.remeshing=remeshing_params;
+            arcsim::compute_masses(Cloth_1);
             arcsim::compute_ws_data(Cloth_1.mesh);
             arcsim::dynamic_remesh(Cloth_1);
             
