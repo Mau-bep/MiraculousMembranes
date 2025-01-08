@@ -24,5 +24,5 @@ def Create_json_wrapping(ka,kb,r,inter_str):
 
 
 
-Create_json_wrapping(0.05,10.0,0.4,2000)
+Create_json_wrapping(0.05,10.0,0.2,1800)
 

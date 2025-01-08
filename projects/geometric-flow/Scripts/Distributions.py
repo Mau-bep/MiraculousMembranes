@@ -305,7 +305,7 @@ def Plotting_coverage_varKB_2():
     # For every radius there will be a curve with a different KA
     # All the KA curves are plotted as a function of Strenght
 
-    file = open("../Results/Particle_wrapping_on_plane_2/Coverage_final.txt")
+    file = open("../Results/Particle_wrapping_on_plane_var/Coverage_final.txt")
     line = file.readline()
     print(line)
     line = file.readline()
@@ -335,7 +335,8 @@ def Plotting_coverage_varKB_2():
         print(" {} and {}".format(i,j))
 
         Coverages_rads[i][j].append(float(splitted[3]))
-        Interaction_strenghts_rads[i][j].append( abs(float(splitted[2])))
+        Interaction_strenghts_rads[i][j].append( abs(float(splitted[2])/(float(splitted[4])*(4.0*np.sqrt(2))*np.pi*float(splitted[0])**2  )))
+        
 
 
 
@@ -346,6 +347,9 @@ def Plotting_coverage_varKB_2():
     file.close()
 
     print(Coverages_rads)
+
+    id = np.linspace(0,1,2)
+    plt.plot(id,id,ls='dashed',color='black')
 
     for i in range(3):
         # For every radius
@@ -361,9 +365,11 @@ def Plotting_coverage_varKB_2():
             plt.ylim(0.0,1.1)
 
         plt.title("Radius = {}".format((i+2)/10))
-        plt.show()
+        # plt.show()
     
-        plt.clf()
+        # plt.clf()
+    
+    plt.show()
 
 
 

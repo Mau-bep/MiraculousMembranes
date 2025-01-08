@@ -393,7 +393,6 @@ int main(int argc, char** argv) {
     JsonFile.open(argv[1], std::ios::in);
     int Nsim = std::stoi(argv[2]);
 
-
     json Data = json::parse(JsonFile);
 
     // We loaded the json file 
@@ -852,6 +851,10 @@ int main(int argc, char** argv) {
         // dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,sigma,Sim_data, time,Save_bead_data,Bead_filenames,Save_output_data,pulling);
         dt_sim = M3DG.integrate(Energies, Energy_constants , Sim_data, time, Bead_filenames, Save_output_data);
         
+        if (M3DG.small_TS) {
+            std::cout << "Ending sim due to small TS \n";
+            break;
+        }
 
         // nanvertex = false;
         // for(Vertex v : mesh->vertices()) if(isnan(geometry->inputVertexPositions[v].x+ geometry->inputVertexPositions[v].y  + geometry->inputVertexPositions[v].z )) nanvertex = true;  
