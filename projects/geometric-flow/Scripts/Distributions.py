@@ -322,6 +322,8 @@ def Plotting_coverage_varKB_2():
 
     Coverages_rads= [[[],[],[]], [[],[],[]], [[],[],[]]]
 
+    Aproximate_coverage_rads = [[[],[],[]], [[],[],[]], [[],[],[]]]
+    
     Interaction_strenghts_rads = [[[],[],[]], [[],[],[]], [[],[],[]]]
 
     
@@ -335,7 +337,8 @@ def Plotting_coverage_varKB_2():
         print(" {} and {}".format(i,j))
 
         Coverages_rads[i][j].append(float(splitted[3]))
-        Interaction_strenghts_rads[i][j].append( abs(float(splitted[2])/(float(splitted[4])*(4.0*np.sqrt(2))*np.pi*float(splitted[0])**2  )))
+        Aproximate_coverage_rads[i][j].append( abs(float(splitted[2])/(float(splitted[4])*(4.0)*np.pi*(float(splitted[0])*1.155 )**2  )))
+        Interaction_strenghts_rads[i][j].append( abs(float(splitted[4])))
         
 
 
@@ -348,9 +351,6 @@ def Plotting_coverage_varKB_2():
 
     print(Coverages_rads)
 
-    id = np.linspace(0,1,2)
-    plt.plot(id,id,ls='dashed',color='black')
-
     for i in range(3):
         # For every radius
         for j in range(3):
@@ -358,9 +358,33 @@ def Plotting_coverage_varKB_2():
 
             plt.scatter(Interaction_strenghts_rads[i][j],Coverages_rads[i][j],label = "KB = {}".format( (j+1)*10))
 
+            # plt.xlabel(r"$\frac{E_I}{A_{B}K_{I}}$", usetex=True, fontsize = 30)
+            plt.xlabel(r"${K_I}$",usetex = True, fontsize = 25)
+            plt.ylabel(r" Coverage",usetex = True, fontsize = 25)
+            plt.legend()
+            plt.ylim(0.0,1.1)
 
-            plt.xlabel("Interacion strenght")
-            plt.ylabel(" % Coverage")
+        plt.title("Radius = {}".format((i+2)/10))
+        plt.show()
+    
+        plt.clf()
+    
+    # plt.show()
+
+
+    id = np.linspace(0,1,2)
+    plt.plot(id,id,ls='dashed',color='black')
+    
+    for i in range(3):
+        # For every radius
+        for j in range(3):
+            # For every KB 
+
+            plt.scatter(Aproximate_coverage_rads[i][j],Coverages_rads[i][j],label = "KB = {}".format( (j+1)*10))
+
+            plt.xlabel(r"$\frac{E_I}{A_{B}K_{I}}$", usetex=True, fontsize = 30)
+            # plt.xlabel(r"$\cfrac{E_I}{AK_{I}}$",usetex = True)
+            plt.ylabel(r" Coverage",usetex=True, fontsize = 30)
             plt.legend()
             plt.ylim(0.0,1.1)
 
@@ -369,9 +393,11 @@ def Plotting_coverage_varKB_2():
     
         # plt.clf()
     
+    # plt.show()
+
+
+
     plt.show()
-
-
 
 
 
