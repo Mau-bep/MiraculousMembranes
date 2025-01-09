@@ -75,7 +75,7 @@ def create_bead(Center,radius,frame):
 dz=np.array([0.1,0.1,0.1])
 
 
-radius=0.2*1.1
+radius=0.2*1.155
 Center=np.array([0,0,0])
 
 
