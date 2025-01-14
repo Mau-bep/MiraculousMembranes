@@ -1,0 +1,65 @@
+{
+    "init_file": "../../../input/Barbell_init.obj",
+    "save_interval": 1000,
+    "timesteps": 100000,
+    "continue_sim": false,
+    "resize_vol": false,
+    "arcsim": true,
+    "first_dir": "../Results/Barbell_tube_var/",
+    "boundary": false,
+    "recentering": false,
+    "saving_states": true,
+    "Energies": [
+        {
+            "Name": "Surface_tension",
+            "constants": [
+                {{KA}}
+            ]
+        },
+        {
+            "Name": "Bending",
+            "constants": [
+                {{KB}}
+            ]
+        }
+    ],
+    "Beads": [
+        {
+            "radius": 0.2,
+            "state": "froze",
+            "Pos": [
+                1.982,
+                0.0,
+                0.0
+            ],
+            "mem_inter": "Shifted-LJ",
+            "inter_str": 10,
+            "bonds": [],
+            "bonds_constants": [],
+            "Beads": []
+        },
+        {
+            "radius": 0.2,
+            "state": "froze",
+            "Pos": [
+                -1.982,
+                0.0,
+                0.0
+            ],
+            "mem_inter": "Shifted-LJ",
+            "inter_str": 10,
+            "bonds": [],
+            "bonds_constants": [],
+            "Beads": []
+        }
+    
+    ],
+    "remesher": {
+        "aspect_min": 0.4,
+        "refine_angle": 0.7,
+        "refine_compression": 0.0001,
+        "refine_velocity": 1.0,
+        "size_max": 0.2,
+        "size_min": 0.001
+    }
+}

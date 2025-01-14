@@ -299,13 +299,18 @@ def Plotting_coverage_varKB():
 # Plotting_coverage_varKB()
 
 
+
+
+
+
+
 def Plotting_coverage_varKB_2():
 
     # So i will have 3 radius
     # For every radius there will be a curve with a different KA
     # All the KA curves are plotted as a function of Strenght
 
-    file = open("../Results/Particle_wrapping_on_plane_var/Coverage_final.txt")
+    file = open("../Results/Particle_wrapping_on_plane_var_jan/Coverage_final.txt")
     line = file.readline()
     print(line)
     line = file.readline()
@@ -321,12 +326,12 @@ def Plotting_coverage_varKB_2():
     # I can make this 
 
     Coverages_rads= [[[],[],[]], [[],[],[]], [[],[],[]]]
+    rads = [[[],[],[]], [[],[],[]], [[],[],[]]]
 
     Aproximate_coverage_rads = [[[],[],[]], [[],[],[]], [[],[],[]]]
     
     Interaction_strenghts_rads = [[[],[],[]], [[],[],[]], [[],[],[]]]
 
-    
     # The radius is 0.2 0.3 and 0.4 
     # The Kbs are 10 20 30 
     while(line):
@@ -337,10 +342,9 @@ def Plotting_coverage_varKB_2():
         print(" {} and {}".format(i,j))
 
         Coverages_rads[i][j].append(float(splitted[3]))
-        Aproximate_coverage_rads[i][j].append( abs(float(splitted[2])/(float(splitted[4])*(4.0)*np.pi*(float(splitted[0])*1.155 )**2  )))
+        Aproximate_coverage_rads[i][j].append( abs(float(splitted[2])/(float(splitted[4])*(4.0)*np.pi*(float(splitted[0])*1.15 )**2  )))
         Interaction_strenghts_rads[i][j].append( abs(float(splitted[4])))
         
-
 
 
         line =file.readline()
@@ -403,7 +407,175 @@ def Plotting_coverage_varKB_2():
 
 # I want to show the distribution of edgelengths before and after remeshing
 
-Plotting_coverage_varKB_2()
+# Plotting_coverage_varKB_2()
+
+
+
+
+
+def Plotting_phase_space():
+
+    # So i will have 3 radius
+    # For every radius there will be a curve with a different KA
+    # All the KA curves are plotted as a function of Strenght
+
+    file = open("../Results/Particle_wrapping_on_plane_var_jan/Coverage_final.txt")
+    line = file.readline()
+    print(line)
+    line = file.readline()
+    # I have 3 radius
+    # For every radius i have 3 values of KB 
+    # And there is the interaction strength constant
+    # I think i should plot every radius differently
+
+
+    # 
+    # The thin is that for every radius there is one KB
+    # [rad][KB]
+    # I can make this 
+    
+    # The variables i have are the radius, the KB and the interaction strength
+    # The i can do one plot that is on the x axis the interaction strength 
+    # And in the y axis the particle size 
+
+    # I COULD ALSO try to recreate the plot that is being shown 
+
+
+    # 
+
+
+    # What will i do then. well i will put the points in their respective area and color them respective to their coverage ofc
+
+    # So there will
+
+    
+    x_plot = []
+    y_plot = []
+    c_plot = []
+
+
+    Coverages_rads= [[[],[],[]], [[],[],[]], [[],[],[]]]
+    rads = [[[],[],[]], [[],[],[]], [[],[],[]]]
+
+    Aproximate_coverage_rads = [[[],[],[]], [[],[],[]], [[],[],[]]]
+    
+    Interaction_strenghts_rads = [[[],[],[]], [[],[],[]], [[],[],[]]]
+
+    # The radius is 0.2 0.3 and 0.4 
+    # The Kbs are 10 20 30 
+    while(line):
+        splitted= line.split(' ')
+        
+        i = int(float(splitted[0])*10)-2
+        j = int(float(splitted[1])/10)-1
+        print(" {} and {}".format(i,j))
+
+        w = float(splitted[4])/10
+        a = float(splitted[0])*1.15
+        KB = float(splitted[1])/4.0
+        
+        cov = np.clip(float(splitted[3]),0.0,1.0) 
+        wc = KB/(a*a)
+
+
+        print("w is {} and wc is {}".format(w,wc))
+        x_plot.append(w/wc)
+        y_plot.append( 0.05*100*a*a/(KB))
+        c_plot.append(cov)
+
+
+        line =file.readline()
+        # I need to decide the plots
+
+
+    file.close()
+
+    ws = np.linspace(0,10.0,10)
+    # plt.plot(ws,2*ws-2,color= "magenta")
+    # plt.plot(ws,3*ws/5-3/5)
+    # plt.xlim(0,4)
+    # plt.ylim(0,0.4)
+    plt.axvline(1.0,ls = 'dashed',color='black')
+    plt.scatter(x_plot,y_plot,c=c_plot)
+    # plt.xlabel(r"$\frac{\omega}{\omega_c}$", usetex=True, fontsize = 30)
+
+    # plt.ylabel(r"$(\omega - \omega_c)\frac{a^2}{\kappa}",usetex=True, fontsize = 30)
+    plt.legend()
+    
+    
+
+
+    plt.show()
+
+
+Plotting_phase_space()
+
+
+def checking_radius_dist_var(i):
+
+    nu=1.0
+    radius=1.0
+    curvadap=0.0
+    minrel=0.1
+    KA=100000.0
+    KB=1.0
+    strength = 1800
+    init_cond=1 
+    Nsim=12
+
+    basic_name="../Results/Particle_wrapping_on_plane_var/"
+
+
+
+    radius_vec= np.loadtxt(basic_name+"Radius_{}_distribution_strength_".format(i)+"{:.6f}".format(strength)+".txt",delimiter=' ')
+
+    print(min(radius_vec))
+    print(max(radius_vec))
+    plt.hist(radius_vec,bins=200)
+    plt.show()
+    plt.clf()
+
+    
+
+
+    # for angle in range(0, 360*4 + 1):
+    #     # Normalize the angle to the range [-180, 180] for display
+    #     angle_norm = (angle + 180) % 360 - 180
+
+    #     # Cycle through a full rotation of elevation, then azimuth, roll, and all
+    #     elev = azim = roll = 0
+    #     if angle <= 360:
+    #         elev = angle_norm
+    #     elif angle <= 360*2:
+    #         azim = angle_norm
+    #     elif angle <= 360*3:
+    #         roll = angle_norm
+    #     else:
+    #         elev = azim = roll = angle_norm
+
+    #     # Update the axis view and title
+    #     ax.view_init(elev, azim, roll)
+    #     plt.title('Elevation: %d°, Azimuth: %d°, Roll: %d°' % (elev, azim, roll))
+
+    #     plt.draw()
+    #     plt.pause(.001)
+
+
+
+    return
+
+
+# checking_radius_dist_var(0)
+
+# checking_radius_dist_var(1)
+# checking_radius_dist_var(2)
+
+
+
+
+
+
+
 
 
 def Edge_dist():

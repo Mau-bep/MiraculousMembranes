@@ -24,5 +24,27 @@ def Create_json_wrapping(ka,kb,r,inter_str):
 
 
 
-Create_json_wrapping(0.05,10.0,0.2,1800)
+
+
+def Create_json_barbell(ka,kb):
+
+    os.makedirs("../Config_files/",exist_ok = True)
+    env = Environment(loader=FileSystemLoader('../Templates/'))
+
+    template = env.get_template('Barbell.txt')
+    output_from_parsed_template = template.render(KA = ka, KB = kb)
+
+    data = json.loads(output_from_parsed_template)
+
+    Config_path = '../Config_files/Barbell_KA_{}_KB_{}.json'.format(ka,kb) 
+    with open(Config_path, 'w') as file:
+        json.dump(data, file, indent=4)
+
+    return Config_path
+
+
+
+
+Create_json_barbell(0.05,14.0)
+# Create_json_wrapping(0.05,10.0,0.4,1800)
 

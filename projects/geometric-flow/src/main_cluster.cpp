@@ -454,7 +454,7 @@ int main(int argc, char** argv) {
         PBead.Bond_type = Bead_data["bonds"].get<vector<std::string>>();
         PBead.Interaction_constants_vector = Bead_data["bonds_constants"].get<std::vector<std::vector<double>>>();
         PBead.state = state;
-        if(Bead_data["inter_str"]=="Shifter_LJ"){
+        if(Bead_data["inter_str"]=="Shifted_LJ"){
             PBead.rc = radius*pow(2,1.0/6.0);
         }
         else{

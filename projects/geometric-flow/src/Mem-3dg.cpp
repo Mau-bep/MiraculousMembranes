@@ -859,7 +859,7 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
 
   if(alpha<0.0) geometry->inputVertexPositions = initial_pos;
   if(recentering) {
-    std::cout<<"rENORMALIZING\n";
+    // std::cout<<"rENORMALIZING\n";
   CoM = geometry->centerOfMass();
   geometry->normalize(Vector3({0.0,0.0,0.0}),false);
   // CoM = geometry->centerOfMass();

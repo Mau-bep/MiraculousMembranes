@@ -1,0 +1,50 @@
+{
+    "init_file": "{{ init_file }}",
+    "save_interval": 500,
+    "timesteps": 20000,
+    "continue_sim": false,
+    "resize_vol": false,
+    "arcsim": true,
+    "first_dir": "../Results/Tube_for_relaxation/",
+    "boundary": true,
+    "recentering": false,
+    "saving_states": false,
+    "Energies": [
+        {
+            "Name": "Surface_tension",
+            "constants": [
+                {{KA}}
+            ]
+        },
+        {
+            "Name": "Bending",
+            "constants": [
+                {{KB}}
+            ]
+        }
+    ],
+    "Beads": [
+        {
+            "radius": {{radius}},
+            "state": "froze",
+            "Pos": [
+                {{xpos}},
+                {{ypos}},
+                {{zpos}}
+            ],
+            "mem_inter": "Shifted-LJ",
+            "inter_str": 10,
+            "bonds": ["Lineal"],
+            "bonds_constants": [[1000.0]],
+            "Beads": [1]
+        }
+    ],
+    "remesher": {
+        "aspect_min": 0.4,
+        "refine_angle": 0.6,
+        "refine_compression": 0.0001,
+        "refine_velocity": 1.0,
+        "size_max": 0.2,
+        "size_min": 0.001
+    }
+}

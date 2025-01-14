@@ -8,7 +8,7 @@
     "first_dir": "../Results/Particle_wrapping_on_plane_var/",
     "boundary": true,
     "recentering": false, 
-    "saving_states": true,
+    "saving_states": false,
     "Energies": [ 
         {"Name": "Surface_tension", "constants": [ {{KA}} ] },
         {"Name": "Bending", "constants": [ {{KB}} ]}
