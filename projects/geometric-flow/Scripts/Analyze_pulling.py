@@ -506,9 +506,15 @@ def fit2():
     x_fit = np.exp(x_fit)
 
     y_fit2 = np.sqrt( x_fit/(4*0.05))/100.0
+    y_fit3 = np.sqrt( x_fit/(4*0.1))/100.0
+    y_fit4 = np.sqrt( x_fit/(4*0.025))/100.0
+
 
     # plt.plot(x_fit,y_fit,ls='dashed',color='magenta',label=" {}".format(p[0]))
-    plt.plot(x_fit,y_fit2,ls='dashed',color='purple', label = "Theory")
+    plt.plot(x_fit,y_fit2,ls='dashed',color='purple', label = r"$\sigma = 0.05$")
+    plt.plot(x_fit,y_fit3,ls='dashed',color='magenta', label = r"$\sigma = 0.1$")
+    plt.plot(x_fit,y_fit4,ls='dashed',color='pink', label = r"$\sigma = 0.025$")
+    
     plt.scatter(Strengths,radius,color='black')
     plt.savefig(folder_path_growth+"Fit_radius_curve.png",bbox_inches='tight')
     plt.xlabel("Kb",fontsize=15.0)

@@ -292,7 +292,7 @@ int main(int argc, char** argv) {
 
     // double arr_2[] = {100.0};
 
-    double arr_2[] = {0.05};
+    double arr_2[] = {0.1, 0.025};
     n=sizeof(arr_2) / sizeof(arr_2[0]);
     vector<double> KAs(arr_2,arr_2+n);
     
@@ -307,7 +307,7 @@ int main(int argc, char** argv) {
     
     KB=1.0;
     
-    double arr_4[] = { 2.0, 4.0, 6.0, 10.0, 12.0 , 14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 26.0, 28.0, 30.0, 32.0, 34.0, 36.0, 38.0, 40.0, 42.0, 44.0, 46.0, 48.0, 50.0};
+    double arr_4[] = { 2.0, 4.0, 6.0, 8.0, 10.0, 12.0 , 14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 26.0, 28.0, 30.0, 32.0, 34.0, 36.0, 38.0, 40.0, 42.0, 44.0, 46.0, 48.0, 50.0};
     n = sizeof(arr_4) / sizeof(arr_4[0]);
 
     vector<double> KBs(arr_4,arr_4+n);
@@ -332,7 +332,7 @@ int main(int argc, char** argv) {
     double Interaction_str;
     int Last_ts;
     int num_steps;
-    int delta_steps=50;
+    int delta_steps=1000;
     Vector3 Bead_pos;
     std::cout<< "Current path is " << argv[0]<<"\n";
     bool check_coverage = true;
@@ -365,7 +365,8 @@ int main(int argc, char** argv) {
     Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
     Min_rel_lengthstream << std::fixed << std::setprecision(4) <<Min_rel_length;
 
-    first_dir="../Results/Mem3DG_Bead_barbell_arcsim/";
+    first_dir = "../Results/Mem3DG_Bead_barbell_arcsim/";
+    first_dir = "../Results/Barbell_tube_var";
     double Tube_r;
     double Tube_r_2;
     filename = first_dir + "Tube_radius.txt" ;
@@ -376,13 +377,6 @@ int main(int argc, char** argv) {
 
     double avg_rmin =0.0;
     int avg_rmin_counter =0;
-    for (int r_it = 0 ; r_it < radius.size(); r_it++){
-        // std::cout<<"Hre\n";
-        rad = radius[r_it];    
-        radiusstream.str(std::string());
-        radiusstream.clear();
-
-        radiusstream << std::fixed << std::setprecision(3) << rad;
     
         for(int KA_it = 0 ; KA_it<KAs.size(); KA_it++){
             KA = KAs[KA_it];
@@ -390,20 +384,10 @@ int main(int argc, char** argv) {
             KAstream.clear();
             
             KAstream << std::fixed << std::setprecision(3) << KA;
-    
-            for(int str_it = 0; str_it<strengths.size(); str_it++){
-                // std::cout<<"How many?\n";
-                Interaction_str=strengths[str_it];
-                Interactionstrstream.str(std::string());
-                Interactionstrstream.clear();
-                Interactionstrstream << std::fixed << std::setprecision(6) << Interaction_str;
-                // Those are all the manual parameters
-                
-                // We now load the directory
-                basic_name=first_dir+"nu_"+nustream.str()+"_radius_"+radiusstream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"_strength_"+Interactionstrstream.str()+"_Init_cond_"+std::to_string(Init_cond)+"_Nsim_"+std::to_string(Nsim)+"/";
-                                                                                                    
-                // 
-                // This is the last step to consider
+
+            // We now load the directory
+            basic_name=first_dir+"Surface_tension_"+KAstream.str()+"_Bending_"+KBstream.str()+"Bead_radius_0.2000_str_10.0000_Bead_radius_0.2000_str_10.0000_Nsim_"+std::to_string(Nsim)+"/";
+            // This is the last step to consider
 
                 Last_ts = Last_step(basic_name);
                 
@@ -632,9 +616,9 @@ int main(int argc, char** argv) {
                 Coverage_final.close();
 
                 // R_dist.close()
-            }
+            
         }
-    }
+    
     // std::cout<<"The average rmin overall is "<< avg_rmin/avg_rmin_counter <<"\n";
 
     }

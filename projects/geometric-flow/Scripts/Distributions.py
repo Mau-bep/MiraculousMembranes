@@ -470,9 +470,11 @@ def Plotting_phase_space():
         j = int(float(splitted[1])/10)-1
         print(" {} and {}".format(i,j))
 
-        w = float(splitted[4])/10
+        w = float(splitted[4])
         a = float(splitted[0])*1.15
         KB = float(splitted[1])/4.0
+
+        KA = 0.05 *100*100
         
         cov = np.clip(float(splitted[3]),0.0,1.0) 
         wc = KB/(a*a)
@@ -480,7 +482,7 @@ def Plotting_phase_space():
 
         print("w is {} and wc is {}".format(w,wc))
         x_plot.append(w/wc)
-        y_plot.append( 0.05*100*a*a/(KB))
+        y_plot.append(KA*a*a/(KB))
         c_plot.append(cov)
 
 
