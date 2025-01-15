@@ -366,7 +366,7 @@ int main(int argc, char** argv) {
     Min_rel_lengthstream << std::fixed << std::setprecision(4) <<Min_rel_length;
 
     first_dir = "../Results/Mem3DG_Bead_barbell_arcsim/";
-    first_dir = "../Results/Barbell_tube_var";
+    first_dir = "../Results/Barbell_tube_var/";
     double Tube_r;
     double Tube_r_2;
     filename = first_dir + "Tube_radius.txt" ;
@@ -386,7 +386,7 @@ int main(int argc, char** argv) {
             KAstream << std::fixed << std::setprecision(3) << KA;
 
             // We now load the directory
-            basic_name=first_dir+"Surface_tension_"+KAstream.str()+"_Bending_"+KBstream.str()+"Bead_radius_0.2000_str_10.0000_Bead_radius_0.2000_str_10.0000_Nsim_"+std::to_string(Nsim)+"/";
+            basic_name=first_dir+"Surface_tension_"+KAstream.str()+"_Bending_"+KBstream.str()+"_Bead_radius_0.2000_str_10.0000_Bead_radius_0.2000_str_10.0000_Nsim_"+std::to_string(Nsim)+"/";
             // This is the last step to consider
 
                 Last_ts = Last_step(basic_name);
