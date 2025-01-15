@@ -466,6 +466,33 @@ def Tube_growth_radius_2(folder):
     return [y,z]
 
 
+def Tube_growth_radius_3(folder):
+    Data = np.loadtxt(folder+"Tube_radius_2.txt", skiprows= 1)
+
+    y = Data[:,1]
+    z = Data[:,3]
+
+
+    y1 = []
+    z1 = []
+    y2 = []
+    z2 = []
+
+    for i in range(0,len(y)):
+        # 
+        KA = Data[i,6]
+        if(abs(KA - 0.025) < 1e-4):
+            
+            y1.append(y[i])
+            z1.append(z[i])
+        if( abs(KA - 0.1) < 1e-4):
+            y2.append(y[i])
+            z2.append(z[i])
+    
+    return [y1,z1,y2,z2]
+
+
+
 def fit2():
     # Strengths =[ 6.0, 10.0, 14.0, 18.0, 22.0, 26.0, 30.0, 34.0, 38.0, 42.0, 46.0, 50.0]
     radius = []
@@ -475,13 +502,19 @@ def fit2():
         # radius.append(r)
 
 
+    folder_path_growth ="../Results/Barbell_tube_var/"
+    [Strengths1,radius1,Strengths2,radius2] = Tube_growth_radius_3(folder_path_growth)
+
 
     plt.clf()
     plt.xlabel("Kb",fontsize=15.0)
     plt.ylabel("Tube radius",fontsize=15.0)
     plt.scatter(Strengths,radius,color="black")
+ 
+
     plt.savefig(folder_path_growth+"NoFit_radius_curve.png",bbox_inches='tight')
-    plt.show()
+    # plt.show()
+    plt.clf()
 
 
     # ok so i want to do a linear fit to the thing
@@ -500,7 +533,8 @@ def fit2():
     plt.plot(x_fit,y_fit,ls='dashed')
     plt.scatter(x,y,color='black')
     print("The values for the fit are m = {} and c = {}".format(p[0],p[1]))
-    plt.show()
+    # plt.show()
+    plt.clf()
 
     y_fit = np.exp(y_fit)
     x_fit = np.exp(x_fit)
@@ -516,6 +550,10 @@ def fit2():
     plt.plot(x_fit,y_fit4,ls='dashed',color='pink', label = r"$\sigma = 0.025$")
     
     plt.scatter(Strengths,radius,color='black')
+    print(Strengths1)
+    print(radius1)
+    plt.scatter(Strengths1,radius1,color="pink")
+    plt.scatter(Strengths2,radius2,color="magenta")
     plt.savefig(folder_path_growth+"Fit_radius_curve.png",bbox_inches='tight')
     plt.xlabel("Kb",fontsize=15.0)
     plt.ylabel("Tube radius",fontsize=15.0)
