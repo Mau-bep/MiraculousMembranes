@@ -361,7 +361,7 @@ int main(int argc, char** argv) {
 
     nustream << std::fixed << std::setprecision(3) << nu;
     c0stream << std::fixed << std::setprecision(3) << c0;
-    KBstream << std::fixed << std::setprecision(6) << KB;
+    KBstream << std::fixed << std::setprecision(4) << KB;
     Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
     Min_rel_lengthstream << std::fixed << std::setprecision(4) <<Min_rel_length;
 
@@ -383,7 +383,7 @@ int main(int argc, char** argv) {
             KAstream.str(std::string());
             KAstream.clear();
             
-            KAstream << std::fixed << std::setprecision(3) << KA;
+            KAstream << std::fixed << std::setprecision(4) << KA;
 
             // We now load the directory
             basic_name=first_dir+"Surface_tension_"+KAstream.str()+"_Bending_"+KBstream.str()+"_Bead_radius_0.2000_str_10.0000_Bead_radius_0.2000_str_10.0000_Nsim_"+std::to_string(Nsim)+"/";
