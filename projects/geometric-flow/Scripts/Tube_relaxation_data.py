@@ -16,10 +16,11 @@ def main(folderpath,Nsims):
         data = np.loadtxt(Bead_data,skiprows=1)
         # Ok so i have the bead data (I kinda care only about the force in the x direction at the last step)
 
-        xpos = data[-1,0]
-        fx = data[-1,3]
+        xpos = data[-1,0]+0.2
+        fx = np.abs(data[-1,3])
         dx.append(xpos)
         fxs.append(fx)
+    
     
     # I should have all the data that i need at this point
 
