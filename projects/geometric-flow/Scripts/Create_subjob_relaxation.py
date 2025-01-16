@@ -3,9 +3,10 @@ import os
 #I want to create a script that ask for the step size and creates a subjob that uses it
 
 #Lets assume we are on the directory where i can store all the data 
-
+import numpy as np
 # Lets do a rework here
 import json
+
 from jinja2 import Environment, FileSystemLoader
 
 # We need jinja and json here
@@ -19,7 +20,14 @@ relaxation_step = sys.argv[3]
 # Nsim=sys.argv[4]
 
 
-
+def get_bead_pos(folderpath,relaxation_step):
+    filename = folderpath + "Bead_0_data.txt"
+    data = np.loadtxt(filename,skiprows=1)
+    # Ok now i need the position of the bead 
+    x = data[relaxation_step,0]
+    y = data[relaxation_step,1]
+    z = data[relaxation_step,2]
+    return [x,y,z]
 
 def Create_json_relaxation(KA,KB,relaxation_step):
     os.makedirs("../Config_files/",exist_ok = True)
