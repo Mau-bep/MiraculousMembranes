@@ -1,7 +1,7 @@
 {
     "init_file": "{{ init_file }}",
-    "save_interval": 500,
-    "timesteps": 20000,
+    "save_interval": 1000,
+    "timesteps": 100000,
     "continue_sim": false,
     "resize_vol": false,
     "arcsim": true,
@@ -25,7 +25,7 @@
     ],
     "Beads": [
         {
-            "radius": {{radius}},
+            "radius": 0.2,
             "state": "froze",
             "Pos": [
                 {{xpos}},
@@ -34,9 +34,9 @@
             ],
             "mem_inter": "Shifted-LJ",
             "inter_str": 10,
-            "bonds": ["Lineal"],
-            "bonds_constants": [[1000.0]],
-            "Beads": [1]
+            "bonds": [],
+            "bonds_constants": [],
+            "Beads": []
         }
     ],
     "remesher": {
