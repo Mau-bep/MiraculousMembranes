@@ -52,7 +52,7 @@ Config_path = Create_json_relaxation(KA,KB,relaxation_step)
 
 
 
-f=open('../Subjobs/subjob_tube_relaxation_{}_KA_{}_KB_{}_Nsim_{}'.format(relaxation_step,KA,KB,relaxation_step),'w')
+f=open('../Subjobs/subjob_tube_relaxation_KA_{}_KB_{}_Nsim_{}'.format(KA,KB,relaxation_step),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')
