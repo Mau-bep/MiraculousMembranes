@@ -1,5 +1,5 @@
 import numpy as np
-
+import matplotlib.pyplot as plt 
 
 
 def main(folderpath,Nsims):
@@ -30,6 +30,11 @@ def main(folderpath,Nsims):
     
     f.close()
 
+
+    plt.scatter(dx,fxs,color='black')
+    plt.xlabel("dx")
+    plt.ylabel("fx")
+    plt.savefig(folderpath + "Tube_relaxation_data.png",bbox_inches='tight')
     return 
 
 
