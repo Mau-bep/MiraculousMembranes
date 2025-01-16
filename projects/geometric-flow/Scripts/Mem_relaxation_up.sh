@@ -18,8 +18,8 @@ foreach KB (10.0)
 foreach relaxation_step ( `seq 0 20 340` )
 #python3 Create_subjob.py ${v} ${c0} ${KA} ${KB}
 
-python3 Create_subjob_barbell.py ${KA} ${KB} ${relaxation_step}
-sbatch ../Subjobs/subjob_serial_barbell_KA_${KA}_KB_${KB}_Nsim_${relaxation_step}
+python3 Create_subjob_relaxation.py ${KA} ${KB} ${relaxation_step}
+sbatch ../Subjobs/subjob_tube_relaxation_KA_${KA}_KB_${KB}_Nsim_${relaxation_step}
 
 
 end
