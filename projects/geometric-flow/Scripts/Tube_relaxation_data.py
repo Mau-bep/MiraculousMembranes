@@ -38,7 +38,12 @@ def main(folderpath,Nsims):
     return 
 
 
-Nsims = [i for i in range(0,340,20)]
+Nsims = [i for i in range(0,340,20)] + [i for i in range(0,20,2)] + [30] + [i for i in range(180,220,2)]
+Nsims.sort()
+Nsims = np.unique(Nsims)
+# print(Nsims)
+
+
 
 main(folderpath="../Results/Tube_for_relaxation/",Nsims=Nsims)
 

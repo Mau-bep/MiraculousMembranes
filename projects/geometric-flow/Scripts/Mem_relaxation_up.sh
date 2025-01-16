@@ -15,13 +15,41 @@ foreach KA ( 0.05)
 foreach KB (10.0)
 # foreach radius ( 0.2 0.3 0.4 )
 
-foreach relaxation_step ( `seq 0 20 340` )
+foreach relaxation_step ( `seq 0 2 20` )
 #python3 Create_subjob.py ${v} ${c0} ${KA} ${KB}
 
 python3 Create_subjob_relaxation.py ${KA} ${KB} ${relaxation_step}
 sbatch ../Subjobs/subjob_tube_relaxation_KA_${KA}_KB_${KB}_Nsim_${relaxation_step}
 
+end
+
+foreach relaxation_step ( 30 )
+#python3 Create_subjob.py ${v} ${c0} ${KA} ${KB}
+
+python3 Create_subjob_relaxation.py ${KA} ${KB} ${relaxation_step}
+sbatch ../Subjobs/subjob_tube_relaxation_KA_${KA}_KB_${KB}_Nsim_${relaxation_step}
 
 end
+
+
+foreach relaxation_step ( `seq 180 2 220` )
+#python3 Create_subjob.py ${v} ${c0} ${KA} ${KB}
+
+python3 Create_subjob_relaxation.py ${KA} ${KB} ${relaxation_step}
+sbatch ../Subjobs/subjob_tube_relaxation_KA_${KA}_KB_${KB}_Nsim_${relaxation_step}
+
+end
+
+
+foreach relaxation_step ( `seq 220 5 280` )
+#python3 Create_subjob.py ${v} ${c0} ${KA} ${KB}
+
+python3 Create_subjob_relaxation.py ${KA} ${KB} ${relaxation_step}
+sbatch ../Subjobs/subjob_tube_relaxation_KA_${KA}_KB_${KB}_Nsim_${relaxation_step}
+
+end
+
+
+
 end
 end 
