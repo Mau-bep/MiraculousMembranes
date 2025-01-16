@@ -16,7 +16,7 @@ from jinja2 import Environment, FileSystemLoader
 
 KA = sys.argv[1]
 KB = sys.argv[2]
-relaxation_step = sys.argv[3]
+relaxation_step = int(sys.argv[3])
 # Nsim=sys.argv[4]
 
 
