@@ -5,7 +5,7 @@
     "continue_sim": false,
     "resize_vol": false,
     "arcsim": true,
-    "first_dir": "../Results/Particle_wrapping_on_plane_var/",
+    "first_dir": "../Results/Particle_wrapping_on_plane_phase_space/",
     "boundary": true,
     "recentering": false, 
     "saving_states": false,
