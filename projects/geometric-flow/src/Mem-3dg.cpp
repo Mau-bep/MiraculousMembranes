@@ -754,17 +754,17 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
       geometry->inputVertexPositions = initial_pos;
       return -1;
       }
-      if(system_time>999 ){
+      // if(system_time>999 ){
       small_TS = true;
       // std::cout<<"small timestep\n";
       // break;
 
-    }
+    // }
       break;
 
     }
-    // else if(small_TS) small_TS = false;
-
+    else if(small_TS) small_TS = false;
+    // std::cout<<"System time is" << system_time <<" \n";
 
     geometry->inputVertexPositions = initial_pos + alpha*Force;
 

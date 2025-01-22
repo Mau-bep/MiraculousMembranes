@@ -851,7 +851,7 @@ int main(int argc, char** argv) {
         // dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,sigma,Sim_data, time,Save_bead_data,Bead_filenames,Save_output_data,pulling);
         dt_sim = M3DG.integrate(Energies, Energy_constants , Sim_data, time, Bead_filenames, Save_output_data);
         
-        if (M3DG.small_TS) {
+        if (M3DG.small_TS && current_t>Final_t*0.2){ {
             std::cout << "Ending sim due to small TS \n";
             break;
         }
