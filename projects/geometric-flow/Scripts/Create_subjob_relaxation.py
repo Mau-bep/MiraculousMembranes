@@ -36,8 +36,9 @@ def Create_json_relaxation(KA,KB,relaxation_step):
     template = env.get_template('Tube_relaxation.txt')
     # I need to get the xpos ypos zpos
 
-    folderpath = "../Results/Tube_pulling_on_plane/Surface_tension_0.0500_Bending_20.0000_Bead_radius_0.2000_str_10.0000_Bead_radius_0.4000_str_0.0000_Bonds_Lineal_1000.0000_Lineal_1000.0000_Nsim_4/"
-
+    # folderpath = "../Results/Tube_pulling_on_plane/Surface_tension_0.0500_Bending_20.0000_Bead_radius_0.2000_str_10.0000_Bead_radius_0.4000_str_0.0000_Bonds_Lineal_1000.0000_Lineal_1000.0000_Nsim_4/"
+    folderpath = "../Results/Tube_pulling_on_plane/Surface_tension_0.0050_Bending_30.0000_Bead_radius_0.1000_str_10.0000_Bead_radius_0.4000_str_0.0000_Bonds_Lineal_1500.0000_Lineal_1500.0000_Nsim_1002/"
+    
     [x,y,z] = get_bead_pos(folderpath,relaxation_step)
     filename = folderpath +"membrane_{}.obj".format(relaxation_step*100)
 

@@ -556,7 +556,7 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
 
   double c1 = 1e-4;
   double rho = 0.5;
-  double alpha = 1e-3;
+  double alpha = 1e-4;
   double position_Projeection = 0;
   double X_pos;
 
