@@ -314,7 +314,7 @@ int main(int argc, char** argv) {
 
 
     int Init_cond=2;
-    int Nsim=2;
+    int Nsim=1;
 
     auto start = chrono::steady_clock::now();
     auto end = chrono::steady_clock::now();
