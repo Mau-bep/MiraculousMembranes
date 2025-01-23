@@ -277,7 +277,7 @@ int main(int argc, char** argv) {
     //
 
     // double arr[] = { 1.0, 2.0, 3.0 };
-    double arr[] = { 0.2, 0.3, 0.4}; 
+    double arr[] = { 0.5}; 
     int n = sizeof(arr) / sizeof(arr[0]); 
   
     vector<double> radius(arr,arr+n);
@@ -286,14 +286,14 @@ int main(int argc, char** argv) {
 
     // double arr_2[] = {100.0};
 
-    double arr_2[] = {0.05};
+    double arr_2[] = {0.0, 0.003, 0.004, 0.009, 0.012};
     n=sizeof(arr_2) / sizeof(arr_2[0]);
     vector<double> KAs(arr_2,arr_2+n);
     
     
     
-    double arr_3[] = {10.0, 50.0, 100.0, 200.0, 300.0, 400.0, 500.0, 600.0, 700.0, 800.0, 900.0, 1000.0, 1100.0, 1200.0, 1300.0, 1400.0, 1500.0, 1600.0, 1700.0, 1800.0, 1900.0, 2000.0 };
-    // double arr_3[] = {100.0, 110.0};
+    // double arr_3[] = {10.0, 50.0, 100.0, 200.0, 300.0, 400.0, 500.0, 600.0, 700.0, 800.0, 900.0, 1000.0, 1100.0, 1200.0, 1300.0, 1400.0, 1500.0, 1600.0, 1700.0, 1800.0, 1900.0, 2000.0 };
+    double arr_3[] = {90.0, 100.0, 110.0, 120.0, 130.0, 140.0, 150.0, 160.0, 170.0, 180.0, 190.0, 200.0};
     
     n=sizeof(arr_3) / sizeof(arr_3[0]);
     
@@ -301,7 +301,7 @@ int main(int argc, char** argv) {
     
     KB=1.0;
     
-    double arr_4[] = { 10.0, 20.0, 30.0};
+    double arr_4[] = { 30.0};
     n = sizeof(arr_4) / sizeof(arr_4[0]);
 
     vector<double> KBs(arr_4,arr_4+n);
@@ -353,7 +353,7 @@ int main(int argc, char** argv) {
    
     KBstream << std::fixed << std::setprecision(4) << KB;
 
-    first_dir="../Results/Particle_wrapping_on_plane_var/";
+    first_dir="../Results/Particle_wrapping_on_plane_phase_space/";
     
     filename = first_dir + "Coverage_final.txt" ;
     std::ofstream Coverage_final(filename,std::ios_base::app);
