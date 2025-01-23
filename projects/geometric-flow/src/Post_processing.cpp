@@ -574,7 +574,7 @@ int main(int argc, char** argv) {
                 filename = first_dir + "Coverage_final.txt" ;
                 Coverage_final =std::ofstream(filename,std::ios_base::app); 
     
-                Coverage_final<< rad<<" "<< KB << " "<< E_I<<" "<< relative_coverage<<" "<< Interaction_str<<"\n";
+                Coverage_final<< rad<<" "<< KB << " "<< E_I<<" "<< relative_coverage<<" "<< Interaction_str <<" "<< KA <<"\n";
                 Coverage_final.close();
 
                 // R_dist.close()
