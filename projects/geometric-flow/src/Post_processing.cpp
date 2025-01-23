@@ -522,7 +522,7 @@ int main(int argc, char** argv) {
                     if(check_coverage){
                     // Now i need to do my part
 
-                    if( (dot(rij,Normal)>0.0 && r_dist<rad*1.16 ) ){
+                    if( (dot(rij,Normal)>0.0 && r_dist<rad*1.2 ) ){
                         
 
                         
