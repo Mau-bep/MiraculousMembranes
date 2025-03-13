@@ -581,6 +581,34 @@ SparseMatrix<double> VertexPositionGeometry::laplaceMatrix() const {
     return laplace+diagonal; // placeholder
 }
 
+SparseMatrix<double> VertexPositionGeometry::uniformlaplacianMatrix() const{
+    SparseMatrix<double> L(mesh.nVertices(),mesh.nVertices());
+
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+
+    int id1;
+    int  id2;
+    double neigh;
+    for(Vertex v : mesh.vertices()){
+        id1 = v.getIndex();
+        neigh = 1/v.degree();
+        for( Halfedge he : v.outgoingHalfedges()){
+        id2 = he.next().vertex().getIndex();
+        tripletList.push_back(T(id1,id1,neigh) );
+        tripletList.push_back(T(id1,id2,-1*neigh) );
+        
+        // tripletList.push_back(id1,id1,neigh);
+        // tripletList.push_back(id1,id2,-1*neigh);
+
+        }
+    L.setFromTriplets(tripletList.begin(),tripletList.end());
+    return L;
+    }
+
+
+}
+
 
 
 SparseMatrix<double> VertexPositionGeometry::laplaceMatrix3d() const {

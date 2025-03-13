@@ -1,7 +1,7 @@
 // Implement member functions for MeanCurvatureFlow class.
 #include "Mem-3dg.h"
 #include <fstream>
-// #include <Eigen/Core>
+#include <Eigen/Core>
 // #include <geometrycentral/utilities/eigen_interop_helpers.h>
 // #include <geometrycentral/utilities/vector3.h>
 /* Constructor
@@ -453,6 +453,17 @@ return alpha;
 
 }
 
+
+
+void Mem3DG::Smooth_vertices(){
+
+
+
+
+
+
+  return;
+}
 
 
 

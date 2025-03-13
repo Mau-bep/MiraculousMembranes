@@ -77,6 +77,28 @@ def Create_json_relaxation(KA,KB,relaxation_step):
 
 
 # Create_json_barbell(0.05,14.0)
-# Create_json_wrapping(0.05,10.0,0.4,1800)
+# Create_json_wrapping(0.005,10.0,0.4,200)
 
-Create_json_relaxation(0.05,10.0,61)
+# Create_json_relaxation(0.05,10.0,61)
+
+
+import numpy as np
+
+
+def Func(A):
+    # val = A.shape
+    B = np.zeros((3*A.shape[0],3*A.shape[1]))
+    for i in range(2):
+        for j in range(2):
+            B[3*i,3*j] = A[i,j]
+            B[3*i+1,3*j+1] = A[i,j]
+            B[3*i+2,3*j+2] = A[i,j]
+            
+
+    print(B)
+
+
+A = np.array([[1,2],[3,4]])
+
+
+Func(A)

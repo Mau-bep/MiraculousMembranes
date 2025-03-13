@@ -109,7 +109,7 @@ VertexData<Vector3> Mem3DG::buildFlowOperator(double h, double V_bar, double nu,
     // return (SurfaceTension(lambda)+OsmoticPressure(D_P));
 
 
-    return (KB*Bending(H_bar)+OsmoticPressure(D_P)+lambda*SurfaceTension());
+    return (KB*Bending(H_bar)+D_P*OsmoticPressure()+lambda*SurfaceTension());
     // return (Bending(H_bar,KB)+SurfaceTension(lambda));
     
     // 
@@ -134,7 +134,7 @@ VertexData<Vector3> Mem3DG::buildFlowOperator(double V_bar, double P0,double KA,
     // return (SurfaceTension(lambda)+OsmoticPressure(D_P));
     // return (Bending(H_bar,KB)+lambda*SurfaceTension());
 
-    return (KB*Bending(H_bar)+OsmoticPressure(D_P)+lambda*SurfaceTension());
+    return (KB*Bending(H_bar)+D_P*OsmoticPressure()+lambda*SurfaceTension());
     // return (Bending(H_bar,KB)+SurfaceTension(lambda));
     
     // 
@@ -151,7 +151,7 @@ VertexData<Vector3> Mem3DG::buildFlowOperator(double h, double V_bar,double P0,d
     
   
 
-    return (OsmoticPressure(D_P)+KA*SurfaceTension());
+    return (D_P*OsmoticPressure()+KA*SurfaceTension());
     // return (Bending(H_bar,KB)+SurfaceTension(lambda));
     
     // 
@@ -159,7 +159,7 @@ VertexData<Vector3> Mem3DG::buildFlowOperator(double h, double V_bar,double P0,d
 }
 
 
-VertexData<Vector3> Mem3DG::OsmoticPressure(double D_P) const {
+VertexData<Vector3> Mem3DG::OsmoticPressure() const {
 
     // You have the face normals
     
@@ -177,7 +177,7 @@ VertexData<Vector3> Mem3DG::OsmoticPressure(double D_P) const {
 
         }
         // Force[v.getIndex()]=D_P*Normal/3.0;
-        Force[v.getIndex()]=D_P*Normal/3.0;
+        Force[v.getIndex()]=Normal/3.0;
     }
 
     // std::cout<< "THe osmotic pressure force in magnitude is: "<< D_P*sqrt(Force.transpose()*Force) <<"\n";
@@ -483,6 +483,327 @@ double Mem3DG::E_Bending(double H0,double KB) const{
 
 
 
+
+SparseMatrix<double> Mem3DG::H2_operator(bool CM, bool Vol_const, bool Area_const) {
+
+
+    // Ok so i have the gradient i want to calculate
+
+    // std::cout<<"We are doing the sobolev operator ! \n";
+    // std::cout<<"THe constraints are CM: "<< CM << " Volume " <<  Vol_const <<" and area " << Area_const <<" \n";
+    SparseMatrix<double> L = geometry->laplaceMatrix();
+    SparseMatrix<double> M = geometry->massMatrix();
+    SparseMatrix<double> Inv_M(mesh->nVertices(),mesh->nVertices());
+    for(size_t index= 0; index<mesh->nVertices();index++)
+    {
+        Inv_M.coeffRef(index,index)= 1.0/(M.coeff(index,index));
+       
+    }
+
+    SparseMatrix<double> J = L.transpose()*Inv_M*L;
+    // I need the constraint gradientsx
+    VertexData<Vector3> grad_sur = SurfaceGrad();
+    VertexData<Vector3> grad_vol = OsmoticPressure();
+    // VertexData<Vector3> grad_ben = Bending(0.0);
+
+    // i CAN MAYBE MULTIPLY BY THE SURFACE AREAS 
+    
+
+    // std::cout<<"Grad ben \n";
+
+    // std::cout<<"We are debugginggg \n";
+    size_t N_vert=mesh->nVertices();
+
+
+    int Num_constraints = 0;
+    if(CM ) Num_constraints+=3;
+    if(Vol_const) Num_constraints+=1;
+    if(Area_const) Num_constraints+=1;
+
+    // std::cout<<"THe number of constraints is "<< Num_constraints<<" \n";
+
+    SparseMatrix<double> S(N_vert*3+Num_constraints,N_vert*3+Num_constraints);
+
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+    int highest_row = 0;
+    int highest_col = 0;
+    // We add the constraints first
+
+    int Constraint_number = 0;
+
+
+    for(size_t index = 0; index<mesh->nVertices();index++)
+    {
+
+        Constraint_number = 0;
+    //  Area constraint 
+        if(Area_const){
+          // std::cout<<"Area constraint on \n";
+        tripletList.push_back(T(3*index,3*N_vert+Constraint_number, grad_sur[index].x ) );
+        tripletList.push_back(T(3*index+1, 3*N_vert+Constraint_number, grad_sur[index].y ) );
+        tripletList.push_back(T(3*index+2, 3*N_vert+Constraint_number, grad_sur[index].z ) );
+        tripletList.push_back(T(3*N_vert+Constraint_number,3*index, grad_sur[index].x ) );
+        tripletList.push_back(T(3*N_vert+Constraint_number, 3*index+1, grad_sur[index].y ) );
+        tripletList.push_back(T(3*N_vert+Constraint_number,3*index+2, grad_sur[index].z ) );
+        
+        Constraint_number++;
+        }
+        
+    // Volume Constraint
+        if(Vol_const){
+          // std::cout<<"Vol const on\n";
+        tripletList.push_back(T(3*index, 3*N_vert+Constraint_number, grad_vol[index].x ) );
+        tripletList.push_back(T(3*index+1, 3*N_vert+Constraint_number, grad_vol[index].y ) );
+        tripletList.push_back(T(3*index+2, 3*N_vert+Constraint_number, grad_vol[index].z ) );
+        tripletList.push_back(T(3*N_vert+Constraint_number, 3*index, grad_vol[index].x ) );
+        tripletList.push_back(T(3*N_vert+Constraint_number, 3*index+1, grad_vol[index].y ) );
+        tripletList.push_back(T(3*N_vert+Constraint_number, 3*index+2, grad_vol[index].z ) );
+        
+        Constraint_number++;
+        }
+    // Position Constraint I
+        
+        if(CM){
+          // std::cout<<"POs constraint on \n";
+        tripletList.push_back(T(3*index, 3*N_vert +Constraint_number, 1 ) );
+        tripletList.push_back(T(3*N_vert +Constraint_number, 3*index, 1 ) );
+        Constraint_number++;
+        
+        tripletList.push_back(T(3*index + 1, 3*N_vert +Constraint_number, 1 ) );
+        tripletList.push_back(T(3*N_vert +Constraint_number, 3*index +1, 1 ) );
+        Constraint_number++;
+        
+        tripletList.push_back(T(3*index + 2 , 3*N_vert+Constraint_number, 1 ) );
+        tripletList.push_back(T(3*N_vert+Constraint_number, 3*index + 2, 1 ) );
+        Constraint_number++;
+        }
+
+
+    }
+
+    //  std::cout<<"Before setting from tripplets\n";
+    // std::cout<<"THe number of vertices is " << N_vert <<"\n";
+    // std::cout<<"THe highest expected col is " << 3*N_vert+2 <<" \n";
+    // std::cout<<"THe calculated col is " << highest_col <<" \n";
+    // std::cout<<"THe highest expected row is " << 3*N_vert+2 <<" \n";
+    // std::cout<<"THe calculated row is " << highest_row <<" \n";
+    // Now we iterate over the Laplacian
+    int row;
+    int col;
+    double value;
+
+    for( size_t k = 0; k < J.outerSize(); ++k ) {
+        for( SparseMatrix<double>::InnerIterator it(J,k); it; ++it ) {
+            value = it.value();
+            row = it.row();
+            col = it.col();
+            tripletList.push_back(T(3*row,3*col,value));
+            tripletList.push_back(T(3*row+1,3*col+1,value));
+            tripletList.push_back(T(3*row+2,3*col+2,value));
+            // if( 3*row > highest_row) highest_row = 3*row;
+            // if( 3*col > highest_col) highest_col = 3*col;
+        
+        }
+    }
+
+    // std::cout<<"Before setting from tripplets\n";
+    // std::cout<<"THe number of vertices is " << N_vert <<"\n";
+    // std::cout<<"THe highest expected col is " << 3*N_vert+2 <<" \n";
+    // std::cout<<"THe calculated col is " << highest_col <<" \n";
+    // std::cout<<"THe highest expected row is " << 3*N_vert+2 <<" \n";
+    // std::cout<<"THe calculated row is " << highest_row <<" \n";
+    S.setFromTriplets(tripletList.begin(),tripletList.end());
+    // std::cout<<"THe matrix has been formed\n";
+
+    return S;
+
+
+    // std::cout<<"AFTER setting from tripplets\n";
+    // // We need to create the vector of the RHS
+
+    // Vector<double> RHS(N_vert*3+Num_constraints);
+    // int highest_idx = 0;
+    // for(size_t index; index<mesh->nVertices();index++)
+    // {
+    //     RHS.coeffRef(3*index)=grad_ben[index].x;
+    //     RHS.coeffRef(3*index+1)=grad_ben[index].y;
+    //     RHS.coeffRef(3*index+2)=grad_ben[index].z;
+    //     if( 3*index +2 > highest_idx) highest_idx = 3*index+2;
+    // }
+
+    // // std::cout<<"The highest index is " << highest_idx <<"\n";
+    // // std::cout<<"CREATING RHS\n";
+    // for(size_t index = 0; index<Num_constraints;index++)
+    // {
+    //     RHS.coeffRef(3*N_vert+index)=0;
+    // }
+    // // RHS.coeffRef(3*N_vert)=0;
+    // // RHS.coeffRef(3*N_vert+1)=0;
+    // // RHS.coeffRef(3*N_vert+2)=0;
+    // // RHS.coeffRef(3*N_vert+3)=0;
+    // // RHS.coeffRef(3*N_vert+4)=0;
+
+    // // std::cout<<"RHS IMPLEMENTED\n";
+
+    // // std::cout<<"The RHS is " << RHS << "\n";
+    // // We have The RHS and the matrix, its tiiiime 
+    // // std::cout<<"Lets solve \n";
+    // Eigen::SparseLU<SparseMatrix<double>> solver;
+    // // std::cout<<"Solver defined \n";
+    
+    // solver.compute(S);
+
+
+
+    
+    // Vector<double> result = solver.solve(RHS);
+    // // std::cout<<"Result retrieved\n";
+    // VertexData<Vector3> Final_Force(*mesh);
+    // for(size_t index; index<mesh->nVertices();index++)
+    // {
+    //     Final_Force[index]=Vector3{result.coeff(3*index),result.coeff(3*index+1),result.coeff(3*index+2)};
+    // } 
+
+    // // std::cout<<"The two lambda for the constraints are "<< result[N_vert] << " and "<< result[N_vert+1] <<"\n";
+    // // return Final_Force;
+    
+
+
+
+}
+SparseMatrix<double> Mem3DG::H1_operator(bool CM, bool Vol_const, bool Area_const) {
+
+
+    // Ok so i have the gradient i want to calculate
+
+    // std::cout<<"We are doing the sobolev operator ! \n";
+    // std::cout<<"THe constraints are CM: "<< CM << " Volume " <<  Vol_const <<" and area " << Area_const <<" \n";
+    SparseMatrix<double> L = geometry->laplaceMatrix();
+    // SparseMatrix<double> M = geometry->massMatrix();
+    // SparseMatrix<double> Inv_M(mesh->nVertices(),mesh->nVertices());
+    // for(size_t index= 0; index<mesh->nVertices();index++)
+    // {
+    //     Inv_M.coeffRef(index,index)= 1.0/(M.coeff(index,index));
+       
+    // }
+
+    SparseMatrix<double> J = L;
+    // I need the constraint gradientsx
+    VertexData<Vector3> grad_sur = SurfaceGrad();
+    VertexData<Vector3> grad_vol = OsmoticPressure();
+    // VertexData<Vector3> grad_ben = Bending(0.0);
+
+    // i CAN MAYBE MULTIPLY BY THE SURFACE AREAS 
+    
+
+    // std::cout<<"Grad ben \n";
+
+    // std::cout<<"We are debugginggg \n";
+    size_t N_vert=mesh->nVertices();
+
+
+    int Num_constraints = 0;
+    if(CM ) Num_constraints+=3;
+    if(Vol_const) Num_constraints+=1;
+    if(Area_const) Num_constraints+=1;
+
+    // std::cout<<"THe number of constraints is "<< Num_constraints<<" \n";
+
+    SparseMatrix<double> S(N_vert*3+Num_constraints,N_vert*3+Num_constraints);
+
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+    int highest_row = 0;
+    int highest_col = 0;
+    // We add the constraints first
+
+    int Constraint_number = 0;
+
+
+    for(size_t index = 0; index<mesh->nVertices();index++)
+    {
+
+        Constraint_number = 0;
+    //  Area constraint 
+        if(Area_const){
+          // std::cout<<"Area constraint on \n";
+        tripletList.push_back(T(3*index,3*N_vert+Constraint_number, grad_sur[index].x ) );
+        tripletList.push_back(T(3*index+1, 3*N_vert+Constraint_number, grad_sur[index].y ) );
+        tripletList.push_back(T(3*index+2, 3*N_vert+Constraint_number, grad_sur[index].z ) );
+        tripletList.push_back(T(3*N_vert+Constraint_number,3*index, grad_sur[index].x ) );
+        tripletList.push_back(T(3*N_vert+Constraint_number, 3*index+1, grad_sur[index].y ) );
+        tripletList.push_back(T(3*N_vert+Constraint_number,3*index+2, grad_sur[index].z ) );
+        
+        Constraint_number++;
+        }
+        
+    // Volume Constraint
+        if(Vol_const){
+          // std::cout<<"Vol const on\n";
+        tripletList.push_back(T(3*index, 3*N_vert+Constraint_number, grad_vol[index].x ) );
+        tripletList.push_back(T(3*index+1, 3*N_vert+Constraint_number, grad_vol[index].y ) );
+        tripletList.push_back(T(3*index+2, 3*N_vert+Constraint_number, grad_vol[index].z ) );
+        tripletList.push_back(T(3*N_vert+Constraint_number, 3*index, grad_vol[index].x ) );
+        tripletList.push_back(T(3*N_vert+Constraint_number, 3*index+1, grad_vol[index].y ) );
+        tripletList.push_back(T(3*N_vert+Constraint_number, 3*index+2, grad_vol[index].z ) );
+        
+        Constraint_number++;
+        }
+    // Position Constraint I
+        
+        if(CM){
+          // std::cout<<"POs constraint on \n";
+        tripletList.push_back(T(3*index, 3*N_vert +Constraint_number, 1 ) );
+        tripletList.push_back(T(3*N_vert +Constraint_number, 3*index, 1 ) );
+        Constraint_number++;
+        
+        tripletList.push_back(T(3*index + 1, 3*N_vert +Constraint_number, 1 ) );
+        tripletList.push_back(T(3*N_vert +Constraint_number, 3*index +1, 1 ) );
+        Constraint_number++;
+        
+        tripletList.push_back(T(3*index + 2 , 3*N_vert+Constraint_number, 1 ) );
+        tripletList.push_back(T(3*N_vert+Constraint_number, 3*index + 2, 1 ) );
+        Constraint_number++;
+        }
+
+
+    }
+
+    //  std::cout<<"Before setting from tripplets\n";
+    // std::cout<<"THe number of vertices is " << N_vert <<"\n";
+    // std::cout<<"THe highest expected col is " << 3*N_vert+2 <<" \n";
+    // std::cout<<"THe calculated col is " << highest_col <<" \n";
+    // std::cout<<"THe highest expected row is " << 3*N_vert+2 <<" \n";
+    // std::cout<<"THe calculated row is " << highest_row <<" \n";
+    // Now we iterate over the Laplacian
+    int row;
+    int col;
+    double value;
+
+    for( size_t k = 0; k < J.outerSize(); ++k ) {
+        for( SparseMatrix<double>::InnerIterator it(J,k); it; ++it ) {
+            value = it.value();
+            row = it.row();
+            col = it.col();
+            tripletList.push_back(T(3*row,3*col,value));
+            tripletList.push_back(T(3*row+1,3*col+1,value));
+            tripletList.push_back(T(3*row+2,3*col+2,value));
+            // if( 3*row > highest_row) highest_row = 3*row;
+            // if( 3*col > highest_col) highest_col = 3*col;
+        
+        }
+    }
+
+    S.setFromTriplets(tripletList.begin(),tripletList.end());
+
+    return S;
+
+
+}
+
+
+
 VertexData<Vector3> Mem3DG::Linear_force_field(double x0,double slope) const{
   // Can i make it volume preserving?
 
@@ -532,16 +853,63 @@ VertexData<Vector3> Mem3DG::Linear_force_field(double x0,double slope) const{
 
 
 
+
+
+
+
 /*
 Performs backtracking
 Input:
 
 Returns:
 
+void Mem3DG::Smooth_vertices(){
+
+
+
+
+
+
+  return;
+}
 
 
 
 */
+
+void Mem3DG::Smooth_vertices(){
+
+
+  size_t N_vert = mesh->nVertices();
+  SparseMatrix<double> L(N_vert,N_vert);
+
+  L = geometry->uniformlaplacianMatrix();
+
+  // Ok i have the matrix now what
+  Vector<double> xpos = Vector<double>(N_vert);
+  Vector<double> ypos = Vector<double>(N_vert);
+  Vector<double> zpos =Vector<double>(N_vert);
+  Vector3 Pos;
+  for(size_t i = 0; i < N_vert; i++){
+    Pos = geometry->inputVertexPositions[i];
+    xpos[i] = Pos.x;
+    ypos[i] = Pos.y;
+    zpos[i] = Pos.z;
+
+  }
+  xpos = xpos + L*xpos;
+  ypos = ypos + L*ypos;
+  zpos = zpos + L*zpos;
+
+  for(size_t i = 0; i <N_vert; i++){
+    geometry->inputVertexPositions[i] = Vector3({xpos[i],ypos[i],zpos[i]});
+  }
+
+
+  return;
+}
+
+
 /**
  * @brief Performs the backtracking algorithm for the Mem3DG class.
  *
@@ -556,7 +924,8 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
 
   double c1 = 1e-4;
   double rho = 0.5;
-  double alpha = 1e-4;
+  double alpha = 1;
+  // alpha = 5e-4;
   double position_Projeection = 0;
   double X_pos;
 
@@ -566,6 +935,7 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
     if(isnan(Energy_vals[i])) std::cout<<"Energy " << Energies[i] << " is nan\n";
   }
 
+  // std::cout<<"THe previous energy is "<< previousE<<" \n";
   double NewE;
   VertexData<Vector3> initial_pos(*mesh);
   if(recentering){
@@ -624,7 +994,9 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
   for(Vertex v : mesh->vertices()){
     Pos = geometry->inputVertexPositions[v];
     r_eff_2 = Pos.z*Pos.z+Pos.y*Pos.y;
+    
     if(r_eff_2 < 1.6 && boundary){
+      // std::cout<<"THis is only true when boundary\n";
     Force_norm2 = Force[v.getIndex()].norm2();
     
     // if(Force_norm2 > 1e5) std::cout<<"How did this happen? the radius is " << geometry->inputVertexPositions[v].norm2() << " \n";
@@ -632,82 +1004,45 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
     // std::cout<< Force[v.getIndex()].norm2() << " \n";
     Total_force += Force[v.getIndex()];
     }
+    if(!boundary){
+      // std::cout<<"No boundary right\n";
+      Force_norm2 = Force[v.getIndex()].norm2();
+      Projection += Force_norm2;
+      // std::cout<<"Force norm2 is " << Force_norm2 <<" \n";
+      Total_force += Force[v.getIndex()];
+    }
 
   }
 
 
   // std::cout<<"The projection is " << Projection <<" And the total force is " << Total_force << " \n";
-
+  // std::cout<<"Projection is " <<  Projection <<" \n";
   grad_norm = Projection;
 
   double V_bar;
   double A_bar;
   size_t bead_count = 0;
   NewE = 0.0;
-  for(size_t i = 0; i < Energies.size(); i++){
-  // We will do the calculations here
-    if(Energies[i]=="Volume_constraint"){
-      double V = geometry->totalVolume();
-      V_bar = Energy_constants[i][1];
-      // double D_?P = -1*Energy_constants[i][0]*(V-V_bar)/(V_bar*V_bar);
-
-      // We calculate the energy
-      Energy_vals[i] = E_Volume_constraint(Energy_constants[i][0],V,V_bar);
-      NewE += Energy_vals[i];
-      continue;
-    }
-    if(Energies[i]=="Area_constraint"){
-      
-      double A = geometry->totalArea();
-      A_bar = Energy_constants[i][1];
-      double KA = Energy_constants[i][0];
-
-      Energy_vals[i] = E_Area_constraint(KA,A,A_bar);
-      NewE += Energy_vals[i];
-      continue;
-    }
-    if(Energies[i]=="Bending"){
-      double KB = Energy_constants[i][0];
-      double H0 = 0.0;
-
-      Energy_vals[i] = E_Bending(H0, KB);
-      NewE += Energy_vals[i];
-      continue;
-
-    }
-
-    if(Energies[i]=="Bead"){
-
-      // The energy
-      Energy_vals[i] = Beads[bead_count]->Energy(); 
-
-      bead_count +=1;
-      NewE += Energy_vals[i];
-      continue;
-
-
-    }
-    if(Energies[i]=="Surface_tension"){
-      // What if the energy is surface tension 
-      double sigma = Energy_constants[i][0];
-      // I need to add an energy term here;
-      A  = geometry->totalArea();
-      Energy_vals[i] = sigma*100*100*A; 
-      NewE += Energy_vals[i];
-      continue;
-
-    }
-
-  }
-
   
-  // std::cout<<" \n";
+  Get_Energies(Energies,Energy_constants,&NewE);
+  // std::cout<<"The energy is " << NewE << " \n";
+
   size_t counter = 0;
   // Now we start the backtracking
  
   // std::cout<<" \n";
   bool displacement_cond = true;
 
+  // std::cout<<"THe projection is " << Projection <<" \n";
+  // std::cout<<"The number of beads is " << Beads.size() << " \n";
+  
+  if(Projection < 1e-7) {
+    small_TS = true;
+      std::cout<<"The energy diff is quite small and so is the gradient\n";
+      std::cout<<"The energy diff is"<< abs(NewE-previousE)/previousE<<"\n";
+      std::cout<<"The projection is"<< Projection<<"\n";
+      return -1.0;
+  }
 
   while(true) {
     displacement_cond = true;
@@ -739,6 +1074,14 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
     }
      
     alpha *=rho;
+    
+    if( (abs((NewE-previousE)/previousE) < 1e-7 && Projection < 0.5) || Projection < 1e-5){
+      small_TS = true;
+      std::cout<<"The energy diff is quite small and so is the gradient\n";
+      std::cout<<"The energy diff is"<< abs(NewE-previousE)/previousE<<"\n";
+      std::cout<<"The projection is"<< Projection<<"\n";
+      return -1.0;
+    }
 
     if(alpha<1e-10){
       std::cout<<"THe timestep got small so the simulation would end \n";
@@ -778,67 +1121,10 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
     bead_count = 0;
 
     NewE = 0.0;
-    for(size_t i = 0; i < Energies.size(); i++){
-    // We will do the calculations here
-      if(Energies[i]=="Volume_constraint"){
-        double V = geometry->totalVolume();
-        V_bar = Energy_constants[i][1];
-        double D_P = -1*Energy_constants[i][0]*(V-V_bar)/(V_bar*V_bar);
 
-        // We calculate the energy
-        Energy_vals[i] = E_Volume_constraint(Energy_constants[i][0],V,V_bar);
-        NewE += Energy_vals[i];
-        continue;
-      }
-      if(Energies[i]=="Area_constraint"){
-        
-        double A = geometry->totalArea();
-        A_bar = Energy_constants[i][1];
-        double KA = Energy_constants[i][0];
+    Get_Energies(Energies,Energy_constants,&NewE);
+    // std::cout<<"The energy is " << NewE << " \n";
 
-        Energy_vals[i] = E_Area_constraint(KA,A,A_bar);
-        NewE += Energy_vals[i];
-        continue;
-      }
-      if(Energies[i]=="Bending"){
-        double KB = Energy_constants[i][0];
-        double H0 = 0.0;
-
-        Energy_vals[i] = E_Bending(H0, KB);
-        NewE += Energy_vals[i];
-        continue;
-
-      }
-
-      if(Energies[i]=="Bead"){
-
-        // The energy
-        Energy_vals[i] = Beads[bead_count]->Energy(); 
-
-        bead_count +=1;
-        NewE += Energy_vals[i];
-        continue;
-
-
-      }
-      if(Energies[i]=="Surface_tension"){
-        // What if the energy is surface tension 
-        double sigma = Energy_constants[i][0];
-        // I need to add an energy term here;
-        A = geometry->totalArea();
-        Energy_vals[i] = sigma*100*100*A;
-        NewE += Energy_vals[i];
-        continue;
-
-      }
-
-    }
-
-    
-
-
-
-    // Calculate the maximum displacement of the vertices
     
     // // Check if the maximum displacement exceeds a threshold
     // if (maxDisplacement > threshold) {
@@ -849,7 +1135,7 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
   
   }
 
-
+  // std::cout<<"THe timestep is " << alpha <<" \n";
 
   nanflag = false;
 
@@ -861,7 +1147,9 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
   if(recentering) {
     // std::cout<<"rENORMALIZING\n";
   CoM = geometry->centerOfMass();
+  if(recentering){
   geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+  
   // CoM = geometry->centerOfMass();
     
   for(size_t i = 0; i < Beads.size(); i++){
@@ -871,6 +1159,7 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
       Beads[i]->Pos -= CoM;
     // }
 
+  }
   }
   
   geometry->refreshQuantities();
@@ -1760,8 +2049,93 @@ return alpha;
 }
 
 
+void Mem3DG::Get_Energies(std::vector<std::string>Energies, std::vector<std::vector<double>> Energy_constants, double* NewE){
+
+  double V_bar;
+
+  *NewE = 0.0;
+  // *NewE = 1.0;
+
+  int bead_count = 0;
+  for(size_t i = 0; i < Energies.size(); i++){
+  // We will do the calculations here
+    if(Energies[i]=="Volume_constraint"){
+      double V = geometry->totalVolume();
+      V_bar = Energy_constants[i][1];
+      // double D_?P = -1*Energy_constants[i][0]*(V-V_bar)/(V_bar*V_bar);
+
+      // We calculate the energy
+      Energy_vals[i] = E_Volume_constraint(Energy_constants[i][0],V,V_bar);
+      *NewE += Energy_vals[i];
+      continue;
+    }
+    if(Energies[i]=="Area_constraint"){
+      
+      double A = geometry->totalArea();
+      double A_bar = Energy_constants[i][1];
+      double KA = Energy_constants[i][0];
+
+      Energy_vals[i] = E_Area_constraint(KA,A,A_bar);
+      *NewE += Energy_vals[i];
+      continue;
+    }
+    if(Energies[i]=="Bending" || Energies[i] == "H1_Bending" || Energies[i]=="H2_Bending"){
+      // std::cout<<"Calculating BENERGY 1\n";
+      double KB = Energy_constants[i][0];
+      double H0 = 0.0;
+
+      Energy_vals[i] = E_Bending(H0, KB);
+      *NewE += Energy_vals[i];
+      continue;
+
+    }
+
+    if(Energies[i]=="Bead" || Energies[i]=="H1_Bead" || Energies[i]=="H2_Bead"){
+
+      // The energy
+      Energy_vals[i] = Beads[bead_count]->Energy(); 
+
+      bead_count +=1;
+      *NewE += Energy_vals[i];
+      continue;
+
+
+    }
+    if(Energies[i]=="Surface_tension"|| Energies[i] == "H1_Surface_tension" || Energies[i] == "H2_Surface_tension"){
+      // What if the energy is surface tension 
+      double sigma = Energy_constants[i][0];
+      // I need to add an energy term here;
+      // std::cout<<"Calculating old energy\n";
+      A  = geometry->totalArea();
+      Energy_vals[i] = sigma*A; 
+      *NewE += Energy_vals[i];
+      continue;
+
+    }
+
+  }
+
+  return;
+}
+
 
 double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::vector<double>> Energy_constants, std::ofstream& Sim_data , double time, std::vector<std::string>Bead_data_filenames, bool Save_output_data){
+
+  auto start = chrono::steady_clock::now();
+  auto end = chrono::steady_clock::now();
+  auto construction_start = chrono::steady_clock::now();
+  auto construction_end = chrono::steady_clock::now();
+  auto solve_start = chrono::steady_clock::now();
+  auto solve_end = chrono::steady_clock::now();
+
+  
+
+  double time_construct = 0;
+  double time_solve = 0;
+  double time_compute = 0;
+  double time_gradients = 0;
+  double time_backtracking = 0;
+
 
   size_t bead_count = 0;
 
@@ -1789,11 +2163,30 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
   double A_bar = 4.0*3.1415926535;
   double V_bar = 4.0*3.14115926535/3.0;
   double V;
-  double A;
+  double A = 0;
+
+  // Lets calculate the areas of every vertex
+  Vector<double> Barycentric_area(mesh->nVertices());
+
+  for(size_t index = 0; index < mesh->nVertices(); index++) {
+    Barycentric_area[index] = geometry->barycentricDualArea(mesh->vertex(index));
+    A += Barycentric_area[index];
+    Barycentric_area[index] = 1.0;
+  }
 
 
-  
+  bool H2_grad = false;
+  bool H1_grad = false;
+  size_t N_vert = mesh->nVertices();
+  int N_constraints = 4;
+  SparseMatrix<double> H2_mat;//(N_vert*3+N_constraints,N_vert*3+N_constraints);
+  SparseMatrix<double> H1_mat;
+  Eigen::SparseLU<SparseMatrix<double>> solverH2;
+  Eigen::SparseLU<SparseMatrix<double>> solverH1;
+  // int N_vert = mesh->nVertices();
 
+  // We will calculate the gradients here
+  start = chrono::steady_clock::now();
 
   for(size_t i = 0; i < Energies.size(); i++){
     // We will do the calculations here
@@ -1806,7 +2199,7 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
       // We calculate the energy
       Energy_vals[i] = E_Volume_constraint(Energy_constants[i][0],V,V_bar);
 
-      Force_temp = OsmoticPressure(D_P);
+      Force_temp = D_P*OsmoticPressure();
       grad_value = 0;
       for(size_t j = 0; j < mesh->nVertices(); j++){
         grad_value+= Force_temp[j].norm2();
@@ -1819,7 +2212,7 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
     
       // std::cout<<"Area constraint\n";
      
-      A = geometry->totalArea();
+      // A = geometry->totalArea();
       A_bar = Energy_constants[i][1];
       double KA = Energy_constants[i][0];
 
@@ -1873,14 +2266,120 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
 
 
     }
+    if(Energies[i]=="H1_Bead"){
+      if(!H1_grad){
+        construction_start = chrono::steady_clock::now();
+        H1_grad = true;
+        
+        H1_mat = H1_operator(Energy_constants[i][1],Energy_constants[i][2],Energy_constants[i][3]);
+        construction_end = chrono::steady_clock::now();
+        time_construct += std::chrono::duration_cast<std::chrono::milliseconds>(construction_end - construction_start).count();
+
+        construction_start = chrono::steady_clock::now();
+        solverH1.compute(H1_mat);
+        construction_end = chrono::steady_clock::now();
+        time_compute += std::chrono::duration_cast<std::chrono::milliseconds>(construction_end - construction_start).count();
+      
+      }
+
+      Energy_vals[i] = Beads[bead_count]->Energy(); 
+      // std::cout<<"Bead count is" << bead_count <<"\n";
+      Force_temp = Beads[bead_count]->Gradient();
+      Beads[bead_count]->Bead_interactions();
+
+      solve_start = chrono::steady_clock::now();
+      Vector<double> RHS = Vector<double>(N_vert*3+N_constraints);
+      for(size_t index = 0; index < mesh->nVertices(); index++){
+        RHS[3*index] = Force_temp[index].x;
+        RHS[3*index+1] = Force_temp[index].y;
+        RHS[3*index+2] = Force_temp[index].z;
+      }
+      for(int index = 0; index < N_constraints; index++){
+        RHS[3*N_vert+index] = 0.0;
+      }
+      
+      Vector<double> Solution = solverH1.solve(RHS);
+      for(size_t index = 0; index < mesh->nVertices(); index++){
+        Force_temp[index] = Vector3({Solution.coeff(3*index),Solution.coeff(3*index+1),Solution.coeff(3*index+2)});
+        // std::cout<< Force_temp[index].norm2() << " ";
+      }
+      solve_end = chrono::steady_clock::now();
+      time_solve += std::chrono::duration_cast<std::chrono::milliseconds>(solve_end - solve_start).count();
+
+
+      grad_value = 0;
+      for(size_t j = 0; j < mesh->nVertices(); j++){
+        grad_value+= Force_temp[j].norm2();
+      }
+      Gradient_norms.push_back(grad_value);
+      Force+=Force_temp;
+      bead_count +=1;
+      continue;
+
+    }
+    if(Energies[i]=="H2_Bead"){
+      
+      if(!H2_grad){
+        construction_start = chrono::steady_clock::now();
+        H2_grad = true;
+        N_constraints = 3*Energy_constants[i][1]+Energy_constants[i][2]+Energy_constants[i][3];
+
+        H2_mat = H2_operator(Energy_constants[i][1],Energy_constants[i][2],Energy_constants[i][3]);
+        construction_end = chrono::steady_clock::now();
+        time_construct += std::chrono::duration_cast<std::chrono::milliseconds>(construction_end - construction_start).count();
+
+        construction_start = chrono::steady_clock::now();
+        solverH2.compute(H2_mat);
+        construction_end = chrono::steady_clock::now();
+        time_compute += std::chrono::duration_cast<std::chrono::milliseconds>(construction_end - construction_start).count();
+      
+      }
+
+      Energy_vals[i] = Beads[bead_count]->Energy(); 
+      // std::cout<<"Bead count is" << bead_count <<"\n";
+      Force_temp = Beads[bead_count]->Gradient();
+      Beads[bead_count]->Bead_interactions();
+
+      solve_start = chrono::steady_clock::now();
+      Vector<double> RHS = Vector<double>(N_vert*3+N_constraints);
+      for(size_t index = 0; index < mesh->nVertices(); index++){
+        RHS[3*index] = Force_temp[index].x;
+        RHS[3*index+1] = Force_temp[index].y;
+        RHS[3*index+2] = Force_temp[index].z;
+      }
+      for(int index = 0; index < N_constraints; index++){
+        RHS[3*N_vert+index] = 0.0;
+      }
+      
+      Vector<double> Solution = solverH2.solve(RHS);
+      for(size_t index = 0; index < mesh->nVertices(); index++){
+        Force_temp[index] = Vector3({Solution.coeff(3*index),Solution.coeff(3*index+1),Solution.coeff(3*index+2)});
+        // std::cout<< Force_temp[index].norm2() << " ";
+      }
+      solve_end = chrono::steady_clock::now();
+      time_solve += std::chrono::duration_cast<std::chrono::milliseconds>(solve_end - solve_start).count();
+
+
+      grad_value = 0;
+      for(size_t j = 0; j < mesh->nVertices(); j++){
+        grad_value+= Force_temp[j].norm2();
+      }
+      Gradient_norms.push_back(grad_value);
+      Force+=Force_temp;
+      bead_count +=1;
+      // std::cout<<"Here\n";
+      continue;
+
+
+    }
     if(Energies[i]=="Surface_tension"){
       // std::cout<<"Surface tension\n";
       // What if the energy is surface tension 
       // std::cout<<" We got tension ";
       double sigma = Energy_constants[i][0];
       A = geometry->totalArea();
-      Energy_vals[i] = A*100*100*sigma;
-      Force_temp = sigma*100*100*SurfaceGrad();
+      Energy_vals[i] = A*sigma;
+      Force_temp = sigma*SurfaceGrad();
       grad_value = 0;
       for(size_t j = 0; j < mesh->nVertices(); j++){
         grad_value+= Force_temp[i].norm2();
@@ -1891,7 +2390,296 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
 
     }
 
+    if(Energies[i]=="H2_Bending"){
+      // std::cout<<"THe beding energy is hereee\n";
+      if(!H2_grad){
+        construction_start = chrono::steady_clock::now();
+        H2_grad = true;
+        N_constraints = 3*Energy_constants[i][1]+Energy_constants[i][2]+Energy_constants[i][3];
+
+        H2_mat = H2_operator(Energy_constants[i][1],Energy_constants[i][2],Energy_constants[i][3]);
+        construction_end = chrono::steady_clock::now();
+        time_construct += std::chrono::duration_cast<std::chrono::milliseconds>(construction_end - construction_start).count();
+
+        construction_start = chrono::steady_clock::now();
+        solverH2.compute(H2_mat);
+        construction_end = chrono::steady_clock::now();
+        time_compute += std::chrono::duration_cast<std::chrono::milliseconds>(construction_end - construction_start).count();
+        // std::cout<<"Solving possible\n";
+      }
+
+      double KB = Energy_constants[i][0];
+      Energy_vals[i] = E_Bending(0.0,KB);
+      // Now i need to compute the original gradient
+      Force_temp = KB*Bending(0.0);
+
+      // I would say the solve considers the construction?
+
+      N_constraints = 3*Energy_constants[i][1]+Energy_constants[i][2]+Energy_constants[i][3];
+      solve_start = chrono::steady_clock::now();
+      Vector<double> RHS = Vector<double>(N_vert*3+N_constraints);
+      for(size_t index = 0; index < mesh->nVertices(); index++){
+        RHS[3*index] = Force_temp[index].x;
+        RHS[3*index+1] = Force_temp[index].y;
+        RHS[3*index+2] = Force_temp[index].z;
+        // std::cout<<"Force temp has magnitude" << Force_temp[index].norm2() <<"and barycentric " << Barycentric_area[index]<<"\n";
+      }
+      // std::cout<<"THe number of constraints is " << N_constraints<<" duh\n";
+      for(int index = 0; index < N_constraints; index++){
+        RHS[3*N_vert+index] = 0.0;
+      }
+      // std::cout<<"The RHS is readyy\n";
+      // std::cout<<"Some components are " << RHS[0] <<" "<< RHS[1] <<" "<< RHS[2] <<" \n";
+      // The RHS is readyy   
+      // std::cout<<"Solving RHS\n";
+      
+      Vector<double> Solution = solverH2.solve(RHS);
+      // std::cout<<"Solved\n";
+      // std::cout<<"The solution is ready\n";
+      // std::cout<<"Some components of the solution are " << Solution[0] <<" "<< Solution[1] <<" "<< Solution[2] <<" \n";
+      // std::cout<<"The forces are ";
+      for(size_t index = 0; index < mesh->nVertices(); index++){
+        Force_temp[index] = Vector3({Solution.coeff(3*index),Solution.coeff(3*index+1),Solution.coeff(3*index+2)});
+        // std::cout<< Force_temp[index].norm2() << " ";
+      }
+      solve_end = chrono::steady_clock::now();
+      time_solve += std::chrono::duration_cast<std::chrono::milliseconds>(solve_end - solve_start).count();
+      
+      // SO i have calculated the new force
+      grad_value = 0;
+      for(size_t j = 0; j < mesh->nVertices(); j++){
+        grad_value+= Force_temp[j].norm2();
+      }
+      // std::cout<<"THe grad value is " << grad_value <<" \n";
+      Gradient_norms.push_back(grad_value);
+      Force+=Force_temp;
+
+      continue;
+
+    }
+    if(Energies[i]=="H1_Bending"){
+      // std::cout<<"THe beding energy is hereee\n";
+      if(!H1_grad){
+        construction_start = chrono::steady_clock::now();
+        H1_grad = true;
+        N_constraints = 3*Energy_constants[i][1]+Energy_constants[i][2]+Energy_constants[i][3];
+
+        // I need to build the sobolev operator
+        // H2_mat = SparseMatrix<double>(N_vert*3+N_constraints,N_vert*3+N_constraints);
+        H1_mat = H1_operator(Energy_constants[i][1],Energy_constants[i][2],Energy_constants[i][3]);
+        construction_end = chrono::steady_clock::now();
+        time_construct += std::chrono::duration_cast<std::chrono::milliseconds>(construction_end - construction_start).count();
+
+        // std::cout<<"THe solver is being solved\n"; 
+        // std::cout<<"THe matrix has some nonzero components" << H2_mat.nonZeros() <<"\n";
+        construction_start = chrono::steady_clock::now();
+        solverH1.compute(H1_mat);
+        construction_end = chrono::steady_clock::now();
+        time_compute += std::chrono::duration_cast<std::chrono::milliseconds>(construction_end - construction_start).count();
+        // std::cout<<"Solving possible\n";
+      }
+
+      double KB = Energy_constants[i][0];
+      Energy_vals[i] = E_Bending(0.0,KB);
+      // Now i need to compute the original gradient
+      Force_temp = KB*Bending(0.0);
+
+      // double temp_grad = 0;
+      // for(size_t j = 0; j < mesh->nVertices(); j++){
+      //   temp_grad += Force_temp[j].norm2();
+      // }
+      // std::cout<<"Temp grad is " << temp_grad <<" \n";
+      //Now i need to add the constraint
+
+      // I would say the solve considers the construction?
+
+      N_constraints = 3*Energy_constants[i][1]+Energy_constants[i][2]+Energy_constants[i][3];
+      solve_start = chrono::steady_clock::now();
+      Vector<double> RHS = Vector<double>(N_vert*3+N_constraints);
+      for(size_t index = 0; index < mesh->nVertices(); index++){
+        RHS[3*index] = Force_temp[index].x;
+        RHS[3*index+1] = Force_temp[index].y;
+        RHS[3*index+2] = Force_temp[index].z;
+        // std::cout<<"Force temp has magnitude" << Force_temp[index].norm2() <<"and barycentric " << Barycentric_area[index]<<"\n";
+      }
+      // std::cout<<"THe number of constraints is " << N_constraints<<" duh\n";
+      for(int index = 0; index < N_constraints; index++){
+        RHS[3*N_vert+index] = 0.0;
+      }
+      // std::cout<<"The RHS is readyy\n";
+      // std::cout<<"Some components are " << RHS[0] <<" "<< RHS[1] <<" "<< RHS[2] <<" \n";
+      // The RHS is readyy   
+      // std::cout<<"Solving RHS\n";
+      
+      Vector<double> Solution = solverH1.solve(RHS);
+      // std::cout<<"Solved\n";
+      // std::cout<<"The solution is ready\n";
+      // std::cout<<"Some components of the solution are " << Solution[0] <<" "<< Solution[1] <<" "<< Solution[2] <<" \n";
+      // std::cout<<"The forces are ";
+      for(size_t index = 0; index < mesh->nVertices(); index++){
+        Force_temp[index] = Vector3({Solution.coeff(3*index),Solution.coeff(3*index+1),Solution.coeff(3*index+2)});
+        // std::cout<< Force_temp[index].norm2() << " ";
+      }
+      solve_end = chrono::steady_clock::now();
+      time_solve += std::chrono::duration_cast<std::chrono::milliseconds>(solve_end - solve_start).count();
+      
+      // SO i have calculated the new force
+      grad_value = 0;
+      for(size_t j = 0; j < mesh->nVertices(); j++){
+        grad_value+= Force_temp[j].norm2();
+      }
+      // std::cout<<"THe grad value is " << grad_value <<" \n";
+      Gradient_norms.push_back(grad_value);
+      Force+=Force_temp;
+
+      continue;
+
+    }
+    if(Energies[i]=="H2_Surface_tension"){
+      if(!H2_grad){
+        construction_start = chrono::steady_clock::now();
+        
+        H2_grad = true;
+        N_constraints = 3*Energy_constants[i][1]+Energy_constants[i][2]+Energy_constants[i][3];
+
+        // I need to build the sobolev operator
+        // H2_mat = SparseMatrix<double>(N_vert*3+N_constraints,N_vert*3+N_constraints);
+        H2_mat = H2_operator(Energy_constants[i][1],Energy_constants[i][2],Energy_constants[i][3]);
+
+        construction_end = chrono::steady_clock::now();
+        time_construct += std::chrono::duration_cast<std::chrono::milliseconds>(construction_end - construction_start).count();
+
+        construction_start = chrono::steady_clock::now();
+        solverH2.compute(H2_mat);
+        construction_end = chrono::steady_clock::now();
+        time_compute += std::chrono::duration_cast<std::chrono::milliseconds>(construction_end - construction_start).count();
+        
+        // std::cout<<"Solving possible\n";
+      }
+      double sigma = Energy_constants[i][0];
+      A = geometry->totalArea();
+      Energy_vals[i] = A*sigma;
+      Force_temp = sigma*SurfaceGrad();
+
+      // I need to multiply by the mass dont I?
+
+
+      N_constraints = 3*Energy_constants[i][1]+Energy_constants[i][2]+Energy_constants[i][3];
+
+      Vector<double> RHS = Vector<double>(N_vert*3+N_constraints);
+      for (size_t i = 0; i < mesh->nVertices(); i++)
+      {
+        RHS[3*i] = Force_temp[i].x;
+        RHS[3*i+1] = Force_temp[i].y;
+        RHS[3*i+2] = Force_temp[i].z;
+      }
+      for(int index = 0; index < N_constraints; index++){
+        RHS[3*N_vert+index] = 0.0;
+      }
+
+      solve_start = chrono::steady_clock::now();
+      Vector<double> Solution = solverH2.solve(RHS);
+      solve_end = chrono::steady_clock::now();
+      time_solve += std::chrono::duration_cast<std::chrono::milliseconds>(solve_end - solve_start).count();
+
+      for(size_t index = 0; index < mesh->nVertices(); index++){
+        Force_temp[index] = Vector3({Solution.coeff(3*index),Solution.coeff(3*index+1),Solution.coeff(3*index+2)});
+      }
+      
+      
+      
+      grad_value  = 0.0;
+      for(size_t j = 0; j < mesh->nVertices(); j++){
+        grad_value+= Force_temp[j].norm2();
+      }
+      Gradient_norms.push_back(grad_value);
+      Force+=Force_temp;
+      continue;
+
+    }
+
+    if(Energies[i]=="H1_Surface_tension"){
+      if(!H1_grad){
+        construction_start = chrono::steady_clock::now();
+        
+        H1_grad = true;
+        N_constraints = 3*Energy_constants[i][1]+Energy_constants[i][2]+Energy_constants[i][3];
+
+        // I need to build the sobolev operator
+        // H2_mat = SparseMatrix<double>(N_vert*3+N_constraints,N_vert*3+N_constraints);
+        H1_mat = H1_operator(Energy_constants[i][1],Energy_constants[i][2],Energy_constants[i][3]);
+
+        construction_end = chrono::steady_clock::now();
+        time_construct += std::chrono::duration_cast<std::chrono::milliseconds>(construction_end - construction_start).count();
+
+        construction_start = chrono::steady_clock::now();
+        solverH1.compute(H1_mat);
+        construction_end = chrono::steady_clock::now();
+        time_compute += std::chrono::duration_cast<std::chrono::milliseconds>(construction_end - construction_start).count();
+        
+        // std::cout<<"Solving possible\n";
+      }
+      double sigma = Energy_constants[i][0];
+      A = geometry->totalArea();
+      Energy_vals[i] = A*sigma;
+      Force_temp = sigma*SurfaceGrad();
+
+      // I need to multiply by the mass dont I?
+
+
+      N_constraints = 3*Energy_constants[i][1]+Energy_constants[i][2]+Energy_constants[i][3];
+
+      Vector<double> RHS = Vector<double>(N_vert*3+N_constraints);
+      for (size_t i = 0; i < mesh->nVertices(); i++)
+      {
+        RHS[3*i] = Barycentric_area[i]*Force_temp[i].x;
+        RHS[3*i+1] = Barycentric_area[i]*Force_temp[i].y;
+        RHS[3*i+2] = Barycentric_area[i]*Force_temp[i].z;
+      }
+      for(int index = 0; index < N_constraints; index++){
+        RHS[3*N_vert+index] = 0.0;
+      }
+
+      solve_start = chrono::steady_clock::now();
+      Vector<double> Solution = solverH1.solve(RHS);
+      solve_end = chrono::steady_clock::now();
+      time_solve += std::chrono::duration_cast<std::chrono::milliseconds>(solve_end - solve_start).count();
+
+      for(size_t index = 0; index < mesh->nVertices(); index++){
+        Force_temp[index] = Vector3({Solution.coeff(3*index),Solution.coeff(3*index+1),Solution.coeff(3*index+2)});
+      }
+      
+      
+      
+      grad_value  = 0.0;
+      for(size_t j = 0; j < mesh->nVertices(); j++){
+        grad_value+= Force_temp[j].norm2();
+      }
+      Gradient_norms.push_back(grad_value);
+      Force+=Force_temp;
+      continue;
+
+    }
+
+    
+    // Now do we do bead INTERACTIONS 
+
+    if(Energies[i]=="H2_Bead"){
+      //
+    }
+
+
+
   }
+  end = chrono::steady_clock::now();
+
+  time_gradients = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+  
+  
+  // THis is the time it takes for the gradients 
+
+
+
   // std::cout<<" \n";
   //  std::cout<<"The energy vals are ";
   // for(size_t i = 0; i < Energy_vals.size(); i++){
@@ -1911,6 +2699,7 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
 
   
   Vector3 Pos;
+  if(boundary){
   for(Vertex v: mesh->vertices()){
     
     Pos = geometry->inputVertexPositions[v];
@@ -1927,13 +2716,22 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
     Grad_tot_norm+=Force[v].norm2();
     
   }
+  }
 
 
   // F_dist.close();
   // std::cout<<"Moving to backtracking\n";
+  start = chrono::steady_clock::now();
   backtrackstep = Backtracking(Force,Energies,Energy_constants);
-  // std::cout<<"Passed backtracking\n";
+  end = chrono::steady_clock::now();
+  time_backtracking = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
 
+  // OK NOW I HAVE TO save the timings
+
+  std::ofstream Timings = std::ofstream(Bead_data_filenames[Beads.size()],std::ios_base::app);
+  Timings << time_gradients <<" "<< time_backtracking <<" "<< time_construct <<" "<< time_compute <<" "<< time_solve <<" \n";
+  Timings.close();
+  // std::cout<<"The backtrackstep is " << backtrackstep << " \n";
   // After backtracking i have to save.
 
   // 
@@ -1965,6 +2763,18 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
 
   return backtrackstep;
 }
+
+
+double Mem3DG::integrate_implicit(std::vector<std::string> Energies,  std::vector<std::vector<double>> Energy_constants, std::ofstream& Sim_data , double time, std::vector<std::string>Bead_data_filenames, bool Save_output_data){
+
+
+  // Okok what now
+
+  
+
+  return 0.0;
+}
+
 
 
 
@@ -2329,7 +3139,7 @@ E_vol=E_Pressure(D_P,V,V_bar);
 
 
 
-VertexData<Vector3> Calc_grad=OsmoticPressure(D_P);
+VertexData<Vector3> Calc_grad=D_P*OsmoticPressure();
 
 Gradient_file<<Calc_grad[index].x <<" "<<Calc_grad[index].y<<" "<< Calc_grad[index].z<<" \n";
 
@@ -2418,7 +3228,7 @@ Vector3 difference;
 
 E_vol=E_Pressure(D_P,V,V_bar);
 
-VertexData<Vector3> Calc_grad=OsmoticPressure(D_P);
+VertexData<Vector3> Calc_grad=D_P*OsmoticPressure();
 
 dr=1e-6;
 
@@ -3193,8 +4003,188 @@ for(size_t exponent=0;exponent<20;exponent++){
 
 
 
+Eigen::Matrix2d Mem3DG::Face_sizing(Face f){
+  Eigen::Matrix2d Sizing{{0.0,0.0},{0.0,0.0}};
+
+  Eigen::Matrix3d Rotation;
 
 
+  Vector3 Normal1 = geometry->faceNormal(f);
+  Vector3 Axis1({0.0,1.0,0.0});
+  
+  // std::cout<<"THe norm of the normal is " << Normal1.norm2()<<" \n";
+  Eigen::Vector3d Normal{Normal1.x,Normal1.y,Normal1.z};
+  Eigen::Vector3d Axis{Axis1.x ,Axis1.y ,Axis1.z};
+
+  Eigen::Vector3d uvw = Normal.cross(Axis);
+  
+  
+
+  double rcos = Normal.dot(Axis);
+  double rsin = uvw.norm();
+
+  if(rsin>1e-7){
+    uvw/=rsin;
+  }
+
+  // Eigen::Matrix3d V_x{{0, uvw(2), -1*uvw(1) },{-1*uvw(2), 0, uvw(0)},{uvw(1), -1*uvw(0), 0}};
+
+  Eigen::Matrix3d V_x{{0, -1*uvw(2), uvw(1) },{uvw(2), 0, -1*uvw(0)},{-1*uvw(1), uvw(0), 0}};
+
+
+  
+  Rotation = rcos*Eigen::Matrix3d::Identity()+ rsin*V_x+ uvw*uvw.transpose()*(1-rcos);
+
+
+  // We want to compare the outer proudct of two vectors
+  // Eigen::Matrix3d outer{{uvw(0)*uvw(0),uvw(1)*uvw(0),uvw(2)*uvw(0) }, {uvw(0)*uvw(1),uvw(1)*uvw(1),uvw(2)*uvw(1)}, {uvw(0)*uvw(2),uvw(1)*uvw(2),uvw(2)*uvw(2)}};
+
+  // std::cout<<"Outer is \n";
+  // std::cout<<outer <<"\n";
+  // std::cout<<"And the eigen one is "<<" \n";
+  // std::cout<< uvw*uvw.transpose() <<"\n";
+
+  Eigen::Vector3d trial{1.0,5.0,4.0};
+
+  // std::cout<<"v_x is " << V_x << " \n";
+
+  // std::cout<<"Trial has norm  " <<trial.norm() <<" \n";
+
+  trial = Rotation*trial; 
+// 
+  // std::cout<<"Trial has now norm " << trial.norm() << "\n ";
+  // std::cout<<"Trial now is " << trial <<" \n";
+
+
+
+
+  Vector3 Pos;
+  Eigen::Vector3d spare_vec;
+  vector<Eigen::Vector2d> Positions(0);
+  vector<int> index(0);
+
+  for( Vertex v : f.adjacentVertices()){
+
+    Pos = geometry->inputVertexPositions[v];
+    spare_vec = Eigen::Vector3d{Pos.x, Pos.y, Pos.z}; 
+    spare_vec = Rotation * spare_vec;
+    index.push_back(v.getIndex());
+    Positions.push_back({spare_vec(0),spare_vec(2)});
+    // std::cout<<"THe y pos is " << spare_vec(1) <<"\t";
+
+  }
+  // std::cout<<"\n";
+
+  // std::cout<<"The order is " << index[0] << " then " << index[1] << "then " << index[2]<<" \n";
+
+  int counter = 0;
+  for( Edge e : f.adjacentEdges()){
+
+    // std::cout<<"The original edgelength is " << geometry->edgeLength(e) << " \n";
+    
+
+    Eigen::Vector2d e_mat = Positions[(counter+1)%3]-Positions[counter%3];
+    
+    // std::cout<<"THe projected length is " << e_mat.norm() << " \n";
+
+
+    Eigen::Vector2d t_mat{ -1*e_mat(1), e_mat(0)};
+    t_mat.normalize();
+
+
+    double theta = geometry->dihedralAngle(e.halfedge());
+    if(e.halfedge().face() != f){
+      theta = geometry->dihedralAngle(e.halfedge().twin());
+    }
+
+    Sizing -= 1/2. * theta * e_mat.norm() * t_mat*t_mat.transpose();
+    
+    
+    counter+=1;
+
+
+  }
+
+  Sizing/= geometry->faceArea(f);
+
+  return Sizing;
+}
+
+
+FaceData<double> Mem3DG::Face_sizings(){
+
+  FaceData<double> sizing(*mesh,0.0);
+  double aspect_min = 0.2;
+  double refine_angle = 0.7;
+
+  // Lets create the face sizing
+  Eigen::Matrix2d Face_sizing_mat{{0.0,0.0},{0.0,0.0}};
+  Eigen::EigenSolver<Eigen::Matrix2d> Solve;
+  Eigen::Vector2d eigenvals;
+
+  for(Face f : mesh->faces()){
+    // For every face i need to do the sizing thingy
+    Face_sizing_mat = Face_sizing(f) ;
+
+    Face_sizing_mat = Face_sizing_mat.transpose()* Face_sizing_mat/(refine_angle * refine_angle);
+
+    Solve.compute(Face_sizing_mat);
+
+    eigenvals = Solve.eigenvalues().real();
+
+    // 
+    for(int i = 0; i <2  ;i++) eigenvals[i] = clamp(eigenvals[i],1.f/(0.2*0.2), 1.f/(0.001*0.001));
+
+    double lmax = std::max(eigenvals[0]  ,eigenvals[1]);
+    double lmin = lmax * aspect_min * aspect_min;
+
+    for(int i = 0; i <2; i++) if(eigenvals[i] < lmin ) eigenvals[i] = lmin;
+
+    
+    sizing[f.getIndex()] = std::max( fabs(eigenvals[0]),fabs(eigenvals[1]));
+
+  }
+
+
+
+
+  return sizing;
+
+
+}
+
+
+VertexData<double> Mem3DG::Vert_sizing(FaceData<double> Face_sizings){
+
+  VertexData<double> sizing(*mesh,0.0);
+
+  // We need to create the vertsizing first.
+  // WE have the sizing of every face
+  for(Vertex v : mesh->vertices()){
+    double sum = 0.0;
+    for(Face f : v.adjacentFaces()){
+      sum += Face_sizings[f]*geometry->faceArea(f)/3.;
+    }
+    sizing[v] = sum/geometry->vertexDualArea(v);
+  }
+
+
+  return sizing;
+}
+
+EdgeData<double> Mem3DG::Edge_sizing(VertexData<double> Vert_sizings){
+
+  EdgeData<double> sizing(*mesh,0.0);
+
+  Vertex v1;
+  Vertex v2;
+  for(Edge e: mesh->edges()){
+    v1 = e.halfedge().vertex();
+    v2 = e.halfedge().next().vertex();
+    sizing[e] = geometry->edgeLength(e)*std::sqrt((Vert_sizings[v1]+Vert_sizings[v2])/2.0);
+  }
+  return sizing;
+}
 
 bool Mem3DG::Area_sanity_check(){
   bool all_positive=true;

@@ -87,6 +87,9 @@ class VertexPositionGeometry : public EmbeddedGeometryInterface {
     SparseMatrix<double> laplaceMatrix() const;
     SparseMatrix<double> laplaceMatrix2() const;
     SparseMatrix<double> laplaceMatrix3d() const ;
+
+    SparseMatrix<double> uniformlaplacianMatrix() const;
+
     SparseMatrix<double> NormalFlowMat() const;
     SparseMatrix<double> NormalFlowMatx() const;
     SparseMatrix<double> NormalFlowMaty() const;

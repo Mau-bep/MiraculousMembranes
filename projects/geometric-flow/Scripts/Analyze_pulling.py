@@ -545,19 +545,22 @@ def fit2():
 
 
     # plt.plot(x_fit,y_fit,ls='dashed',color='magenta',label=" {}".format(p[0]))
-    plt.plot(x_fit,y_fit2,ls='dashed',color='purple', label = r"$\sigma = 0.05$")
-    plt.plot(x_fit,y_fit3,ls='dashed',color='magenta', label = r"$\sigma = 0.1$")
-    plt.plot(x_fit,y_fit4,ls='dashed',color='pink', label = r"$\sigma = 0.025$")
+    
+    plt.plot(x_fit,y_fit4,ls='dashed',color='pink', label = r"""$\sigma = 0.025$""")
+    plt.plot(x_fit,y_fit2,ls='dashed',color='black', label = r'$\sigma = 0.05$')
+    plt.plot(x_fit,y_fit3,ls='dashed',color='magenta', label = r'$\sigma = 0.1$')
     
     plt.scatter(Strengths,radius,color='black')
     print(Strengths1)
     print(radius1)
     plt.scatter(Strengths1,radius1,color="pink")
-    plt.scatter(Strengths2,radius2,color="magenta")
+    plt.scatter(Strengths2[1:],radius2[1:],color="magenta")
+    
+    plt.xlabel(r'$K_{B}$',usetex =True,fontsize=20.0)
+    plt.ylabel(r'$r$', usetex = True,fontsize=20.0)
+
+    plt.legend(fontsize=12)
     plt.savefig(folder_path_growth+"Fit_radius_curve.png",bbox_inches='tight')
-    plt.xlabel("Kb",fontsize=15.0)
-    plt.ylabel("Tube radius",fontsize=15.0)
-    plt.legend()
     plt.show()
 
 

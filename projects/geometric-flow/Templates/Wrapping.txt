@@ -1,7 +1,7 @@
 {
     "init_file": "../../../input/disk_init.obj",
-    "save_interval": 500,
-    "timesteps": 500000,
+    "save_interval": 200,
+    "timesteps": 200000,
     "continue_sim": false,
     "resize_vol": false,
     "arcsim": true,

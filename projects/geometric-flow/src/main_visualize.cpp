@@ -69,7 +69,17 @@ VertexPositionGeometry* geometry;
 
 
 
+arcsim::Cloth Cloth_1;
+arcsim::Cloth::Remeshing remeshing_params;
+
+
+SimplePolygonMesh Saved_mesh;
+
 std::vector<arcsim::Mesh> Saved_meshes(6);
+int counter_saved = 0;
+std::vector<Vector3> Saved_beadpos(6);
+VertexData<Vector3> Saved_vertex_positions;
+
 std::vector<arcsim::Mesh> Saved_after_remesh(6);
 
 
@@ -108,8 +118,48 @@ Vector3 CoM;                   // original center of mass
 
 
 Mem3DG M3DG;
+
+std::vector<Bead> Beads;
+std::vector<std::string> bonds;
+std::vector<std::vector<double>> constants;
+
 Bead Bead_1;
 Bead Bead_2;
+
+
+std::vector<std::string> Energies(0);
+std::vector<std::vector<double>> Energy_constants(0);
+std::vector<double> Constants(0);
+std::ofstream Sim_data;
+std::vector<std::string> Bead_filenames;
+std::ofstream Bead_datas;
+
+
+
+polyscope::SurfaceMesh* psMesh;
+double TOTAL_ANGLE_DEFECT;
+size_t EULER_CHARACTERISTIC;
+
+std::map<int, std::vector<std::array<double, 3>>> sColors;
+std::map<int, std::vector<std::array<double, 3>>> sColors2;
+
+polyscope::SurfaceVertexColorQuantity* vertexColors;
+polyscope::SurfaceFaceColorQuantity* faceColors;
+
+enum shadeTpe{ sSHADED,sVertsizing, sFacesizing};
+std::vector<std::string> sNames = {"Off", "VertSizing", "FaceSizing"};
+
+
+VertexData<double> Vert_sizings;
+FaceData<double> Face_sizings;
+EdgeData<double> Edge_sizings;
+std::vector<std::array<double,3>> Vert_sizing_C;
+std::vector<std::array<double,3>> F_sizings_C;
+std::vector<std::array<double,3>> shaded_C;
+
+double scaling_factor = 1.0;
+
+
 
 std::array<double, 3> BLUE = {0.11, 0.388, 0.89};
 // glm::vec<3, float> ORANGE_VEC = {1, 0.65, 0};
@@ -120,6 +170,10 @@ void showSelected() {
     // pass
 }
 
+void redraw() {
+    psMesh->updateVertexPositions(geometry->inputVertexPositions);
+    polyscope::requestRedraw();
+}
 
 
 void Save_mesh(std::string basic_name, size_t current_t) {
@@ -354,6 +408,56 @@ SimplePolygonMesh simpleMesh;
                     std::unique_ptr<VertexPositionGeometry>>(std::move(std::get<0>(lvals)),  // mesh
                                                              std::move(std::get<1>(lvals))); // geometry
 }
+
+SimplePolygonMesh save_geometry( ManifoldSurfaceMesh* mesh, VertexPositionGeometry* geometry){
+
+SimplePolygonMesh simpleMesh;
+
+    // std::cout<<"This is being called\n";
+//   processLoadedMesh(simpleMesh, loadType);
+    Vector3 v_pos;
+    
+    vector<int> flags(0);
+    for(Vertex v: mesh->vertices()){
+        v_pos = geometry->inputVertexPositions[v];
+        simpleMesh.vertexCoordinates.push_back(v_pos);
+    }
+
+    // }
+    int id1;
+    int id2;
+    int id3;
+
+
+    bool non_manifold = false;
+
+    for(Face f: mesh->faces()){
+        std::vector<size_t> polygon(3);
+
+        Halfedge he = f.halfedge();
+        id1 = he.vertex().getIndex();
+        he = he.next();
+        id2 = he.vertex().getIndex();
+        he = he.next();
+        id3 = he.vertex().getIndex();
+        polygon[0] = id1;
+        polygon[1] = id2;
+        polygon[2] = id3;
+
+        simpleMesh.polygons.push_back(polygon);
+    }
+
+    return simpleMesh;
+    // std::cout<<"Does this happen after loading the data to create the mesh?\n";
+    // std::cout<<" THe information in the mesh is, "<< simpleMesh.vertexCoordinates.size()<<"number of vertices\n";
+//   auto lvals = makeManifoldSurfaceMeshAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
+ 
+//  return std::tuple<std::unique_ptr<ManifoldSurfaceMesh>,
+                    // std::unique_ptr<VertexPositionGeometry>>(std::move(std::get<0>(lvals)),  // mesh
+                                                            //  std::move(std::get<1>(lvals))); // geometry
+}
+
+
 std::vector<std::string> split(std::string s, std::string delimiter) {
     size_t pos_start = 0, pos_end, delim_len = delimiter.length();
     std::string token;
@@ -409,6 +513,254 @@ Vector3 Get_bead_pos(std::string filename, int step){
 }
 
 
+void Remesh(){
+       int n_vert_old=0;
+            int n_vert_new=0;
+
+            n_vert_old  =  mesh->nVertices();
+            double dih;
+            double small_Ts;
+            double sys_time;
+
+
+            double avg_dih1;
+            double max_dih1 = 0.0;
+            double min_dih1 = 1e2;
+            double avg_dih2;
+            double max_dih2 = 0.0;
+            double min_dih2 = 1e2;
+            // M3DG.Smooth_vertices();
+            avg_dih2 = 0.0;
+            avg_dih1 = 0.0;
+
+            for( Edge e : mesh->edges()){ 
+                dih = fabs(geometry->dihedralAngle(e.halfedge()));
+                avg_dih1+=dih;
+                if(dih > max_dih1) max_dih1 = dih;
+                if(dih < min_dih1) min_dih1 = dih;
+                }
+            // std::cout<<"The average dihedral is"<< avg_dih/mesh->nEdges()<<" \n";
+            // std::cout<<"The min dih is"<< min_dih << " and the max dih is " << max_dih <<" \n";
+            // avg_dih =0.0;
+            avg_dih1 = avg_dih1/mesh->nEdges();
+
+
+            arcsim::Mesh remesher_mesh2 = translate_to_arcsim(mesh,geometry);
+            Cloth_1.mesh=remesher_mesh2;
+            
+            Cloth_1.remeshing=remeshing_params;
+            arcsim::compute_masses(Cloth_1);
+            arcsim::compute_ws_data(Cloth_1.mesh);
+            arcsim::dynamic_remesh(Cloth_1);
+            
+               
+            small_Ts = M3DG.small_TS;
+            sys_time = M3DG.system_time;
+
+            delete mesh;
+            delete geometry;
+            
+            std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
+            arcsim::delete_mesh(Cloth_1.mesh);
+
+            mesh = mesh_uptr.release();
+            geometry = geometry_uptr.release();
+            
+            
+            M3DG.mesh = mesh;
+            M3DG.geometry = geometry;
+            
+
+            for( Edge e : mesh->edges()){ 
+                dih = fabs(geometry->dihedralAngle(e.halfedge()));
+                avg_dih2+=dih;
+                if(dih > max_dih2) max_dih2 = dih;
+                if(dih < min_dih2) min_dih2 = dih;
+                }
+            
+            avg_dih2 = avg_dih2/mesh->nEdges();
+            
+            n_vert_new = mesh->nVertices();
+
+
+            for(size_t i = 0 ; i<Beads.size(); i++){
+                Beads[i].Reasign_mesh(mesh,geometry);
+            }
+
+            if( abs(n_vert_new-n_vert_old)>= 300){
+                std::cout<<"The change in the number of vertices is "<< n_vert_new-n_vert_old <<" \n";
+                std::cout<<"Which is clearly too big :P \n";    
+                // break;
+            }
+
+            geometry->requireVertexPositions();
+            psMesh = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions,mesh->getFaceVertexList());
+
+            return;
+
+        }
+
+
+
+void computeColors(){
+
+    Face_sizings = M3DG.Face_sizings();
+    Vert_sizings = M3DG.Vert_sizing(Face_sizings);
+
+    double F_sizing_max = 0.0;
+    double V_sizing_max = 0.0;
+
+    double F_sizing_min = 1e3;
+    double V_sizing_min = 1e3;
+
+    for(Vertex v: mesh->vertices()){
+        if(Vert_sizings[v] > V_sizing_max ) V_sizing_max = Vert_sizings[v];
+        if(Vert_sizings[v] < V_sizing_min ) V_sizing_min = Vert_sizings[v]; 
+    }
+    for(Face f: mesh->faces()){
+        if(Face_sizings[f] > F_sizing_max ) F_sizing_max = Face_sizings[f];
+        if(Face_sizings[f] < F_sizing_min ) F_sizing_min = Face_sizings[f]; 
+    }
+    
+    // We have the min and the max
+
+    for(Vertex v: mesh->vertices()){
+
+        shaded_C.push_back({1.0, 0.45, 0.0});
+
+        // Vert_sizing_C.push_back(mapToColor(Vert_sizings[v],V_sizing_min,V_sizing_max,"viridis"));
+
+
+
+    }
+
+
+}
+
+
+static const ImVec4 pressColor = ImColor::HSV(1. / 7.0f, 0.6f, 0.6f); // gold
+static const ImVec4 releaseColor{0.35f, 0.61f, 0.49f, 0.62f};         // default green
+
+static ImVec4 off_currColor = pressColor;
+static ImVec4 V_sizing_currColor = releaseColor;
+static ImVec4 F_sizing_currColor = releaseColor;
+
+std::vector<ImVec4*> sState = {&off_currColor, &V_sizing_currColor, &F_sizing_currColor};
+
+
+void functionCallback() {
+
+    ImGui::Text("Total angle defect: %0.1fpi", TOTAL_ANGLE_DEFECT / M_PI);
+    ImGui::Text("Euler characteristic: %zu", EULER_CHARACTERISTIC);
+    ImGui::Text("");
+
+    if(ImGui::Button("Remesh")){
+        Remesh();
+        redraw();
+    }
+
+    ImGui::PushStyleColor(ImGuiCol_Button, *sState[0]);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, *sState[0]);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, *sState[0]);
+    
+   if (ImGui::Button("Vertex Sizing")) {
+    Face_sizings = M3DG.Face_sizings();
+    Vert_sizings = M3DG.Vert_sizing(Face_sizings);
+    psMesh->addVertexScalarQuantity("Vert sizing", Vert_sizings);
+//         vertexColors = psMesh->addVertexColorQuantity("Plot", Vert_sizings);
+//         // for (size_t j = 0; j < sColors.size(); j++) {
+//             // *sState[j] = i == j ? pressColor : releaseColor;
+        
+        }
+    if(ImGui::Button("Face Sizing")){
+        Face_sizings = M3DG.Face_sizings();
+        psMesh->addFaceScalarQuantity("Face sizing", Face_sizings);
+    }
+    if(ImGui::Button("Edge sizing")){
+        Face_sizings = M3DG.Face_sizings();
+        Vert_sizings = M3DG.Vert_sizing(Face_sizings);    
+        Edge_sizings = M3DG.Edge_sizing(Vert_sizings);
+        psMesh->addEdgeScalarQuantity("Edge sizing", Edge_sizings);
+
+    }
+    if(ImGui::Button("Save current state")){
+
+        Saved_mesh = save_geometry(mesh,geometry);
+
+        // Here i need the state and the vectors
+        std::cout<<"THis button is being pressed\n";
+        // arcsim::delete_mesh(Saved_meshes[0]);
+        // Saved_vertex_positions = geometry->inputVertexPositions;
+        // arcsim::Mesh remesher_mesh2 = translate_to_arcsim(mesh,geometry);
+        // Saved_meshes[0] =  arcsim::deep_copy(remesher_mesh2);
+        Saved_beadpos[0] = Beads[0].Pos;
+        // std::cout<<"Saved mesh in a state\n";
+
+    }
+    if(ImGui::Button("Reload saved state")){
+
+        std::cout<<"reloading\n";
+        delete mesh;
+        delete geometry;
+        std::cout<<"deleted\n";
+        
+        auto lvals = makeManifoldSurfaceMeshAndGeometry(Saved_mesh.polygons, Saved_mesh.vertexCoordinates);
+
+ 
+        std::tie(mesh_uptr, geometry_uptr) = std::tuple<std::unique_ptr<ManifoldSurfaceMesh>,
+                    std::unique_ptr<VertexPositionGeometry>>(std::move(std::get<0>(lvals)),  // mesh
+                                                             std::move(std::get<1>(lvals))); 
+
+        std::cout<<"reassigned\n";
+        
+        mesh = mesh_uptr.release();
+        geometry = geometry_uptr.release();
+            
+            
+        M3DG.mesh = mesh;
+        M3DG.geometry = geometry;
+        std::cout<<"deleted\n";
+        Beads[0].Pos = Saved_beadpos[0]; 
+        geometry->requireVertexPositions();
+        std::cout<<"relocated\n";
+        psMesh = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions,mesh->getFaceVertexList());
+        std::cout<<"re registered\n";
+    }
+
+
+    // scaling_factor = 1.0;
+    ImGui::InputDouble("Scaling_factor", &scaling_factor);
+    if(ImGui::Button("Rescale mesh ")){
+        for(Vertex v: mesh->vertices()){
+            geometry->inputVertexPositions[v]*=scaling_factor;
+        }
+
+        geometry->refreshQuantities();
+        psMesh->updateVertexPositions(geometry->inputVertexPositions);
+    }
+
+
+
+    if(ImGui::Button("Step flow")){
+        dt_sim = M3DG.integrate(Energies, Energy_constants , Sim_data, 0.0, Bead_filenames, Save_output_data);
+        
+        // M3DG.integrate()
+    }
+
+//     }
+//     ImGui::PopStyleColor(3);
+//     ImGui::SameLine();
+
+
+
+
+}
+
+
+
+
+
+
 
 int main(int argc, char** argv) {
 
@@ -449,9 +801,7 @@ int main(int argc, char** argv) {
     V_bar = geometry->totalVolume();
 
     // We will deal with the energies now
-    std::vector<std::string> Energies(0);
-    std::vector<std::vector<double>> Energy_constants(0);
-    std::vector<double> Constants(0);
+    
 
 
 
@@ -466,9 +816,7 @@ int main(int argc, char** argv) {
         Constants.resize(0);
     }
     
-    std::vector<Bead> Beads;
-    std::vector<std::string> bonds;
-    std::vector<std::vector<double>> constants;
+   
 
     Vector3 BPos;
     double radius;
@@ -540,8 +888,8 @@ int main(int argc, char** argv) {
 
 
 
-    arcsim::Cloth Cloth_1;
-    arcsim::Cloth::Remeshing remeshing_params;
+    // arcsim::Cloth Cloth_1;
+    // arcsim::Cloth::Remeshing remeshing_params;
 
     if(arcsim){
         // You can make this only one function but you need to write the code for json helpers
@@ -624,28 +972,30 @@ int main(int argc, char** argv) {
     }
     std::cout<<"My algorithm says\n";
     std::cout<<"The max sizing is " << max_sizing << " and the min sizing is " << min_sizing <<" \n";
-    arcsim::Mesh remesher_mesh = translate_to_arcsim(mesh,geometry);
-    Cloth_1.mesh = remesher_mesh;
-    Cloth_1.remeshing = remeshing_params; 
-    arcsim::compute_masses(Cloth_1);
-    arcsim::compute_ws_data(Cloth_1.mesh);
-
-    std::cout<<"ARCSIM says \n";
-    arcsim::dynamic_remesh(Cloth_1);
-
-
-    std::cout<<" \n\n";
-
-
-    return 1;
-
-    delete mesh;
-    delete geometry;
     
-    std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
-    arcsim::delete_mesh(Cloth_1.mesh);
-    mesh = mesh_uptr.release();
-    geometry = geometry_uptr.release();
+    
+    // arcsim::Mesh remesher_mesh = translate_to_arcsim(mesh,geometry);
+    // Cloth_1.mesh = remesher_mesh;
+    // Cloth_1.remeshing = remeshing_params; 
+    // arcsim::compute_masses(Cloth_1);
+    // arcsim::compute_ws_data(Cloth_1.mesh);
+
+    // std::cout<<"ARCSIM says \n";
+    // arcsim::dynamic_remesh(Cloth_1);
+
+
+    // std::cout<<" \n\n";
+
+
+    // return 1;
+
+    // delete mesh;
+    // delete geometry;
+    
+    // std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
+    // arcsim::delete_mesh(Cloth_1.mesh);
+    // mesh = mesh_uptr.release();
+    // geometry = geometry_uptr.release();
 
     M3DG.mesh = mesh;
     M3DG.geometry = geometry;
@@ -734,13 +1084,18 @@ int main(int argc, char** argv) {
 
     std::string filename = basic_name+"Output_data.txt";
 
-    std::ofstream Sim_data(filename);
+
+    Sim_data = std::ofstream(filename);
     Sim_data<<"T_Volume T_Area time Volume Area E_vol E_sur E_bend grad_norm backtrackstep\n";
     Sim_data.close();
 
+    std::cout<<"Here1\n";
 
-    std::vector<std::string> Bead_filenames;
-    std::ofstream Bead_datas;
+    // std::vector<std::string> Bead_filenames;
+    // std::ofstream Bead_datas;
+    
+
+    std::cout<<"Here2\n";
 
     
 
@@ -752,12 +1107,18 @@ int main(int argc, char** argv) {
         Bead_datas.close();
     }
 
+    
+    std::cout<<"Here3\n";
+
     // Here
 
     Bead_filenames.push_back(basic_name+ "Simulation_timings.txt");
     Bead_datas = std::ofstream(Bead_filenames[Beads.size()]);
     Bead_datas <<"Remeshing_time Gradients Backtracking  Construction compute Solve \n";
     Bead_datas.close();
+
+
+    std::cout<<"Here4\n";
 
 
     std::string filename2 = basic_name + "Bead_data.txt";
@@ -788,6 +1149,8 @@ int main(int argc, char** argv) {
 
 
 
+    std::cout<<"Here5\n";
+
     bool seam = false;
     Cloth_1.dump_info = false;
     start = chrono::steady_clock::now();
@@ -808,6 +1171,42 @@ int main(int argc, char** argv) {
     std::ofstream EdgeLengths(basic_name+"edgelengths.txt");
     EdgeLengths << "## THE EVOLUTION OF THE EDGE LENGTHS\n";
     EdgeLengths.close();
+
+
+    
+
+    // Here we start the polyscope thingy
+    // We need a remesh function tho 
+
+
+    std::cout<<"Here6\n";
+
+    polyscope::init();
+    TOTAL_ANGLE_DEFECT = geometry->totalAngleDefect();
+    EULER_CHARACTERISTIC = geometry->eulerCharacteristic();
+
+    polyscope::state::userCallback = functionCallback;
+    geometry->requireVertexPositions();
+
+    psMesh = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions,mesh->getFaceVertexList());
+
+
+    std::cout<<"Here7\n";
+
+    psMesh->setSmoothShade(true);
+    psMesh->setSurfaceColor({1.0, 0.45, 0.0});
+    
+    polyscope::show();
+
+
+
+
+
+
+
+
+    return 1;
+
 
 
 

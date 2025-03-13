@@ -22,6 +22,10 @@
 #include "geometrycentral/surface/remeshing.h"
 
 
+#include "geometrycentral/surface/simple_polygon_mesh.h"
+#include "geometrycentral/surface/surface_mesh_factories.h"
+
+
 #include <chrono>
 
 
@@ -34,6 +38,25 @@
 
 // #include "Mem-3dg.h"
 #include "Mem-3dg_implicit.h"
+#include "Beads.h"
+#include "math.h"
+
+
+
+#include "libarcsim/include/cloth.hpp"
+#include "libarcsim/include/collision.hpp"
+#include "libarcsim/include/mesh.hpp"
+#include "libarcsim/include/dynamicremesh.hpp"
+
+#include "io.hpp"
+#include "simulation.hpp"
+#include "conf.hpp"
+#include "log.hpp"
+
+
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+
 
 using namespace geometrycentral;
 using namespace geometrycentral::surface;
@@ -67,8 +90,8 @@ float c0;
 
 
 float P0=10000.0;
-float KA=1.0000;
-float KB=0.000001;
+float KA=10;
+float KB=10.0;
 float Kd=0.0;
 double TS=0.0001;
 
@@ -93,7 +116,7 @@ void showSelected() {
 void Save_mesh(std::string basic_name, size_t current_t) {
    // Build member variables: mesh, geometry
     Vector3 Pos;
-    std::ofstream o(basic_name+"Membrane_"+std::to_string(current_t)+".obj");
+    std::ofstream o(basic_name+"membrane_"+std::to_string(current_t)+".obj");
     o << "#This is a meshfile from a saved state\n" ;
 
     for(Vertex v : mesh->vertices()) {
@@ -166,17 +189,156 @@ int Last_step(std::string base_dir){
     return max_index;
 }
 
+arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh* mesh, VertexPositionGeometry* geometry){
+
+    arcsim::Mesh mesh1;
+    // std::cout<< mesh1.verts.size()<<" number of vertices\n";
+
+    // std::cout<<"Adding vertices?\n";
+    for (size_t v = 0; v < mesh->nVertices(); v++) {
+            // const Vert *vert0 = mesh0.verts[v];
+            Vector3 pos_orig= geometry->inputVertexPositions[v];
+            arcsim::Vec3 pos;
+            pos[0]=pos_orig.x;
+            pos[1]=pos_orig.y;
+            pos[2]=pos_orig.z;
+            arcsim::Vert *vert1 = new arcsim::Vert(pos, 1,0);
+            mesh1.add(vert1);
+            
+    }
+
+    // std::cout<<"Adding nodes?\n";
+    for (size_t v = 0; v < mesh->nVertices(); v++) {
+            // const Vert *vert0 = mesh0.verts[v];
+            Vector3 pos_orig= geometry->inputVertexPositions[v];
+            arcsim::Vec3 pos;
+            pos[0]=pos_orig.x;
+            pos[1]=pos_orig.y;
+            pos[2]=pos_orig.z;
+            // arcsim::Vert *vert1 = new arcsim::Vert(pos, 0, 1);
+            // mesh1.add(vert1);
+            arcsim::Node *node1 = new arcsim::Node(pos, pos, pos, 0, false);
+            node1->preserve = false;
+            node1->temp = false;
+            node1->temp2 = false;
+            node1->verts.resize(1);
+            node1->verts[0] = mesh1.verts[v];
+            
+            mesh1.add(node1);
+            // mesh1.add(new arcsim::Node(pos,
+            //                      pos,
+            //                      pos,
+            //                      0,false));
+            // mesh1.verts[v]->node=mesh1.nodes[v];
+            // arcsim::include(mesh1.verts[v],mesh1.nodes[v]->verts);
+            // mesh1.nodes[v]->verts.push_back(mesh1.verts[v]);
+    }
+
+
+    // std::cout<<"Adding edges?\n";
+    for (size_t e = 0; e<mesh->nEdges();e++){
+        Edge e_orig= mesh->edge(e);
+
+        arcsim::Edge *edge1 = new arcsim::Edge(mesh1.nodes[e_orig.firstVertex().getIndex()],mesh1.nodes[e_orig.secondVertex().getIndex()],0);
+        mesh1.add(edge1);
+
+    }
+    
+    
+
+
+
+    // std::cout<<"Adding faces?\n";
+    for(size_t f = 0; f< mesh->nFaces(); f++){
+    Face f_orig = mesh->face(f);
+    Halfedge he = f_orig.halfedge();
+    arcsim::Face *face1 = new arcsim::Face(mesh1.verts[he.vertex().getIndex()],mesh1.verts[he.next().vertex().getIndex()],mesh1.verts[he.next().next().vertex().getIndex()],0,0 );        
+
+    mesh1.add(face1);
+
+    }
+
+    // std::cout<<"computing data?\n";
+    arcsim::compute_ms_data(mesh1);
+
+
+
+    mesh1.numComponents = 1;
+    
+    
+
+    // std::cout<<"done translating\n";
+    return mesh1;
+}
+
+
+
+std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
+translate_to_geometry(arcsim::Mesh mesh){
+
+SimplePolygonMesh simpleMesh;
+
+    // std::cout<<"This is being called\n";
+//   processLoadedMesh(simpleMesh, loadType);
+    Vector3 v_pos;
+    
+    vector<int> flags(0);
+
+    for(size_t v = 0 ; v < mesh.verts.size(); v++){
+        arcsim::Vec3 pos_old = mesh.nodes[v]->x;
+        
+        v_pos.x=pos_old[0];
+        v_pos.y=pos_old[1];
+        v_pos.z=pos_old[2];
+             
+        
+        simpleMesh.vertexCoordinates.push_back(v_pos);
+    }
+
+    // }
+    int id1;
+    int id2;
+    int id3;
+
+
+    bool non_manifold = false;
+    for(size_t f = 0 ; f < mesh.faces.size();f++){
+        
+        std::vector<size_t> polygon(3);
+        
+        id1 = mesh.faces[f]->v[0]->index;
+        id2 = mesh.faces[f]->v[1]->index;
+        id3 = mesh.faces[f]->v[2]->index;
+
+       
+        polygon[0] = id1;
+        polygon[1] = id2;
+        polygon[2] = id3;
+        
+        simpleMesh.polygons.push_back(polygon);
+        
+    }
+    
+    // std::cout<<"Does this happen after loading the data to create the mesh?\n";
+    // std::cout<<" THe information in the mesh is, "<< simpleMesh.vertexCoordinates.size()<<"number of vertices\n";
+  auto lvals = makeManifoldSurfaceMeshAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
+ 
+ return std::tuple<std::unique_ptr<ManifoldSurfaceMesh>,
+                    std::unique_ptr<VertexPositionGeometry>>(std::move(std::get<0>(lvals)),  // mesh
+                                                             std::move(std::get<1>(lvals))); // geometry
+}
 
 int main(int argc, char** argv) {
 
     int Nsim;
-    nu=std::stod(argv[1]);
+    // nu=std::stod(argv[1]);
     // c0=std::stod(argv[2]);
-    // KA=std::stod(argv[3]);
-    // KB=std::stod(argv[4]);
-    // nu=1.0;
-    KA=10.0;
-    KB=0.005;
+    KA=std::stod(argv[1]);
+    KB=std::stod(argv[2]);
+    nu=0.650;
+    // KA=50;
+    // KB=10.0;
+    Nsim = std::stoi(argv[3]);
     double init_step=0.0;
     // I will do it so i can give this values
  
@@ -184,14 +346,29 @@ int main(int argc, char** argv) {
     auto end = chrono::steady_clock::now();
     
 
-    
+    bool Save_output_data=true;
     TS=pow(10,-4);
+
+
+
+    arcsim::Cloth Cloth_1;
+    arcsim::Cloth::Remeshing remeshing_params;
+
+    remeshing_params.aspect_min = 0.4;
+    remeshing_params.refine_angle = 0.6;
+    remeshing_params.refine_compression = 1.0;
+    remeshing_params.refine_velocity = 1.0;
+    remeshing_params.size_max = 0.1;
+    remeshing_params.size_min = 0.001;   
 
 
     std::cout<< "Current path is " << argv[0];
 
-    // std::string filepath = "../../../input/deformed_sphere_2.obj";
+    // std::string filepath = "../../../input/Pushed_sphere_v_regular.obj";
     std::string filepath = "../../../input/Simple_cil_regular.obj";
+    // std::string filepath = "../../../input/bloodcell.obj";
+
+    // std::string filepath = "../Results/Mem3DG_Cell_Shape_KB_evol_flip/nu_0.625_c0_0.000_KA_10.000_KB_0.010000_init_cond_2_Nsim_11/Final_state.obj";
     // Load mesh
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
     mesh = mesh_uptr.release();
@@ -203,18 +380,26 @@ int main(int argc, char** argv) {
     // Initialize operators.
   
     
-
     ORIG_VPOS = geometry->inputVertexPositions;
     CoM = geometry->centerOfMass();
     
-    // MCF = MeanCurvatureFlow(mesh, geometry);
-    // ModMCF = ModifiedMeanCurvatureFlow(mesh, geometry);
-    // NF =NormalFlow(mesh, geometry);
-    // GCF = GaussCurvatureFlow(mesh, geometry);
-    // WF = WillmoreFlow(mesh,geometry);
-    // WF2 = WillmoreFlow2(mesh,geometry);
-    // WFS = WillmoreFlowScho(mesh,geometry);
- 
+    
+    
+    arcsim::Mesh remesher_mesh = translate_to_arcsim(mesh,geometry);
+    Cloth_1.mesh = remesher_mesh;
+    Cloth_1.remeshing = remeshing_params; 
+    arcsim::compute_masses(Cloth_1);
+    arcsim::compute_ws_data(Cloth_1.mesh);
+    arcsim::dynamic_remesh(Cloth_1);
+    delete mesh;
+    delete geometry;
+
+    std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
+    arcsim::delete_mesh(Cloth_1.mesh);
+    mesh = mesh_uptr.release();
+    geometry = geometry_uptr.release();
+
+
     IM3DG = IMem3DG(mesh,geometry);
 
     // Add visualization options.
@@ -245,7 +430,7 @@ int main(int argc, char** argv) {
     Curv_adapstream << std::fixed << std::setprecision(2) << Curv_adap;
     Min_rel_lengthstream << std::fixed << std::setprecision(2) <<Min_rel_length;
     
-    std::string first_dir="../Results/Implicit/";
+    std::string first_dir="../Results/Sobolev/";
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"If this name is 0 the directory was created succesfully "<< status ;
 
@@ -253,17 +438,17 @@ int main(int argc, char** argv) {
     // status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     // std::cout<<"\nIf this name is 0 the directory was created succesfully "<< status ;
     
-    std::string basic_name =first_dir+"nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"/";
+    std::string basic_name =first_dir+"nu_"+nustream.str()+"_c0_"+c0stream.str()+"_KA_"+KAstream.str()+"_KB_"+KBstream.str()+"_Nsim"+std::to_string(Nsim)+"/";
     status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     std::cout<<"\nIf this number is 0 the directory was created succesfully "<< status<<"\n" ;
 
     std::string filename = basic_name+"Output_data.txt";
 
-    std::ofstream Sim_data;
+    std::ofstream Sim_data(filename);
 
     // Sim_data=std::ofstream(filename);
-    // Sim_data<<"T_Volume T_Area time Volume Area E_vol E_sur E_bend grad_norm backtrackstep\n";
-    
+    Sim_data<<"T_Volume T_Area time Volume Area E_bend grad_norm backtrackstep\n";
+    Sim_data.close();
     // Here i want to run my video
     size_t n_vert;
     size_t n_vert_old;
@@ -280,11 +465,40 @@ int main(int argc, char** argv) {
     double dt_sim=0.0;
     double nu_step;
 
+    geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+    geometry->refreshQuantities();
+
+    std::cout<<"Sim already recentered \n";
+
     start = chrono::steady_clock::now();
-    for(size_t current_t=0;current_t<10000;current_t++ ){
+    for(size_t current_t=0;current_t<1000;current_t++ ){
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
-        if(true){
+        // std::cout<<current_t <<" \n";
+        if(current_t%10 ==0 && current_t<200){
+            arcsim::Mesh remesher_mesh2 = translate_to_arcsim(mesh,geometry);
+            Cloth_1.mesh=remesher_mesh2;
+            Cloth_1.remeshing=remeshing_params;
+            arcsim::compute_masses(Cloth_1);
+            arcsim::compute_ws_data(Cloth_1.mesh);
+            arcsim::dynamic_remesh(Cloth_1);
+            delete mesh;
+            delete geometry;
+            std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
+            arcsim::delete_mesh(Cloth_1.mesh);
+            mesh = mesh_uptr.release();
+            geometry = geometry_uptr.release();
+            IM3DG = IMem3DG(mesh,geometry);
+                    
+
+
+
+        }
+        
+        
+        
+        
+        if(false){
         // if(current_t%10==0 ){
         n_vert_old=0;
         n_vert_new=mesh->nVertices();
@@ -308,14 +522,24 @@ int main(int argc, char** argv) {
         }
         }
 
+
+
+
+
+
+
+
         
-           if(current_t%100==0){
+           if(current_t%1==0){
             Save_mesh(basic_name,current_t);
+            Save_output_data  = true;
+            Sim_data = std::ofstream(filename, std::ios_base::app);
+
 
         }
         
         
-        if(current_t%100==0) {
+        if(current_t%50==0) {
             end=chrono::steady_clock::now();
             n_vert=mesh->nVertices();
             std::cout<< "THe number of vertices is "<< n_vert <<"\n";    
@@ -366,8 +590,23 @@ int main(int argc, char** argv) {
         // KB_evol= (current_t-init_step) <3*Area_evol_steps ? 0.1 + (KB-0.1)*(current_t-init_step-2*Area_evol_steps)/Area_evol_steps : KB; 
         // }
         // std::cout<<"Lets do the integration\n";
-        IM3DG.integrate(TS,nu,V_bar,P0,KA,KB);
-        time+=1e-3;
+        TS = 1.0;
+        // if(current_t >20) TS = 1e-3;/
+        // if(current_t >25 && current_t <50) TS = 1e-2;
+        // if(current_t>50) TS = 1e-2;
+        // if(current_t>100) TS = 1e-1;
+        // if(current_t>200) TS = 2e-1;
+        // if(current_t>400) TS = e-1;
+        
+        TS = IM3DG.integrate_Sob(TS,KB,Sim_data,Save_output_data);
+        if(TS <0 ) {
+            std::cout<<"The simulation Ended \n";
+            std::cout<<"At the step " << current_t <<"\n";
+            break;
+        }
+        time+=TS;
+
+        Sim_data.close();
         // nu_evol= time<50 ? nu_0 + (nu-nu_0)*time/50 : nu; 
         // nu_evol=nu;
         // bool Save_output_data=false;
