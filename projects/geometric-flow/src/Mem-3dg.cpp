@@ -929,6 +929,8 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
   double position_Projeection = 0;
   double X_pos;
 
+  // if(system_time>10) std::cout<<"Printing this as system time is " << system_time <<" \n";
+
   double previousE = 0;
   for(size_t i = 0; i < Energies.size(); i++) {
     previousE += Energy_vals[i];
@@ -1049,21 +1051,62 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
     for(size_t i = 0 ; i< Beads.size() ; i++) displacement_cond = displacement_cond && Beads[i]->Total_force.norm()*alpha<0.1*Beads[i]->sigma;
     // if(!displacement_cond ) std::cout<<"Displacement cond not ready, decreasing ts\n";
     // if(NewE <= previousE - c1 * alpha * Projection && displacement_cond && abs(NewE-previousE) <10 ) {
-      if(NewE <= previousE - c1 * alpha * Projection && displacement_cond  ) {
+      if(NewE <= previousE - c1 * alpha * Projection && displacement_cond  && fabs(NewE-previousE)<5e1 ) {
         // std::cout<<"THe energy diff is" << fabs(NewE-previousE) <<" \n";
-        if(fabs(NewE-previousE) > 1e3){
+        if(fabs(NewE-previousE) > 5e1){
+        
           std::cout<<"The energies are ";
           for(size_t i = 0; i < Energies.size(); i++) std::cout<< Energies[i] << " is " << Energy_vals[i] << " ";
           std::cout<<" \n";
+          std::cout<<"The projection is " << Projection <<" \n";
+
+          double Max_projection = 0.0;
+          int maxproj_index = 0;
+
           double maxDisplacement = 0.0;
           for (Vertex v : mesh->vertices()) {
+            if(Force[v].norm() > Max_projection) {
+              Max_projection = Force[v].norm();
+              maxproj_index = v.getIndex();
+              }
             double displacement = (geometry->inputVertexPositions[v] - initial_pos[v]).norm();
             if (displacement > maxDisplacement) {
               maxDisplacement = displacement;
             }
           }
           std::cout<<"The max displacement is " << maxDisplacement <<" \n";
+          std::cout<<"The value of alpha is " << alpha <<" \n";
+          std::cout<<"We will recalculate the energies, lets go back one step for now\n";
+          geometry->inputVertexPositions = initial_pos;
+          geometry->refreshQuantities();
+          mesh->compress();
+          // I want something else 
+        
+        alpha = 0.0;
+
+        // Lets troubleshoot this hehe
+        std::cout<<"The previous energy was" << previousE <<" \n";
+        std::cout<<"The projection of the bigges vertex is " << Max_projection <<" \n";
+        std::cout<<"This vertex is located at " << geometry->inputVertexPositions[maxproj_index] <<" \n";
+        std::cout<<"This vertex in init pos is  at " << initial_pos[maxproj_index] <<" \n";
+      
+        // Lets explore the sorroundings
+        Vertex v = mesh->vertex(maxproj_index);
+        for(Face f : v.adjacentFaces()){
+          std::cout<<"The adjacent faces are " << f.getIndex() <<" \n";
+          std::cout<<"With area " << geometry->faceArea(f) <<" \n";
         }
+        for(Halfedge he : v.outgoingHalfedges()){
+          std::cout<<"The adjacent halfedges are " << he.getIndex() <<" \n";
+          std::cout<<"With cotan " << geometry->cotan(he) <<" \n";
+        }
+
+
+
+
+
+        }
+      
       break;
     }
 
@@ -1108,8 +1151,8 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
     }
     else if(small_TS) small_TS = false;
     // std::cout<<"System time is" << system_time <<" \n";
-
-    geometry->inputVertexPositions = initial_pos + alpha*Force;
+    if(alpha>0) geometry->inputVertexPositions = initial_pos + alpha*Force;
+    else geometry->inputVertexPositions = initial_pos;
 
     for(size_t i = 0; i<Beads.size(); i++){
       Beads[i]->Reset_bead(Bead_init[i]);
@@ -1137,17 +1180,31 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
 
   // std::cout<<"THe timestep is " << alpha <<" \n";
 
+  // if(system_time>14000){
+  //   std::cout<<"The previous Energy was " << previousE<<" \n";
+  //   std::cout<<"THe new Energy is "<< NewE <<" \n";
+  //   std::cout<<"The backtrackstep is " << alpha <<" \n";
+  // }
+
   nanflag = false;
 
   for(Vertex v : mesh->vertices()) if(isnan(geometry->inputVertexPositions[v].x+ geometry->inputVertexPositions[v].y  + geometry->inputVertexPositions[v].z )) nanflag = true;  
 
   if(nanflag) std::cout<< "After backtracking one vertex is nan :( also the value of alpha is"<< alpha << " \n";
 
-  if(alpha<0.0) geometry->inputVertexPositions = initial_pos;
+  if(alpha<=0.0){ 
+  // std::cout<<"Repositioning\n";
+  geometry->inputVertexPositions = initial_pos;
+  }
   if(recentering) {
+
+    if(alpha<=0.0){
+      std::cout<<"NotRecentering after crisis\n";
+    }
+    else{
     // std::cout<<"rENORMALIZING\n";
   CoM = geometry->centerOfMass();
-  if(recentering){
+  // if(recentering){
   geometry->normalize(Vector3({0.0,0.0,0.0}),false);
   
   // CoM = geometry->centerOfMass();
@@ -1160,8 +1217,9 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
     // }
 
   }
-  }
-  
+  // }
+  // 
+    }
   geometry->refreshQuantities();
   }
 

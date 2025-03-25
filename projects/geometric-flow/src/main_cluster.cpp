@@ -551,7 +551,7 @@ int main(int argc, char** argv) {
         remeshing_params.refine_velocity = Data["remesher"]["refine_velocity"];
         remeshing_params.size_max = Data["remesher"]["size_max"];
         remeshing_params.size_min = Data["remesher"]["size_min"];    
-
+        remeshing_params.total_op = -1;
     }
 
 
@@ -637,7 +637,7 @@ int main(int argc, char** argv) {
     std::cout<<" \n\n";
 
 
-    return 1;
+    // return 1;
 
     delete mesh;
     delete geometry;
@@ -819,13 +819,15 @@ int main(int argc, char** argv) {
         //     save_interval = 1;
         // }
 
-        Save_dihedrals(basic_name);
-        Save_edgelengths(basic_name);
+        // Save_dihedrals(basic_name);
+        // Save_edgelengths(basic_name);
         
 
         start_time_control=chrono::steady_clock::now();
 
-        if(arcsim && current_t%remesh_every==0){
+        if(arcsim && current_t%remesh_every==0 || dt_sim == 0.0){
+            if(dt_sim==0.0){ std::cout<<"wE ARE REMESHING CAUSE THINGS DONT MAKE SENSE\n";}
+
             int n_vert_old=0;
             int n_vert_new=0;
 
@@ -872,6 +874,12 @@ int main(int argc, char** argv) {
             arcsim::compute_masses(Cloth_1);
             arcsim::compute_ws_data(Cloth_1.mesh);
             arcsim::dynamic_remesh(Cloth_1);
+            // std::cout<<"The operation counter is "<< Cloth_1.remeshing.op_counter <<"\n";
+            if(Cloth_1.remeshing.op_counter != 0){
+                arcsim::compute_masses(Cloth_1);
+                arcsim::compute_ws_data(Cloth_1.mesh);
+                arcsim::dynamic_remesh(Cloth_1);
+            }
             
             
 
@@ -934,7 +942,7 @@ int main(int argc, char** argv) {
         Bead_datas << std::chrono::duration_cast<std::chrono::milliseconds>(end_time_control-start_time_control).count()  <<" ";
         Bead_datas.close();
                 
-        if(current_t%save_interval == 0){
+        if(current_t%save_interval == 0 ){
             // Bead_data.close();
             // Sim_data.close();
             // std::cout<<"Saving\n";
@@ -1011,12 +1019,32 @@ int main(int argc, char** argv) {
         // std::cout<<"Integrating\n";
         
         // dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,sigma,Sim_data, time,Save_bead_data,Bead_filenames,Save_output_data,pulling);
+        geometry->refreshQuantities();
+        mesh->compress();
         dt_sim = M3DG.integrate(Energies, Energy_constants , Sim_data, time, Bead_filenames, Save_output_data);
-        
+        if(dt_sim<=0){
+            Save_mesh(basic_name,-1);
+            std::cout<<"THe simulation went crazy i guess? " << dt_sim <<" \n"; 
+        }
         if (M3DG.small_TS && current_t>Final_t*0.2) {
             std::cout << "Ending sim due to small TS \n";
             break;
         }
+        if(dt_sim<0){
+            std::cout<<"Sim broke or timestep very small\n";
+            std::cout<<"At timestep " << current_t << " \n";
+            break;
+        }
+        else{
+            // std::cout<<"Adding time\n";
+            time+=dt_sim;
+            M3DG.system_time+=1;
+            // std::cout<<"SUccesfully\n";
+        }
+        if(time>10 && Beads.size()>1 ){
+            Beads[1].state="froze";
+        }
+
 
         // nanvertex = false;
         // for(Vertex v : mesh->vertices()) if(isnan(geometry->inputVertexPositions[v].x+ geometry->inputVertexPositions[v].y  + geometry->inputVertexPositions[v].z )) nanvertex = true;  
@@ -1065,20 +1093,7 @@ int main(int argc, char** argv) {
         }
         }
 
-        if(dt_sim==-1){
-            std::cout<<"Sim broke or timestep very small\n";
-            std::cout<<"At timestep " << current_t << " \n";
-            break;
-        }
-        else{
-            // std::cout<<"Adding time\n";
-            time+=dt_sim;
-            // std::cout<<"SUccesfully\n";
-        }
-        if(time>10 && Beads.size()>1 ){
-            Beads[1].state="froze";
-        }
-
+        
 
 
     }

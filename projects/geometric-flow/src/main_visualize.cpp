@@ -29,6 +29,7 @@
 
 #include "polyscope/polyscope.h"
 #include "polyscope/surface_mesh.h"
+#include "polyscope/point_cloud.h"
 
 #include "args/args.hxx"
 #include "imgui.h"
@@ -68,7 +69,7 @@ ManifoldSurfaceMesh* mesh;
 VertexPositionGeometry* geometry;
 
 
-
+polyscope::PointCloud* psCloud;
 arcsim::Cloth Cloth_1;
 arcsim::Cloth::Remeshing remeshing_params;
 
@@ -122,6 +123,9 @@ Mem3DG M3DG;
 std::vector<Bead> Beads;
 std::vector<std::string> bonds;
 std::vector<std::vector<double>> constants;
+std::string basic_name;
+int Save_slot = 0;
+int Load_slot = 0;
 
 Bead Bead_1;
 Bead Bead_2;
@@ -153,12 +157,17 @@ std::vector<std::string> sNames = {"Off", "VertSizing", "FaceSizing"};
 VertexData<double> Vert_sizings;
 FaceData<double> Face_sizings;
 EdgeData<double> Edge_sizings;
+
+std::vector<Vector3> Gradient_vector;
+VertexData<Vector3> Gradient_vertex;
+
 std::vector<std::array<double,3>> Vert_sizing_C;
 std::vector<std::array<double,3>> F_sizings_C;
 std::vector<std::array<double,3>> shaded_C;
 
 double scaling_factor = 1.0;
-
+int integration_steps = 1;
+int remeshing_ops = -1;
 
 
 std::array<double, 3> BLUE = {0.11, 0.388, 0.89};
@@ -172,6 +181,13 @@ void showSelected() {
 
 void redraw() {
     psMesh->updateVertexPositions(geometry->inputVertexPositions);
+    vector<Vector3> BeadPositions(0);
+    for(size_t i = 0; i < Beads.size(); i++) 
+    {
+        BeadPositions.push_back(Beads[i].Pos);
+        std::cout<<"Positions is " << Beads[i].Pos<<"\n";
+    }
+    psCloud->updatePointPositions(BeadPositions);
     polyscope::requestRedraw();
 }
 
@@ -514,6 +530,7 @@ Vector3 Get_bead_pos(std::string filename, int step){
 
 
 void Remesh(){
+        remeshing_params.total_op = remeshing_ops;
        int n_vert_old=0;
             int n_vert_new=0;
 
@@ -652,6 +669,7 @@ void functionCallback() {
 
     ImGui::Text("Total angle defect: %0.1fpi", TOTAL_ANGLE_DEFECT / M_PI);
     ImGui::Text("Euler characteristic: %zu", EULER_CHARACTERISTIC);
+    ImGui::Text("Saved slots %i",Save_slot-1);
     ImGui::Text("");
 
     if(ImGui::Button("Remesh")){
@@ -663,6 +681,14 @@ void functionCallback() {
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, *sState[0]);
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, *sState[0]);
     
+    if(ImGui::Button("Display grad")){
+        // Results/Debug_remesh_trial/Bending_1.0000_Bead_radius_0.3000_str_400.0000_Nsim_8
+
+        Gradient_vertex = M3DG.Bending(0.0) + Beads[0].Gradient();
+        psMesh->addVertexVectorQuantity("Gradient", Gradient_vertex);
+
+    }
+
    if (ImGui::Button("Vertex Sizing")) {
     Face_sizings = M3DG.Face_sizings();
     Vert_sizings = M3DG.Vert_sizing(Face_sizings);
@@ -686,6 +712,16 @@ void functionCallback() {
     if(ImGui::Button("Save current state")){
 
         Saved_mesh = save_geometry(mesh,geometry);
+        
+        Save_mesh(basic_name,Save_slot);
+        std::ofstream bead_saved(basic_name+"Bead_data_0.txt",ios_base::app);
+        bead_saved << Beads[0].Pos.x << " "<< Beads[0].Pos.y <<" " << Beads[0].Pos.z <<"\n";
+        bead_saved.close();
+
+
+        Save_slot++;
+        std::cout<<"SAVE SLOT IS "<< Save_slot <<" \n";
+
 
         // Here i need the state and the vectors
         std::cout<<"THis button is being pressed\n";
@@ -726,6 +762,55 @@ void functionCallback() {
         psMesh = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions,mesh->getFaceVertexList());
         std::cout<<"re registered\n";
     }
+    ImGui::InputInt("Load slot", &Load_slot);
+    if(ImGui::Button("Reload saved slot")){
+        std::cout<<"1\n";
+        std::string filepath = basic_name+"membrane_"+std::to_string(Load_slot)+".obj";
+        std::cout<<"2\n";
+        delete mesh;
+        std::cout<<"3\n";
+        delete geometry;
+        std::cout<<"4\n";
+        std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
+        std::cout<<"5\n";
+
+        std::ifstream bdata(basic_name+"Bead_data_0.txt");
+        int counter = 0;
+        string s;
+        Vector3 NewPos;
+        while( getline(bdata,s)){
+            // 
+            if(counter == Load_slot){
+                std::vector<std::string> splitted_line = split(s," ");
+                
+                NewPos.x = std::stod(splitted_line[0]);
+                NewPos.y = std::stod(splitted_line[1]);
+                NewPos.z = std::stod(splitted_line[2]);
+                break;
+            }
+            counter+=1;
+        }   
+        std::cout<<"New pos is " << NewPos<<" \n";
+
+        mesh = mesh_uptr.release();
+        std::cout<<"6\n";
+        geometry = geometry_uptr.release();
+        std::cout<<"7\n";
+        M3DG.mesh = mesh;
+        std::cout<<"8\n";
+    
+        M3DG.geometry = geometry;
+        std::cout<<"9\n";
+        geometry->requireVertexPositions();
+        Beads[0].Pos = NewPos;
+
+        std::cout<<"10\n";
+        psMesh = polyscope::registerSurfaceMesh("MyMesh",geometry->vertexPositions,mesh->getFaceVertexList());
+    
+        redraw();
+
+    }
+
 
 
     // scaling_factor = 1.0;
@@ -740,12 +825,19 @@ void functionCallback() {
     }
 
 
-
+    ImGui::InputInt("Integration steps", &integration_steps);
     if(ImGui::Button("Step flow")){
-        dt_sim = M3DG.integrate(Energies, Energy_constants , Sim_data, 0.0, Bead_filenames, Save_output_data);
-        
+        for(size_t i = 0; i < integration_steps; i++){
+        M3DG.integrate(Energies, Energy_constants , Sim_data, 0.0, Bead_filenames, false);
+        std::cout<<"Integrating\n";
+        redraw();
+        }
+        // geometry->refreshQuantities();
+        // psMesh->updateVertexPositions(geometry->inputVertexPositions);
         // M3DG.integrate()
     }
+    ImGui::InputInt("Remeshing operations", &remeshing_ops);
+    
 
 //     }
 //     ImGui::PopStyleColor(3);
@@ -1075,7 +1167,7 @@ int main(int argc, char** argv) {
 
 
 
-    std::string basic_name=first_dir+Directory;
+    basic_name=first_dir+Directory;
     
     
     status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
@@ -1189,7 +1281,15 @@ int main(int argc, char** argv) {
     geometry->requireVertexPositions();
 
     psMesh = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions,mesh->getFaceVertexList());
-
+    
+    std::vector<glm::vec3> points;
+    for(size_t i = 0; i<Beads.size(); i++){
+        points.push_back(glm::vec3(Beads[i].Pos.x,Beads[i].Pos.y,Beads[i].Pos.z));
+    }
+    psCloud = polyscope::registerPointCloud("really great points", points);
+    
+    std::cout<<"The radius would be " <<Beads[0].sigma*1.115 <<"\n";  
+    psCloud->setPointRadius(Beads[0].sigma*1.115/2);
 
     std::cout<<"Here7\n";
 
