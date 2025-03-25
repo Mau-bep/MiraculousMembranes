@@ -77,7 +77,7 @@ def Create_json_relaxation(KA,KB,relaxation_step):
 
 
 # Create_json_barbell(0.05,14.0)
-# Create_json_wrapping(0.005,10.0,0.4,200)
+Create_json_wrapping(0.005,10.0,0.4,400)
 
 # Create_json_relaxation(0.05,10.0,61)
 

@@ -1,11 +1,11 @@
 {
     "init_file": "../../../input/disk_init.obj",
-    "save_interval": 200,
-    "timesteps": 200000,
+    "save_interval": 1000,
+    "timesteps": 1000000,
     "continue_sim": false,
     "resize_vol": false,
     "arcsim": true,
-    "first_dir": "../Results/Particle_wrapping_on_plane_phase_space/",
+    "first_dir": "../Results/Particle_wrapping_on_plane_phase_space_march/",
     "boundary": true,
     "recentering": false, 
     "saving_states": false,
@@ -26,7 +26,7 @@
         }
     ],
     "remesher":{
-        "aspect_min": 0.4, "refine_angle": 0.7, "refine_compression": 1e-4, "refine_velocity": 1.0, "size_max": 0.2, "size_min": 0.001
+        "aspect_min": 0.2, "refine_angle": 0.7, "refine_compression": 1e-4, "refine_velocity": 1.0, "size_max": 0.2, "size_min": 0.001
         }
     
 }
