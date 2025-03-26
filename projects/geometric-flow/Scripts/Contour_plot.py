@@ -5,6 +5,7 @@ import matplotlib as mpl
 
 
 main_dir = "../Results/Mem3DG_Bead_Reciprocal_arcsim_up_Phase/"
+main_dir = "../Results/Particle_wrapping_on_plane_phase_space_march/"
 
 def main():
     # i WANT TO READ THE FILE 
@@ -59,7 +60,7 @@ def main():
             EKB5_plot.append(Energies[-1])
             # print("This is third true")
         
-
+        
         line = file.readline()
 
     # print(np.unique(Kbs))
@@ -168,6 +169,12 @@ def main():
     fig.colorbar(im, ax=ax, label = "Coverage")
     # plt.show()
     plt.clf()
+
+
+
+
+def main2():
+    
 
 
 

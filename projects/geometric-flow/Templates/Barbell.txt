@@ -2,10 +2,11 @@
     "init_file": "../../../input/Barbell_init.obj",
     "save_interval": 1000,
     "timesteps": 100000,
+    "remesh_every": 10,
     "continue_sim": false,
     "resize_vol": false,
     "arcsim": true,
-    "first_dir": "../Results/Barbell_tube_var/",
+    "first_dir": "../Results/Barbell_tube_new/",
     "boundary": false,
     "recentering": false,
     "saving_states": true,
@@ -55,11 +56,11 @@
     
     ],
     "remesher": {
-        "aspect_min": 0.4,
+        "aspect_min": 0.2,
         "refine_angle": 0.7,
         "refine_compression": 0.0001,
         "refine_velocity": 1.0,
-        "size_max": 0.2,
-        "size_min": 0.001
+        "size_max": 0.25,
+        "size_min": 0.0005
     }
 }

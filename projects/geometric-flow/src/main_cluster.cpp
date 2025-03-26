@@ -825,7 +825,7 @@ int main(int argc, char** argv) {
 
         start_time_control=chrono::steady_clock::now();
 
-        if(arcsim && current_t%remesh_every==0 || dt_sim == 0.0){
+        if( arcsim && (current_t%remesh_every==0 || dt_sim == 0.0)){
             if(dt_sim==0.0){ std::cout<<"wE ARE REMESHING CAUSE THINGS DONT MAKE SENSE\n";}
 
             int n_vert_old=0;
@@ -1022,7 +1022,7 @@ int main(int argc, char** argv) {
         geometry->refreshQuantities();
         mesh->compress();
         dt_sim = M3DG.integrate(Energies, Energy_constants , Sim_data, time, Bead_filenames, Save_output_data);
-        if(dt_sim<=0){
+        if(dt_sim==0){
             Save_mesh(basic_name,-1);
             std::cout<<"THe simulation went crazy i guess? " << dt_sim <<" \n"; 
         }

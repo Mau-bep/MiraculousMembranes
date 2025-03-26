@@ -593,7 +593,7 @@ SparseMatrix<double> Mem3DG::H2_operator(bool CM, bool Vol_const, bool Area_cons
     int col;
     double value;
 
-    for( size_t k = 0; k < J.outerSize(); ++k ) {
+    for( long int k = 0; k < J.outerSize(); ++k ) {
         for( SparseMatrix<double>::InnerIterator it(J,k); it; ++it ) {
             value = it.value();
             row = it.row();
@@ -781,7 +781,7 @@ SparseMatrix<double> Mem3DG::H1_operator(bool CM, bool Vol_const, bool Area_cons
     int col;
     double value;
 
-    for( size_t k = 0; k < J.outerSize(); ++k ) {
+    for( long int  k = 0; k < J.outerSize(); ++k ) {
         for( SparseMatrix<double>::InnerIterator it(J,k); it; ++it ) {
             value = it.value();
             row = it.row();
@@ -4062,7 +4062,9 @@ for(size_t exponent=0;exponent<20;exponent++){
 
 
 Eigen::Matrix2d Mem3DG::Face_sizing(Face f){
-  Eigen::Matrix2d Sizing{{0.0,0.0},{0.0,0.0}};
+  Eigen::Matrix2d Sizing; //({0.0,0.0,0.0,0.0});
+  // Eigen::Matrix2d Sizing{{0.0,0.0,0.0,0.0}};
+  Sizing << 0.0, 0.0, 0.0,0.0;
 
   Eigen::Matrix3d Rotation;
 
@@ -4087,8 +4089,11 @@ Eigen::Matrix2d Mem3DG::Face_sizing(Face f){
 
   // Eigen::Matrix3d V_x{{0, uvw(2), -1*uvw(1) },{-1*uvw(2), 0, uvw(0)},{uvw(1), -1*uvw(0), 0}};
 
-  Eigen::Matrix3d V_x{{0, -1*uvw(2), uvw(1) },{uvw(2), 0, -1*uvw(0)},{-1*uvw(1), uvw(0), 0}};
+  // Eigen::Matrix3d V_x{{0, -1*uvw(2), uvw(1) },{uvw(2), 0, -1*uvw(0)},{-1*uvw(1), uvw(0), 0}};
+  // Eigen::Matrix3d V_x({0, -1*uvw(2), uvw(1) ,uvw(2), 0, -1*uvw(0),-1*uvw(1), uvw(0), 0});
+  Eigen::Matrix3d V_x; 
 
+  V_x << 0, -1*uvw(2), uvw(1) ,uvw(2), 0, -1*uvw(0),-1*uvw(1), uvw(0), 0;
 
   
   Rotation = rcos*Eigen::Matrix3d::Identity()+ rsin*V_x+ uvw*uvw.transpose()*(1-rcos);
@@ -4102,7 +4107,7 @@ Eigen::Matrix2d Mem3DG::Face_sizing(Face f){
   // std::cout<<"And the eigen one is "<<" \n";
   // std::cout<< uvw*uvw.transpose() <<"\n";
 
-  Eigen::Vector3d trial{1.0,5.0,4.0};
+  Eigen::Vector3d trial({1.0,5.0,4.0});
 
   // std::cout<<"v_x is " << V_x << " \n";
 
@@ -4176,7 +4181,8 @@ FaceData<double> Mem3DG::Face_sizings(){
   double refine_angle = 0.7;
 
   // Lets create the face sizing
-  Eigen::Matrix2d Face_sizing_mat{{0.0,0.0},{0.0,0.0}};
+  Eigen::Matrix2d Face_sizing_mat ; //({0.0,0.0, 0.0,0.0});
+  Face_sizing_mat << 0.0, 0.0, 0.0, 0.0;
   Eigen::EigenSolver<Eigen::Matrix2d> Solve;
   Eigen::Vector2d eigenvals;
 

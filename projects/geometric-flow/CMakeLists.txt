@@ -137,12 +137,12 @@ set(SRCSmainpreserv
 #   ../../utils/src/colormap.cpp
 # )
 
-# set(SRCSprocessing 
-#   src/Post_processing.cpp  
-#   src/Mem-3dg.cpp
-#   src/Beads.cpp
-#   ../../utils/src/colormap.cpp
-# )
+set(SRCSprocessing 
+  src/Post_processing.cpp  
+  src/Mem-3dg.cpp
+  src/Beads.cpp
+  ../../utils/src/colormap.cpp
+)
 
 # set(SRCSprocessingtube 
 #   src/Processing_tube.cpp  
@@ -338,20 +338,20 @@ target_link_libraries(main_preserving_mean_curv PUBLIC geometry-central polyscop
 
 
 
-# add_executable(Post_processing "${SRCSprocessing}")
-# set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Post_processing)
-# target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
-# # target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src_arcsim/")
+add_executable(Post_processing "${SRCSprocessing}")
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Post_processing)
+target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+# target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src_arcsim/")
 
-# target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
-# target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps")
+target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
+target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps")
 
-# # add the args.hxx project which we use for command line args
-# target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
+# add the args.hxx project which we use for command line args
+target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
 
-# # target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
+# target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
 
-# target_link_libraries(Post_processing PUBLIC geometry-central polyscope)
+target_link_libraries(Post_processing PUBLIC geometry-central polyscope)
 
 
 

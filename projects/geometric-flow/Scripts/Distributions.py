@@ -545,7 +545,140 @@ def Plotting_phase_space():
     plt.show()
 
 
-Plotting_phase_space()
+
+def Plotting_phase_space_1():
+
+    # So i will have 3 radius
+    # For every radius there will be a curve with a different KA
+    # All the KA curves are plotted as a function of Strenght
+
+    file1 = open("../Results/Particle_wrapping_on_plane_phase_space_march/Coverage_final.txt") # partially
+    # file2 = open("../Results/Particle_wrapping_on_plane_phase_space_initcond2/Coverage_final_2.txt") # flat disk
+    # file3 = open("../Results/Particle_wrapping_on_plane_phase_space_initcond2/Coverage_final_3.txt") # fully wrapped
+    
+    line1 = file1.readline()
+    print(line1)
+    line1 = file1.readline()
+    # I have 3 radius
+
+    # line2 = file2.readline()
+    # line2 = file2.readline()
+
+    # line3 = file3.readline()
+    # line3 = file3.readline()
+    # For every radius i have 3 values of KB 
+    # And there is the interaction strength constant
+    # I think i should plot every radius differently
+
+
+    # 
+    # The thin is that for every radius there is one KB
+    # [rad][KB]
+    # I can make this 
+    
+    # The variables i have are the radius, the KB and the interaction strength
+    # The i can do one plot that is on the x axis the interaction strength 
+    # And in the y axis the particle size 
+
+    # I COULD ALSO try to recreate the plot that is being shown 
+
+
+    # 
+
+
+    # What will i do then. well i will put the points in their respective area and color them respective to their coverage ofc
+
+    # So there will
+
+    
+    x_plot = []
+    y_plot = []
+    c_plot = []
+
+
+    Coverages_rads= [[[],[],[]], [[],[],[]], [[],[],[]]]
+    rads = [[[],[],[]], [[],[],[]], [[],[],[]]]
+
+    Aproximate_coverage_rads = [[[],[],[]], [[],[],[]], [[],[],[]]]
+    
+    Interaction_strenghts_rads = [[[],[],[]], [[],[],[]], [[],[],[]]]
+
+    # The radius is 0.2 0.3 and 0.4 
+    # The Kbs are 10 20 30 
+    while(line1):
+        splitted1= line1.split(' ')
+        # splitted2 = line2.split(' ')
+        # splitted3 = line3.split(' ')
+        i = int(float(splitted1[0])*10)-2
+        j = int(float(splitted1[1])/10)-1
+        print(" {} and {}".format(i,j))
+
+        w = float(splitted1[4])
+        a = float(splitted1[0])*1.155
+        KB = 2*float(splitted1[1])
+
+        KA = float(splitted1[5])
+        
+        # cov = np.clip(float(splitted1[3]),0.0,1.0) 
+        cov = -1*float(splitted1[2])/(float(splitted1[4])*np.pi*4* a*a)
+        wc = KB/(a*a)
+        
+        # They are the same except for the energy
+
+        E1 = float(splitted1[6])
+        # E2 = float(splitted2[6])
+        # E3 = float(splitted3[6])
+        # if(E2<E1 and E2<E3):
+                # Then we need to update coverage accordingly
+
+            # cov =-1*float(splitted2[2])/(float(splitted2[4])*4*np.pi* a*a)
+            # cov = np.clip(float(splitted2[3]),0.0,1.0)
+        # if(E3<E1 and E3<E2):
+            # cov =-1*float(splitted3[2])/(float(splitted3[4])*4*np.pi* a*a)
+            # cov = np.clip(float(splitted3[3]),0.0,1.0)
+
+        print("Coverage is {}".format(cov))
+        print("w is {} and wc is {}".format(w,wc))
+        x_plot.append(w/wc)
+        y_plot.append(KA*a*a/(KB))
+        c_plot.append(cov)
+
+
+        line1 = file1.readline()
+        # line2 = file2.readline()
+        # line3 = file3.readline()
+        # I need to decide the plots
+
+
+    file1.close()
+    # file2.close()
+    # file3.close()
+    ws = np.linspace(0,10.0,10)
+    # plt.plot(ws,2*ws-2,color= "magenta")
+    # plt.plot(ws,3*ws/5-3/5)
+    # plt.xlim(0,35)
+    # plt.ylim(0,1.0)
+    plt.axvline(1.0,ls = 'dashed',color='black')
+    plt.scatter(x_plot,y_plot,c=c_plot)
+    # plt.xlabel(r"$\frac{\omega}{\omega_c}$", usetex=True, fontsize = 30)
+
+    # plt.ylabel(r"$(\omega - \omega_c)\frac{a^2}{\kappa}",usetex=True, fontsize = 30)
+    plt.legend()
+    plt.ylabel(r'$\sigma a^2/\kappa$',usetex = True, fontsize = 20)
+    plt.xlabel(r'$w/w_c$',usetex = True, fontsize = 20)
+    # plt.xlim(0.2,1.5)
+    plt.colorbar(ticks=[0.1*i for i in range(11)])
+    # plt.colorbar(vmin=0, vmax=1)
+    # plt.colorbar()
+
+    # plt.savefig("../Results/Some_pa")
+    plt.savefig("../Results/Wrapping_phasespace_newww.png", bbox_inches = 'tight')
+
+
+    plt.show()
+
+
+Plotting_phase_space_1()
 
 
 
