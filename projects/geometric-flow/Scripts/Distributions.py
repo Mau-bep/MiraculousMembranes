@@ -552,8 +552,8 @@ def Plotting_phase_space_1():
     # For every radius there will be a curve with a different KA
     # All the KA curves are plotted as a function of Strenght
 
-    file1 = open("../Results/Particle_wrapping_on_plane_phase_space_march/Coverage_final.txt") # partially
-    # file2 = open("../Results/Particle_wrapping_on_plane_phase_space_initcond2/Coverage_final_2.txt") # flat disk
+    file1 = open("../Results/Particle_wrapping_on_plane_phase_space_march/Coverage_final_1.txt") # flat disk
+    file2 = open("../Results/Particle_wrapping_on_plane_phase_space_march/Coverage_final_2.txt") # fully wrapped
     # file3 = open("../Results/Particle_wrapping_on_plane_phase_space_initcond2/Coverage_final_3.txt") # fully wrapped
     
     line1 = file1.readline()
@@ -561,8 +561,9 @@ def Plotting_phase_space_1():
     line1 = file1.readline()
     # I have 3 radius
 
-    # line2 = file2.readline()
-    # line2 = file2.readline()
+    line2 = file2.readline()
+    print(line2)
+    line2 = file2.readline()
 
     # line3 = file3.readline()
     # line3 = file3.readline()
@@ -606,14 +607,18 @@ def Plotting_phase_space_1():
     # The radius is 0.2 0.3 and 0.4 
     # The Kbs are 10 20 30 
     while(line1):
+        
         splitted1= line1.split(' ')
-        # splitted2 = line2.split(' ')
+        splitted2 = line2.split(' ')
+        # print("lines")
+        print(splitted1)
+        print(splitted2)
         # splitted3 = line3.split(' ')
         i = int(float(splitted1[0])*10)-2
         j = int(float(splitted1[1])/10)-1
-        print(" {} and {}".format(i,j))
+        # print(" {} and {}".format(i,j))
 
-        w = float(splitted1[4])
+        w = 2*float(splitted1[4])
         a = float(splitted1[0])*1.155
         KB = 2*float(splitted1[1])
 
@@ -621,18 +626,21 @@ def Plotting_phase_space_1():
         
         # cov = np.clip(float(splitted1[3]),0.0,1.0) 
         cov = -1*float(splitted1[2])/(float(splitted1[4])*np.pi*4* a*a)
+        cov = np.clip(cov,0.0,1.0)
+        cov = np.clip(float(splitted1[3]),0.0,1.0)
         wc = KB/(a*a)
         
         # They are the same except for the energy
 
         E1 = float(splitted1[6])
-        # E2 = float(splitted2[6])
+        E2 = float(splitted2[6])
         # E3 = float(splitted3[6])
-        # if(E2<E1 and E2<E3):
+        if(E2<E1 ):
                 # Then we need to update coverage accordingly
-
-            # cov =-1*float(splitted2[2])/(float(splitted2[4])*4*np.pi* a*a)
-            # cov = np.clip(float(splitted2[3]),0.0,1.0)
+            print("               The wrapped wins")
+            cov =-1*float(splitted2[2])/(float(splitted2[4])*4*np.pi* a*a)
+            cov = np.clip(cov,0.0,1.0)
+            cov = np.clip(float(splitted2[3]),0.0,1.0)
         # if(E3<E1 and E3<E2):
             # cov =-1*float(splitted3[2])/(float(splitted3[4])*4*np.pi* a*a)
             # cov = np.clip(float(splitted3[3]),0.0,1.0)
@@ -645,13 +653,13 @@ def Plotting_phase_space_1():
 
 
         line1 = file1.readline()
-        # line2 = file2.readline()
+        line2 = file2.readline()
         # line3 = file3.readline()
         # I need to decide the plots
 
 
     file1.close()
-    # file2.close()
+    file2.close()
     # file3.close()
     ws = np.linspace(0,10.0,10)
     # plt.plot(ws,2*ws-2,color= "magenta")

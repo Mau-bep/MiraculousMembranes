@@ -604,11 +604,11 @@ void Remesh(){
                 Beads[i].Reasign_mesh(mesh,geometry);
             }
 
-            if( abs(n_vert_new-n_vert_old)>= 300){
-                std::cout<<"The change in the number of vertices is "<< n_vert_new-n_vert_old <<" \n";
-                std::cout<<"Which is clearly too big :P \n";    
-                // break;
-            }
+            // if( abs(n_vert_new-n_vert_old)>= 300){
+            //     std::cout<<"The change in the number of vertices is "<< n_vert_new-n_vert_old <<" \n";
+            //     std::cout<<"Which is clearly too big :P \n";    
+            //     // break;
+            // }
 
             geometry->requireVertexPositions();
             psMesh = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions,mesh->getFaceVertexList());
@@ -1415,11 +1415,11 @@ int main(int argc, char** argv) {
                 Beads[i].Reasign_mesh(mesh,geometry);
             }
 
-            if( abs(n_vert_new-n_vert_old)>= 300){
-                std::cout<<"The change in the number of vertices is "<< n_vert_new-n_vert_old <<" \n";
-                std::cout<<"Which is clearly too big :P \n";    
-                break;
-            }
+            // if( abs(n_vert_new-n_vert_old)>= 300){
+            //     std::cout<<"The change in the number of vertices is "<< n_vert_new-n_vert_old <<" \n";
+            //     std::cout<<"Which is clearly too big :P \n";    
+            //     break;
+            // }
             // std::cout<<"The change in the number of vertices is "<< n_vert_new-n_vert_old <<" \n";
             // std::cout<<"The average dihedral before was " << avg_dih1 << " and now it is " << avg_dih2 <<" \n";
             // std::cout<<"The previous min dih was" << min_dih1 << " and now it is " << min_dih2 <<" \n";

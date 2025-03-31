@@ -1224,7 +1224,7 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
   }
 
 
-
+  // std::cout<<"The difference in energy is " << fabs(NewE-previousE) <<"(: \n";
 
 
   return alpha;
@@ -2719,12 +2719,6 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
 
     }
 
-    
-    // Now do we do bead INTERACTIONS 
-
-    if(Energies[i]=="H2_Bead"){
-      //
-    }
 
 
 
@@ -2757,9 +2751,9 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
 
   
   Vector3 Pos;
-  if(boundary){
+
   for(Vertex v: mesh->vertices()){
-    
+      if(boundary){    
     Pos = geometry->inputVertexPositions[v];
     r_eff = Pos.z*Pos.z + Pos.y*Pos.y ;
     // F_dist << Pos.x <<" "<<Pos.y <<" "<< Pos.z <<" "<< r_eff <<" "<< Force[v.getIndex()].x <<" "<< Force[v.getIndex()].y <<" "<< Force[v.getIndex()].z <<" "<< Force[v.getIndex()].norm2()<<" \n";
@@ -2771,9 +2765,10 @@ double Mem3DG::integrate(std::vector<std::string> Energies,  std::vector<std::ve
       Force[v.getIndex()] = Vector3({0.0,0.0,0.0});
         // std::cout<<"Setting this force to 0 \n";
     }
-    Grad_tot_norm+=Force[v].norm2();
     
   }
+    Grad_tot_norm+=Force[v].norm2();
+  
   }
 
 

@@ -632,6 +632,7 @@ int main(int argc, char** argv) {
 
     std::cout<<"ARCSIM says \n";
     arcsim::dynamic_remesh(Cloth_1);
+    // arcsim::static_remesh2(Cloth_1,true);
 
 
     std::cout<<" \n\n";

@@ -1893,7 +1893,7 @@ double Bead::Energy() {
             for(Vertex v : f.adjacentVertices()){
                 unit_r = Pos-geometry->inputVertexPositions[v];
                 r=unit_r.norm();
-                unit_r=unit_r/r;
+                unit_r=unit_r.unit();
                 r2=r*r;
                 if(r<rc && dot(Face_normal,unit_r)>0){
                 // if(r<rc){

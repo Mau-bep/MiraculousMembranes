@@ -377,6 +377,7 @@ def Tube_growth_radius(folder,Kb):
     return r
 
 folder_path_growth = "../Results/Mem3DG_Bead_pulling_oct_growth_arcsim/"
+folder_path_growth = "../Results/Barbell_tube_new"
 
 
 def fit():
@@ -492,6 +493,32 @@ def Tube_growth_radius_3(folder):
     return [y1,z1,y2,z2]
 
 
+def Tube_growth_radius_4(folder):
+    Data = np.loadtxt(folder+"Tube_radius.txt", skiprows= 1)
+
+    y = Data[:,6]
+    z = Data[:,3]
+
+
+    y1 = []
+    z1 = []
+    y2 = []
+    z2 = []
+
+    for i in range(0,len(y)):
+        # 
+        KB = Data[i,1]
+        if(abs(KB - 5.0) < 1e-4):
+            
+            y1.append(y[i])
+            z1.append(z[i])
+        if( abs(KB - 10.0) < 1e-4):
+            y2.append(y[i])
+            z2.append(z[i])
+    
+    return [y1,z1,y2,z2]
+
+
 
 def fit2():
     # Strengths =[ 6.0, 10.0, 14.0, 18.0, 22.0, 26.0, 30.0, 34.0, 38.0, 42.0, 46.0, 50.0]
@@ -546,9 +573,9 @@ def fit2():
 
     # plt.plot(x_fit,y_fit,ls='dashed',color='magenta',label=" {}".format(p[0]))
     
-    plt.plot(x_fit,y_fit4,ls='dashed',color='pink', label = r"""$\sigma = 0.025$""")
-    plt.plot(x_fit,y_fit2,ls='dashed',color='black', label = r'$\sigma = 0.05$')
-    plt.plot(x_fit,y_fit3,ls='dashed',color='magenta', label = r'$\sigma = 0.1$')
+    plt.plot(x_fit,y_fit4,ls='dashed',color='pink', label = r"""$\sigma = 250$""")
+    plt.plot(x_fit,y_fit2,ls='dashed',color='black', label = r'$\sigma = 500$')
+    plt.plot(x_fit,y_fit3,ls='dashed',color='magenta', label = r'$\sigma = 1000$')
     
     plt.scatter(Strengths,radius,color='black')
     print(Strengths1)
@@ -567,8 +594,80 @@ def fit2():
 
 fit2()
 
+def fit3():
+    # Strengths =[ 6.0, 10.0, 14.0, 18.0, 22.0, 26.0, 30.0, 34.0, 38.0, 42.0, 46.0, 50.0]
+    radius = []
+    
+    # folder_path_growth = "../Results/Mem3DG_Bead_pulling_radius_growth_arcsim/"
+    # [Strengths,radius] = Tube_growth_radius_2(folder_path_growth)
+        # radius.append(r)
 
 
+    folder_path_growth ="../Results/Barbell_tube_new/"
+    [Strengths1,radius1,Strengths2,radius2] = Tube_growth_radius_4(folder_path_growth)
+
+
+    plt.clf()
+    plt.xlabel(r"""$\sigma $""",fontsize=15.0)
+    plt.ylabel("Tube radius",fontsize=15.0)
+    plt.scatter(Strengths1,radius1,color="black")
+    plt.scatter(Strengths2,radius2,color="black")
+
+
+    plt.savefig(folder_path_growth+"NoFit_radius_curve.png",bbox_inches='tight')
+    plt.show()
+    plt.clf()
+
+
+    # ok so i want to do a linear fit to the thing
+
+    x = np.log(Strengths1)
+    y = np.log(radius1)
+
+
+    p = np.polyfit(x,y,1)
+
+    x_fit = np.linspace(np.log(40),np.log(800.0))
+    y_fit = p[1]+x_fit*p[0]
+
+
+    
+    plt.plot(x_fit,y_fit,ls='dashed')
+    plt.scatter(x,y,color='black')
+    print("The values for the fit are m = {} and c = {}".format(p[0],p[1]))
+    # plt.show()
+    plt.clf()
+
+    y_fit = np.exp(y_fit)
+    x_fit = np.exp(x_fit)
+
+    y_fit2 = np.sqrt(  10/(4*x_fit))
+    # y_fit3 = np.sqrt( x_fit/(4*0.1))/100.0
+    y_fit4 = np.sqrt( 5/(4*x_fit))
+
+
+    # plt.plot(x_fit,y_fit,ls='dashed',color='magenta',label=" {}".format(p[0]))
+    
+    plt.plot(x_fit,y_fit4,ls='dashed',color='pink', label = r"""$K_b = 5$""")
+    plt.plot(x_fit,y_fit2,ls='dashed',color='magenta', label = r'$K_b = 10$')
+    # plt.plot(x_fit,y_fit3,ls='dashed',color='magenta', label = r'$\sigma = 0.1$')
+    
+    # plt.scatter(Strengths,radius,color='black')
+    # print(Strengths1)
+    # print(radius1)
+    plt.scatter(Strengths1,radius1,color="pink")
+    plt.scatter(Strengths2,radius2,color="magenta")
+    
+    plt.xlabel(r'$\sigma$',usetex =True,fontsize=20.0)
+    plt.ylabel(r'$r$', usetex = True,fontsize=20.0)
+
+    plt.legend(fontsize=12)
+    plt.savefig(folder_path_growth+"Fit_radius_curve.png",bbox_inches='tight')
+    plt.show()
+
+
+
+fit3()
 
 def Hist_sizing():
     folder_path_growth = "../Results/Mem3DG_Bead_pulling_radius_growth_arcsim/"
