@@ -96,6 +96,7 @@ set(SRCS
 
 set(SRCScluster 
   src/main_cluster.cpp  
+  src/Energy_Handler.cpp
   src/Mem-3dg.cpp
   src/Beads.cpp
   ../../utils/src/colormap.cpp
