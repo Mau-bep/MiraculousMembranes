@@ -55,7 +55,7 @@ class E_Handler {
         void Calculate_energies(double* E);
         // THis function saves the value of the gradient to current gradient but before saves current gradient to previous gradient
         void Calculate_gradient();
-
+        void Do_nothing();
 
     
 };

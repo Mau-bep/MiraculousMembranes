@@ -249,20 +249,20 @@ target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../.
 target_link_libraries(main_cluster PUBLIC geometry-central polyscope arcsim)
 
 
-add_executable(main_visualize "${SRCSvisualize}")
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT main_visualize)
-target_include_directories(main_visualize PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
-target_include_directories(main_visualize PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src_arcsim/")
+# add_executable(main_visualize "${SRCSvisualize}")
+# set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT main_visualize)
+# target_include_directories(main_visualize PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+# target_include_directories(main_visualize PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src_arcsim/")
 
-target_include_directories(main_visualize PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
-target_include_directories(main_visualize PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps")
+# target_include_directories(main_visualize PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
+# target_include_directories(main_visualize PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps")
 
-# add the args.hxx project which we use for command line args
-target_include_directories(main_visualize PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
+# # add the args.hxx project which we use for command line args
+# target_include_directories(main_visualize PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
 
-target_include_directories(main_visualize PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
+# target_include_directories(main_visualize PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
 
-target_link_libraries(main_visualize PUBLIC geometry-central polyscope arcsim)
+# target_link_libraries(main_visualize PUBLIC geometry-central polyscope arcsim)
 
 
 # add_executable(main_cluster "${SRCScluster}")

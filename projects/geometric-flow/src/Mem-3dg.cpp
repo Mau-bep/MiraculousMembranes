@@ -2117,7 +2117,7 @@ return alpha;
 // }
 
 
-double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std::string>Bead_data_filenames, bool Save_output_data){
+double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data){
 
   auto start = chrono::steady_clock::now();
   auto end = chrono::steady_clock::now();
@@ -2189,6 +2189,9 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
   start = chrono::steady_clock::now();
 
   // Sim_handler->Calculate_gradient();
+  // Sim_handler->Do_nothing();
+  // Sim_handler->mesh->nVertices();
+  Sim_handler->E_Volume_constraint(std::vector<double>{0.0,0.0});
 
   end = chrono::steady_clock::now();
 

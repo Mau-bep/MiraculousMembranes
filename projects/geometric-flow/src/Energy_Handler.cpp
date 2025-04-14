@@ -450,6 +450,11 @@ void E_Handler::Calculate_gradient(){
     return;
 }
 
+void E_Handler::Do_nothing(){
+    // This function does nothing, it is just a placeholder
+    return;
+}
+
 
 
 

@@ -6,6 +6,7 @@
 #include "geometrycentral/surface/vertex_position_geometry.h"
 #include "Beads.h"
 #include "Energy_Handler.h"
+
 // #include "mean-curvature-flow.h"
 
 // #include <geometrycentral/utilities/eigen_interop_helpers.h>
