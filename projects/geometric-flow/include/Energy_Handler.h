@@ -33,7 +33,7 @@ class E_Handler {
         E_Handler(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo);
         E_Handler(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, std::vector<std::string> inputEnergyNames, std::vector<std::vector<double>> inputEnergyConstants);
         
-        void Add_Bead(Bead *bead);
+        void Add_Bead(Bead* bead);
 
         void Add_Energy(std::string Energy_name, std::vector<double> Constants);
 
@@ -52,10 +52,10 @@ class E_Handler {
         virtual VertexData<Vector3> F_Bending(std::vector<double> Constants) const;
         
 
-        void Calculate_energies(double* E);
+        virtual void Calculate_energies(double* E);
         // THis function saves the value of the gradient to current gradient but before saves current gradient to previous gradient
-        void Calculate_gradient();
-        void Do_nothing();
+        virtual void Calculate_gradient();
+        virtual void Do_nothing();
 
     
 };

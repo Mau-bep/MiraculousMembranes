@@ -529,6 +529,8 @@ int main(int argc, char** argv) {
     // Lets define our integrator and all its values
 
     M3DG = Mem3DG(mesh,geometry);
+    Sim_handler = E_Handler(mesh,geometry,Energies, Energy_constants);
+    
     M3DG.recentering = Data["recentering"];
     M3DG.boundary = Data["boundary"];
     Sim_handler.boundary = Data["boundary"];
@@ -537,7 +539,6 @@ int main(int argc, char** argv) {
         M3DG.Add_bead(&Beads[i]);
         Sim_handler.Add_Bead(&Beads[i]);
     }
-    Sim_handler = E_Handler(mesh,geometry,Energies, Energy_constants);
     
     M3DG.Sim_handler = &Sim_handler;
 
@@ -829,7 +830,7 @@ int main(int argc, char** argv) {
     start_full = chrono::steady_clock::now();
     for(size_t current_t=0; current_t <= Final_t ;current_t++ ){
 
-        // std::cout<<"Curren t t is " << current_t <<" \n";
+        std::cout<<"Curren t t is " << current_t <<" \n";
         // if(current_t>400){
         //     save_interval = 1;
         // }
@@ -1039,6 +1040,7 @@ int main(int argc, char** argv) {
         // dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,sigma,Sim_data, time,Save_bead_data,Bead_filenames,Save_output_data,pulling);
         geometry->refreshQuantities();
         mesh->compress();
+        // std::cout<<"We integrate\n";
         dt_sim = M3DG.integrate(Sim_data, time, Bead_filenames, Save_output_data);
         if(dt_sim==0){
             Save_mesh(basic_name,-1);

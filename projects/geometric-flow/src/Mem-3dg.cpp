@@ -933,9 +933,8 @@ double Mem3DG::Backtracking(){
   // if(system_time>10) std::cout<<"Printing this as system time is " << system_time <<" \n";
   // Sim_handler.Calculate_energies(previousE);
   double previousE = 0;
-
-  // Sim_handler->Calculate_energies(&previousE);
-
+  Sim_handler->Calculate_energies(&previousE);
+  std::cout<<"Current e is  " << previousE << "\n";
   for(size_t i = 0; i < Sim_handler->Energies.size(); i++) {
     // previousE += Sim_handler.Energy_values[i];
     if(isnan(Sim_handler->Energy_values[i])) std::cout<<"Energy " << Sim_handler->Energies[i] << " is nan\n";
@@ -961,12 +960,13 @@ double Mem3DG::Backtracking(){
 
   // We start the evolution
   // We move the vertices
+  // std::cout<<" checking for nan grads\n";
   for(Vertex v : mesh->vertices()){
     if(isnan(Sim_handler->Current_grad[v].x || Sim_handler->Current_grad[v].y || Sim_handler->Current_grad[v].z)) std::cout<<" Is this force nan at vertex but norm2 is " << Sim_handler->Current_grad[v.getIndex()].norm2() <<"\n";
   
   }
 
-
+  // std::cout<<"doing the stepping \n";
   geometry->inputVertexPositions+=alpha * Sim_handler->Current_grad;
   bool nanflag = false;
   for(Vertex v : mesh->vertices()){
@@ -978,7 +978,7 @@ double Mem3DG::Backtracking(){
   geometry->refreshQuantities();
   center = geometry->centerOfMass();
   Vector3 Vertex_pos;
-
+  
   // We move the beads;
   for(size_t i = 0 ; i < Beads.size(); i++) Beads[i]->Move_bead(alpha,Vector3({0,0,0})); 
 
@@ -986,9 +986,10 @@ double Mem3DG::Backtracking(){
 
   size_t bead_count = 0;
   NewE = 0.0;
-  
-  // Sim_handler->Calculate_energies(&NewE);
-
+  // std::cout<<" calculating energies again\n";
+  Sim_handler->Calculate_energies(&NewE);
+  std::cout<<"New E is " << NewE << "\n";
+  std::cout<<"The projection is " << Projection << "\n";
   size_t counter = 0;
  
   bool displacement_cond = true;
@@ -2136,7 +2137,7 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
 
 
   size_t bead_count = 0;
-
+  // std::cout<<"Bead data\n";
   if(Bead_data_filenames.size()!=0 && Save_output_data){
     std::ofstream Bead_data;
     for(size_t i = 0; i < Beads.size(); i++){
@@ -2166,6 +2167,8 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
   // double A = 0;
 
   // Lets calculate the areas of every vertex
+
+  // std::cout<<"Barycentric area\n";
   Vector<double> Barycentric_area(mesh->nVertices());
 
   for(size_t index = 0; index < mesh->nVertices(); index++) {
@@ -2187,11 +2190,14 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
 
   // We will calculate the gradients here
   start = chrono::steady_clock::now();
-
-  // Sim_handler->Calculate_gradient();
+  // std::cout<<"Calling simulation handler for gradiebts\n";
+  Sim_handler->Calculate_gradient();
+  // std::cout<<"Sucesfully calculated\n";
   // Sim_handler->Do_nothing();
   // Sim_handler->mesh->nVertices();
-  Sim_handler->E_Volume_constraint(std::vector<double>{0.0,0.0});
+  // Sim_handler->Do_nothing();
+  
+  // Sim_handler->Add_Bead(Beads[0]);
 
   end = chrono::steady_clock::now();
 
@@ -2221,8 +2227,10 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
 
   // F_dist.close();
   // std::cout<<"Moving to backtracking\n";
+  
   start = chrono::steady_clock::now();
   backtrackstep = Backtracking();
+  // std::cout<<" backtracked\n";
   end = chrono::steady_clock::now();
   time_backtracking = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
 

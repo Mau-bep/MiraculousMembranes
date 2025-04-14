@@ -76,25 +76,34 @@ double E_Handler::E_Bending(std::vector<double> Constants) const {
     Vector3 Pos;
     for(Vertex v : mesh->vertices()) {
         //boundary_fix
+        // std::cout<<"boundary \n";
         if(v.isBoundary()) continue;
+        // std::cout<<" indxe\n";
+
         index=v.getIndex();
+        // std::cout<<" pos\n";
         Pos = geometry->inputVertexPositions[v];
+        // std::cout<<"reff \n";
         r_eff2 = Pos.z*Pos.z + Pos.y*Pos.y ;      
+        // std::cout<<"boundary? \n";
         if(r_eff2 > 1.6 && boundary ) continue;
-        
-        H=abs(geometry->scalarMeanCurvature(v)/geometry->barycentricDualArea(v));
-        
+        // std::cout<<" MC and dual area\n";
+        H=abs(geometry->scalarMeanCurvature(v)/
+        geometry->barycentricDualArea(v));
+        // std::cout<<" isnan\n";
         if(std::isnan(H)){
-          continue;
+          
           std::cout<<"Dual area: "<< geometry->barycentricDualArea(v);
           std::cout<<"Scalar mean Curv"<< geometry->scalarMeanCurvature(v);
           std::cout<<"One of the H is not a number\n";
+        continue;
         }        
-
+        // std::cout<<" adding\n";
         Eb+=KB*H*H*geometry->barycentricDualArea(v);
         
         }   
-    
+    // std::cout<<" done with ?\n";
+    // std::cout<<Eb<<"\n";
     return Eb;
 
 }
@@ -275,12 +284,14 @@ VertexData<Vector3> E_Handler::F_Bending(std::vector<double> Constants) const{
 void E_Handler::Calculate_energies(double* E){
 
     // So this is the calculation of the energies
+    // std::cout<<"reassinginn \n";
     *E = 0;
+    Energy_values.resize(Energies.size());
 
     int bead_count = 0;
-
+    // std::cout<<" iterating\n";
     for(size_t i = 0; i < Energies.size(); i++){
-        
+        // std::cout<<" The energy is "<< Energies[i]<<"\n";
         if(Energies[i] == "Volume_constraint"){
             Energy_values[i] = E_Volume_constraint(Energy_constants[i]);
             *E += Energy_values[i];
@@ -301,7 +312,11 @@ void E_Handler::Calculate_energies(double* E){
         }
 
         if(Energies[i]=="Bending" || Energies[i] == "H1_Bending" || Energies[i]=="H2_Bending" ){
+            // std::cout<<"Calculating bending energy \n";
+            // std::cout<<"The energy constants are " << Energy_constants[i][0] << " " << Energy_constants[i][1] << "\n";
+            // std::cout<<"The size of Energy values is" << Energy_values.size() << "\n";
             Energy_values[i] = E_Bending(Energy_constants[i]);
+            // std::cout<<"succesfully bent \n";
             *E += Energy_values[i];
             continue;
         }
@@ -324,13 +339,20 @@ void E_Handler::Calculate_energies(double* E){
 
 void E_Handler::Calculate_gradient(){
     // This function will calculate the gradient of the energy
-    Previous_grad = Current_grad;
-    Current_grad = VertexData<Vector3>(*mesh);
 
+    // std::cout<<"1 \n";
+    Previous_grad = Current_grad;
+    // std::cout<<"2 \n";
+    Current_grad = VertexData<Vector3>(*mesh);
+    // std::cout<<"3 \n";
     VertexData<Vector3> Force_temp;
     int bead_count = 0;
     double grad_norm = 0;
+    // std::cout<<"4 \n";
+    // std::cout<<"THe size of Energies is " << Energies.size() << "\n";
+    // std::cout<<"4 1 \n";
     for(size_t i = 0; i < Energies.size(); i++){
+        // std::cout<<"Energy is " << Energies[i]<<" \n";
 
         if(Energies[i] == "Volume_constraint"){
             Force_temp = F_Volume_constraint(Energy_constants[i]);
@@ -416,12 +438,17 @@ void E_Handler::Calculate_gradient(){
         // I need to add the beads 
 
         if(Energies[i]=="Bead"){
+            // std::cout<<"Bead E \n";
+            // std::cout<<"The number of beads is " << Beads.size() << "\n";
             Force_temp = Beads[bead_count]->Gradient();
+            // std::cout<<"Interactions \n";
             Beads[bead_count]->Bead_interactions();
+            // std::cout<<"? \n";
             grad_norm = 0;
             for(size_t j = 0; j < mesh->nVertices(); j++){
              grad_norm+= Force_temp[j].norm2();
             }
+            // std::cout<<"not this \n";
             if(Gradient_norms.size() == i){
                 Gradient_norms.push_back(grad_norm);
             
@@ -436,10 +463,12 @@ void E_Handler::Calculate_gradient(){
         }
 
         }
+    // std::cout<<"5 \n";
     grad_norm = 0.0;
     for(size_t i = 0; i < mesh->nVertices(); i++){
         grad_norm+=Current_grad[i].norm2();
     }
+    // std::cout<<"6 \n";
     if(Gradient_norms.size() == Energies.size()){
             Gradient_norms.push_back(grad_norm);
         }
