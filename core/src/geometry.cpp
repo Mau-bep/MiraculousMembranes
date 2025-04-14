@@ -133,7 +133,7 @@ double VertexPositionGeometry::cotan(Halfedge he) const {
  *
  * Input: The vertex whose barycentric dual area is to be computed.
  * Returns: The barycentric dual area of the given vertex.
- */
+ */ 
 double VertexPositionGeometry::barycentricDualArea(Vertex v) const {
 
     // TODO
@@ -383,7 +383,74 @@ Vector3 VertexPositionGeometry::vertexNormalMeanCurvature(Vertex v) const {
 }
 
 
+Vector3 VertexPositionGeometry::computeHalfedgeMeanCurvatureVector(Halfedge he) const {
+   size_t fID = he.face().getIndex();
+   size_t fID_he_twin = he.twin().face().getIndex();
+   Vector3 areaGrad{0,0,0};
+  
+   Vector3 EdgeVector = inputVertexPositions[he.next().next().vertex()] - inputVertexPositions[he.next().vertex()];
+   Vector3 EdgeVector2 = inputVertexPositions[he.twin().vertex()] - inputVertexPositions[he.twin().next().next().vertex()];
+   
+    areaGrad +=
+        0.25 * cross(faceNormal(he.face()), EdgeVector );
+  
+    areaGrad += 0.25 * cross(faceNormal(he.twin().face()),
+                                 EdgeVector2);
+  
+  return areaGrad/2 ;
+}
 
+
+Vector3 VertexPositionGeometry::computeHalfedgeGaussianCurvatureVector(Halfedge he) const {
+  Vector3 gaussVec{0, 0, 0};
+  if (!he.edge().isBoundary()) {
+    // gc::Vector3 eji{} = -vecFromHalfedge(he, *vpg);
+    gaussVec = 0.5 * dihedralAngle(he)*( -1*inputVertexPositions[he.next().vertex()] + inputVertexPositions[he.vertex()] ).unit();
+  }
+  else{
+    gaussVec = 0.5 * dihedralAngle(he)*( -1*inputVertexPositions[he.next().vertex()] + inputVertexPositions[he.vertex()] ).unit();
+    // std::cout<< "Dihedral angle "<<0.5 * geometry->dihedralAngle(he)<<"\n";
+    // std::cout<<" Unit vector of an edge"<< ( -1* geometry->inputVertexPositions[he.next().vertex()]+geometry->inputVertexPositions[he.vertex()] ).unit()<<"\n";
+    // std::cout<<"This mean gaussian curvature shouldnt work";
+  }
+  return gaussVec;
+}
+
+
+Vector3 VertexPositionGeometry::dihedralAngleGradient(Halfedge he, Vertex v) const {
+    // std::cout<< he.edge().isBoundary();
+
+
+    double l = edgeLength(he.edge());
+
+
+
+    if (he.edge().isBoundary()) {
+    return Vector3{0, 0, 0};
+  } else if (he.vertex() == v) { //This is only used for the SIJ_1
+    return (cotan(he.next().next()) *
+                 faceNormal(he.face()) +
+             cotan(he.twin().next()) *
+                 faceNormal(he.twin().face())) /l;
+  } else if (he.next().vertex() == v) { //This is for the firt s term
+    return (cotan(he.twin().next().next()) *
+                 faceNormal(he.twin().face()) +
+             cotan(he.next()) *
+                 faceNormal(he.face())) /
+           l;
+  } else if (he.next().next().vertex() == v) { //Este ocurre para el segundo termino
+    return (-( cotan(he.next().next()) +
+               cotan(he.next())) *
+             faceNormal(he.face())) /
+           l;
+  } else {
+    // mem3dg_runtime_error("Unexpected combination of halfedge and vertex!");
+    std::cout<< "THe dihedral angle gradient is not working\n";
+    return Vector3{0, 0, 0};
+  }
+std::cout<< "THis is impossible to print\n";
+return Vector3{0, 0, 0};
+}
 
 
 /*

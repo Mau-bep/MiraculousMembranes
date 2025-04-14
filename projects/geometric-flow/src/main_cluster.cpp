@@ -36,6 +36,7 @@
 
 #include "Mem-3dg.h"
 #include "Beads.h"
+#include "Energy_Handler.h"
 #include "math.h"
 
 
@@ -108,6 +109,7 @@ Vector3 CoM;                   // original center of mass
 
 
 Mem3DG M3DG;
+E_Handler Sim_handler;
 Bead Bead_1;
 Bead Bead_2;
 
@@ -528,9 +530,18 @@ int main(int argc, char** argv) {
 
     M3DG = Mem3DG(mesh,geometry);
     M3DG.recentering = Data["recentering"];
-    M3DG.boundary = Data["boundary"]; 
-    for( size_t i = 0 ; i< Beads.size() ; i++) M3DG.Add_bead(&Beads[i]);
+    M3DG.boundary = Data["boundary"];
+    Sim_handler.boundary = Data["boundary"];
+
+    for( size_t i = 0 ; i< Beads.size() ; i++) {
+        M3DG.Add_bead(&Beads[i]);
+        Sim_handler.Add_Bead(&Beads[i]);
+    }
+    Sim_handler = E_Handler(mesh,geometry,Energies, Energy_constants);
     
+    M3DG.Sim_handler = &Sim_handler;
+
+
     
     // Here i will do my alling
     // Face f = mesh->face(1);
@@ -650,6 +661,9 @@ int main(int argc, char** argv) {
 
     M3DG.mesh = mesh;
     M3DG.geometry = geometry;
+    Sim_handler.mesh = mesh;
+    Sim_handler.geometry = geometry;
+  
 
     ORIG_VPOS = geometry->inputVertexPositions;
     CoM = geometry->centerOfMass();
@@ -803,12 +817,12 @@ int main(int argc, char** argv) {
     // Save_mesh(basic_name,112);
 
     
-    std::ofstream Dihedrals(basic_name+"dihedrals_evol.txt");
-    Dihedrals << "## THE EVOLUTION OF THE DIHEDRAL DISTRIBUTION\n";
-    Dihedrals.close();
-    std::ofstream EdgeLengths(basic_name+"edgelengths.txt");
-    EdgeLengths << "## THE EVOLUTION OF THE EDGE LENGTHS\n";
-    EdgeLengths.close();
+    // std::ofstream Dihedrals(basic_name+"dihedrals_evol.txt");
+    // Dihedrals << "## THE EVOLUTION OF THE DIHEDRAL DISTRIBUTION\n";
+    // Dihedrals.close();
+    // std::ofstream EdgeLengths(basic_name+"edgelengths.txt");
+    // EdgeLengths << "## THE EVOLUTION OF THE EDGE LENGTHS\n";
+    // EdgeLengths.close();
 
 
 
@@ -842,19 +856,19 @@ int main(int argc, char** argv) {
             double max_dih2 = 0.0;
             double min_dih2 = 1e2;
             // M3DG.Smooth_vertices();
-            avg_dih2 = 0.0;
-            avg_dih1 = 0.0;
+            // avg_dih2 = 0.0;
+            // avg_dih1 = 0.0;
 
-            for( Edge e : mesh->edges()){ 
-                dih = fabs(geometry->dihedralAngle(e.halfedge()));
-                avg_dih1+=dih;
-                if(dih > max_dih1) max_dih1 = dih;
-                if(dih < min_dih1) min_dih1 = dih;
-                }
-            // std::cout<<"The average dihedral is"<< avg_dih/mesh->nEdges()<<" \n";
-            // std::cout<<"The min dih is"<< min_dih << " and the max dih is " << max_dih <<" \n";
-            // avg_dih =0.0;
-            avg_dih1 = avg_dih1/mesh->nEdges();
+            // for( Edge e : mesh->edges()){ 
+            //     dih = fabs(geometry->dihedralAngle(e.halfedge()));
+            //     avg_dih1+=dih;
+            //     if(dih > max_dih1) max_dih1 = dih;
+            //     if(dih < min_dih1) min_dih1 = dih;
+            //     }
+            // // std::cout<<"The average dihedral is"<< avg_dih/mesh->nEdges()<<" \n";
+            // // std::cout<<"The min dih is"<< min_dih << " and the max dih is " << max_dih <<" \n";
+            // // avg_dih =0.0;
+            // avg_dih1 = avg_dih1/mesh->nEdges();
 
 
             arcsim::Mesh remesher_mesh2 = translate_to_arcsim(mesh,geometry);
@@ -905,6 +919,9 @@ int main(int argc, char** argv) {
             
             M3DG.mesh = mesh;
             M3DG.geometry = geometry;
+            Sim_handler.mesh = mesh;
+            Sim_handler.geometry = geometry;
+
             // M3DG.Smooth_vertices();
             // geometry->refreshQuantities();
 
@@ -1022,7 +1039,7 @@ int main(int argc, char** argv) {
         // dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,sigma,Sim_data, time,Save_bead_data,Bead_filenames,Save_output_data,pulling);
         geometry->refreshQuantities();
         mesh->compress();
-        dt_sim = M3DG.integrate(Energies, Energy_constants , Sim_data, time, Bead_filenames, Save_output_data);
+        dt_sim = M3DG.integrate(Sim_data, time, Bead_filenames, Save_output_data);
         if(dt_sim==0){
             Save_mesh(basic_name,-1);
             std::cout<<"THe simulation went crazy i guess? " << dt_sim <<" \n"; 
