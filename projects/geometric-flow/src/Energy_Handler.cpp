@@ -286,6 +286,8 @@ void E_Handler::Calculate_energies(double* E){
     // So this is the calculation of the energies
     // std::cout<<"reassinginn \n";
     *E = 0;
+
+    // std::cout<<"The value of energy is " << *E <<"  \n";
     Energy_values.resize(Energies.size());
 
     int bead_count = 0;
@@ -305,9 +307,11 @@ void E_Handler::Calculate_energies(double* E){
             continue;
         }
 
-        if(Energies[i]=="SurfaceTension" || Energies[i] == "H1_Surface_tension" || Energies[i] == "H2_Surface_tension"){
+        if(Energies[i]=="Surface_tension" || Energies[i] == "H1_Surface_tension" || Energies[i] == "H2_Surface_tension"){
             Energy_values[i] = E_SurfaceTension(Energy_constants[i]);
             *E += Energy_values[i];
+            // std::cout<<"The energy value is " << Energy_values[i]<<" \n";
+            // std::cout<<"The value of E is" << *E <<" \n";
             continue;
         }
 
@@ -318,6 +322,8 @@ void E_Handler::Calculate_energies(double* E){
             Energy_values[i] = E_Bending(Energy_constants[i]);
             // std::cout<<"succesfully bent \n";
             *E += Energy_values[i];
+            // std::cout<<"The energy value is " << Energy_values[i]<<" \n";
+            // std::cout<<"The value of E is" << *E <<" \n";
             continue;
         }
         if(Energies[i]=="Bead" || Energies[i]=="H1_Bead" || Energies[i]=="H2_Bead")
@@ -325,6 +331,8 @@ void E_Handler::Calculate_energies(double* E){
             Energy_values[i] = Beads[bead_count]->Energy();
             *E += Energy_values[i];
             bead_count++;
+            // std::cout<<"The energy value is " << Energy_values[i]<<" \n";
+            // std::cout<<"The value of E is" << *E <<" \n";
             continue;
         }
         

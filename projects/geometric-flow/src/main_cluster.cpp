@@ -830,7 +830,7 @@ int main(int argc, char** argv) {
     start_full = chrono::steady_clock::now();
     for(size_t current_t=0; current_t <= Final_t ;current_t++ ){
 
-        std::cout<<"Curren t t is " << current_t <<" \n";
+        // std::cout<<"Curren t t is " << current_t <<" \n";
         // if(current_t>400){
         //     save_interval = 1;
         // }

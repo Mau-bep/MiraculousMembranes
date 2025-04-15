@@ -934,7 +934,7 @@ double Mem3DG::Backtracking(){
   // Sim_handler.Calculate_energies(previousE);
   double previousE = 0;
   Sim_handler->Calculate_energies(&previousE);
-  std::cout<<"Current e is  " << previousE << "\n";
+  // std::cout<<"Current e is  " << previousE << "\n";
   for(size_t i = 0; i < Sim_handler->Energies.size(); i++) {
     // previousE += Sim_handler.Energy_values[i];
     if(isnan(Sim_handler->Energy_values[i])) std::cout<<"Energy " << Sim_handler->Energies[i] << " is nan\n";
@@ -988,10 +988,10 @@ double Mem3DG::Backtracking(){
   NewE = 0.0;
   // std::cout<<" calculating energies again\n";
   Sim_handler->Calculate_energies(&NewE);
-  std::cout<<"New E is " << NewE << "\n";
-  std::cout<<"The projection is " << Projection << "\n";
+  // std::cout<<"New E is " << NewE << "\n";
+  // std::cout<<"The projection is " << Projection << "\n";
   size_t counter = 0;
- 
+  
   bool displacement_cond = true;
 
   // std::cout<<"THe projection is " << Projection <<" \n";
@@ -1007,13 +1007,14 @@ double Mem3DG::Backtracking(){
 
   while(true) {
     displacement_cond = true;
+    
     for(size_t i = 0 ; i< Beads.size() ; i++) displacement_cond = displacement_cond && Beads[i]->Total_force.norm()*alpha<0.1*Beads[i]->sigma;
-    // if(!displacement_cond ) std::cout<<"Displacement cond not ready, decreasing ts\n";
-    // if(NewE <= previousE - c1 * alpha * Projection && displacement_cond && abs(NewE-previousE) <10 ) {
+    
       if(NewE <= previousE - c1 * alpha * Projection && displacement_cond  && fabs(NewE-previousE)<5e1 ) {
-        // std::cout<<"THe energy diff is" << fabs(NewE-previousE) <<" \n";
+    
         if(fabs(NewE-previousE) > 5e1){
-        
+          
+      
           std::cout<<"The energies are ";
           for(size_t i = 0; i < Sim_handler->Energies.size(); i++) std::cout<< Sim_handler->Energies[i] << " is " << Sim_handler->Energy_values[i] << " ";
           std::cout<<" \n";
@@ -1023,6 +1024,7 @@ double Mem3DG::Backtracking(){
           int maxproj_index = 0;
 
           double maxDisplacement = 0.0;
+          std::cout<<"Finding breaking point\n";
           for (Vertex v : mesh->vertices()) {
             if(Sim_handler->Current_grad[v].norm() > Max_projection) {
               Max_projection = Sim_handler->Current_grad[v].norm();
@@ -1061,18 +1063,17 @@ double Mem3DG::Backtracking(){
         }
 
         }
-      
       break;
     }
+    
 
     if(std::isnan(NewE)){
       alpha = -1.0;
       break;
 
     }
-     
-    alpha *=rho;
     
+    alpha *=rho;
     if( (abs((NewE-previousE)/previousE) < 1e-7 && Projection < 0.5) || Projection < 1e-5){
       small_TS = true;
       std::cout<<"The energy diff is quite small and so is the gradient\n";
@@ -1095,36 +1096,37 @@ double Mem3DG::Backtracking(){
       geometry->inputVertexPositions = initial_pos;
       return -1;
       }
-      // if(system_time>999 ){
       small_TS = true;
-      // std::cout<<"small timestep\n";
-      // break;
 
-    // }
       break;
 
     }
     else if(small_TS) small_TS = false;
     // std::cout<<"System time is" << system_time <<" \n";
-    if(alpha>0) geometry->inputVertexPositions = initial_pos + alpha*Sim_handler->Current_grad;
-    else geometry->inputVertexPositions = initial_pos;
-
+    if(alpha>0) {geometry->inputVertexPositions = initial_pos + alpha*Sim_handler->Current_grad;
+    
     for(size_t i = 0; i<Beads.size(); i++){
       Beads[i]->Reset_bead(Bead_init[i]);
       Beads[i]->Move_bead(alpha, Vector3({0,0,0}));
     }
-
+    }
+    else {
+    for(size_t i = 0; i<Beads.size(); i++){
+      Beads[i]->Reset_bead(Bead_init[i]);
+      // Beads[i]->Move_bead(alpha, Vector3({0,0,0}));
+    }
+    geometry->inputVertexPositions = initial_pos;
+    }
+    
     geometry->refreshQuantities();
 
     bead_count = 0;
 
     NewE = 0.0;
-
-    // Sim_handler->Calculate_energies(&NewE);
+    Sim_handler->Calculate_energies(&NewE);
    
   
   }
-
 
 
   nanflag = false;
@@ -1132,7 +1134,6 @@ double Mem3DG::Backtracking(){
   for(Vertex v : mesh->vertices()) if(isnan(geometry->inputVertexPositions[v].x+ geometry->inputVertexPositions[v].y  + geometry->inputVertexPositions[v].z )) nanflag = true;  
 
   if(nanflag) std::cout<< "After backtracking one vertex is nan :( also the value of alpha is"<< alpha << " \n";
-
   if(alpha<=0.0){ 
   // std::cout<<"Repositioning\n";
   geometry->inputVertexPositions = initial_pos;
@@ -1166,7 +1167,6 @@ double Mem3DG::Backtracking(){
 
 
   // std::cout<<"The difference in energy is " << fabs(NewE-previousE) <<"(: \n";
-
 
   return alpha;
 }
@@ -2230,7 +2230,6 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
   
   start = chrono::steady_clock::now();
   backtrackstep = Backtracking();
-  // std::cout<<" backtracked\n";
   end = chrono::steady_clock::now();
   time_backtracking = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
 
@@ -2244,15 +2243,14 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
 
   // 
   if(Save_output_data || backtrackstep <0 ){
-
   double tot_E=0;
   Sim_data << time <<" "<< V<<" " << A<<" ";
   for(size_t i = 0; i < Sim_handler->Energies.size(); i++){
     // std::cout<<"Printing " << Energies[i] << " ";
 
-    Sim_data << Energy_vals[i] << " ";
+    Sim_data << Sim_handler->Energy_values[i] << " ";
     // std::cout<<"the val is " << Energy_vals[i] << " ";
-    tot_E += Energy_vals[i];
+    tot_E += Sim_handler->Energy_values[i];
   }
   // std::cout<<" \n";
   Sim_data<< tot_E <<" ";
