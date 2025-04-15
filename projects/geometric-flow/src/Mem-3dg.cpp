@@ -937,7 +937,7 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
     if(isnan(Energy_vals[i])) std::cout<<"Energy " << Energies[i] << " is nan\n";
   }
 
-  // std::cout<<"THe previous energy is "<< previousE<<" \n";
+  std::cout<<"THe previous energy is "<< previousE<<" \n";
   double NewE;
   VertexData<Vector3> initial_pos(*mesh);
   if(recentering){
@@ -1018,7 +1018,8 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
 
 
   // std::cout<<"The projection is " << Projection <<" And the total force is " << Total_force << " \n";
-  // std::cout<<"Projection is " <<  Projection <<" \n";
+
+  std::cout<<"Projection is " <<  Projection <<" \n";
   grad_norm = Projection;
 
   double V_bar;
@@ -1028,7 +1029,7 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, std::vector<std::string> 
   
   Get_Energies(Energies,Energy_constants,&NewE);
   // std::cout<<"The energy is " << NewE << " \n";
-
+    std::cout<<"The new energy is" << NewE<<" \n";
   size_t counter = 0;
   // Now we start the backtracking
  
