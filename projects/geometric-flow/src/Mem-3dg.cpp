@@ -2270,6 +2270,132 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
   return backtrackstep;
 }
 
+SparseMatrix<double> Mem3DG::integrate_BFGS(std::ofstream& Sim_data , double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data, SparseMatrix<double> Hessian){
+
+  // We need to store the Hessian somewhere, maybe it should be received as a pointer
+  auto start = chrono::steady_clock::now();
+  auto end = chrono::steady_clock::now();
+  auto construction_start = chrono::steady_clock::now();
+  auto construction_end = chrono::steady_clock::now();
+  auto solve_start = chrono::steady_clock::now();
+  auto solve_end = chrono::steady_clock::now();
+
+  
+
+  double time_construct = 0;
+  double time_solve = 0;
+  double time_compute = 0;
+  double time_gradients = 0;
+  double time_backtracking = 0;
+
+
+  size_t bead_count = 0;
+  // std::cout<<"Bead data\n";
+  if(Bead_data_filenames.size()!=0 && Save_output_data){
+    std::ofstream Bead_data;
+    for(size_t i = 0; i < Beads.size(); i++){
+      
+      Bead_data = std::ofstream(Bead_data_filenames[i],std::ios_base::app);
+      Bead_data<<Beads[i]->Pos.x <<" "<< Beads[i]->Pos.y << " "<< Beads[i]->Pos.z<< " "<< Beads[i]->Total_force.x <<" "<< Beads[i]->Total_force.y << " "<< Beads[i]->Total_force.z <<" \n";
+      // std::cout<<Bead_1.Pos.x << " "<< Bead_1.Pos.y << " "<< Bead_1.Pos.z<<" \n";
+      // std::cout<<"The total force is "<<Bead_1.Total_force <<"\n";
+      Bead_data.close();
+      }
+
+  }
+
+
+  // I need to get the force and their gradients
+
+
+  // std::vector<double> Gradient_norms;
+  // double grad_value;
+  // VertexData<Vector3> Force(*mesh,Vector3({0.0,0.0,0.0}));
+  // VertexData<Vector3> Force_temp(*mesh);
+  // if(Energy_vals.size()==0) Energy_vals.resize(Energies.size());
+  
+  // double A_bar = 4.0*3.1415926535;
+  // double V_bar = 4.0*3.14115926535/3.0;
+  // double V;
+  // double A = 0;
+
+  start = chrono::steady_clock::now();
+  // std::cout<<"Calling simulation handler for gradiebts\n";
+  Sim_handler->Calculate_gradient();
+
+
+  
+  end = chrono::steady_clock::now();
+
+  time_gradients = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+  
+  
+  // THis is the time it takes for the gradients 
+
+
+
+  // std::cout<<" \n";
+  //  std::cout<<"The energy vals are ";
+  // for(size_t i = 0; i < Energy_vals.size(); i++){
+  //   std::cout<< Energy_vals[i] <<" ";
+
+  // }
+  // std::cout<<" \n";
+  // Ok now i have the force
+  double alpha = 1e-3;
+  double backtrackstep;
+  Total_force = Vector3({0.0, 0.0, 0.0});
+  double Grad_tot_norm  = 0;
+ 
+  V = geometry->totalVolume();
+  double r_eff = 0;
+
+
+  // F_dist.close();
+  // std::cout<<"Moving to backtracking\n";
+  
+  start = chrono::steady_clock::now();
+  backtrackstep = Backtracking_BFGS( Hessian*Sim_handler->Current_grad);
+  end = chrono::steady_clock::now();
+  time_backtracking = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
+
+  // OK NOW I HAVE TO save the timings
+
+  std::ofstream Timings = std::ofstream(Bead_data_filenames[Beads.size()],std::ios_base::app);
+  Timings << time_gradients <<" "<< time_backtracking <<" "<< time_construct <<" "<< time_compute <<" "<< time_solve <<" \n";
+  Timings.close();
+  // std::cout<<"The backtrackstep is " << backtrackstep << " \n";
+  // After backtracking i have to save.
+
+  // 
+  if(Save_output_data || backtrackstep <0 ){
+  double tot_E=0;
+  Sim_data << time <<" "<< V<<" " << A<<" ";
+  for(size_t i = 0; i < Sim_handler->Energies.size(); i++){
+    // std::cout<<"Printing " << Energies[i] << " ";
+
+    Sim_data << Sim_handler->Energy_values[i] << " ";
+    // std::cout<<"the val is " << Energy_vals[i] << " ";
+    tot_E += Sim_handler->Energy_values[i];
+  }
+  // std::cout<<" \n";
+  Sim_data<< tot_E <<" ";
+  for(size_t i = 0; i < Sim_handler->Gradient_norms.size(); i++){
+    Sim_data << Sim_handler->Gradient_norms[i]<< " ";
+  }
+  // Sim_data << Grad_tot_norm << " ";
+  Sim_data<< backtrackstep<<" \n";
+  
+    }
+
+  
+
+
+
+
+  return backtrackstep;
+}
+
 
 double Mem3DG::integrate_implicit(std::vector<std::string> Energies,  std::vector<std::vector<double>> Energy_constants, std::ofstream& Sim_data , double time, std::vector<std::string>Bead_data_filenames, bool Save_output_data){
 

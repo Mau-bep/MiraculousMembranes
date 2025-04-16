@@ -110,6 +110,7 @@ class Mem3DG {
     void Smooth_vertices();
 
     double Backtracking();
+    double Backtracking_BFGS(VertexData<Vector3> Force);
     double Backtracking(VertexData<Vector3> Force,double P0,double V_bar,double A_bar,double KA,double KB,double H_bar,bool bead, bool pulling) ;
     double Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar) ;
     double Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double KA);
@@ -122,6 +123,8 @@ class Mem3DG {
     EdgeData<double> Edge_sizing(VertexData<double> Vert_sizings);
 
     double integrate(std::ofstream& Sim_data , double time, std::vector<std::string>Bead_data_filenames, bool Save_output_data);
+    SparseMatrix<double> integrate_BFGS(std::ofstream& Sim_data , double time, std::vector<std::string>Bead_data_filenames, bool Save_output_data, SparseMatrix<double> Hessian);
+    
     double integrate_implicit(std::vector<std::string> Energies,  std::vector<std::vector<double>> Energy_constants,std::ofstream& Sim_data , double time, std::vector<std::string>Bead_data_filenames, bool Save_output_data);
     
     void Get_Energies(std::vector<std::string>Energies, std::vector<std::vector<double>> Energy_constants, double* NewE);
