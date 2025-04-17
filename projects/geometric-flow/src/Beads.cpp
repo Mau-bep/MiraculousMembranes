@@ -2020,8 +2020,20 @@ void Bead::Reset_bead(Vector3 Actual_pos){
 }
 
 void Bead::Move_bead(double dt,Vector3 center) {
-    if(state == "default") this->Pos = this->Pos + Total_force*dt -center;
-
+    if(state == "default") {
+        if(Constraint == "None"){
+        this->Pos = this->Pos + Total_force*dt -center;
+        }
+        if(Constraint == "Radial"){
+            
+            double theta = Constraint_constants[0];
+            Vector3 unit_r = Vector3{sin(theta),0.0,cos(theta)};
+            // std::cout<<"THe angle is " << theta << " and the vector is " << unit_r<<" \n";
+            // std::cout<<"THe displacement is in " << unit_r*(dot(Total_force,unit_r)) <<" \n";
+            this->Pos =  this->Pos  + unit_r*(dot(Total_force,unit_r)*dt) - center;
+            // std::cout<<"THe center is " << center << "\n";
+        }
+    }
     if(state == "froze") return;
 
     if(state == "manual") {

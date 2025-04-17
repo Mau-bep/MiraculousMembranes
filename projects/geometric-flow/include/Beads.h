@@ -33,6 +33,10 @@ class Bead {
     // std::vector<double> Interaction_constants;
     std::vector<std::vector<double>> Interaction_constants_vector;
 
+    std::string Constraint;
+    std::vector<double> Constraint_constants;
+
+
     // constructors
     Bead() {};
     Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, Vector3 Position, double sigma_bead, double strg );

@@ -475,6 +475,8 @@ int main(int argc, char** argv) {
     double interaction_str;
     std::string state;
     std::string interaction_mem;
+    std::string Constraint;
+    std::vector<double> Constraint_constants;
     Bead PBead;
     for( auto Bead_data : Data["Beads"]){
         std::cout<<"Adding a bead\n";
@@ -484,6 +486,15 @@ int main(int argc, char** argv) {
         else{
         Energies.push_back("Bead");
         }
+        if(Bead_data.contains("Constraint")){
+            Constraint = Bead_data["Constraint"];
+            Constraint_constants = Bead_data["Constraint_constants"].get<std::vector<double>>();
+        }
+        else{
+            Constraint = "None";
+            Constraint_constants = {};
+        }
+        
         Energy_constants.push_back(Constants);
 
         BPos = Vector3({Bead_data["Pos"][0],Bead_data["Pos"][1],Bead_data["Pos"][2] });
@@ -502,6 +513,8 @@ int main(int argc, char** argv) {
         else{
             PBead.rc = 2.0*radius;
         }
+        PBead.Constraint = Constraint;
+        PBead.Constraint_constants = Constraint_constants;
         std::cout<<"The bead has radius" << PBead.sigma <<" cutoff of " << PBead.rc <<" Interaction of " << PBead.interaction << " \n";
         Beads.push_back(PBead);
 
@@ -676,6 +689,12 @@ int main(int argc, char** argv) {
             stream.str(std::string());
             stream << std::fixed << std::setprecision(4) << Beads[bead_counter].strength;
             Directory = Directory + "str_" +stream.str() +"_";
+
+            if(Beads[bead_counter].Constraint == "Radial"){
+                stream.str(std::string());
+                stream << std::fixed << std::setprecision(4) << Beads[bead_counter].Constraint_constants[0];
+                Directory = Directory + "theta_const_" +stream.str() +"_";
+            }
 
             bead_counter +=1 ;
         }
