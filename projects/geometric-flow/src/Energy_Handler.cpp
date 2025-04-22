@@ -93,9 +93,9 @@ double E_Handler::E_Bending(std::vector<double> Constants) const {
         // std::cout<<" isnan\n";
         if(std::isnan(H)){
           
-          std::cout<<"Dual area: "<< geometry->barycentricDualArea(v);
-          std::cout<<"Scalar mean Curv"<< geometry->scalarMeanCurvature(v);
-          std::cout<<"One of the H is not a number\n";
+        //   std::cout<<"Dual area: "<< geometry->barycentricDualArea(v);
+        //   std::cout<<"Scalar mean Curv"<< geometry->scalarMeanCurvature(v);
+        //   std::cout<<"One of the H is not a number\n";
         continue;
         }        
         // std::cout<<" adding\n";

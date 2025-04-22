@@ -113,6 +113,8 @@ E_Handler Sim_handler;
 Bead Bead_1;
 Bead Bead_2;
 
+Eigen::SparseMatrix<double> Hessian;
+Eigen::MatrixXd Hessian_matrix;
 std::array<double, 3> BLUE = {0.11, 0.388, 0.89};
 // glm::vec<3, float> ORANGE_VEC = {1, 0.65, 0};
 std::array<double, 3> ORANGE = {1, 0.65, 0};
@@ -434,6 +436,16 @@ int main(int argc, char** argv) {
     bool resize_vol = Data["resize_vol"];
     bool arcsim = Data["arcsim"];
     
+    std::string Integration = "Gradient_descent";
+    
+    if(Data.contains("Integration")){
+        Integration = Data["Integration"];
+    }
+    else{
+        std::cout<<"The integration method is not defined, using Gradient descent\n";
+    }
+
+
     int remesh_every = 1;
     if( Data.contains("remesh_every")) remesh_every = Data["remesh_every"];
     
@@ -842,7 +854,7 @@ int main(int argc, char** argv) {
         start_time_control=chrono::steady_clock::now();
 
         if( arcsim && (current_t%remesh_every==0 || dt_sim == 0.0)){
-            if(dt_sim==0.0){ std::cout<<"wE ARE REMESHING CAUSE THINGS DONT MAKE SENSE\n";}
+            // if(dt_sim==0.0){ std::cout<<"wE ARE REMESHING CAUSE THINGS DONT MAKE SENSE\n";}
 
             int n_vert_old=0;
             int n_vert_new=0;
@@ -1041,11 +1053,59 @@ int main(int argc, char** argv) {
         geometry->refreshQuantities();
         mesh->compress();
         // std::cout<<"We integrate\n";
-        dt_sim = M3DG.integrate(Sim_data, time, Bead_filenames, Save_output_data);
-        if(dt_sim==0){
-            Save_mesh(basic_name,-1);
-            std::cout<<"THe simulation went crazy i guess? " << dt_sim <<" \n"; 
+        if(Integration == "Gradient_descent"){
+            dt_sim = M3DG.integrate(Sim_data, time, Bead_filenames, Save_output_data);
         }
+        else if(Integration == "BFGS"){
+            // std::cout<<"Integrating BFGS\n";
+            if(current_t%remesh_every == 0){
+                // std::cout<<"Redoing the matrix at step " << current_t <<" \n";
+                // Hessian_matrix = Eigen::MatrixXd(mesh->nVertices()*3, mesh->nVertices()*3);
+                Hessian_matrix = Eigen::MatrixXd::Identity(mesh->nVertices()*3, mesh->nVertices()*3);
+                // typedef Eigen::Triplet<double> T;
+                // std::vector<T> tripletList;
+                // tripletList.reserve(mesh->nVertices()*3);
+                // for(size_t i = 0 ; i < 3*mesh->nVertices(); i++){
+                //     tripletList.push_back(T(i,i,1.0));
+                //     Hessian_matrix(i,i) = 1.0;
+                // }
+                // Hessian = Eigen::SparseMatrix<double>(mesh->nVertices()*3, mesh->nVertices()*3);
+                // Hessian.setFromTriplets(tripletList.begin(), tripletList.end());
+                // Hessian_matrix.setFromTriplets(tripletList.begin(), tripletList.end());
+                // Lets save all the hessianss
+            }
+                bool Save_Hessian = false;
+                if(Save_Hessian){
+                    // std::cout<<"Saving Hessian\n";
+                    std::ofstream Hess_data(basic_name+"Hessian_"+std::to_string(current_t)+".txt");
+
+                    // Now i just need to save the whole matrix
+                    for(int i = 0; i < mesh->nVertices()*3; i++){
+                        for(int j = 0; j < mesh->nVertices()*3; j++){
+                            Hess_data << Hessian_matrix(i,j) << " ";
+                        } 
+                        Hess_data << "\n";
+                    }
+
+                    // for (int k=0; k<Hessian.outerSize(); ++k)
+                    // for (SparseMatrix<double>::InnerIterator it(Hessian,k); it; ++it)
+                    // {
+                    //     Hess_data<< it.row() << " "<< it.col() << " " << it.value() << "\n";
+                    // }
+                    Hess_data.close();
+                    // std::cout<<"Succesfully saved\n";
+                }
+
+                
+                
+            Hessian_matrix = M3DG.integrate_BFGS(Sim_data, time, Bead_filenames, Save_output_data, Hessian_matrix);
+            // Hessian = M3DG.integrate_BFGS(Sim_data, time, Bead_filenames, Save_output_data, Hessian);
+        
+        }
+        // if(dt_sim==0){
+        //     Save_mesh(basic_name,-1);
+        //     // std::cout<<"THe simulation went crazy i guess? " << dt_sim <<" \n"; 
+        // }
         if (M3DG.small_TS && current_t>Final_t*0.2) {
             std::cout << "Ending sim due to small TS \n";
             break;
