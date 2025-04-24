@@ -1330,12 +1330,15 @@ void VertexPositionGeometry::normalize(const Vector3& origin, bool rescale) {
     }
 }
 
+void VertexPositionGeometry::rescale(double scale_factor) {
+
+    for(Vertex v : mesh.vertices()){
+        inputVertexPositions[v]*=scale_factor;
+    }
 
 
-
-
-
-
+}
 
 } // namespace surface
+
 } // namespace geometrycentral

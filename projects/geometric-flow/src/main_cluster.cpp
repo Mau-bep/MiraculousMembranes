@@ -435,6 +435,20 @@ int main(int argc, char** argv) {
     int remesh_every = 1;
     if( Data.contains("remesh_every")) remesh_every = Data["remesh_every"];
     
+
+    Vector3 Recenter{0.0,0.0,0.0};
+    if(Data.contains("Displacement")){
+        Recenter.x = Data["Displacement"][0];
+        Recenter.y = Data["Displacement"][1];
+        Recenter.z = Data["Displacement"][2];
+        std::cout<<"Displacing the membrane by " << Recenter <<" \n";
+    }
+
+    double scale_factor = 1.0;
+    if(Data.contains("rescale")){
+        scale_factor = Data["rescale"];
+    }
+
     
     std::cout<<"Remesh every is " << remesh_every << std::endl;
     bool Saving_last_states = Data["saving_states"];
@@ -445,6 +459,11 @@ int main(int argc, char** argv) {
     mesh = mesh_uptr.release();
     geometry = geometry_uptr.release();
     
+    // Here i want to recenter and rescale.
+
+    geometry->normalize(Recenter);
+    geometry->rescale(scale_factor);
+    geometry->refreshQuantities();
 
     V_bar = geometry->totalVolume();
 
@@ -695,6 +714,9 @@ int main(int argc, char** argv) {
                 stream << std::fixed << std::setprecision(4) << Beads[bead_counter].Constraint_constants[0];
                 Directory = Directory + "theta_const_" +stream.str() +"_";
             }
+            // I want to add the theta because if not there is no way of knowing the difference.
+            // if(Beads
+            
 
             bead_counter +=1 ;
         }

@@ -2,7 +2,7 @@ import numpy
 import matplotlib.pyplot as plt 
 import json
 from jinja2 import Environment, FileSystemLoader
-
+import numpy as np
 import os
 
 
@@ -44,6 +44,28 @@ def Create_json_barbell(ka,kb):
 
 
 
+def Create_json_wrapping_two(ka,kb,r,inter_str,angle):
+
+    os.makedirs("../Config_files/",exist_ok = True)
+    env = Environment(loader=FileSystemLoader('../Templates/'))
+
+    template = env.get_template('Wrapping.txt')
+    xpos  = 1.3*np.cos(angle)
+    ypos1 = 1.3*np.sin(angle)
+    ypos2 = -1.3*np.sin(angle)
+
+
+    output_from_parsed_template = template.render(KA = ka, KB = kb,radius = r,xpos = xpos,xpos2 =xpos, ypos1= ypos1, ypos2 = ypos2 ,interaction=inter_str, theta = angle)
+    data = json.loads(output_from_parsed_template)
+    Config_path = '../Config_files/Wrapping_{}_strg_{}_radius_{}_KA_{}_KB_{}.json'.format(angle,inter_str,r,ka,kb) 
+    with open(Config_path, 'w') as file:
+        json.dump(data, file, indent=4)
+
+    return Config_path
+
+Create_json_wrapping_two(10,20,0.2,600,0.5)
+
+
 def get_bead_pos(folderpath,relaxation_step):
     filename = folderpath + "Bead_0_data.txt"
     data = numpy.loadtxt(filename,skiprows=1)
@@ -76,7 +98,7 @@ def Create_json_relaxation(KA,KB,relaxation_step):
     return Config_path
 
 
-Create_json_barbell(800,10.0)
+# Create_json_barbell(800,10.0)
 # Create_json_wrapping(0.005,10.0,0.4,400)
 
 # Create_json_relaxation(0.05,10.0,61)
