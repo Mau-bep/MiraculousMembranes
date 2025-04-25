@@ -666,6 +666,7 @@ int main(int argc, char** argv) {
     arcsim::dynamic_remesh(Cloth_1);
     // arcsim::static_remesh2(Cloth_1,true);
 
+    std::cout<<"Done first remeshing\n";
 
     std::cout<<" \n\n";
 
@@ -916,6 +917,7 @@ int main(int argc, char** argv) {
             arcsim::compute_masses(Cloth_1);
             arcsim::compute_ws_data(Cloth_1.mesh);
             arcsim::dynamic_remesh(Cloth_1);
+
             // std::cout<<"The operation counter is "<< Cloth_1.remeshing.op_counter <<"\n";
             if(Cloth_1.remeshing.op_counter != 0){
                 arcsim::compute_masses(Cloth_1);

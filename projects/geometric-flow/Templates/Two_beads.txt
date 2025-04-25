@@ -64,7 +64,7 @@
             "bonds_constants": [],
             "Beads": [],
             "Constraint": "Radial",
-            "Constraint_constants":[{{angle}}]
+            "Constraint_constants":[{{theta}}]
         }
     ]
     ,

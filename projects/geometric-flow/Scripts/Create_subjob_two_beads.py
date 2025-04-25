@@ -42,7 +42,7 @@ def Create_json_wrapping_two(ka,kb,r,inter_str,angle):
     os.makedirs("../Config_files/",exist_ok = True)
     env = Environment(loader=FileSystemLoader('../Templates/'))
 
-    template = env.get_template('Wrapping.txt')
+    template = env.get_template('Two_beads.txt')
     xpos  = 1.3*np.cos(angle)
     ypos1 = 1.3*np.sin(angle)
     ypos2 = -1.3*np.sin(angle)
