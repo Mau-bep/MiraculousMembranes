@@ -1048,8 +1048,9 @@ int main(int argc, char** argv) {
             // std::cout<<"SMALL TS?\n";
             start = chrono::steady_clock::now();
             if(M3DG.small_TS){
-                break;
-            }
+                    std::cout<<"Finishing\n";
+            //     break;
+            } 
             // std::cout<<"No\n";
     
 
@@ -1071,6 +1072,7 @@ int main(int argc, char** argv) {
             std::cout<<"THe simulation went crazy i guess? " << dt_sim <<" \n"; 
         }
         if (M3DG.small_TS && current_t>Final_t*0.2) {
+            std::cout<<"The  current t is" << current_t << " and the condition is to be grater than " << Final_t*0.2 <<" \n";
             std::cout << "Ending sim due to small TS \n";
             break;
         }
@@ -1131,8 +1133,8 @@ int main(int argc, char** argv) {
         if(current_t%1000==0){
             std::cout<< "Remeshing has taken a total of "<< remeshing_elapsed_time <<" milliseconds\n" << "Saving the mesh has taken a total of "<< saving_mesh_time<< "milliseconds \n Integrating the forces has taken a total of "<< integrate_elapsed_time <<" milliseconds \n\n"; 
 
-        if(M3DG.small_TS) {
-            std::cout<<"Ending sim due to small TS \n";
+        if(M3DG.small_TS && current_t>Final_t*0.2){ 
+            std::cout<<"Ending sim due to small TS and long enough time \n";
             break;
         }
         }

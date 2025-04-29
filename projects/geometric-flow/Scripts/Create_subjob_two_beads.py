@@ -38,19 +38,19 @@ Nsim=sys.argv[6]
 
 
 def Create_json_wrapping_two(ka,kb,r,inter_str,angle):
-
+    theta = float(angle)
     os.makedirs("../Config_files/",exist_ok = True)
     env = Environment(loader=FileSystemLoader('../Templates/'))
 
     template = env.get_template('Two_beads.txt')
-    xpos  = 1.3*np.cos(angle)
-    ypos1 = 1.3*np.sin(angle)
-    ypos2 = -1.3*np.sin(angle)
+    xpos  = 1.3*np.cos(theta)
+    ypos1 = 1.3*np.sin(theta)
+    ypos2 = -1.3*np.sin(theta)
 
 
-    disp = -1*1.3*np.cos(angle)+ 0.5*(np.sqrt(1.6*1.6-1.3*1.3*np.sin(angle)**2 ) + np.sqrt(1.5*1.5-1.3*1.3*np.sin(angle)**2)) 
+    disp = -1*1.3*np.cos(theta)+ 0.5*(np.sqrt(1.6*1.6-1.3*1.3*np.sin(theta)**2 ) + np.sqrt(1.5*1.5-1.3*1.3*np.sin(theta)**2)) 
 
-    output_from_parsed_template = template.render(KA = ka, KB = kb,radius = r,xdisp = -1*disp,xpos1 = xpos,xpos2 =xpos, ypos1= ypos1, ypos2 = ypos2 ,interaction=inter_str, theta = angle)
+    output_from_parsed_template = template.render(KA = ka, KB = kb,radius = r,xdisp = -1*disp,xpos1 = xpos,xpos2 =xpos, ypos1= ypos1, ypos2 = ypos2 ,interaction=inter_str, theta = theta)
     data = json.loads(output_from_parsed_template)
     Config_path = '../Config_files/Wrapping_two_{}_strg_{}_radius_{}_KA_{}_KB_{}.json'.format(angle,inter_str,r,ka,kb) 
     with open(Config_path, 'w') as file:

@@ -1607,7 +1607,6 @@ void Bead::Bead_interactions(){
 
         }
 
-
         if(Bond_type[i]=="Harmonic"){
             // std::cout<<"Calculating armonic force\n";
             v_dist = Pos- Beads[i]->Pos;
@@ -1618,6 +1617,15 @@ void Bead::Bead_interactions(){
             Total_force+= -1*Interaction_constants_vector[i][0]*v_dist;
             // std::cout<<"The total force is "<< Total_force <<" \n";
             // std::cout<<"THe interaction constants vectors is "<< Interaction_constants_vector[i][0] << " " <<Interaction_constants_vector[i][1] <<"\n";
+        }
+        if(Bond_type[i]=="Shifted-LJ"){
+            v_dist = Pos- Beads[i]->Pos;
+            dist = v_dist.norm();
+            if(dist < pow(2.0, 1/6.0)*sigma ){
+                Total_force +=-1*4*Interaction_constants_vector[i][0]*(-12*pow((sigma)/dist,12)/dist + 6*pow((sigma)/dist,6)/dist )*v_dist.unit();
+
+            }
+
         }
 
     }
@@ -1650,6 +1658,16 @@ double Bead::Energy() {
             // The armonic interaction has two parameters (stiffness and rest length) assuming first is the sitffness and there is restlength - 
             Total_E+= params[0]*dot(Pos - Beads[bead]->Pos,Pos - Beads[bead]->Pos)/2.0;
             // std::cout<<"ADDed harmonic energy"<< Total_E <<"\n";
+        }
+        if(Bond_type[bead]=="Shifted-LJ" && state!="manual" && state!="froze"){
+            // The shifted LJ has two parameters (stiffness and rest length) assuming first is the sitffness and there is restlength - 
+            double dist = (Pos-Beads[bead]->Pos).norm();
+            double threshold = sigma*pow(2.0, 1/6.0);
+            if(dist< threshold ){
+            Total_E += params[0]*4*(pow((sigma/dist),12)-pow((sigma/dist),6)) -params[0]*4*(pow((sigma/threshold),12)-pow((sigma/threshold),6)) ;
+             }
+
+
         }
 
     }
