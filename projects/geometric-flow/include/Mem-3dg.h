@@ -5,6 +5,8 @@
 #include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/vertex_position_geometry.h"
 #include "Beads.h"
+#include "Energy_Handler.h"
+
 // #include "mean-curvature-flow.h"
 
 // #include <geometrycentral/utilities/eigen_interop_helpers.h>
@@ -52,6 +54,8 @@ class Mem3DG {
     double E_Ben;
     double E_Bead;
 
+
+    E_Handler* Sim_handler;
     std::vector<double> Energy_vals;
 
     Vector3 Total_force;
@@ -105,7 +109,8 @@ class Mem3DG {
     
     void Smooth_vertices();
 
-    double Backtracking(VertexData<Vector3> Force, std::vector<std::string> Energies, std::vector< std::vector<double>> Energy_constants);
+    double Backtracking();
+    double Backtracking_BFGS(VertexData<Vector3> Force);
     double Backtracking(VertexData<Vector3> Force,double P0,double V_bar,double A_bar,double KA,double KB,double H_bar,bool bead, bool pulling) ;
     double Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar) ;
     double Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double KA);
@@ -117,7 +122,9 @@ class Mem3DG {
     Eigen::Matrix2d Face_sizing(Face f);
     EdgeData<double> Edge_sizing(VertexData<double> Vert_sizings);
 
-    double integrate(std::vector<std::string> Energies,  std::vector<std::vector<double>> Energy_constants,std::ofstream& Sim_data , double time, std::vector<std::string>Bead_data_filenames, bool Save_output_data);
+    double integrate(std::ofstream& Sim_data , double time, std::vector<std::string>Bead_data_filenames, bool Save_output_data);
+    Eigen::MatrixXd integrate_BFGS(std::ofstream& Sim_data , double time, std::vector<std::string>Bead_data_filenames, bool Save_output_data, Eigen::MatrixXd Hessian);
+    
     double integrate_implicit(std::vector<std::string> Energies,  std::vector<std::vector<double>> Energy_constants,std::ofstream& Sim_data , double time, std::vector<std::string>Bead_data_filenames, bool Save_output_data);
     
     void Get_Energies(std::vector<std::string>Energies, std::vector<std::vector<double>> Energy_constants, double* NewE);

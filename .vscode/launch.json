@@ -10,7 +10,7 @@
             "request": "launch",
             // Resolved by CMake Tools:
             "program": "${workspaceFolder}/projects/geometric-flow/build/bin/main_cluster",
-            "args": ["../Config_files/Cilinder_to_sphere.json","1.0"],
+            "args": ["../Config_files/Wrapping_L2.json","7"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/projects/geometric-flow/build/",
             "environment": [

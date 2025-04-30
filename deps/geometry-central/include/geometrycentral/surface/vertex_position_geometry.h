@@ -74,6 +74,12 @@ class VertexPositionGeometry : public EmbeddedGeometryInterface {
     Vector3 vertexNormalGaussianCurvature(Vertex v) const;
     Vector3 vertexNormalMeanCurvature(Vertex v) const;
     
+    // Courtesy of Mem3DG
+    Vector3 computeHalfedgeMeanCurvatureVector(Halfedge he) const ;
+    Vector3 computeHalfedgeGaussianCurvatureVector(Halfedge he) const ;
+    Vector3 dihedralAngleGradient(Halfedge he, Vertex v) const ;
+
+
 
     Vector3 Angle_grad(Corner c, Vertex j, Vector3 Normal);
     double angleDefect(Vertex v) const;
