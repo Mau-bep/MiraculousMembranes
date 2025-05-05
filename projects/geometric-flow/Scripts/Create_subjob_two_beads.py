@@ -43,12 +43,15 @@ def Create_json_wrapping_two(ka,kb,r,inter_str,angle):
     env = Environment(loader=FileSystemLoader('../Templates/'))
 
     template = env.get_template('Two_beads.txt')
-    xpos  = 1.3*np.cos(theta)
-    ypos1 = 1.3*np.sin(theta)
-    ypos2 = -1.3*np.sin(theta)
+    
+    # Radius of the position of the beads is R_v-2*r_b
+    Rpos_beads = 1.5-0.2*2
+    xpos  = Rpos_beads*np.cos(theta)
+    ypos1 = Rpos_beads*np.sin(theta)
+    ypos2 = -Rpos_beads*np.sin(theta)
 
 
-    disp = -1*1.3*np.cos(theta)+ 0.5*(np.sqrt(1.6*1.6-1.3*1.3*np.sin(theta)**2 ) + np.sqrt(1.5*1.5-1.3*1.3*np.sin(theta)**2)) 
+    disp = -1*Rpos_beads*np.cos(theta)+ 0.5*(np.sqrt(1.6*1.6-Rpos_beads*Rpos_beads*np.sin(theta)**2 ) + np.sqrt(1.5*1.5-Rpos_beads*Rpos_beads*np.sin(theta)**2)) 
 
     output_from_parsed_template = template.render(KA = ka, KB = kb,radius = r,xdisp = -1*disp,xpos1 = xpos,xpos2 =xpos, ypos1= ypos1, ypos2 = ypos2 ,interaction=inter_str, theta = theta)
     data = json.loads(output_from_parsed_template)
