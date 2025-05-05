@@ -687,9 +687,6 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
         double Vertex_Angle_Normal_norm2;
         double Vertex_Angle_Normal_norm3;
 
-        
-        
-
         Halfedge he2;
         Vector3 unit_r;
         Vector3 unit_r1;
@@ -724,10 +721,11 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
                 //     break;
                 // }
               
+                
+                // This is the gradient of the area of the triangle 
                 u=geometry->inputVertexPositions[v2_idx]-geometry->inputVertexPositions[v3_idx];
                 Vector3 Grad_vec=(0.5)* cross(Normals[f.getIndex()],u);
-
-                // I need to add the consider restriction here
+                
 
                 if(dot(unit_r,Face_normal)>0){
                     Force[v1_idx]+=(1.0/3.0)*E_v[v1_idx]*dot(Face_normal,unit_r)*Grad_vec;
@@ -743,9 +741,6 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
                 
                 r=rs[v1_idx];
                 if(rs[v1_idx]<rc && dot(unit_r,Face_normal)>0){
-                // if(rs[v1_idx]<rc ){
-                
-                // 
                 
                 alpha=2*(rc2/(sigma*sigma))*pow( 3/(2*( (rc2/(sigma*sigma)) -1))  ,3 );
 
@@ -768,30 +763,22 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
                     Total_force-=(Face_area/3.0)*E_v[v1_idx]*(Face_normal-unit_r*dot(unit_r,Face_normal))/(r);
                 }
                 // Vertex 2
-                
                 if(dot(unit_r2,Face_normal)>0){
-                // if(true){
                     grad=-1*dot(cross(geometry->inputVertexPositions[v3_idx]-geometry->inputVertexPositions[v2_idx],Face_normal),unit_r2)*Face_normal/(2*Face_area);
 
                     Force[v1_idx]+=(Face_area/3.0)*E_v[v2_idx]*grad;
                 }
-                // Force[v1_idx]+=grad;
-
+                
                 // Vertex 3
                 if(dot(unit_r3,Face_normal)>0){
-                // if(true){
                     grad=-1*dot(cross(geometry->inputVertexPositions[v3_idx]-geometry->inputVertexPositions[v2_idx],Face_normal),unit_r3)*Face_normal/(2*Face_area);
             
                     Force[v1_idx]+=(Face_area/3.0)*E_v[v3_idx]*grad;
                 }
-                // Force[v1_idx]+=grad;
-            
-            
+        
                 
             }   
-            // The thing i want to do now is to get all the terms 
             
-            // The energy term is  (area/3)*E[v]*(N . r)
              
 
         }

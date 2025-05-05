@@ -354,11 +354,11 @@ int main(int argc, char** argv) {
     arcsim::Cloth Cloth_1;
     arcsim::Cloth::Remeshing remeshing_params;
 
-    remeshing_params.aspect_min = 0.4;
-    remeshing_params.refine_angle = 0.6;
+    remeshing_params.aspect_min = 0.2;
+    remeshing_params.refine_angle = 0.7;
     remeshing_params.refine_compression = 1.0;
     remeshing_params.refine_velocity = 1.0;
-    remeshing_params.size_max = 0.1;
+    remeshing_params.size_max = 0.2;
     remeshing_params.size_min = 0.001;   
 
 
@@ -475,7 +475,8 @@ int main(int argc, char** argv) {
         // for(size_t non_used_var=0;non_used_var<100;)
         // MemF.integrate(TS,sigma,kappa,H0,P,V0);
         // std::cout<<current_t <<" \n";
-        if(current_t%10 ==0 && current_t<200){
+        std::cout<<"Current t is  " << current_t << "\n";
+        if(current_t%1 ==0 ){
             arcsim::Mesh remesher_mesh2 = translate_to_arcsim(mesh,geometry);
             Cloth_1.mesh=remesher_mesh2;
             Cloth_1.remeshing=remeshing_params;
@@ -590,15 +591,17 @@ int main(int argc, char** argv) {
         // KB_evol= (current_t-init_step) <3*Area_evol_steps ? 0.1 + (KB-0.1)*(current_t-init_step-2*Area_evol_steps)/Area_evol_steps : KB; 
         // }
         // std::cout<<"Lets do the integration\n";
-        TS = 1.0;
+        TS = 0.01;
         // if(current_t >20) TS = 1e-3;/
         // if(current_t >25 && current_t <50) TS = 1e-2;
         // if(current_t>50) TS = 1e-2;
         // if(current_t>100) TS = 1e-1;
         // if(current_t>200) TS = 2e-1;
         // if(current_t>400) TS = e-1;
-        
-        TS = IM3DG.integrate_Sob(TS,KB,Sim_data,Save_output_data);
+        std::cout<<"Calling integrator\n";
+        IM3DG.integrate(TS,nu,V_bar,P0,KA,KB);
+        std::cout<<"Integrating done\n";
+        // TS = IM3DG.integrate_Sob(TS,KB,Sim_data,Save_output_data);
         if(TS <0 ) {
             std::cout<<"The simulation Ended \n";
             std::cout<<"At the step " << current_t <<"\n";
