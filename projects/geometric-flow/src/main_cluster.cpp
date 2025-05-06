@@ -586,7 +586,17 @@ int main(int argc, char** argv) {
     
     M3DG.Sim_handler = &Sim_handler;
 
+    if(Data.contains("Field")){
+        M3DG.Field = Data["Field"];
+        M3DG.Field_vals = Data["Field_vals"].get<std::vector<double>>();
+        std::cout<<"The field is " << M3DG.Field << " and the values are ";
+        for(size_t i = 0; i < M3DG.Field_vals.size(); i++) std::cout<< M3DG.Field_vals[i] << " ";
+        std::cout<<"\n";
 
+    }
+    else{
+        M3DG.Field = "None";
+    }
     
     // Here i will do my alling
     // Face f = mesh->face(1);
@@ -759,6 +769,22 @@ int main(int argc, char** argv) {
         
     }
     
+    // Lets add the fields
+
+    if(Data.contains("Field")){
+        
+        Directory = Directory + M3DG.Field + "_";
+        for(size_t i = 0; i < M3DG.Field_vals.size(); i++){
+            stream.str(std::string());
+            stream << std::fixed << std::setprecision(4) << M3DG.Field_vals[i];
+            Directory = Directory + stream.str() + "_";
+        }
+    }
+    // else{
+        // Directory = Directory + "No_field_";
+    // }
+
+
     // I need to add something that includes the bonds because then i will change that parameter(problem is)
     
     // Lets add the bonds 

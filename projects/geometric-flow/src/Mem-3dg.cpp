@@ -33,6 +33,9 @@ Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo)
     small_TS = false;
     recentering = true;
     boundary = false;
+    Field="None";
+    Field_vals.resize(0);
+
 }
 Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, Bead input_Bead) {
 
@@ -944,7 +947,22 @@ double Mem3DG::Backtracking(){
   double NewE;
   VertexData<Vector3> initial_pos(*mesh);
   if(recentering){
-  geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+    if(Field != "None"){
+      // std::cout<<"THere is a field\n";
+      Vector3 leftmost = Vector3({1e10,1e10,1e10});
+      for(Vertex v: mesh->vertices()){
+      if(geometry->inputVertexPositions[v].x < leftmost.x) leftmost = geometry->inputVertexPositions[v];
+      }
+      // I have the leftmost vertex, the position of this vertex should be P 
+      leftmost = Vector3({-1.0,0.0,0.0})-leftmost;
+      VertexData<Vector3> Displacement(*mesh,leftmost);
+      geometry->inputVertexPositions+=Displacement;
+
+    }
+    else{
+    // Ok so if there is a field the way we normalize is different.
+      geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+    }
   }
   Vector3 CoM = geometry->centerOfMass();
     
@@ -1145,10 +1163,24 @@ double Mem3DG::Backtracking(){
     }
     else{
     // std::cout<<"rENORMALIZING\n";
-  CoM = geometry->centerOfMass();
-  // if(recentering){
-  geometry->normalize(Vector3({0.0,0.0,0.0}),false);
-  
+    CoM = geometry->centerOfMass();
+
+    if(Field != "None"){
+      // std::cout<<"THere is a field\n";
+      Vector3 leftmost = Vector3({1e10,1e10,1e10});
+      for(Vertex v: mesh->vertices()){
+      if(geometry->inputVertexPositions[v].x < leftmost.x) leftmost = geometry->inputVertexPositions[v];
+      }
+      // I have the leftmost vertex, the position of this vertex should be P 
+      leftmost = Vector3({-1.0,0.0,0.0})-leftmost;
+      CoM = leftmost;
+      VertexData<Vector3> Displacement(*mesh,leftmost);
+      geometry->inputVertexPositions+=Displacement;
+
+    }
+    else{
+    geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+    }
   // CoM = geometry->centerOfMass();
     
   for(size_t i = 0; i < Beads.size(); i++){
@@ -2506,6 +2538,13 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
   time_backtracking = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
 
   // OK NOW I HAVE TO save the timings
+
+  if(Field !="None"){
+    VertexData<Vector3> Field(*mesh,Vector3({0.0,0.0,0.0}));
+    Field = Linear_force_field(Field_vals[0],Field_vals[1]);
+    geometry->inputVertexPositions+=backtrackstep*Field;
+  }
+  // Ok so we added the force field
 
   std::ofstream Timings = std::ofstream(Bead_data_filenames[Beads.size()],std::ios_base::app);
   Timings << time_gradients <<" "<< time_backtracking <<" "<< time_construct <<" "<< time_compute <<" "<< time_solve <<" \n";

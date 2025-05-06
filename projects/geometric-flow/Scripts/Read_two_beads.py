@@ -25,10 +25,12 @@ def main():
 
         # I just want the bending energy
         E_B = Output_data[-1,5]/(20.0*4*np.pi)
+        E_B = Output_data[-1,5]
         Bending_energies.append(E_B)
 
-
-    plt.scatter(angles,Bending_energies,color='black')
+    
+    aangles = 1.5*np.array(angles)
+    plt.scatter(aangles,Bending_energies,color='black')
     
     plt.xlabel("Angle [rad]")
     plt.ylabel("Bending Energy")

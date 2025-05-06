@@ -54,6 +54,9 @@ class Mem3DG {
     double E_Ben;
     double E_Bead;
 
+    std::string Field;
+    std::vector<double> Field_vals;
+
 
     E_Handler* Sim_handler;
     std::vector<double> Energy_vals;
