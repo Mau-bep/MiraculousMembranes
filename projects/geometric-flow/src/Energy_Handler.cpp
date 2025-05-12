@@ -361,7 +361,7 @@ void E_Handler::Calculate_gradient(){
     // std::cout<<"4 1 \n";
     for(size_t i = 0; i < Energies.size(); i++){
         // std::cout<<"Energy is " << Energies[i]<<" \n";
-
+// 
         if(Energies[i] == "Volume_constraint"){
             Force_temp = F_Volume_constraint(Energy_constants[i]);
             grad_norm = 0.0;
@@ -464,6 +464,8 @@ void E_Handler::Calculate_gradient(){
             else{
                 Gradient_norms[i] = grad_norm;
             }
+            // std::cout<<"? ?\n";
+            
             Current_grad+=Force_temp;
             bead_count +=1;
 

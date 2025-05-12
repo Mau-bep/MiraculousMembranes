@@ -961,6 +961,9 @@ double Mem3DG::Backtracking(){
     }
     else{
     // Ok so if there is a field the way we normalize is different.
+    // 
+      Vector3 CoM = geometry->centerOfMass();
+
       geometry->normalize(Vector3({0.0,0.0,0.0}),false);
     }
   }
@@ -2432,6 +2435,7 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
   auto solve_end = chrono::steady_clock::now();
 
   
+  // std::cout<<"Got to integrating\n";
 
   double time_construct = 0;
   double time_solve = 0;
@@ -2495,7 +2499,10 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
   // We will calculate the gradients here
   start = chrono::steady_clock::now();
   // std::cout<<"Calling simulation handler for gradiebts\n";
+  // std::cout<<"Calling sim handler\n";
   Sim_handler->Calculate_gradient();
+
+  // std::cout<<"Got the gradient\n";
   // std::cout<<"Sucesfully calculated\n";
   // Sim_handler->Do_nothing();
   // Sim_handler->mesh->nVertices();

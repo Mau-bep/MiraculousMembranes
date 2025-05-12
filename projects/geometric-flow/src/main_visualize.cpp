@@ -37,6 +37,7 @@
 
 #include "Mem-3dg.h"
 #include "Beads.h"
+#include "Energy_Handler.h"
 #include "math.h"
 
 
@@ -119,10 +120,11 @@ Vector3 CoM;                   // original center of mass
 
 
 Mem3DG M3DG;
+E_Handler Sim_handler;
 
-std::vector<Bead> Beads;
-std::vector<std::string> bonds;
-std::vector<std::vector<double>> constants;
+// std::vector<Bead> Beads;
+// std::vector<std::string> bonds;
+// std::vector<std::vector<double>> constants;
 std::string basic_name;
 int Save_slot = 0;
 int Load_slot = 0;
@@ -137,7 +139,10 @@ std::vector<double> Constants(0);
 std::ofstream Sim_data;
 std::vector<std::string> Bead_filenames;
 std::ofstream Bead_datas;
-
+// std::vector<Be>
+std::vector<Bead> Beads;
+std::vector<std::string> bonds;
+std::vector<std::vector<double>> constants;
 
 
 polyscope::SurfaceMesh* psMesh;
@@ -531,6 +536,7 @@ Vector3 Get_bead_pos(std::string filename, int step){
 
 void Remesh(){
         remeshing_params.total_op = remeshing_ops;
+        // std::cout<<"Calling remesher\n"
        int n_vert_old=0;
             int n_vert_new=0;
 
@@ -586,7 +592,8 @@ void Remesh(){
             
             M3DG.mesh = mesh;
             M3DG.geometry = geometry;
-            
+            Sim_handler.mesh = mesh;
+            Sim_handler.geometry = geometry;
 
             for( Edge e : mesh->edges()){ 
                 dih = fabs(geometry->dihedralAngle(e.halfedge()));
@@ -601,6 +608,7 @@ void Remesh(){
 
 
             for(size_t i = 0 ; i<Beads.size(); i++){
+                std::cout<<"Re assigning mesh  \n";
                 Beads[i].Reasign_mesh(mesh,geometry);
             }
 
@@ -670,6 +678,10 @@ void functionCallback() {
     ImGui::Text("Total angle defect: %0.1fpi", TOTAL_ANGLE_DEFECT / M_PI);
     ImGui::Text("Euler characteristic: %zu", EULER_CHARACTERISTIC);
     ImGui::Text("Saved slots %i",Save_slot-1);
+
+    for(size_t i = 0; i < Beads.size(); i++){
+        ImGui::Text("The bead position is %0.2f %0.2f %0.2f", Beads[i].Pos.x, Beads[i].Pos.y, Beads[i].Pos.z);
+        }
     ImGui::Text("");
 
     if(ImGui::Button("Remesh")){
@@ -683,8 +695,9 @@ void functionCallback() {
     
     if(ImGui::Button("Display grad")){
         // Results/Debug_remesh_trial/Bending_1.0000_Bead_radius_0.3000_str_400.0000_Nsim_8
-
-        Gradient_vertex = M3DG.Bending(0.0) + Beads[0].Gradient();
+        M3DG.Sim_handler->Calculate_gradient();
+        Gradient_vertex = M3DG.Sim_handler->Current_grad;
+        // Gradient_vertex = M3DG.Bending(0.0) + Beads[0].Gradient();
         psMesh->addVertexVectorQuantity("Gradient", Gradient_vertex);
 
     }
@@ -709,6 +722,53 @@ void functionCallback() {
         psMesh->addEdgeScalarQuantity("Edge sizing", Edge_sizings);
 
     }
+    int bead_counter = 0 ;
+  
+
+ 
+        // if(ImGui::Button(Energies[i].c_str()))
+            // Here we get that particular gradient
+            // I need to add the ifs here but thats the idea
+           
+            if(ImGui::Button(Energies[1].c_str()))
+            {
+                VertexData<Vector3> Gradient_temp = M3DG.Sim_handler->F_Bending(Energy_constants[1]); 
+                psMesh->addVertexVectorQuantity("Gradient Bending", Gradient_temp);
+            
+            }
+            
+            
+
+            if(ImGui::Button(Energies[0].c_str()))  
+            {
+                VertexData<Vector3> Gradient_temp = M3DG.Sim_handler->F_SurfaceTension(Energy_constants[0]);
+                psMesh->addVertexVectorQuantity("Gradient Surface tension", Gradient_temp);
+            }
+            
+            
+
+            // VertexData<Vector3> Gradient_temp = Beads[bead_counter].Gradient();
+            if(ImGui::Button(Energies[2].c_str())) 
+            {
+                VertexData<Vector3> Gradient_temp = Beads[0].Gradient();
+                std::cout<<"The gradient of this bead is " << Gradient_temp[0].x << " " << Gradient_temp[0].y << " " << Gradient_temp[0].z << "\n";
+                psMesh->addVertexVectorQuantity("Gradient Bead 1" , Gradient_temp);
+              
+            
+            }
+            if(ImGui::Button("Bead 2")) 
+            {
+                VertexData<Vector3> Gradient_temp = Beads[1].Gradient();
+                std::cout<<"The gradient of this bead is " << Gradient_temp[0].x << " " << Gradient_temp[0].y << " " << Gradient_temp[0].z << "\n";
+                psMesh->addVertexVectorQuantity("Gradient Bead 2" , Gradient_temp);
+               
+            
+            }
+            
+        
+
+    
+
     if(ImGui::Button("Save current state")){
 
         Saved_mesh = save_geometry(mesh,geometry);
@@ -828,7 +888,8 @@ void functionCallback() {
     ImGui::InputInt("Integration steps", &integration_steps);
     if(ImGui::Button("Step flow")){
         for(size_t i = 0; i < integration_steps; i++){
-        M3DG.integrate(Energies, Energy_constants , Sim_data, 0.0, Bead_filenames, false);
+
+        M3DG.integrate(Sim_data, 0.0, Bead_filenames, false);
         std::cout<<"Integrating\n";
         redraw();
         }
@@ -876,11 +937,33 @@ int main(int argc, char** argv) {
     bool resize_vol = Data["resize_vol"];
     bool arcsim = Data["arcsim"];
     
+    std::string Integration = "Gradient_descent";
+
+
+    if(Data.contains("Integration")){
+        Integration = Data["Integration"];
+    }
+    else{
+        std::cout<<"The integration method is not defined, using Gradient descent\n";
+    }
+
     int remesh_every = 1;
     if( Data.contains("remesh_every")) remesh_every = Data["remesh_every"];
-    
-    
     std::cout<<"Remesh every is " << remesh_every << std::endl;
+    
+    Vector3 Recenter{0.0,0.0,0.0};
+    if(Data.contains("Displacement")){
+        Recenter.x = Data["Displacement"][0];
+        Recenter.y = Data["Displacement"][1];
+        Recenter.z = Data["Displacement"][2];
+        std::cout<<"Displacing the membrane by " << Recenter <<" \n";
+    }
+
+    double scale_factor = 1.0;
+    if(Data.contains("rescale")){
+        scale_factor = Data["rescale"];
+    }
+    
     bool Saving_last_states = Data["saving_states"];
     size_t Final_t = Data["timesteps"];
 
@@ -889,13 +972,18 @@ int main(int argc, char** argv) {
     mesh = mesh_uptr.release();
     geometry = geometry_uptr.release();
     
+    geometry->normalize(Recenter);
+    geometry->rescale(scale_factor);
+    geometry->refreshQuantities();
 
     V_bar = geometry->totalVolume();
 
     // We will deal with the energies now
     
 
-
+    // std::vector<std::string> Energies(0);
+    // std::vector<std::vector<double>> Energy_constants(0);
+    // std::vector<double> Constants(0);
 
     for( auto Energy : Data["Energies"]){
         Energies.push_back(Energy["Name"]);
@@ -909,12 +997,15 @@ int main(int argc, char** argv) {
     }
     
    
+    
 
     Vector3 BPos;
     double radius;
     double interaction_str;
     std::string state;
     std::string interaction_mem;
+    std::string Constraint;
+    std::vector<double> Constraint_constants;
     Bead PBead;
     for( auto Bead_data : Data["Beads"]){
         std::cout<<"Adding a bead\n";
@@ -924,6 +1015,15 @@ int main(int argc, char** argv) {
         else{
         Energies.push_back("Bead");
         }
+        if(Bead_data.contains("Constraint")){
+            Constraint = Bead_data["Constraint"];
+            Constraint_constants = Bead_data["Constraint_constants"].get<std::vector<double>>();
+        }
+        else{
+            Constraint = "None";
+            Constraint_constants = {};
+        }
+
         Energy_constants.push_back(Constants);
 
         BPos = Vector3({Bead_data["Pos"][0],Bead_data["Pos"][1],Bead_data["Pos"][2] });
@@ -936,7 +1036,7 @@ int main(int argc, char** argv) {
         PBead.Bond_type = Bead_data["bonds"].get<vector<std::string>>();
         PBead.Interaction_constants_vector = Bead_data["bonds_constants"].get<std::vector<std::vector<double>>>();
         PBead.state = state;
-        if(Bead_data["inter_str"]=="Shifted_LJ"){
+        if(Bead_data["mem_inter"]=="Shifted_LJ"){
             PBead.rc = radius*pow(2,1.0/6.0);
         }
         else{
@@ -967,18 +1067,31 @@ int main(int argc, char** argv) {
     // Lets define our integrator and all its values
 
     M3DG = Mem3DG(mesh,geometry);
+    Sim_handler = E_Handler(mesh,geometry,Energies, Energy_constants);
+
     M3DG.recentering = Data["recentering"];
     M3DG.boundary = Data["boundary"]; 
-    for( size_t i = 0 ; i< Beads.size() ; i++) M3DG.Add_bead(&Beads[i]);
-    
-    
-    // Here i will do my alling
-    // Face f = mesh->face(1);
-    // M3DG.Face_sizing(f);
-    // std::cout<<"Thats it\n";
-    // return 1;
+    Sim_handler.boundary = Data["boundary"];
 
+    for( size_t i = 0 ; i< Beads.size() ; i++) {
+        M3DG.Add_bead(&Beads[i]);
+        Sim_handler.Add_Bead(&Beads[i]);
+    }
+    
+    M3DG.Sim_handler = &Sim_handler;
+    
+    if(Data.contains("Field")){
+        M3DG.Field = Data["Field"];
+        M3DG.Field_vals = Data["Field_vals"].get<std::vector<double>>();
+        std::cout<<"The field is " << M3DG.Field << " and the values are ";
+        for(size_t i = 0; i < M3DG.Field_vals.size(); i++) std::cout<< M3DG.Field_vals[i] << " ";
+        std::cout<<"\n";
 
+    }
+    else{
+        M3DG.Field = "None";
+    }
+    
 
     // arcsim::Cloth Cloth_1;
     // arcsim::Cloth::Remeshing remeshing_params;
@@ -991,7 +1104,7 @@ int main(int argc, char** argv) {
         remeshing_params.refine_velocity = Data["remesher"]["refine_velocity"];
         remeshing_params.size_max = Data["remesher"]["size_max"];
         remeshing_params.size_min = Data["remesher"]["size_min"];    
-
+        remeshing_params.total_op = -1;
     }
 
 
@@ -1091,6 +1204,8 @@ int main(int argc, char** argv) {
 
     M3DG.mesh = mesh;
     M3DG.geometry = geometry;
+    Sim_handler.mesh = mesh;
+    Sim_handler.geometry = geometry;
 
     ORIG_VPOS = geometry->inputVertexPositions;
     CoM = geometry->centerOfMass();
@@ -1117,7 +1232,12 @@ int main(int argc, char** argv) {
             stream.str(std::string());
             stream << std::fixed << std::setprecision(4) << Beads[bead_counter].strength;
             Directory = Directory + "str_" +stream.str() +"_";
-
+            
+            if(Beads[bead_counter].Constraint == "Radial"){
+                stream.str(std::string());
+                stream << std::fixed << std::setprecision(4) << Beads[bead_counter].Constraint_constants[0];
+                Directory = Directory + "theta_const_" +stream.str() +"_";
+            }
             bead_counter +=1 ;
         }
         for(size_t j = 0; j < Energy_constants[z].size(); j++) 
@@ -1129,6 +1249,15 @@ int main(int argc, char** argv) {
             // stream << std::fixed << std::setprecision(2) << pi;
         }
         
+    }
+    if(Data.contains("Field")){
+        
+        Directory = Directory + M3DG.Field + "_";
+        for(size_t i = 0; i < M3DG.Field_vals.size(); i++){
+            stream.str(std::string());
+            stream << std::fixed << std::setprecision(4) << M3DG.Field_vals[i];
+            Directory = Directory + stream.str() + "_";
+        }
     }
     
     // I need to add something that includes the bonds because then i will change that parameter(problem is)
@@ -1288,8 +1417,9 @@ int main(int argc, char** argv) {
     }
     psCloud = polyscope::registerPointCloud("really great points", points);
     
-    std::cout<<"The radius would be " <<Beads[0].sigma*1.115 <<"\n";  
-    psCloud->setPointRadius(Beads[0].sigma*1.115/2);
+    std::cout<<"The radius would be " <<Beads[0].sigma*1.0 <<"\n";  
+    psCloud->setPointRadius(Beads[0].sigma);
+    
 
     std::cout<<"Here7\n";
 
@@ -1510,8 +1640,8 @@ int main(int argc, char** argv) {
         // std::cout<<"Integrating\n";
         
         // dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,sigma,Sim_data, time,Save_bead_data,Bead_filenames,Save_output_data,pulling);
-        dt_sim = M3DG.integrate(Energies, Energy_constants , Sim_data, time, Bead_filenames, Save_output_data);
-        
+        dt_sim = M3DG.integrate(Sim_data, time, Bead_filenames, Save_output_data);
+
         if (M3DG.small_TS && current_t>Final_t*0.2) {
             std::cout << "Ending sim due to small TS \n";
             break;

@@ -149,12 +149,9 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
     }
     size_t counter = 0 ;
     if(interaction =="Shifted-LJ"){
-        // std::cout<<"No null force\n";
-        // std::cout<<"The diference between rc and the cutoff is"<< rc-pow(2,1/6.0)<<"\n";
+        // Here we calculate the energy of all the vertices first
         for(Vertex v : mesh->vertices()){
 
-        // Angle_Normals[v.getIndex()]=geometry->vertexNormalAngleWeighted(v);
-        // Angle_Normals_norm[v.getIndex()]=Angle_Normals[v.getIndex()].norm();
         unit_r=(this->Pos-geometry->inputVertexPositions[v]);
         rs[v]=unit_r.norm();
         Unit_rs[v.getIndex()]=unit_r/rs[v];
@@ -168,9 +165,41 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
         }
         else{
         counter+=1;
-        dual_area=Dual_areas[v.getIndex()];
-        E_v[v]= 4*strength*( pow( (sigma/rs[v]) ,12.0) - pow(sigma/rs[v],6.0) )+strength;
+        // dual_area=Dual_areas[v.getIndex()];
+        E_v[v]= (4*strength*( pow( (sigma/rs[v]) ,12.0) - pow(sigma/rs[v],6.0) )+strength);
         }
+        
+        }
+    
+    }
+
+    if(interaction =="Linear_field"){
+        for(Vertex v : mesh->vertices()){
+        
+        unit_r=(this->Pos-geometry->inputVertexPositions[v]);
+        rs[v]=unit_r.norm();
+        Unit_rs[v.getIndex()]=unit_r/rs[v];
+        
+        Dual_areas[v.getIndex()]=geometry->barycentricDualArea(v);
+        // Dual_areas[v.getIndex()]=geometry->circumcentricDualArea(v);        
+        counter+=1;
+        // dual_area=Dual_areas[v.getIndex()];
+        E_v[v] = (strength)*rs[v];
+
+        
+        
+        }
+    
+    }
+
+    if(interaction =="One_over_r_x"){
+        for(Vertex v : mesh->vertices()){
+        double x_x0 = geometry->inputVertexPositions[v].x-this->Pos.x;
+        Dual_areas[v.getIndex()]=geometry->barycentricDualArea(v);
+        // Dual_areas[v.getIndex()]=geometry->circumcentricDualArea(v);        
+        counter+=1;
+        // dual_area=Dual_areas[v.getIndex()];
+        E_v[v] = (strength)/x_x0;
         
         }
     
@@ -236,11 +265,14 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
     if(interaction=="Shifted-LJ"){
         Vector3 u;
         rc2=rc*rc;
+        // std::cout<<"We are here integrating\n";
         
         for(Vertex v : mesh->vertices()){
             F={0,0,0};
             unit_r= Unit_rs[v.getIndex()];
             r= rs[v];
+            // std::cout<<"THe distance is " << r << "\n";
+            // std::cout<<"The cutoff is" << rc << "\n";
             if(r<rc){
             unit_r=unit_r.unit();
             dual_area=Dual_areas[v.getIndex()];
@@ -269,6 +301,98 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
             Force[v]=F+F2;
             Total_force-=F;
 
+        }    
+
+
+    return Force;
+    }
+
+    if(interaction=="Linear_field"){
+        Vector3 u;
+
+        int v1_idx;
+        int v2_idx;
+        int v3_idx;
+
+        double Face_area;
+
+        Vector3 unit_r;
+        Vector3 unit_r2;
+        Vector3 unit_r3;
+
+        for(Face f : mesh->faces()){
+            
+            Face_area = geometry->faceArea(f);
+
+            for(Halfedge he : f.adjacentHalfedges()){
+              
+                v1_idx = he.vertex().getIndex();
+                v2_idx = he.next().vertex().getIndex();
+                v3_idx = he.next().next().vertex().getIndex();
+                unit_r = Unit_rs[v1_idx];
+                unit_r2 = Unit_rs[v2_idx];
+                unit_r3 = Unit_rs[v3_idx];
+
+                u=geometry->inputVertexPositions[v2_idx]-geometry->inputVertexPositions[v3_idx];
+                Vector3 Grad_vec=(0.5)* cross(Normals[f.getIndex()],u);
+
+                // I need to add the consider restriction here
+
+                Force[v1_idx]+=(1.0/3.0)*E_v[v1_idx]*Grad_vec;
+                
+                Force[v1_idx]+=(1.0/3.0)*E_v[v2_idx]*Grad_vec;
+                
+                Force[v1_idx]+=(1.0/3.0)*E_v[v3_idx]*Grad_vec;
+                
+                // We have the area gradient correctly now we will do the energy of interaction
+                
+                r=rs[v1_idx];
+                // if(rs[v1_idx]<rc && dot(unit_r,Face_normal)>0){
+                // if(rs[v1_idx]<rc ){
+                
+                // 
+                
+                // alpha=2*(rc2/(sigma*sigma))*pow( 3/(2*( (rc2/(sigma*sigma)) -1))  ,3 );
+                F = strength*(Face_area/3)*unit_r;
+                
+                Total_force-=F;
+                Force[v1_idx]+=F; 
+            
+                
+            }   
+             
+
+        }
+        return Force;
+        }
+
+     
+
+    if(interaction=="One_over_r_x"){
+        Vector3 u;
+
+        for(Vertex v : mesh->vertices()){
+            F={0,0,0};
+            unit_r= Vector3({this->Pos.x,0,0}) - Vector3({geometry->inputVertexPositions[v].x,0,0});
+            r = unit_r.norm();
+            unit_r=unit_r.unit();
+            dual_area=Dual_areas[v.getIndex()];
+            F =  dual_area*(strength/(r*r))*unit_r;
+            
+            F2={0,0,0};
+            for(Face f : v.adjacentFaces()){
+                // i want to check that any of the vertices in this face contain information             
+                he_grad=f.halfedge();
+                while(he_grad.vertex().getIndex()!=v.getIndex()){
+                    he_grad=he_grad.next();
+                }
+                
+                u=geometry->inputVertexPositions[he_grad.next().vertex()]-geometry->inputVertexPositions[he_grad.next().next().vertex()];
+                Vector3 Grad_vec=(0.5)* cross(Normals[f.getIndex()],u);
+                F2+= (1.0/3.0)*(E_v[v]+E_v[he_grad.next().vertex()]+E_v[he_grad.next().next().vertex()]  )*Grad_vec;
+            }
+            Force[v]=F+F2;
+            Total_force-=F;
         }    
 
 
@@ -617,6 +741,103 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
 
     }
 
+    if(interaction=="Shifted_LJ_constraint"){
+
+        int v1_idx;
+        int v2_idx;
+        int v3_idx;
+        double Face_area;
+    
+        double dual_area2;
+        double dual_area3;
+        Vector3 Face_normal;
+        Vector3 grad;
+        Vector3 grad2;
+        // Halfedge he;
+        Face f;
+        Vector3 Vertex_Normal;
+        Vector3 Vertex_Angle_Normal;
+        Vector3 Vertex_Angle_Normal2;
+        Vector3 Vertex_Angle_Normal3;
+        double Vertex_Angle_Normal_norm;
+        double Vertex_Angle_Normal_norm2;
+        double Vertex_Angle_Normal_norm3;
+
+        
+        
+
+        Halfedge he2;
+        Vector3 unit_r;
+        Vector3 unit_r1;
+        Vector3 unit_r2;
+        Vector3 unit_r3;
+        double r;
+        double r2;
+        double r3;
+
+        Vector3 u;
+        // rc=1.2;
+        rc2=this->rc*this->rc;
+
+     
+        for(Face f : mesh->faces()){
+
+            Face_normal=Normals[f.getIndex()];
+            Face_area = geometry->faceArea(f);
+            
+            for(Halfedge he : f.adjacentHalfedges()){
+              
+                v1_idx = he.vertex().getIndex();
+                v2_idx = he.next().vertex().getIndex();
+                v3_idx = he.next().next().vertex().getIndex();
+                unit_r = Unit_rs[v1_idx];
+                unit_r2 = Unit_rs[v2_idx];
+                unit_r3 = Unit_rs[v3_idx];
+                if((rs[v1_idx] > this->rc ) && ( rs[v2_idx] > this->rc )&& ( rs[v3_idx] > this->rc) ){
+                    break;
+                }
+                // if(rs[v1_idx]>this->rc  && (rs[v2_idx]>this->rc )&& (rs[v3_idx]>this->rc) ){
+                //     break;
+                // }
+              
+                u=geometry->inputVertexPositions[v2_idx]-geometry->inputVertexPositions[v3_idx];
+                Vector3 Grad_vec=(0.5)* cross(Normals[f.getIndex()],u);
+
+                // I need to add the consider restriction here
+
+                if(dot(unit_r,Face_normal)>0){
+                    Force[v1_idx]+=(1.0/3.0)*E_v[v1_idx]*Grad_vec;
+                }
+                if(dot(unit_r2,Face_normal)>0){
+                    Force[v1_idx]+=(1.0/3.0)*E_v[v2_idx]*Grad_vec;
+                }
+                if(dot(unit_r3,Face_normal)>0){
+                    Force[v1_idx]+=(1.0/3.0)*E_v[v3_idx]*Grad_vec;
+                }
+
+                // We have the area gradient correctly now we will do the energy of interaction
+                
+                r=rs[v1_idx];
+                if(rs[v1_idx]<rc){
+                // if(rs[v1_idx]<rc ){
+                
+                // 
+                // This is the interaction of the vertex with the bead
+                F = 4*strength*(Face_area/3)*(-12*pow(sigma/r,13)/sigma+6*pow(sigma/r,7)/sigma)*unit_r;
+
+
+                Total_force-=F;
+                Force[v1_idx]+=F;
+                }
+           
+                
+            }   
+
+        }
+        return Force;
+
+
+    }
 
     if(interaction=="Shifted_LJ_Normal_nopush"){
 
@@ -1645,6 +1866,27 @@ double Bead::Energy() {
 
     }
 
+    if(interaction=="Linear_field"){
+        Total_E = 0;
+    for(Vertex v : mesh->vertices()){
+        dual_area=geometry->barycentricDualArea(v); 
+        Total_E += dual_area*strength*( (Pos-geometry->inputVertexPositions[v]).norm());
+    }
+
+    return Total_E;
+        
+    }
+    if(interaction=="One_over_r_x"){
+
+    for(Vertex v : mesh->vertices()){
+        dual_area=geometry->barycentricDualArea(v); 
+        Total_E += dual_area*strength*( 1/(geometry->inputVertexPositions[v].x-Pos.x));
+    }
+
+    return Total_E;
+        
+    }
+    
 
     if(interaction=="Shifted-LJ"){
     // double dual_area;
@@ -1656,17 +1898,10 @@ double Bead::Energy() {
         if(r2>rc2){
             continue;
         }
-        
-        dual_area=geometry->barycentricDualArea(v);
-        // dual_area=geometry->circumcentricDualArea(v);
-
-        
+        dual_area=geometry->barycentricDualArea(v); 
         Total_E += dual_area*(4*strength*( pow(sigma*sigma/r2,6) - pow( (sigma*sigma/r2) ,3))+strength);
 
-        // Total_E += strength*alpha*( (sigma*sigma/r2)-1  )*pow( (rc2/r2)-1 ,2.0);
-
     }
-    // std::cout<<"THe total energy is "<<Total_E <<" \n";
     return Total_E;
         
     }
