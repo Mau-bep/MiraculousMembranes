@@ -484,7 +484,7 @@ int main(int argc, char** argv) {
     c0=std::stod(argv[2]);
     KA=std::stod(argv[3]);
     KB=std::stod(argv[4]);
-    bool evolve=true;
+    
     size_t target_index=120;
     // I will do it so i can give this values
     auto start = chrono::steady_clock::now();
@@ -496,13 +496,14 @@ int main(int argc, char** argv) {
     TS=5*pow(10,-3);
     double time;
     double dt_sim;
+    bool evolve=true;
     bool test_remesher = false;
     bool evaluate_remesher = false;
 
     bool debug_remesher = true;
 
     bool preserving_vol=false;
-    bool dihedral_dist= true;
+    bool dihedral_dist= false;
 
     bool sizing_test = false;
     bool disk_test = false;
@@ -828,11 +829,14 @@ int main(int argc, char** argv) {
     CoM = geometry->centerOfMass();
     double radius=1.0;
     double Interaction_str=1.0;
-    Bead_1 = Bead(mesh,geometry,Vector3({5.8,0.0,0.0}),radius,Interaction_str);
-    Bead_1.interaction = "Shifted_LJ_Normal_nopush";
+    Bead_1 = Bead(mesh,geometry,Vector3({10.0,0.0,0.0}),radius,Interaction_str);
+    // Bead_1.interaction = "Shifted_LJ_Normal_nopush";
+    Bead_1.interaction = "One_over_r_x";
+
+
     Bead_1.rc = 2.0*radius;
-    Bead_1.interaction="pulling";
-    
+    // Bead_1.interaction="pulling";
+    std::cout<<"THe cutoff radius is " << Bead_1.rc <<"\n";
     M3DG = Mem3DG(mesh,geometry,Bead_1);
 
 
@@ -1349,8 +1353,8 @@ int main(int argc, char** argv) {
     std::ofstream Gradient_data_bending;
     std::ofstream Gradient_data_bending_norms;
     std::ofstream Gradient_data_tot_area;
-
-    std::string filename;
+    std::cout<<"Here at the bead evaluation\n";
+    std::string filename;  
     std::ofstream Gradient_data_bead;
     if(with_bead){
     // std::ofstream Gradient_data_bead;
@@ -1368,6 +1372,7 @@ int main(int argc, char** argv) {
 
     }
 
+    std::cout<<"Finished testing thee bead thingy\n";
 
     // Since this is the test secion, i want to check something
     double Total_A=0;
@@ -1515,21 +1520,21 @@ int main(int argc, char** argv) {
         }
 
         n_vert=mesh->nVertices();
-        std::cout<< "THe number of vertices is "<< n_vert <<"\n";    
-        std::cout << "The avg edge length is = " << std::fixed << std::setprecision(10) << geometry->meanEdgeLength() << std::endl;
+        // std::cout<< "THe number of vertices is "<< n_vert <<"\n";    
+        // std::cout << "The avg edge length is = " << std::fixed << std::setprecision(10) << geometry->meanEdgeLength() << std::endl;
 
         Volume= geometry->totalVolume();
         Area=geometry->totalArea();
         nu_obs=3*Volume/(4*PI*pow( Area/(4*PI) ,1.5 ));
         // H0=sqrt(4*PI/Area)*c0/2.0;
-        std::cout<< "The volume is "<< Volume << "\n";
+        // std::cout<< "The volume is "<< Volume << "\n";
 
-        std::cout<< "The reduced volume is "<< nu_obs << "\n";
+        // std::cout<< "The reduced volume is "<< nu_obs << "\n";
         if(current_t==0){
             nu_0=nu_obs;
         }
 
-    if(current_t%1==0){
+    if(current_t%200==0){
 
             Save_mesh(basic_name,current_t);
             if(with_bead)

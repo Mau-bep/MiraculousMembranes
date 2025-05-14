@@ -30,6 +30,7 @@
 #include "polyscope/polyscope.h"
 #include "polyscope/surface_mesh.h"
 
+
 #include "args/args.hxx"
 #include "imgui.h"
 
@@ -448,7 +449,7 @@ int main(int argc, char** argv) {
 
     int remesh_every = 1;
     if( Data.contains("remesh_every")) remesh_every = Data["remesh_every"];
-    
+    std::cout<<"Remesh every is " << remesh_every << std::endl;
 
     Vector3 Recenter{0.0,0.0,0.0};
     if(Data.contains("Displacement")){
@@ -464,7 +465,6 @@ int main(int argc, char** argv) {
     }
 
     
-    std::cout<<"Remesh every is " << remesh_every << std::endl;
     bool Saving_last_states = Data["saving_states"];
     size_t Final_t = Data["timesteps"];
 
@@ -540,7 +540,7 @@ int main(int argc, char** argv) {
         PBead.Bond_type = Bead_data["bonds"].get<vector<std::string>>();
         PBead.Interaction_constants_vector = Bead_data["bonds_constants"].get<std::vector<std::vector<double>>>();
         PBead.state = state;
-        if(Bead_data["inter_str"]=="Shifted_LJ"){
+        if(Bead_data["mem_inter"]=="Shifted_LJ"){
             PBead.rc = radius*pow(2,1.0/6.0);
         }
         else{
@@ -1219,7 +1219,8 @@ int main(int argc, char** argv) {
 
         k = pow(V_bar/V,1.0/3.0);
         
-        geometry->inputVertexPositions *=k;
+        geometry->rescale(k);
+        // geometry->inputVertexPositions *=k;
         geometry->refreshQuantities();
         
         

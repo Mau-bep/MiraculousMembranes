@@ -1399,8 +1399,12 @@ void VertexPositionGeometry::normalize(const Vector3& origin, bool rescale) {
 
 void VertexPositionGeometry::rescale(double scale_factor) {
 
+    Vector3 center = centerOfMass();
+    // std::cout<<"The center is at " << center << "and the scale factor is " << scale_factor << "\n";
     for(Vertex v : mesh.vertices()){
+        inputVertexPositions[v]-=center;
         inputVertexPositions[v]*=scale_factor;
+        inputVertexPositions[v]+=center;
     }
 
 
