@@ -432,11 +432,17 @@ int main(int argc, char** argv) {
 
     // std::cout << Data.dump(1);
     
+    std::string Switch = "None";
+    size_t Switch_t = 0;
+
     std::string filepath = Data["init_file"];
     int save_interval = Data["save_interval"];
     bool resize_vol = Data["resize_vol"];
     bool arcsim = Data["arcsim"];
     
+    // Ok here 
+    
+
     std::string Integration = "Gradient_descent";
     
     if(Data.contains("Integration")){
@@ -446,6 +452,13 @@ int main(int argc, char** argv) {
         std::cout<<"The integration method is not defined, using Gradient descent\n";
     }
 
+    if(Data.contains("Switch")){
+        Switch = Data["Switch"];
+        Switch_t = Data["Switch_t"];
+    }
+    else{
+        std::cout<<"No switch in this run";
+    }
 
     int remesh_every = 1;
     if( Data.contains("remesh_every")) remesh_every = Data["remesh_every"];
@@ -780,15 +793,6 @@ int main(int argc, char** argv) {
             Directory = Directory + stream.str() + "_";
         }
     }
-    // else{
-        // Directory = Directory + "No_field_";
-    // }
-
-
-    // I need to add something that includes the bonds because then i will change that parameter(problem is)
-    
-    // Lets add the bonds 
-
 
     // Lets add the bonds the types and the interaction strength
 
@@ -805,21 +809,21 @@ int main(int argc, char** argv) {
         }
     }
 
+    if(Switch !="None"){
+        Directory = Directory + "Switch_" + Switch + "_";
+        stream.str(std::string());
+        stream << std::fixed << std::setprecision(1) << Switch_t;
+        Directory = Directory + "Switch_t_" + stream.str() + "_";
+    }
+
     
     Directory = Directory+ "Nsim_" + std::to_string(Nsim)+"/";
-
     std::cout<<"Directory is " << Directory << " \n";
-    
-    
-    
-    
-    
+        
     std::string first_dir = Data["first_dir"];
 
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     
-
-
 
     std::string basic_name=first_dir+Directory;
     
@@ -915,9 +919,38 @@ int main(int argc, char** argv) {
         //     save_interval = 1;
         // }
 
-        // Save_dihedrals(basic_name);
-        // Save_edgelengths(basic_name);
-        
+        if(Switch=="Free_beads" && current_t>= Switch_t){
+
+            std::cout<<"Switching the beahaviour of the beads\n";
+            // We activate the switch
+            for(size_t i = 0; i < Beads.size(); i++){
+                // We change their state to default
+                Beads[i].state = "default";
+
+            }
+
+            std::vector<double> Interaction_const(0);
+            Interaction_const.push_back(1.0);
+            Beads[0].Add_bead( &Beads[1],"Shifted-LJ",Interaction_const);
+            Beads[1].Add_bead( &Beads[0],"Shifted-LJ", Interaction_const);
+
+
+            std::cout <<"The bonds of the first bead are "<<  Beads[0].Bond_type[0] << " with size" << Beads[0].Bond_type.size() <<" \n";
+            
+            // So now they are free to move (this still does not add the interaction with each other)
+
+            Switch = false;
+        }
+        if(Switch=="No_remesh" && current_t>= Switch_t){
+
+            std::cout<<"Switching off the remesher \n";
+            
+
+            arcsim = false;
+            // So now they are free to move (this still does not add the interaction with each other)
+
+            Switch = false;
+        }
 
         start_time_control=chrono::steady_clock::now();
 

@@ -45,26 +45,30 @@ def Create_json_barbell(ka,kb):
 
 
 def Create_json_wrapping_two(ka,kb,r,inter_str,angle):
-
+    theta = float(angle)
     os.makedirs("../Config_files/",exist_ok = True)
     env = Environment(loader=FileSystemLoader('../Templates/'))
 
     template = env.get_template('Two_beads.txt')
-    xpos  = 1.3*np.cos(angle)
-    ypos1 = 1.3*np.sin(angle)
-    ypos2 = -1.3*np.sin(angle)
+    
+    # Radius of the position of the beads is R_v-2*r_b
+    Rpos_beads = 2.0-0.2*2
+    xpos  = Rpos_beads*np.cos(theta)
+    ypos1 = Rpos_beads*np.sin(theta)
+    ypos2 = -Rpos_beads*np.sin(theta)
 
 
-    disp = -1*1.3*np.cos(angle)+ 0.5*(np.sqrt(1.6*1.6-1.3*1.3*np.sin(angle)**2 ) + np.sqrt(1.5*1.5-1.3*1.3*np.sin(angle)**2)) 
+    disp = -1*Rpos_beads*np.cos(theta)+ 0.5*(np.sqrt(2.1*2.1-Rpos_beads*Rpos_beads*np.sin(theta)**2 ) + np.sqrt(2.0*2.0-Rpos_beads*Rpos_beads*np.sin(theta)**2)) 
 
-    output_from_parsed_template = template.render(KA = ka, KB = kb,radius = r,xdisp = -1*disp,xpos1 = xpos,xpos2 =xpos, ypos1= ypos1, ypos2 = ypos2 ,interaction=inter_str, theta = angle)
-    print(output_from_parsed_template)
+    output_from_parsed_template = template.render(KA = ka, KB = kb,radius = r,xdisp = disp,xpos1 = xpos,xpos2 =xpos, ypos1= ypos1, ypos2 = ypos2 ,interaction=inter_str, theta = theta)
     data = json.loads(output_from_parsed_template)
     Config_path = '../Config_files/Wrapping_two_{}_strg_{}_radius_{}_KA_{}_KB_{}.json'.format(angle,inter_str,r,ka,kb) 
     with open(Config_path, 'w') as file:
         json.dump(data, file, indent=4)
 
     return Config_path
+
+
 
 
 Create_json_wrapping_two(10,20,0.2,600,0.5)

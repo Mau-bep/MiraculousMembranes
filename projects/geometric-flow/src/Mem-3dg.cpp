@@ -1033,7 +1033,7 @@ double Mem3DG::Backtracking(){
     
       if(NewE <= previousE - c1 * alpha * Projection && displacement_cond  && fabs(NewE-previousE)<1e2 ) {
     
-        if(fabs(NewE-previousE) > 5e1){
+        if(fabs(NewE-previousE) > 5e1  && false){
           
       
           std::cout<<"The energies are ";
