@@ -36,28 +36,36 @@ SparseMatrix<double> IMem3DG::buildFlowOperator(const SparseMatrix<double>& M, d
 
     typedef Eigen::Triplet<double> T;
     std::vector<T> tripletList;
+    std::vector<T> tripletList2;
     
     SparseMatrix<double> Inv_M(nvert,nvert);
+    SparseMatrix<double> I(nvert,nvert);
+    
     for(size_t index; index<nvert;index++)
     {
         tripletList.push_back(T(index,index, 1.0/(M.coeff(index,index))  ) );
-       
+        tripletList2.push_back(T(index,index,1.0));
     }
     Inv_M.setFromTriplets(tripletList.begin(),tripletList.end());
+    I.setFromTriplets(tripletList2.begin(),tripletList2.end());
+
     SparseMatrix<double> laplacian=geometry->laplaceMatrix();
     
+    
 
+    
     SparseMatrix<double> resulting_op(nvert,nvert);
     
     double A=geometry->totalArea();
     double A_bar=4*PI*pow(3*V_bar/(4*PI*nu),2.0/3.0);
     // double lambda=KA;
     double lambda=KA*(A-A_bar)/(A_bar*A_bar);
-    // std::cout<<"Lambda is "<< lambda <<"\n";
-    // resulting_op=(M+h*lambda*laplacian);
+    lambda = KA;
+    std::cout<<"Lambda is "<< lambda <<"\n";
+    resulting_op=(M-h*0.01*lambda*laplacian); 
     // resulting_op=(M+h*lambda*laplacian+h*KB*laplacian*Inv_M*laplacian);
     
-    resulting_op = (M+ h * lambda * laplacian + h * KB * (laplacian).transpose()*Inv_M*laplacian);
+    // resulting_op = (M + h * KB* laplacian.transpose()*Inv_M*laplacian);
  
     return resulting_op;
     // return resulting_op; // placeholder
@@ -82,7 +90,14 @@ void IMem3DG::integrate(double h,double nu,double V_bar,double P0, double KA,dou
     // Lets recenter the mesh
 
     // geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+    // geometry->refreshQuantities();
 
+    std::cout<<"The timstep will be "<< h <<"\n";
+    std::cout<<"The target reduced volume is " << nu<<" \n";
+    std::cout<<"The target volume is " << V_bar<<" \n";
+    std::cout<<"THe pressure (un used is )  " << P0<<" \n";
+    std::cout<<"The KA is " << KA<<" \n";
+    std::cout<<"the KB is " << KB<<" \n";
 
 
     size_t nvert=mesh->nVertices();
@@ -110,14 +125,18 @@ void IMem3DG::integrate(double h,double nu,double V_bar,double P0, double KA,dou
     solver.compute(Op_flow);
 
     Vector<double> rhs_1=M*(x_pos);
+    // Vector<double> rhs_1=(x_pos);
    
     Vector<double> new_x= solver.solve(rhs_1);
 
     Vector<double> rhs_2=M*(y_pos);
+    // Vector<double> rhs_2=(y_pos);
+
 
     Vector<double> new_y= solver.solve(rhs_2);
 
     Vector<double> rhs_3=M*(z_pos );
+    // Vector<double> rhs_3                          =(z_pos );
     
     Vector<double> new_z= solver.solve(rhs_3);
 
@@ -134,6 +153,8 @@ void IMem3DG::integrate(double h,double nu,double V_bar,double P0, double KA,dou
         geometry->inputVertexPositions[v] = Update ;
     }
 
+    // Here i need to recenter maybe?
+    geometry->normalize(Vector3({0.0,0.0,0.0}),false);
     geometry->refreshQuantities();
     double Vol=geometry->totalVolume();
     
