@@ -1031,7 +1031,7 @@ double Mem3DG::Backtracking(){
     
     for(size_t i = 0 ; i< Beads.size() ; i++) displacement_cond = displacement_cond && Beads[i]->Total_force.norm()*alpha<0.1*Beads[i]->sigma;
     
-      if(NewE <= previousE - c1 * alpha * Projection && displacement_cond  && fabs(NewE-previousE)<5e1 ) {
+      if(NewE <= previousE - c1 * alpha * Projection && displacement_cond  && fabs(NewE-previousE)<1e2 ) {
     
         if(fabs(NewE-previousE) > 5e1){
           

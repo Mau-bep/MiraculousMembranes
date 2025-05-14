@@ -319,11 +319,11 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
         Vector3 unit_r;
         Vector3 unit_r2;
         Vector3 unit_r3;
-
+        
         for(Face f : mesh->faces()){
             
             Face_area = geometry->faceArea(f);
-
+            // Vector3 F2 
             for(Halfedge he : f.adjacentHalfedges()){
               
                 v1_idx = he.vertex().getIndex();

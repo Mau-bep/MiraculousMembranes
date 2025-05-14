@@ -827,11 +827,11 @@ int main(int argc, char** argv) {
 
     ORIG_VPOS = geometry->inputVertexPositions;
     CoM = geometry->centerOfMass();
-    double radius=5.133;
+    double radius=1.0;
     double Interaction_str=1.0;
-    Bead_1 = Bead(mesh,geometry,Vector3({0.0,0.0,0.0}),radius,Interaction_str);
+    Bead_1 = Bead(mesh,geometry,Vector3({10.0,0.0,0.0}),radius,Interaction_str);
     // Bead_1.interaction = "Shifted_LJ_Normal_nopush";
-    Bead_1.interaction = "Shifted-LJ";
+    Bead_1.interaction = "One_over_r_x";
 
 
     Bead_1.rc = 2.0*radius;
