@@ -435,6 +435,15 @@ int main(int argc, char** argv) {
     std::string Switch = "None";
     size_t Switch_t = 0;
 
+    bool finish_sim = true;
+
+    if(Data.contains("finish_sim")){
+        finish_sim = Data["finish_sim"];
+    }
+    else{
+        std::cout<<"The simulation will finish when the timestep decreases\n";
+    }
+
     std::string filepath = Data["init_file"];
     int save_interval = Data["save_interval"];
     bool resize_vol = Data["resize_vol"];
@@ -1209,7 +1218,7 @@ int main(int argc, char** argv) {
         //     Save_mesh(basic_name,-1);
         //     // std::cout<<"THe simulation went crazy i guess? " << dt_sim <<" \n"; 
         // }
-        if (M3DG.small_TS && current_t>Final_t*0.2) {
+        if (M3DG.small_TS && current_t>Final_t*0.2 && finish_sim ) {
             std::cout<<"The  current t is" << current_t << " and the condition is to be grater than " << Final_t*0.2 <<" \n";
             std::cout << "Ending sim due to small TS \n";
             break;

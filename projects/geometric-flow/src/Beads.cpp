@@ -1926,7 +1926,6 @@ double Bead::Energy() {
     return Total_E;
         
     }
-    
     if(interaction=="Shifted-LJ"){
     // double dual_area;
     double alpha;
