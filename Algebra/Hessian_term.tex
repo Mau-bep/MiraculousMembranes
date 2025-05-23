@@ -498,189 +498,160 @@
   %    \raggedright\includegraphics[scale=1.0]{ISTA_LOGO.png} 
   %  \end{minipage}
 \begin{center}
-\LARGE\textbf{Needed algebra for research purposes  \\}
+\LARGE\textbf{Hessian terms  \\}
 \vspace{3 mm}
 \end{center}
 
+    
+The idea now is that for every energy term i will add the Hessian terms that will be needed.
 
-So until now my interaction energy is 
-\begin{equation}
-  E_{\rm inter}=\sum_{i}^N E^{I}_{i} A^{dual}_i
-\end{equation}
-Where we are multipliying the interaction energy with the dual area. When we do this we find that the dual area of $i$ also depends on the neighboring vertices,so when we calculate the gradient for a vertex $i$ we obtain.
+I already have the Hessian of the area  i also need to add later the hessian of the Dihedral angle
 
-\begin{equation}
-  \nabla_{\vec{r}_i} E_{\rm inter}=\nabla_{\vec{r}_i}E^I_{i}A^{\rm dual}_i +   \,\cfrac{1}{3}\nabla_{\vec{r}_i} A_{ijk}\sum_{j\in \text{Neigh}(i) }E^I_j 
-\end{equation}
-Where we used the barycentric dual area, that is why the factor $1/3$ appears. And the second summation is in all the triangles adjacent to vertex $i$.
 
-We now want to multiply this energy with this term
 
 \begin{equation}
-  \vec{N}_i\cdot \hat{r}_i
+    u = p_2 - p_1 \quad v = p_3 - p_1 \quad w = p_4 - p_1
 \end{equation}
-THe second term is the direction from vertex $i$ to the bead. The derivative of the second term is easy, but the first one is no piece of cake because the way this normal is defined is 
-\begin{align}
-  \vec{N}_i=\sum_{ijk} \alpha_{kij}\vec{N}_{ijk}
-\end{align}
-Where i am calculating the normal at the vertex as the angle weighted sum of the normals at the faces.
 
-Therefore we are actually calculating.
+The idea now is to write the terms of the Hessian here 
 
-\begin{align}
-    E_{\rm inter} &= \sum_i^{N} E^I_i A_{i}^{\rm dual} \vec{N_i}\cdot \hat{r}\\
-    &=\sum_i^{N} E^I_i A_{i}^{\rm dual} \sum_{ijk} \alpha_{kij}\vec{N}_{ijk}\cdot \hat{r}
-\end{align}
-Here we can have a little discussion because i can keep it this way, but there could be a problem because the norm of the normal defined at the vertex is not normalized. Which may induce problems? I mean i am not sure i can try to implement this first and check if it works. But i do think one has to be more rigurous and normalize the normal, which means out actual energy is 
 
+We consider also that 
 \begin{align}
-  E_{\rm inter}&=\sum_i^{N} E^I_i A_{i}^{\rm dual} \cfrac{1}{\sqrt{\vec{N}_i^T\cdot \vec{N}_i}}\sum_{ijk} \alpha_{kij}\vec{N}_{ijk}\cdot \hat{r}_i
+    g &= \det(u,v,w)||u|| \\
+    h &= \langle u \times w, v \times u \rangle  \\
+    f &= \arctan2(g,h) \\
+    r &= g^2 + h^2
 \end{align}
 
-So when we calculate this gradient we will have $4$ more terms. And they may have a few terms inside. Since i already calculated the gradient with the previous terms we will only write now the gradients of the terms i need to add to the code, so forget about $E_i^I$ and the dual area.
+Now we calculate the derivatives 
+
+\begin{align}
+    f_u &= f_h h_u + f_g g_u \\
+    &= \cfrac{1}{r}\left( -g u^T ([w]_x[v]_x + [v]_x [w]_x) + h( ||u|| (v\times w)^T + det(u,v,w) \cfrac{u^T}{||u||})  \right)
+\end{align}
+
+\begin{align}
+    f_v &= f_h h_v + f_g g_v \\
+    &= \cfrac{1}{r}\left( -g w^T[u]_x^2 + h||u|| (w\times u)^T\right)
+\end{align}
+\begin{align}
+    f_w &= f_h h_w + f_g g_w \\
+    &= \cfrac{1}{r}\left( -g v^T[u]_x^2 + h||u|| (u\times v)^T\right)
+\end{align}
+
+Now that we have differentiated with all the variables we can say how is the gradient for every point.
+
 
 \begin{equation}
-  E_{\rm inter}=\sum_{i}^N \cfrac{1}{\sqrt{\vec{N}_i^T\cdot \vec{N}_i}}\sum_{ijk} \alpha_{kij}\vec{N}_{ijk}\cdot \hat{r}_i
+    f_{p_1} = -f_u-f_v-f_w \quad f_{p_2} = f_u \quad f_{p_3} = f_v \quad f_{p_4} = f_w
 \end{equation}
 
-Now we need to be careful about this term. 
-First because we are summing over all vertex indices and then over all the triangles sorrounding this vertex. 
-We know there is only one $\hat{r}$ per vertex. But the normal $N_{ijk}$ appeas on the three vertices.
-Also the angle depends in the other two vertices. Lets try to unwrap this and see if we can make sense of it 
-\begin{align}
-  \nabla_{\vec{r}_l} E_{\rm inter} =\nabla_{\vec{r}_l} \left( \cfrac{1}{\sqrt{\vec{N}_l^T\cdot \vec{N}_l}}\sum_{ljk}\alpha_{klj}\vec{N}_{ljk}\cdot \hat{r}_l  \right)+\nabla_{\vec{r}_l}\left( \sum_{m\in \text{neigh}(l)}  \cfrac{1}{\sqrt{\vec{N}_m^T\cdot \vec{N}_m}} \sum_{mjk}\alpha_{kmj}\vec{N}_{mjk}\cdot   \hat{r}_m\right)
-\end{align}
+And those are the terms of the gradient of $f$. Lets remember that f is the dihedral angle.
 
-Ok what i see here is that there are two triangles for every neighbor that contribute. I just need to find a way to make sense of this. Because i still need to expand this.
+Now we will do the Hessian of the dihedral angle 
 
-So the main thing here is dependence.
-Lets expand the first term because it looks simpler and we may gain intuition.
 
+Considering  
+\begin{equation}
+ l = v\times w \quad B = [w]_x[v]_x + [v]_x[w]_x  \quad \alpha = \det(u,v,w)
+\end{equation}
 
 \begin{align}
-  \text{First}&= -\cfrac{1}{2\sqrt[3/2]{\vec{N}^T_l \cdot \vec{N}_l}} \nabla_{\vec{r}_l}(\vec{N}_l^T \cdot \vec{N}_l)  \left(\sum_{ljk}\alpha_{klj}\vec{N}_{ljk}\cdot \hat{r}_l\right)+\cfrac{1}{\sqrt{\vec{N}_l^T\cdot \vec{N}_l}} \nabla_{\vec{r}_l}\left(\sum_{ljk}\alpha_{klj}\vec{N}_{ljk}\cdot \hat{r}_l\right)
+    f_{p_2p_2}  &= \cfrac{g^2-h^2}{r^2} \left[ ||u|| (Bu \otimes l + l \otimes Bu ) + \cfrac{\alpha}{||u||}\left( Bu \otimes u + u \otimes Bu \right)    \right]\\
+    &-\cfrac{2gh}{r^2}\left[ Bu\otimes Bu + ||u||^2 l \otimes l  \right] + \cfrac{1}{r^2}\left(-2gh\alpha + \cfrac{hr}{||u||}\right)\left(l\otimes u + u \otimes l \right)\\
+    & - \left(\cfrac{2gh\alpha^2}{r^2 ||u||^2} - \cfrac{h\alpha r }{r^2 ||u||^3} \right)(u \otimes u) - \cfrac{g}{r}B + \cfrac{h\alpha }{||u|| r} \mathcal{I}
 \end{align}
 
-We need to expand the dot product of the normal with itself. and the second term is the summation of a triple product, so there will be a lot of terms and i dont think we can cancel any of them (:
 
+This one is the ugliest actually, the other ones are nicer 
+
+First $f_{p_3p_3}$ courtesy of Christian, assuming this 
+\begin{equation}
+    a = w\times u \quad b = u \times (u\times w) = a\times u 
+\end{equation}
 
 \begin{align}
-  \nabla_{\vec{r}_l} \left(\vec{N}_l^T\cdot \vec{N}_l\right) &= 2\vec{N}_l\left(\nabla_{\vec{r}_l}\vec{N_l}\right)  
+    f_{p_3p_3} = \cfrac{2gh }{r^2}\left(b\otimes b - ||u||^2 a\otimes a \right) + \cfrac{||u||(g^2-h^2)}{r^2} (a\otimes b + b\otimes a)
 \end{align}
+
+
+The next one is $f_{p_4p_4}$.
+In this case we consider 
+\begin{equation}
+    d = u\times v \quad k = u \times (u\times v) = u\times d
+\end{equation}
+
+And the terms are 
+
+\begin{align}
+    f_{p_4p_4} = \cfrac{2gh}{r^2}\left(k\otimes k - ||u||^2 d\otimes d \right) + \cfrac{||u||(g^2-h^2)}{r^2} (d\otimes k + k\otimes d)
+\end{align}
+
+And those are the diagonal terms, now we will do the off diagonals.
+
+We will define some things also 
+
+\begin{equation}
+    C = (-2[w]_x[u]_x + [u]_x[w]_x)
+\end{equation}
+
+So the next term is $f_{p_2p_3}$
+
+\begin{align}
+    f_{p_2 p_3}&= \cfrac{g^2-h^2}{r^2}\left[  -||u||Cv \otimes a + ||u|| l \otimes b  + \cfrac{\alpha }{||u||} u \otimes b  \right]\\
+    & +\cfrac{2gh }{r^2}\left[Cv \otimes b + ||u||^2 l\otimes a + \alpha u \otimes a \right] - \cfrac{g}{r}C
+\end{align}
+
+
+And now we have $f_{p_2p_4}$
+
+We define a matrix as  
+\begin{equation}
+    D = -2[v]_x[u]_x + [u]_x[v]_x
+\end{equation}
+
+\begin{align}
+    f_{p_2 p_4} &= \cfrac{g^2-h^2}{r^2}\left[||u|| Dw \otimes d + ||i|| l \otimes (u\times d) + \cfrac{\alpha}{||u||}u \otimes (u\times d ) \right]\\
+    & +\cfrac{2gh}{r^2}\left[ D w \otimes (u\times d) - ||u||l \otimes d  - \alpha u \otimes d \right] - \cfrac{g}{r}D + \cfrac{h}{r}\left( ||u||[v]_x + \cfrac{1}{||u||} u \otimes d \right)
+\end{align}
+
+
+And now we have $f_{p_4p_3}$
+
+\begin{align}
+    f_{p_4p_3}&= \cfrac{g^2-h^2}{r^2}\left[ ||u|| k \otimes a + ||u|| c \otimes b   \right]\\
+    &+ \cfrac{2gh}{r^2}\left[  -||u||^2 c\otimes a + k \otimes b  \right] - \cfrac{g}{r}[u]_x^2 +\cfrac{h||u||}{r} [u]_x
+\end{align}
+
+
+Now we can do the rest of the terms 
+
+\begin{align}
+    f_{p_1p_1 } &= (-f_{p_2} -f_{p_3} -f_{p_4})_p_1\\
+                &= f_{p_2p_2} + f_{p_2p_3} + f_{p_2p_4} + f_{p_3p_2} +f_{p_3p_3} + f_{p_3p_4} + f_{p_4p_2} + f_{p_4p_3} + f_{p_4p_4}
+\end{align}
+
+Lets do the rest 
  
-So now we need to calculate this derivative which will be useful later 
 \begin{align}
-  \nabla_{\vec{r}_l} \vec{N}_l &=\nabla_{\vec{r}_l} \sum_{ljk}\alpha_{klj}\vec{N}_{ljk}\\
-  &=\sum_{ljk}\vec{N}_{ljk}(\nabla_{\vec{r}_l}\alpha_{klj})^T+\alpha_{klj}(\nabla_{\vec{r}_l}\vec{N}_{ljk})
+    f_{p_1p_2} &= (-f_{p_2} -f_{p_3} -f_{p_4})_p_2\\
+                &= -f_{p_2p_2} - f_{p_3p_2} - f_{p_4p_2} 
 \end{align}
-
-So the fist term of the first term gives us $3$ terms. Which is just ... great. Lets look into them. The first one is the gradient of an angle. The angles are at the vertex $l$.
-
-
-
-For an angle $\alpha$ the derivative with respect to the vertices are.
-\begin{align}
-  \nabla_l\alpha_{jlk} &= -(\nabla_j \alpha + \nabla_k \alpha)\\
-  \nabla_j\alpha_{jlk} &= -(N\times u )/|u|^2\\
-  \nabla_k\alpha_{jlk} &= (N\times v)/|v|^2 
-\end{align}
-Where if we use the halfedge data structure with anti-clockwise orientation, the outgoing halfedge points to vertex $j$. The vertex $u$ and $v$ are calculated as $k-l$ and $j-l$. So this is also something to keep in mind. Because if we use hafledges then both formulas will be with negative sign (cool fact that i may exploit).
-
-With this formula i think the implementation I will need the normal of the triangle and the vectors $u$ and $v$ but those are easy to calculate so no need to store them.
-
-The second term asks for the jacobian of the normal.
-
-The jacobian is 
-\begin{equation}
-  \cfrac{1}{2A}(\vec{e}\times \vec{N})\vec{N}^T
-\end{equation}
-Where $\vec{e}$ is the edge opposite of the vertex for which we are calculating the Jacobian.
-Again, this formula requires the normal defined at the triangle and getting a vector that is easy to ask for as you need it. 
-
-
-The third term asks for the gradient of a unit vector, the Jacobian is 
-\begin{equation}
-  \cfrac{1}{r}(I-\hat{r}\hat{r}^T)
-\end{equation}
-Where $r$ is the distance between the vertex and the bead in our case, $I$ is a identity matrix of $3x3$.
-This is the easiest one haha. 
-
-
-
-The good thing is that the second term of Eq(10) has the same gradient, so we are also ready with this one. 
-
 
 
 \begin{align}
-  \text{First}=-\cfrac{1}{2\sqrt[3/2]{\vec{N}_l^T\cdot \vec{N}_l}}2(\nabla_{\vec{r}_l}\vec{N}_l)\vec{N}_l + \cfrac{1}{\sqrt{\vec{N}_l^T\cdot \vec{N}_l^T}}[(\nabla_{\vec{r}_l} \vec{N_l})\hat{r}+(\nabla_{\vec{r}_l}\hat{r})\vec{N}_l]
+    f_{p_1p_3} &= (-f_{p_2} -f_{p_3} -f_{p_4})_p_3\\
+                &= -f_{p_2p_3} - f_{p_3p_3} - f_{p_4p_3}
 \end{align}
-I need to check where does the Jacobian goes, but for this i think i can do testing.
-
-I will do texting of the jacobian of the vectors, then the gradient of the dot product. 
-Then the gradient of this first big term. And then finally everything together, so its gonna be a lot of tests.
-
-
-
-
-
-
-
-
-Now i just need to include the second term of equation (9) where we are considering what happends to the neighbors.
-We will not have the contribution of the vector $\hat{r}_m$ since this does not depend on the position of $l$.
-
-
-Lets get to it 
-\begin{align}
-  \text{Second}&= \nabla_{\vec{r}_l}\left( \cfrac{1}{\sqrt{\vec{N}_m^T\cdot \vec{N}_m}}    \sum_{mjk}\alpha_{kmj}\vec{N}_{mjk}\cdot \hat{r}_m\right) \\
-  &=-\cfrac{1}{2\sqrt[3/2]{\vec{N}_m^T\cdot N_m^T}}2(\nabla_{\vec{r}_l} \vec{N}_m)\vec{N}_m \left( \sum_{mjk}\alpha_{kmj}\vec{N}_{mjk}\cdot \hat{r}_m \right)+\cfrac{1}{\sqrt{\vec{N}_m^T\cdot \vec{N}_m}}\nabla_{\vec{r}_l}\sum_{mjk}\alpha_{kmj}\vec{N}_{mjk}\cdot \hat{r}_m
-\end{align}
-
-Ok we are getting somewhere now.
-\begin{align}
-  \nabla_{\vec{r}_l}\vec{N}_m&=\nabla_{\vec{r}_l}\sum_{mjk}\alpha_{kmj}\vec{N}_{mjk}\\
-  &=\sum_{mjk}\vec{N}_{mjk}(\nabla_{\vec{r}_l}\alpha_{kmj})^T+\alpha_{kmj}(\nabla_{\vec{r}_l}\vec{N}_{mjk} )\\
-\end{align}
-The thing here is that there are only two angles that contribute to the gradient, since there are only two triangles shared by these two vertices. (This is under the assumption that they are only connected through one edge ).
-Therefore we will have $\alpha_{lmj}$ and $\alpha_{kml}$ are the only contributions, and this is the same for the second  term since they only share the two normals of the faces they both touch.
-We can there write 
 
 \begin{align}
-  \nabla_{\vec{r}_l}\vec{N}_m&=\vec{N}_{mjl}(\nabla_{\vec{r}_l}\alpha_{lmj})^T+\vec{N}_{mlk}\nabla_{\vec{r}_l}(\alpha_{kml})^T+\alpha_{lmj}(\nabla_{\vec{r}_l} \vec{N}_{mjl})+\alpha_{kml}(\nabla_{\vec{r}_l}\vec{N}_{kml})
+    f_{p_1p_4} &= (-f_{p_2} -f_{p_3} -f_{p_4})_p_4\\
+                &= -f_{p_2p_4} - f_{p_3p_4} - f_{p_4p_4}
 \end{align}
-So this will add only these terms. The good thing is because we have all the cases for the derivatives, we can get the contribution for every neighboring vertex. 
-
-And i think thats it, because we have the gradient and therefore we can rewrite the second term as 
-\begin{equation}
-  \text{Second}=-\cfrac{1}{\sqrt[3/2]{\vec{N}_m^T\cdot \vec{N}_m}}(\nabla_{\vec{r}_l}\vec{N}_m)\vec{N}_m \left(\vec{N}_m\cdot \hat{r}_m  \right)+\cfrac{1}{\sqrt{\vec{N}_m^T\cdot\vec{N}_m}}(\nabla_{\vec{r}_l}\vec{N}_m )\cdot \hat{r}_m
-\end{equation}
-
-So well this is everything. This means that i need to calculate the Jacobian of $\vec{N}_m$
-
-
-
-
-
 
 \newpage 
  
-Ok i want to make a few changes, now instead of doing the normal per vertex i want to do the integral per triangle.
-
-
-
-the code will look somehting like this
-
-per face 
-
-get area
-get normal 
-get energy at vertices 
-
-E= 1/3 area *energy * (normal *r)
-% this is kind of an area weighted normal but simpler
-%  
-
-
 
 
 

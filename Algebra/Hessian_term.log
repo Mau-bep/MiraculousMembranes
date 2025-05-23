@@ -1,10 +1,10 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2024.3.15)  22 MAY 2025 11:47
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2024.3.15)  22 MAY 2025 16:06
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
  %&-line parsing enabled.
-**/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Algebra_Interaction.tex
-(/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Algebra_Interaction.tex
+**/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex
+(/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex
 LaTeX2e <2021-11-15> patch level 1
 L3 programming layer <2022-01-21> (/usr/share/texlive/texmf-dist/tex/latex/base/article.cls
 Document Class: article 2021/10/04 v1.4n Standard LaTeX document class
@@ -1181,8 +1181,8 @@ Package hyperref Info: Option `colorlinks' set `true' on input line 408.
 \c@prop=\count352
 \c@cor=\count353
 \c@solu=\count354
- (./Algebra_Interaction.aux)
-\openout1 = `Algebra_Interaction.aux'.
+ (./Hessian_term.aux)
+\openout1 = `Hessian_term.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 484.
 LaTeX Font Info:    ... okay on input line 484.
@@ -1256,9 +1256,8 @@ Package: gettitlestring 2019/12/15 v1.6 Cleanup title references (HO)
 LaTeX Info: Redefining \ref on input line 484.
 LaTeX Info: Redefining \pageref on input line 484.
 LaTeX Info: Redefining \nameref on input line 484.
- (./Algebra_Interaction.out) (./Algebra_Interaction.out)
 \@outlinefile=\write5
-\openout5 = `Algebra_Interaction.out'.
+\openout5 = `Hessian_term.out'.
 
  (/usr/share/texlive/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
@@ -1334,37 +1333,37 @@ File: alphabeta-lgr 2020/09/25 1.0 Composite definitions for 8-bit TeX
    defining Unicode char U+03DD (decimal 989)
    defining Unicode char U+03F1 (decimal 1009)
    defining Unicode char U+03F5 (decimal 1013)
-LaTeX Font Info:    Trying to load font information for OT1+lmr on input line 507.
+LaTeX Font Info:    Trying to load font information for OT1+lmr on input line 512.
  (/usr/share/texmf/tex/latex/lm/ot1lmr.fd
 File: ot1lmr.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )
-LaTeX Font Info:    Trying to load font information for OML+lmm on input line 507.
+LaTeX Font Info:    Trying to load font information for OML+lmm on input line 512.
  (/usr/share/texmf/tex/latex/lm/omllmm.fd
 File: omllmm.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )
-LaTeX Font Info:    Trying to load font information for OMS+lmsy on input line 507.
+LaTeX Font Info:    Trying to load font information for OMS+lmsy on input line 512.
  (/usr/share/texmf/tex/latex/lm/omslmsy.fd
 File: omslmsy.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )
-LaTeX Font Info:    Trying to load font information for OMX+lmex on input line 507.
+LaTeX Font Info:    Trying to load font information for OMX+lmex on input line 512.
  (/usr/share/texmf/tex/latex/lm/omxlmex.fd
 File: omxlmex.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10.95> on input line 507.
+(Font)              <10.95> on input line 512.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <8> on input line 507.
+(Font)              <8> on input line 512.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <6> on input line 507.
-LaTeX Font Info:    Trying to load font information for U+msa on input line 507.
+(Font)              <6> on input line 512.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 512.
  (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 507.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 512.
  (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
-LaTeX Font Info:    Trying to load font information for U+rsfs on input line 507.
+LaTeX Font Info:    Trying to load font information for U+rsfs on input line 512.
  (/usr/share/texlive/texmf-dist/tex/latex/jknapltx/ursfs.fd
 File: ursfs.fd 1998/03/24 rsfs font definition file (jk)
 )
@@ -1386,6 +1385,62 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
 
 [2]
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:633: Double subscript.
+<argument> ...} &= (-f_{p_2} -f_{p_3} -f_{p_4})_p_
+                                                  1\\ &= f_{p_2p_2} + f_{p_2...
+l.633 \end{align}
+                 
+I treat `x_1_2' essentially like `x_1{}_2'.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:633: Double subscript.
+<argument> ...} &= (-f_{p_2} -f_{p_3} -f_{p_4})_p_
+                                                  1\\ &= f_{p_2p_2} + f_{p_2...
+l.633 \end{align}
+                 
+I treat `x_1_2' essentially like `x_1{}_2'.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:640: Double subscript.
+<argument> ...} &= (-f_{p_2} -f_{p_3} -f_{p_4})_p_
+                                                  2\\ &= -f_{p_2p_2} - f_{p_...
+l.640 \end{align}
+                 
+I treat `x_1_2' essentially like `x_1{}_2'.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:640: Double subscript.
+<argument> ...} &= (-f_{p_2} -f_{p_3} -f_{p_4})_p_
+                                                  2\\ &= -f_{p_2p_2} - f_{p_...
+l.640 \end{align}
+                 
+I treat `x_1_2' essentially like `x_1{}_2'.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:646: Double subscript.
+<argument> ...} &= (-f_{p_2} -f_{p_3} -f_{p_4})_p_
+                                                  3\\ &= -f_{p_2p_3} - f_{p_...
+l.646 \end{align}
+                 
+I treat `x_1_2' essentially like `x_1{}_2'.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:646: Double subscript.
+<argument> ...} &= (-f_{p_2} -f_{p_3} -f_{p_4})_p_
+                                                  3\\ &= -f_{p_2p_3} - f_{p_...
+l.646 \end{align}
+                 
+I treat `x_1_2' essentially like `x_1{}_2'.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:651: Double subscript.
+<argument> ...} &= (-f_{p_2} -f_{p_3} -f_{p_4})_p_
+                                                  4\\ &= -f_{p_2p_4} - f_{p_...
+l.651 \end{align}
+                 
+I treat `x_1_2' essentially like `x_1{}_2'.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:651: Double subscript.
+<argument> ...} &= (-f_{p_2} -f_{p_3} -f_{p_4})_p_
+                                                  4\\ &= -f_{p_2p_4} - f_{p_...
+l.651 \end{align}
+                 
+I treat `x_1_2' essentially like `x_1{}_2'.
+
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 13.59999pt, for example:
@@ -1401,31 +1456,29 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller to compensate:
 (fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
 
-[4]
+[4] (./Hessian_term.aux)
 
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller to compensate:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
+Package rerunfilecheck Warning: File `Hessian_term.out' has changed.
+(rerunfilecheck)                Rerun to get outlines right
+(rerunfilecheck)                or use package `bookmark'.
 
-[5] (./Algebra_Interaction.aux)
-Package rerunfilecheck Info: File `Algebra_Interaction.out' has not changed.
-(rerunfilecheck)             Checksum: D41D8CD98F00B204E9800998ECF8427E;0.
+Package rerunfilecheck Info: Checksums for `Hessian_term.out':
+(rerunfilecheck)             Before: <no file>
+(rerunfilecheck)             After:  D41D8CD98F00B204E9800998ECF8427E;0.
  ) 
 Here is how much of TeX's memory you used:
- 31015 strings out of 480171
- 585382 string characters out of 5894489
- 929866 words of memory out of 5000000
- 48372 multiletter control sequences out of 15000+600000
- 497398 words of font info for 54 fonts, out of 8000000 for 9000
+ 31016 strings out of 480171
+ 585281 string characters out of 5894489
+ 933764 words of memory out of 5000000
+ 48370 multiletter control sequences out of 15000+600000
+ 491418 words of font info for 52 fonts, out of 8000000 for 9000
  59 hyphenation exceptions out of 8191
- 84i,16n,89p,569b,355s stack positions out of 5000i,500n,10000p,200000b,80000s
-{/usr/share/texmf/fonts/enc/dvips/lm/lm-rm.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-ec.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-mathsy.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-mathit.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-mathex.enc}</usr/share/texmf/fonts/type1/public/lm/lmbx12.pfb></usr/share/texmf/fonts/type1/public/lm/lmex10.pfb></usr/share/texmf/fonts/type1/public/lm/lmmi10.pfb></usr/share/texmf/fonts/type1/public/lm/lmmi6.pfb></usr/share/texmf/fonts/type1/public/lm/lmmi8.pfb></usr/share/texmf/fonts/type1/public/lm/lmr10.pfb></usr/share/texmf/fonts/type1/public/lm/lmr6.pfb></usr/share/texmf/fonts/type1/public/lm/lmr8.pfb></usr/share/texmf/fonts/type1/public/lm/lmsy10.pfb></usr/share/texmf/fonts/type1/public/lm/lmsy8.pfb>
-Output written on Algebra_Interaction.pdf (5 pages, 146025 bytes).
+ 84i,12n,89p,562b,357s stack positions out of 5000i,500n,10000p,200000b,80000s
+{/usr/share/texmf/fonts/enc/dvips/lm/lm-rm.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-mathex.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-mathit.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-mathsy.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-ec.enc}</usr/share/texmf/fonts/type1/public/lm/lmbx12.pfb></usr/share/texmf/fonts/type1/public/lm/lmex10.pfb></usr/share/texmf/fonts/type1/public/lm/lmmi10.pfb></usr/share/texmf/fonts/type1/public/lm/lmmi8.pfb></usr/share/texmf/fonts/type1/public/lm/lmr10.pfb></usr/share/texmf/fonts/type1/public/lm/lmr6.pfb></usr/share/texmf/fonts/type1/public/lm/lmr8.pfb></usr/share/texmf/fonts/type1/public/lm/lmsy10.pfb>
+Output written on Hessian_term.pdf (4 pages, 129385 bytes).
 PDF statistics:
- 125 PDF objects out of 1000 (max. 8388607)
- 95 compressed objects within 1 object stream
- 32 named destinations out of 1000 (max. 500000)
+ 121 PDF objects out of 1000 (max. 8388607)
+ 97 compressed objects within 1 object stream
+ 41 named destinations out of 1000 (max. 500000)
  13 words of extra memory for PDF output out of 10000 (max. 10000000)
 

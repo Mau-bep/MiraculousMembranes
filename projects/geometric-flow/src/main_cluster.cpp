@@ -766,6 +766,10 @@ int main(int argc, char** argv) {
             Directory = Directory +"radius_" +stream.str() +"_";
 
             stream.str(std::string());
+            stream << std::fixed << std::setprecision(4) << Beads[bead_counter].interaction;
+            Directory = Directory + stream.str()+"_";
+
+            stream.str(std::string());
             stream << std::fixed << std::setprecision(4) << Beads[bead_counter].strength;
             Directory = Directory + "str_" +stream.str() +"_";
 
