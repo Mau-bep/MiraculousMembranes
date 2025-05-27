@@ -653,17 +653,113 @@ Lets do the rest
 \newpage 
  
 
+Ok, now lets write the rest of the hessians. To take a small break i will write the Hessian of an edge 
+
+
+Let $u = p_2-p_1$
+
+
+\begin{equation}
+    l(u) = \vert| u \vert| 
+\end{equation}
+
+From out previous experience we know 
+\begin{equation}
+    l_{p1} = -l_u \quad l_{p2} = l_u
+\end{equation}
+
+Thefore the term of the gradient is 
+
+\begin{equation}
+    l_u  = \cfrac{u^T}{||u||} \quad l_{p1} = -\cfrac{u^T}{||u||} \quad l_{p2} = \cfrac{u^T}{||u||}
+\end{equation}
+
+And now the for the Hessian we now 
+\begin{equation}
+    l_{uu} = l_{p_1p_1 } = l+{p_2p_2} = \cfrac{1}{||u||} \left( \mathcal{I} - \cfrac{u\otimes u}{||u||^2} \right)
+\end{equation}
+
+Now for the off diagonal terms, hmm... in this case i think they just have a minus sign at the front.
+
+\begin{equation}
+    l_{p_1p_2} =  -(l_u)_u = -\cfrac{1}{||u||} \left( \mathcal{I} - \cfrac{u\otimes u}{||u||^2} \right)
+\end{equation}
 
 
 
+\newpage 
+
+Now we can do the Hessian of the area, we will use the same notation as before, so we have
 
 
+\begin{equation}
+    u = p_2 - p_1 \quad v = p_3 - p_1 \quad u_{p_1} = -id \quad u_{p_2} = id \quad v_{p_1} = -id \quad v_{p_3} = id
+\end{equation}
+
+Let $z  = u \times v \quad z_v = [u]_{\times} \quad z_u = -[v]_{\times}$
+
+Considering $A = \vert|z\vert|$ (This is actually twice the area but we just need to remember to divide the results by two at the the end)
+
+\begin{equation}
+    A_z = \cfrac{z^T}{\vert| z \vert|} 
+\end{equation}
 
 
+\begin{align}
+    A_u - A_z z_u &= -\cfrac{1}{\vert| z\vert|}z^T [v]_\times = \cfrac{1}{\vert| z\vert|}([v]_\times z)^T\\
+    &=\cfrac{1}{\vert| z \vert|} (v\times z )^T
+\end{align}
+\begin{align}
+    A_v = A_z z_v & = \cfrac{1}{\vert| z \vert|}z^T [u]_\times = \cfrac{1}{\vert| z \vert|}([u]_\times^T z)^T\\
+    &= -\cfrac{1}{\vert| z \vert|} (u\times z)^T
+\end{align}
 
 
+Now that we have the partial derivatives we can write the gradient of the area
+
+\begin{align}
+    A_{p_1} &= A_u u_{p_1} + A_v v_{p_1} \\
+    &=  -A_u - A_v \\
+    &= -\cfrac{1}{\vert| z \vert|} ((u-v)\times z)^T\\
+    &= -\cfrac{1}{\vert z \vert|} ((p_2-p_3)\times z)^T 
+\end{align}
+
+\begin{align}
+    A_{p_2} &= \cfrac{1}{\vert| z |vert}((p_3-p_1)\times z)^T
+\end{align}
+\begin{align}
+    A_{p_3} &= \cfrac{1}{\vert| z \vert|}((p_1-p_2)\times z)^T
+\end{align}
 
 
+Perfect, now that we have the first derivatives its time to write down the second derivatives.
+
+
+Thanks to Christian we got this 
+
+\begin{equation}
+    A_{p_1p_1} = \cfrac{1}{\vert| z  \vert|} \left(  \cfrac{-((u-v)\times z)\cdot ((u-v)\times z)^T }{\vert| z \vert|^2} - [u-v]_\times^2     \right)
+\end{equation}
+
+\begin{equation}
+    A_{p_2p_2} = -\cfrac{1}{\vert| z \vert|}\left( \cfrac{1}{\vert| z \vect|^2}((p_3-p_1)\times z)\outer((p_3-p_1)\times z) + [p_3-p_1]_\times^2   \right)
+\end{equation}
+
+\begin{equation}
+    A_{p_3p_3} = -\cfrac{1}{\vert| z \vert|}\left( \cfrac{1}{\vert| z \vect|^2}((p_1-p_2)\times z)\outer((p_1-p_2)\times z) + [p_1-p_2]_\times^2   \right)
+\end{equation}
+
+\begin{equation}
+    A_{p_2p_3} = \cfrac{1}{\vert| z\vert|}\left([p_3-p_1]_\times (id - \cfrac{z\outer z}{\vert| z \vert|^2})[p_2-p_1]_\times - [z]_\times    \right)
+\end{equation}
+
+\begin{equation}
+    A_{p_3p_1} = \cfrac{1}{\vert| z \vert|}\left( [p_1-p_2]_\times (id - \cfrac{z\outer z}{\vert| z \vert|^2})[p_3-p_2]_\times - [z]_\times   \right)
+\end{equation}
+
+\begin{equation}
+    A_{p_1p_2} = \cfrac{1}{\vert| z \vert|}\left( [p_2-p_3]_\times (id - \cfrac{z\outer z}{\vert| z \vert|^2})[p_1-p_3]_\times - [z]_\times   \right)
+\end{equation}
 
 
 

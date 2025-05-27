@@ -193,6 +193,24 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
         }
     
     }
+    if(interaction =="Gravity"){
+        for(Vertex v : mesh->vertices()){
+        
+        // unit_r=(this->Pos-geometry->inputVertexPositions[v]);
+        // rs[v]=unit_r.norm();
+        // Unit_rs[v.getIndex()]=unit_r/rs[v];
+        
+        Dual_areas[v.getIndex()]=geometry->barycentricDualArea(v);
+        // Dual_areas[v.getIndex()]=geometry->circumcentricDualArea(v);        
+        counter+=1;
+        // dual_area=Dual_areas[v.getIndex()];
+        E_v[v] = (strength)*rs[v]*(-1*geometry->inputVertexPositions[v].x);
+
+        
+        
+        }
+    
+    }
 
     if(interaction =="One_over_r_x"){
         for(Vertex v : mesh->vertices()){
@@ -351,6 +369,64 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
                 
                 // alpha=2*(rc2/(sigma*sigma))*pow( 3/(2*( (rc2/(sigma*sigma)) -1))  ,3 );
                 F = strength*(Face_area/3)*unit_r;
+                
+                Total_force-=F;
+                Force[v1_idx]+=F; 
+            
+                
+            }   
+             
+
+        }
+        return Force;
+        }
+        if(interaction=="Gravity"){
+        Vector3 u;
+
+        int v1_idx;
+        int v2_idx;
+        int v3_idx;
+
+        double Face_area;
+
+        Vector3 unit_r;
+        Vector3 unit_r2;
+        Vector3 unit_r3;
+
+        for(Face f : mesh->faces()){
+            
+            Face_area = geometry->faceArea(f);
+
+            for(Halfedge he : f.adjacentHalfedges()){
+              
+                v1_idx = he.vertex().getIndex();
+                v2_idx = he.next().vertex().getIndex();
+                v3_idx = he.next().next().vertex().getIndex();
+                // unit_r = Unit_rs[v1_idx];
+                // unit_r2 = Unit_rs[v2_idx];
+                // unit_r3 = Unit_rs[v3_idx];
+
+                u=geometry->inputVertexPositions[v2_idx]-geometry->inputVertexPositions[v3_idx];
+                Vector3 Grad_vec=(0.5)* cross(Normals[f.getIndex()],u);
+
+                // I need to add the consider restriction here
+
+                Force[v1_idx]+=(1.0/3.0)*E_v[v1_idx]*Grad_vec;
+                
+                Force[v1_idx]+=(1.0/3.0)*E_v[v2_idx]*Grad_vec;
+                
+                Force[v1_idx]+=(1.0/3.0)*E_v[v3_idx]*Grad_vec;
+                
+                // We have the area gradient correctly now we will do the energy of interaction
+                
+                r=rs[v1_idx];
+                // if(rs[v1_idx]<rc && dot(unit_r,Face_normal)>0){
+                // if(rs[v1_idx]<rc ){
+                
+                // 
+                
+                // alpha=2*(rc2/(sigma*sigma))*pow( 3/(2*( (rc2/(sigma*sigma)) -1))  ,3 );
+                F = strength*(Face_area/3)*Vector3({1,0,0});
                 
                 Total_force-=F;
                 Force[v1_idx]+=F; 
@@ -1911,6 +1987,16 @@ double Bead::Energy() {
     for(Vertex v : mesh->vertices()){
         dual_area=geometry->barycentricDualArea(v); 
         Total_E += dual_area*strength*( (Pos-geometry->inputVertexPositions[v]).norm());
+    }
+
+    return Total_E;
+        
+    }
+    if(interaction=="Gravity"){
+        Total_E = 0;
+    for(Vertex v : mesh->vertices()){
+        dual_area=geometry->barycentricDualArea(v); 
+        Total_E += dual_area*strength*( -1*(geometry->inputVertexPositions[v].x) );
     }
 
     return Total_E;
