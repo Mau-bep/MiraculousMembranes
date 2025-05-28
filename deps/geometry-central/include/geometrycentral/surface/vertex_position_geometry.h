@@ -2,7 +2,7 @@
 
 #include "geometrycentral/surface/embedded_geometry_interface.h"
 #include "geometrycentral/surface/surface_mesh.h"
-
+#include <unistd.h>
 #include <Eigen/SparseCore>
 
 namespace geometrycentral {
@@ -133,7 +133,19 @@ class VertexPositionGeometry : public EmbeddedGeometryInterface {
     SparseMatrix<double> buildExteriorDerivative0Form() const;
     SparseMatrix<double> buildExteriorDerivative0Form3N() const;
 
-    // SparseMatrix<double> buildHodgeStar0Form3N() const;
+
+    // We will be adding some cute functions for the Hessian calculations 
+
+    Eigen::Matrix3d Cross_product_matrix(Eigen::Vector3d v) const;
+
+    Eigen::Vector<double,9> gradient_triangle_area( Eigen::Vector<double,9> Positions) const; 
+    Eigen::Matrix<double, 9, 9> hessian_triangle_area( std::array<double,9> Positions) const;
+
+
+
+
+ 
+
 
   protected:
     // Override the compute vertex positions method for embedded geometry

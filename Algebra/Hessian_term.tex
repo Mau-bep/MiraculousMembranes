@@ -763,4 +763,30 @@ Thanks to Christian we got this
 
 
 
+
+
+
+I think those are all the terms that i need for now. I still need to add the interactions with the Bead but lets do that later because we require considering dot products :( 
+
+
+
+
+
+\chapter{Assembling the Hessian}
+
+Ok so this is the part where we dialog the structure of the code to get my Hessian. 
+
+According to Christian I should create functions that take a vector and return the Block hessians.
+
+For the area hessian i should have 
+
+\begin{itemize}
+    \item \texttt{gradient_area([p1 p2, p3])} This function takes a 9-dimensional vector with the coordinates of the three vertices and returns a  9-vector that contains the gradient of the area with respect to each of the vertices.
+    \item \texttt{hessian_area([p1 p2, p3])} This function takes a 9-dimensional vector with the coordinates of the three vertices and returns a 9x9 matrix that contains the Hessian of the area with respect to each of the vertices.
+\end{itemize}
+
+This functions should be implemented simply because there will be a bigger function that will ensamble the rest of the info.
+
+
+
 \end{document}

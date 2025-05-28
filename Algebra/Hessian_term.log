@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2024.3.15)  27 MAY 2025 14:18
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2024.3.15)  27 MAY 2025 14:59
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -1530,6 +1530,530 @@ l.761 ...id - \cfrac{z\outer z}{\vert| z \vert|^2}
                                                   )[p_1-p_3]_\times - [z]_\t...
 I'll pretend you didn't say \long or \outer or \global or \protected.
 
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:775: Undefined control sequence.
+l.775 \chapter
+              {Assembling the Hessian}
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 784.
+(/usr/share/texmf/tex/latex/lm/ts1lmr.fd
+File: ts1lmr.fd 2009/10/30 v1.6 Font defs for Latin Modern
+)
+LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 784.
+ (/usr/share/texmf/tex/latex/lm/t1lmtt.fd
+File: t1lmtt.fd 2009/10/30 v1.6 Font defs for Latin Modern
+)
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:784: Missing $ inserted.
+<inserted text> 
+                $
+l.784 ...\item \texttt{gradient_area([p1 p2, p3])}
+                                                   This function takes a 9-d...
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:784: Extra }, or forgotten $.
+<recently read> \egroup 
+                        
+l.784 ...\item \texttt{gradient_area([p1 p2, p3])}
+                                                   This function takes a 9-d...
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:785: LaTeX Error: Command \item invalid in math mode.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.785     \item
+                \texttt{hessian_area([p1 p2, p3])} This function takes a 9-d...
+Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:785: LaTeX Error: Something's wrong--perhaps a missing \item.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.785     \item \texttt
+                       {hessian_area([p1 p2, p3])} This function takes a 9-d...
+Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:785: LaTeX Error: Something's wrong--perhaps a missing \item.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.785     \item \texttt
+                       {hessian_area([p1 p2, p3])} This function takes a 9-d...
+Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:785: Missing $ inserted.
+<inserted text> 
+                $
+l.785     \item \texttt{hessian_area([p1 p2, p3])}
+                                                   This function takes a 9-d...
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:785: Extra }, or forgotten $.
+\textdef@ ...th {#1}\let \f@size #2\selectfont #3}
+                                                  }
+l.785     \item \texttt{hessian_area([p1 p2, p3])}
+                                                   This function takes a 9-d...
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:785: Extra }, or forgotten $.
+\textdef@ ...h {#1}\let \f@size #2\selectfont #3}}
+                                                  
+l.785     \item \texttt{hessian_area([p1 p2, p3])}
+                                                   This function takes a 9-d...
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:785: Extra }, or forgotten $.
+\text@ ...e {\textdef@ \displaystyle \f@size {#1}}
+                                                  {\textdef@ \textstyle \f@s...
+l.785     \item \texttt{hessian_area([p1 p2, p3])}
+                                                   This function takes a 9-d...
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:785: Missing $ inserted.
+<inserted text> 
+                $
+l.785     \item \texttt{hessian_area([p1 p2, p3])}
+                                                   This function takes a 9-d...
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:785: Extra }, or forgotten $.
+\textdef@ ...th {#1}\let \f@size #2\selectfont #3}
+                                                  }
+l.785     \item \texttt{hessian_area([p1 p2, p3])}
+                                                   This function takes a 9-d...
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:785: Extra }, or forgotten $.
+\textdef@ ...h {#1}\let \f@size #2\selectfont #3}}
+                                                  
+l.785     \item \texttt{hessian_area([p1 p2, p3])}
+                                                   This function takes a 9-d...
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:785: Extra }, or forgotten $.
+\text@ ...xtstyle \f@size {\firstchoice@false #1}}
+                                                  {\textdef@ \textstyle \sf@...
+l.785     \item \texttt{hessian_area([p1 p2, p3])}
+                                                   This function takes a 9-d...
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:785: Missing $ inserted.
+<inserted text> 
+                $
+l.785     \item \texttt{hessian_area([p1 p2, p3])}
+                                                   This function takes a 9-d...
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:785: Extra }, or forgotten $.
+\textdef@ ...th {#1}\let \f@size #2\selectfont #3}
+                                                  }
+l.785     \item \texttt{hessian_area([p1 p2, p3])}
+                                                   This function takes a 9-d...
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:785: Extra }, or forgotten $.
+\textdef@ ...h {#1}\let \f@size #2\selectfont #3}}
+                                                  
+l.785     \item \texttt{hessian_area([p1 p2, p3])}
+                                                   This function takes a 9-d...
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:785: Extra }, or forgotten $.
+\text@ ...tstyle \sf@size {\firstchoice@false #1}}
+                                                  {\textdef@ \textstyle \ssf...
+l.785     \item \texttt{hessian_area([p1 p2, p3])}
+                                                   This function takes a 9-d...
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:785: Missing $ inserted.
+<inserted text> 
+                $
+l.785     \item \texttt{hessian_area([p1 p2, p3])}
+                                                   This function takes a 9-d...
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:785: Extra }, or forgotten $.
+\textdef@ ...th {#1}\let \f@size #2\selectfont #3}
+                                                  }
+l.785     \item \texttt{hessian_area([p1 p2, p3])}
+                                                   This function takes a 9-d...
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:785: Extra }, or forgotten $.
+\textdef@ ...h {#1}\let \f@size #2\selectfont #3}}
+                                                  
+l.785     \item \texttt{hessian_area([p1 p2, p3])}
+                                                   This function takes a 9-d...
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:785: Extra }, or forgotten $.
+\text@ ...style \ssf@size {\firstchoice@false #1}}
+                                                  \check@mathfonts }
+l.785     \item \texttt{hessian_area([p1 p2, p3])}
+                                                   This function takes a 9-d...
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:785: Extra }, or forgotten $.
+\text@ ...firstchoice@false #1}}\check@mathfonts }
+                                                  
+l.785     \item \texttt{hessian_area([p1 p2, p3])}
+                                                   This function takes a 9-d...
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:786: Missing $ inserted.
+<inserted text> 
+                $
+l.786 \end{itemize}
+                   
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:786: Missing } inserted.
+<inserted text> 
+                }
+l.786 \end{itemize}
+                   
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:786: Missing } inserted.
+<inserted text> 
+                }
+l.786 \end{itemize}
+                   
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:786: Missing } inserted.
+<inserted text> 
+                }
+l.786 \end{itemize}
+                   
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:786: Missing $ inserted.
+<inserted text> 
+                $
+l.786 \end{itemize}
+                   
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:786: Missing } inserted.
+<inserted text> 
+                }
+l.786 \end{itemize}
+                   
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:786: Missing } inserted.
+<inserted text> 
+                }
+l.786 \end{itemize}
+                   
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:786: Missing } inserted.
+<inserted text> 
+                }
+l.786 \end{itemize}
+                   
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:786: Missing $ inserted.
+<inserted text> 
+                $
+l.786 \end{itemize}
+                   
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:786: Missing } inserted.
+<inserted text> 
+                }
+l.786 \end{itemize}
+                   
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:786: Missing } inserted.
+<inserted text> 
+                }
+l.786 \end{itemize}
+                   
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:786: Missing } inserted.
+<inserted text> 
+                }
+l.786 \end{itemize}
+                   
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:786: Missing $ inserted.
+<inserted text> 
+                $
+l.786 \end{itemize}
+                   
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:786: Missing } inserted.
+<inserted text> 
+                }
+l.786 \end{itemize}
+                   
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:786: Missing } inserted.
+<inserted text> 
+                }
+l.786 \end{itemize}
+                   
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:786: Missing } inserted.
+<inserted text> 
+                }
+l.786 \end{itemize}
+                   
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:786: Missing { inserted.
+<to be read again> 
+                   \endgroup 
+l.786 \end{itemize}
+                   
+A left brace was mandatory here, so I've put one in.
+You might want to delete and/or insert some corrections
+so that I will find a matching right brace soon.
+(If you're confused by all this, try typing `I}' now.)
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:786: Missing } inserted.
+<inserted text> 
+                }
+l.786 \end{itemize}
+                   
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:786: Missing { inserted.
+<to be read again> 
+                   \endgroup 
+l.786 \end{itemize}
+                   
+A left brace was mandatory here, so I've put one in.
+You might want to delete and/or insert some corrections
+so that I will find a matching right brace soon.
+(If you're confused by all this, try typing `I}' now.)
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:786: Missing } inserted.
+<inserted text> 
+                }
+l.786 \end{itemize}
+                   
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:786: Missing { inserted.
+<to be read again> 
+                   \endgroup 
+l.786 \end{itemize}
+                   
+A left brace was mandatory here, so I've put one in.
+You might want to delete and/or insert some corrections
+so that I will find a matching right brace soon.
+(If you're confused by all this, try typing `I}' now.)
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:786: Missing } inserted.
+<inserted text> 
+                }
+l.786 \end{itemize}
+                   
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:786: Missing } inserted.
+<inserted text> 
+                }
+l.786 \end{itemize}
+                   
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:786: Missing $ inserted.
+<inserted text> 
+                $
+l.786 \end{itemize}
+                   
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:786: Missing } inserted.
+<inserted text> 
+                }
+l.786 \end{itemize}
+                   
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+
+Overfull \hbox (114.52763pt too wide) in paragraph at lines 784--787
+[]\T1/lmtt/m/n/10.95 gradient$[]\OML/lmm/m/it/10.95 rea\OT1/lmr/m/n/10.95 ([\OML/lmm/m/it/10.95 p\OT1/lmr/m/n/10.95 1\OML/lmm/m/it/10.95 p\OT1/lmr/m/n/10.95 2\OML/lmm/m/it/10.95 ; p\OT1/lmr/m/n/10.95 3])\OML/lmm/m/it/10.95 Thisfunctiontakesa\OT1/lmr/m/n/10.95 9 \OMS/lmsy/m/n/10.95 ^^@ \OML/lmm/m/it/10.95 dimensionalvectorwiththecoordinatesofthethreeverticesandreturnsa\OT1/lmr/m/n/10.95 9 \OMS/lmsy/m/n/10.95 ^^@
+ []
+
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 13.59999pt, for example:
@@ -1548,18 +2072,18 @@ Package rerunfilecheck Info: Checksums for `Hessian_term.out':
 (rerunfilecheck)             After:  D41D8CD98F00B204E9800998ECF8427E;0.
  ) 
 Here is how much of TeX's memory you used:
- 31043 strings out of 480171
- 585602 string characters out of 5894489
+ 31134 strings out of 480171
+ 587246 string characters out of 5894489
  933764 words of memory out of 5000000
- 48371 multiletter control sequences out of 15000+600000
- 491418 words of font info for 52 fonts, out of 8000000 for 9000
+ 48448 multiletter control sequences out of 15000+600000
+ 496907 words of font info for 62 fonts, out of 8000000 for 9000
  59 hyphenation exceptions out of 8191
- 84i,12n,89p,562b,357s stack positions out of 5000i,500n,10000p,200000b,80000s
-{/usr/share/texmf/fonts/enc/dvips/lm/lm-mathsy.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-rm.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-mathex.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-mathit.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-ec.enc}</usr/share/texmf/fonts/type1/public/lm/lmbx12.pfb></usr/share/texmf/fonts/type1/public/lm/lmex10.pfb></usr/share/texmf/fonts/type1/public/lm/lmmi10.pfb></usr/share/texmf/fonts/type1/public/lm/lmmi8.pfb></usr/share/texmf/fonts/type1/public/lm/lmr10.pfb></usr/share/texmf/fonts/type1/public/lm/lmr6.pfb></usr/share/texmf/fonts/type1/public/lm/lmr8.pfb></usr/share/texmf/fonts/type1/public/lm/lmsy10.pfb></usr/share/texmf/fonts/type1/public/lm/lmsy8.pfb>
-Output written on Hessian_term.pdf (7 pages, 140229 bytes).
+ 84i,16n,89p,562b,365s stack positions out of 5000i,500n,10000p,200000b,80000s
+{/usr/share/texmf/fonts/enc/dvips/lm/lm-ec.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-ts1.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-mathsy.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-rm.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-mathex.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-mathit.enc}</usr/share/texmf/fonts/type1/public/lm/lmbx12.pfb></usr/share/texmf/fonts/type1/public/lm/lmex10.pfb></usr/share/texmf/fonts/type1/public/lm/lmmi10.pfb></usr/share/texmf/fonts/type1/public/lm/lmmi8.pfb></usr/share/texmf/fonts/type1/public/lm/lmr10.pfb></usr/share/texmf/fonts/type1/public/lm/lmr6.pfb></usr/share/texmf/fonts/type1/public/lm/lmr8.pfb></usr/share/texmf/fonts/type1/public/lm/lmsy10.pfb></usr/share/texmf/fonts/type1/public/lm/lmsy8.pfb></usr/share/texmf/fonts/type1/public/lm/lmtt10.pfb>
+Output written on Hessian_term.pdf (7 pages, 165380 bytes).
 PDF statistics:
- 169 PDF objects out of 1000 (max. 8388607)
- 139 compressed objects within 2 object streams
+ 178 PDF objects out of 1000 (max. 8388607)
+ 145 compressed objects within 2 object streams
  67 named destinations out of 1000 (max. 500000)
  13 words of extra memory for PDF output out of 10000 (max. 10000000)
 

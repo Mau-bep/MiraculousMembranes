@@ -1390,7 +1390,7 @@ void VertexPositionGeometry::normalize(const Vector3& origin, bool rescale) {
             inputVertexPositions[v] /= radius;
         }
     }
-
+ 
     // Translate to origin [of original mesh].
     for (Vertex v : mesh.vertices()) {
         inputVertexPositions[v] += origin;
@@ -1409,6 +1409,76 @@ void VertexPositionGeometry::rescale(double scale_factor) {
 
 
 }
+
+
+Eigen::Matrix3d Cross_product_matrix(Eigen::Vector3d v){
+
+    Eigen::Matrix3d v_x;
+    v_x << 0, -v[2], v[1],
+        v[2], 0, -v[0],
+        -v[1], v[0], 0;
+    return v_x;
+}
+
+
+
+// This function takes the position of the three vertices of a triangle and computed the gradient of the area wrt the three vertices
+Eigen::Vector<double,9> gradient_triangle_area(Eigen::Vector<double,9> Positions) {
+
+Eigen::Vector<double, 9> Gradient;
+
+
+
+
+Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+//  Vector3 z = cross( p2 - p1, p3 - p1);
+Eigen::Vector3d z = (p2 - p1).cross(p3 - p1);
+Eigen::Vector3d grad_1 = (-1.0/z.norm())*( (p2 - p3).cross(z) );
+Eigen::Vector3d grad_2 = (-1.0/z.norm())*( (p3 - p1).cross(z) );
+Eigen::Vector3d grad_3 = (-1.0/z.norm())*( (p1 - p2).cross(z) );
+
+Gradient << grad_1, grad_2, grad_3;
+
+
+
+
+return Gradient;
+
+}
+
+Eigen::Matrix<double, 9, 9> hessian_triangle_area( Eigen::Vector<double,9> Positions){
+
+Eigen::Matrix<double, 9, 9> Hessian;
+
+
+Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+
+Eigen::Vector3d z = (p2 - p1).cross(p3 - p1);
+Eigen::Vector3d u = (p2 - p1);
+Eigen::Vector3d v = (p3 - p1);
+
+double z_norm = z.norm();
+
+
+Eigen::Matrix<double, 3,3 > Ap1p1 = (1/z_norm)*( -1* (u-v).cross(z) * ((u-v).cross(z)).transpose() - Cross_product_matrix(u-v)*Cross_product_matrix(u-v) );
+Eigen::Matrix<double, 3,3 > Ap2p2 = -(1/z_norm)*( v.cross(z) * v.cross(z).transpose() + Cross_product_matrix(v)*Cross_product_matrix(v) );
+Eigen::Matrix<double, 3,3 > Ap3p3 = -(1/z_norm)*( u.cross(z) * u.cross(z).transpose() + Cross_product_matrix(u)*Cross_product_matrix(u) );
+
+Hessian << Ap1p1 , Ap2p2, Ap3p3;
+
+return Hessian;
+
+
+
+}
+
+
+
+
 
 } // namespace surface
 
