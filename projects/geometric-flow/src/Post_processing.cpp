@@ -333,7 +333,7 @@ int main(int argc, char** argv) {
     bool check_forces = false;
 
 
-    for ( int KB_it = 0; KB_it < KBs.size(); KB_it++){
+    for ( size_t KB_it = 0; KB_it < KBs.size(); KB_it++){
         KB = KBs[KB_it];
     
 
@@ -371,7 +371,7 @@ int main(int argc, char** argv) {
 
         radiusstream << std::fixed << std::setprecision(4) << rad;
     
-        for(int KA_it = 0 ; KA_it<KAs.size(); KA_it++){
+        for(size_t KA_it = 0 ; KA_it<KAs.size(); KA_it++){
             KA = KAs[KA_it];
             KAstream.str(std::string());
             KAstream.clear();

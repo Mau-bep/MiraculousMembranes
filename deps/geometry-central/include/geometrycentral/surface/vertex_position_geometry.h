@@ -137,12 +137,19 @@ class VertexPositionGeometry : public EmbeddedGeometryInterface {
     // We will be adding some cute functions for the Hessian calculations 
 
     Eigen::Matrix3d Cross_product_matrix(Eigen::Vector3d v) const;
-
+    double Triangle_area(Eigen::Vector<double,9> Positions) const;
     Eigen::Vector<double,9> gradient_triangle_area( Eigen::Vector<double,9> Positions) const; 
-    Eigen::Matrix<double, 9, 9> hessian_triangle_area( std::array<double,9> Positions) const;
+    Eigen::Matrix<double, 9, 9> hessian_triangle_area( Eigen::Vector<double,9> Positions) const;
 
 
+    double Edge_length(Eigen::Vector<double,6> Positions) const;
+    Eigen::Vector<double, 6> gradient_edge_length(Eigen::Vector<double,6> Positions) const;
+    Eigen::Matrix<double,6,6> hessian_edge_length(Eigen::Vector<double,6> Positions) const;
 
+
+    double Dihedral_angle(Eigen::Vector<double, 12> Positions) const;
+    Eigen::Vector<double, 12> gradient_dihedral_angle(Eigen::Vector<double, 12> Positions) const;
+    Eigen::Matrix<double, 12, 12> hessian_dihedral_angle(Eigen::Vector<double, 12> Positions) const;
 
  
 

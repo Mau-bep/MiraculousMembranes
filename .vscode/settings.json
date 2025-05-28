@@ -77,6 +77,7 @@
         "strstream": "cpp",
         "bitset": "cpp",
         "cfenv": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "alignedvector3": "cpp"
     }
 }

@@ -173,6 +173,13 @@ set(SRCSprocessingtube
 #   ../../utils/src/colormap.cpp
 # )
 
+set(TEST_hessian_SRCS
+  src/main_test_hess.cpp
+  src/Mem-3dg.cpp
+  src/Beads.cpp
+  ../../utils/src/colormap.cpp
+)
+
 set(TEST_Grad_th_SRCS 
   src/E_test_2.cpp
   src/Mem-3dg.cpp
@@ -426,6 +433,20 @@ target_include_directories(Grad_tests_th PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../
 target_include_directories(Grad_tests_th PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
 
 target_link_libraries(Grad_tests_th PUBLIC geometry-central polyscope arcsim)
+
+
+add_executable(Test_hessian "${TEST_hessian_SRCS}")
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Test_hessian)
+target_include_directories(Test_hessian PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+target_include_directories(Test_hessian PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
+target_include_directories(Test_hessian PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src_arcsim/")
+
+target_include_directories(Test_hessian PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps")
+# add the args.hxx project which we use for command line args
+target_include_directories(Test_hessian PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
+target_include_directories(Test_hessian PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
+
+target_link_libraries(Test_hessian PUBLIC geometry-central polyscope arcsim)
 
 
 add_executable(Test_fan "${TEST_fan_SRCS}")

@@ -1411,7 +1411,7 @@ void VertexPositionGeometry::rescale(double scale_factor) {
 }
 
 
-Eigen::Matrix3d Cross_product_matrix(Eigen::Vector3d v){
+Eigen::Matrix3d VertexPositionGeometry::Cross_product_matrix(Eigen::Vector3d v) const {
 
     Eigen::Matrix3d v_x;
     v_x << 0, -v[2], v[1],
@@ -1422,12 +1422,20 @@ Eigen::Matrix3d Cross_product_matrix(Eigen::Vector3d v){
 
 
 
+double VertexPositionGeometry::Triangle_area(Eigen::Vector<double,9> Positions) const{
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+    Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+
+    Eigen::Vector3d z = (p2 - p1).cross(p3 - p1)/2.0;
+
+    return z.norm();
+}
+
 // This function takes the position of the three vertices of a triangle and computed the gradient of the area wrt the three vertices
-Eigen::Vector<double,9> gradient_triangle_area(Eigen::Vector<double,9> Positions) {
+Eigen::Vector<double,9> VertexPositionGeometry::gradient_triangle_area(Eigen::Vector<double,9> Positions) const{
 
 Eigen::Vector<double, 9> Gradient;
-
-
 
 
 Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
@@ -1435,9 +1443,9 @@ Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
 Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
 //  Vector3 z = cross( p2 - p1, p3 - p1);
 Eigen::Vector3d z = (p2 - p1).cross(p3 - p1);
-Eigen::Vector3d grad_1 = (-1.0/z.norm())*( (p2 - p3).cross(z) );
-Eigen::Vector3d grad_2 = (-1.0/z.norm())*( (p3 - p1).cross(z) );
-Eigen::Vector3d grad_3 = (-1.0/z.norm())*( (p1 - p2).cross(z) );
+Eigen::Vector3d grad_1 = 0.5*(1.0/z.norm())*( (p2 - p3).cross(z) );
+Eigen::Vector3d grad_2 = 0.5*(1.0/z.norm())*( (p3 - p1).cross(z) );
+Eigen::Vector3d grad_3 = 0.5*(1.0/z.norm())*( (p1 - p2).cross(z) );
 
 Gradient << grad_1, grad_2, grad_3;
 
@@ -1448,7 +1456,7 @@ return Gradient;
 
 }
 
-Eigen::Matrix<double, 9, 9> hessian_triangle_area( Eigen::Vector<double,9> Positions){
+Eigen::Matrix<double, 9, 9> VertexPositionGeometry::hessian_triangle_area( Eigen::Vector<double,9> Positions) const{
 
 Eigen::Matrix<double, 9, 9> Hessian;
 
@@ -1467,18 +1475,105 @@ double z_norm = z.norm();
 Eigen::Matrix<double, 3,3 > Ap1p1 = (1/z_norm)*( -1* (u-v).cross(z) * ((u-v).cross(z)).transpose() - Cross_product_matrix(u-v)*Cross_product_matrix(u-v) );
 Eigen::Matrix<double, 3,3 > Ap2p2 = -(1/z_norm)*( v.cross(z) * v.cross(z).transpose() + Cross_product_matrix(v)*Cross_product_matrix(v) );
 Eigen::Matrix<double, 3,3 > Ap3p3 = -(1/z_norm)*( u.cross(z) * u.cross(z).transpose() + Cross_product_matrix(u)*Cross_product_matrix(u) );
+Eigen::Matrix<double, 3,3> Ap1p2 = (1/z_norm)*( Cross_product_matrix(p2-p3)*( Eigen::Matrix3d::Identity(3,3) - (z*z.transpose())/(z_norm*z_norm) )*Cross_product_matrix(p1-p3) - Cross_product_matrix(z));
+Eigen::Matrix<double, 3,3> Ap3p1 = (1/z_norm)*( Cross_product_matrix(p1-p2)*( Eigen::Matrix3d::Identity(3,3) - (z*z.transpose())/(z_norm*z_norm) )*Cross_product_matrix(p3-p2) - Cross_product_matrix(z));
+Eigen::Matrix<double, 3,3> Ap2p3 = (1/z_norm)*( Cross_product_matrix(p3-p1)*( Eigen::Matrix3d::Identity(3,3) - (z*z.transpose())/(z_norm*z_norm) )*Cross_product_matrix(p2-p1) - Cross_product_matrix(z));
+// std::cout<<"THe matrices are \n";
 
-Hessian << Ap1p1 , Ap2p2, Ap3p3;
+// std::cout<<"ap1 \n" <<Ap1p1 << "\n ";
+// std::cout<<"ap2 \n"<< Ap2p2 << "\n";
+// std::cout<<"ap3 \n"<< Ap3p3 << "\n";
+
+Hessian << Ap1p1, Ap1p2,Ap3p1.transpose() ,Ap1p2.transpose(),Ap2p2, Ap2p3, Ap3p1, Ap2p3.transpose(), Ap3p3;
 
 return Hessian;
 
 
+}
+
+double VertexPositionGeometry::Edge_length(Eigen::Vector<double,6> Positions) const{
+
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+
+    return (p2 - p1).norm();
+
+}
+Eigen::Vector<double, 6> VertexPositionGeometry::gradient_edge_length(Eigen::Vector<double,6> Positions) const{
+
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+
+    Eigen::Vector3d grad_1 = -1.0*(p2 - p1)/((p2 - p1).norm());
+    Eigen::Vector3d grad_2 = (p2 - p1)/((p2 - p1).norm());
+    Eigen::Vector<double, 6> Gradient;
+    Gradient << grad_1, grad_2;
+    return Gradient;
 
 }
 
+Eigen::Matrix<double,6,6> VertexPositionGeometry::hessian_edge_length(Eigen::Vector<double,6> Positions) const{
+
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+    Eigen::Vector3d u = (p2 - p1);
+    double u_norm = u.norm();
+
+    Eigen::Matrix<double, 3,3> lp1p1 = (1/u_norm)*( -1.0*(u*u.transpose())/(u_norm*u_norm) + Eigen::Matrix3d::Identity(3,3) );
+
+    
+    Eigen::Matrix<double, 6,6> Hessian;
+
+    Hessian << lp1p1, -1.0*lp1p1,
+            -1.0*lp1p1, lp1p1;
+
+    return Hessian;
+}
+
+    double VertexPositionGeometry::Dihedral_angle(Eigen::Vector<double,12> Positions) const{
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+    Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+    Eigen::Vector3d p4 = { Positions[9], Positions[10], Positions[11] };
+
+    Eigen::Vector3d u = p2 - p1;
+    Eigen::Vector3d v = p3 - p1;
+    Eigen::Vector3d w = p4 - p1;
+
+    double g = ( u.cross(w).cross(v.cross(u)).norm() );
+    double h = (u.cross(w).dot(v.cross(u)));
+
+    return atan2(g,h);
+    }
+
+
+    Eigen::Vector<double, 12> VertexPositionGeometry::gradient_dihedral_angle(Eigen::Vector<double,12> Positions) const{
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+    Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+    Eigen::Vector3d p4 = { Positions[9], Positions[10], Positions[11] };
+
+    Eigen::Vector3d u = p2 - p1;
+    Eigen::Vector3d v = p3 - p1;
+    Eigen::Vector3d w = p4 - p1;
+
+    double u_norm = u.norm();
+    double det = (u.dot( v.cross(w)));
+    double g = ( u.cross(w).cross(v.cross(u)).norm() );
+    double h = (u.cross(w).dot(v.cross(u)));
+    double r = g*g+ h*h; 
 
 
 
+    Eigen::Vector3d fu = (1.0/r)*( -g*(Cross_product_matrix(w)*Cross_product_matrix(v)+ Cross_product_matrix(v)*Cross_product_matrix(w))*u + h*( u_norm*(v.cross(w)) + (det/u_norm)*u) );
+    Eigen::Vector3d fv = (1.0/r)*( -g*(Cross_product_matrix(u)*Cross_product_matrix(u))*w + h*u_norm*(w.cross(u)));
+    Eigen::Vector3d fw = (1.0/r)*( -g*(Cross_product_matrix(u)*Cross_product_matrix(u))*v + h*u_norm*(u.cross(v)));
+
+    Eigen::Vector<double, 12> Gradient;
+
+    Gradient<< -fu-fv-fw , fu , fv , fw;
+
+    }
 
 } // namespace surface
 
