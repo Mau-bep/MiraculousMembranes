@@ -1472,12 +1472,12 @@ Eigen::Vector3d v = (p3 - p1);
 double z_norm = z.norm();
 
 
-Eigen::Matrix<double, 3,3 > Ap1p1 = (1/z_norm)*( -1* (u-v).cross(z) * ((u-v).cross(z)).transpose() - Cross_product_matrix(u-v)*Cross_product_matrix(u-v) );
-Eigen::Matrix<double, 3,3 > Ap2p2 = -(1/z_norm)*( v.cross(z) * v.cross(z).transpose() + Cross_product_matrix(v)*Cross_product_matrix(v) );
-Eigen::Matrix<double, 3,3 > Ap3p3 = -(1/z_norm)*( u.cross(z) * u.cross(z).transpose() + Cross_product_matrix(u)*Cross_product_matrix(u) );
-Eigen::Matrix<double, 3,3> Ap1p2 = (1/z_norm)*( Cross_product_matrix(p2-p3)*( Eigen::Matrix3d::Identity(3,3) - (z*z.transpose())/(z_norm*z_norm) )*Cross_product_matrix(p1-p3) - Cross_product_matrix(z));
-Eigen::Matrix<double, 3,3> Ap3p1 = (1/z_norm)*( Cross_product_matrix(p1-p2)*( Eigen::Matrix3d::Identity(3,3) - (z*z.transpose())/(z_norm*z_norm) )*Cross_product_matrix(p3-p2) - Cross_product_matrix(z));
-Eigen::Matrix<double, 3,3> Ap2p3 = (1/z_norm)*( Cross_product_matrix(p3-p1)*( Eigen::Matrix3d::Identity(3,3) - (z*z.transpose())/(z_norm*z_norm) )*Cross_product_matrix(p2-p1) - Cross_product_matrix(z));
+Eigen::Matrix<double, 3,3 > Ap1p1 = 0.5*(1/z_norm)*( -1* (u-v).cross(z) * ((u-v).cross(z)).transpose()/(z_norm*z_norm) - Cross_product_matrix(u-v)*Cross_product_matrix(u-v) );
+Eigen::Matrix<double, 3,3 > Ap2p2 = -0.5*(1/z_norm)*( v.cross(z) * v.cross(z).transpose()/(z_norm*z_norm) + Cross_product_matrix(v)*Cross_product_matrix(v) );
+Eigen::Matrix<double, 3,3 > Ap3p3 = -0.5*(1/z_norm)*( u.cross(z) * u.cross(z).transpose()/(z_norm*z_norm) + Cross_product_matrix(u)*Cross_product_matrix(u) );
+Eigen::Matrix<double, 3,3> Ap1p2 = 0.5*(1/z_norm)*( Cross_product_matrix(p2-p3)*( Eigen::Matrix3d::Identity(3,3) - (z*z.transpose())/(z_norm*z_norm) )*Cross_product_matrix(p1-p3) - Cross_product_matrix(z));
+Eigen::Matrix<double, 3,3> Ap3p1 = 0.5*(1/z_norm)*( Cross_product_matrix(p1-p2)*( Eigen::Matrix3d::Identity(3,3) - (z*z.transpose())/(z_norm*z_norm) )*Cross_product_matrix(p3-p2) - Cross_product_matrix(z));
+Eigen::Matrix<double, 3,3> Ap2p3 = 0.5*(1/z_norm)*( Cross_product_matrix(p3-p1)*( Eigen::Matrix3d::Identity(3,3) - (z*z.transpose())/(z_norm*z_norm) )*Cross_product_matrix(p2-p1) - Cross_product_matrix(z));
 // std::cout<<"THe matrices are \n";
 
 // std::cout<<"ap1 \n" <<Ap1p1 << "\n ";
@@ -1540,8 +1540,11 @@ Eigen::Matrix<double,6,6> VertexPositionGeometry::hessian_edge_length(Eigen::Vec
     Eigen::Vector3d v = p3 - p1;
     Eigen::Vector3d w = p4 - p1;
 
-    double g = ( u.cross(w).cross(v.cross(u)).norm() );
-    double h = (u.cross(w).dot(v.cross(u)));
+    double u_norm = u.norm();
+    double det = u.dot( v.cross(w));
+    // std::cout<< "The determinant is " << det << "\n";
+    double g = det*u_norm;
+    double h = ((u.cross(w)).dot((v.cross(u))));
 
     return atan2(g,h);
     }
@@ -1558,9 +1561,10 @@ Eigen::Matrix<double,6,6> VertexPositionGeometry::hessian_edge_length(Eigen::Vec
     Eigen::Vector3d w = p4 - p1;
 
     double u_norm = u.norm();
-    double det = (u.dot( v.cross(w)));
-    double g = ( u.cross(w).cross(v.cross(u)).norm() );
-    double h = (u.cross(w).dot(v.cross(u)));
+    double det = u.dot( v.cross(w));
+    // std::cout<< "The determinant is " << det << "\n";
+    double g = det*u_norm;
+    double h = ((u.cross(w)).dot((v.cross(u))));
     double r = g*g+ h*h; 
 
 
@@ -1569,11 +1573,91 @@ Eigen::Matrix<double,6,6> VertexPositionGeometry::hessian_edge_length(Eigen::Vec
     Eigen::Vector3d fv = (1.0/r)*( -g*(Cross_product_matrix(u)*Cross_product_matrix(u))*w + h*u_norm*(w.cross(u)));
     Eigen::Vector3d fw = (1.0/r)*( -g*(Cross_product_matrix(u)*Cross_product_matrix(u))*v + h*u_norm*(u.cross(v)));
 
+
     Eigen::Vector<double, 12> Gradient;
 
     Gradient<< -fu-fv-fw , fu , fv , fw;
 
+    return Gradient;
     }
+
+    Eigen::Matrix<double, 12, 12> VertexPositionGeometry::hessian_dihedral_angle(Eigen::Vector<double,12> Positions) const{
+    
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+    Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+    Eigen::Vector3d p4 = { Positions[9], Positions[10], Positions[11] };
+
+    Eigen::Vector3d u = p2 - p1;
+    Eigen::Vector3d v = p3 - p1;
+    Eigen::Vector3d w = p4 - p1;
+
+    double u_norm = u.norm();
+    double det = u.dot( v.cross(w));
+    // std::cout<< "The determinant is " << det << "\n";
+    double g = det*u_norm;
+    double h = ((u.cross(w)).dot((v.cross(u))));
+    double r = g*g+ h*h; 
+
+    Eigen::Vector3d a = w.cross(u);
+    Eigen::Vector3d b = a.cross(u);
+
+    Eigen::Matrix3d fp3p3 = (2*g*h/(r*r))*(b*b.transpose() - u_norm*u_norm*(a*a.transpose()) ) + (u_norm*(g*g-h*h)/(r*r))*(a*b.transpose() + b*a.transpose());
+
+    Eigen::Vector3d d = u.cross(v);
+    Eigen::Vector3d k = u.cross(d);
+
+    Eigen::Matrix3d fp4p4 = (2*g*h/(r*r))*(k*k.transpose() - u_norm*u_norm*(d*d.transpose()) ) + (u_norm*(g*g-h*h)/(r*r))*(d*k.transpose() + k*d.transpose());
+
+    Eigen::Vector3d l = v.cross(w);
+    Eigen::Matrix3d B = Cross_product_matrix(w)*Cross_product_matrix(v) + Cross_product_matrix(v)*Cross_product_matrix(w);
+
+    Eigen::Matrix3d fp2p2 = (g*g-h*h)/(r*r)*(u_norm* (B*u*l.transpose() + l * u.transpose()*B) + (det/u_norm)*( B*u*u.transpose() + u* u.transpose()*B)  ) + (2*g*h/(r*r))*( B*u*u.transpose()*B - u_norm*u_norm*(l*l.transpose()) ) + (-2*g*h*det + h*r/u_norm)/(r*r)*( l*u.transpose() + u*l.transpose() ) -((2*g*h*det*det)/(r*r*u_norm*u_norm)+h*det/(u_norm*u_norm*u_norm*r) )*(u*u.transpose()) -(g/r)*B + h*det/(r*u_norm)*Eigen::Matrix3d::Identity(3,3);  
+
+
+
+    // Eigen::Matrix3d fp4p3 = (g*g-h*h)/(r*r)*( -u_norm * k * a.transpose() + u_norm*d*b.transpose() ) + (2*g*h/(r*r))*( u_norm*u_norm * d * a.transpose() + k * b.transpose()) - (g/r)*Cross_product_matrix(u)*Cross_product_matrix(u) + (h*u_norm/r)*Cross_product_matrix(u);
+
+    Eigen::Matrix3d u_cross = Cross_product_matrix(u);
+
+    Eigen::Matrix3d fp3p4 = (-1/(r*r))*(-g*u_cross*u_cross*w + h*u_norm*w.cross(u) )*( 2*g*u_norm*u.cross(v).transpose() + 2*h*v.transpose()*u_cross*u_cross ) +
+                            (1/r)*(-g*u_cross*u_cross -u_norm*u_cross*u_cross*w*u.cross(v).transpose()  -h*u_norm * u_cross  +u_norm*w.cross(u)*v.transpose()*u_cross*u_cross  );
+
+    Eigen::Matrix3d C = (-2*Cross_product_matrix(w)*u_cross + u_cross*Cross_product_matrix(w));
+
+    // Eigen::Matrix3d fp2p3 = (g*g-h*h)/(r*r)*( u_norm * C * v * a.transpose() + u_norm*l*b.transpose()+ (det/u_norm)*u*b.transpose() ) + (2*g*h/(r*r))*(C*v*b.transpose() + u_norm*u_norm * l* a.transpose() + det* u*a.transpose() )-(g/r)*C;
+
+    Eigen::Matrix3d fp2p3 = (-1/(r*r))*( -g*C*v +  h*( u_norm * v.cross(w) + (det/u_norm)*u))*(2*g*u_norm*w.cross(u).transpose() + 
+                            2*h*w.transpose()*u_cross*u_cross ) 
+                            +(1/r)*( -1*u_norm*C*v*(w.cross(u).transpose()) -g*C + (u_norm*v.cross(w) + (det/u_norm)*u )*w.transpose()*u_cross*u_cross  + 
+                            h*(-1*u_norm*Cross_product_matrix(w)+ (1/u_norm)*u*w.cross(u).transpose() ) );
+
+
+    Eigen::Matrix3d D = -2*Cross_product_matrix(v)*u_cross + u_cross*Cross_product_matrix(v);
+
+    Eigen::Matrix3d fp2p4 = (-1/(r*r))*(-g*D*w + h*( u_norm * v.cross(w) + (det/u_norm)*u))*(2*g*u_norm*(u.cross(v).transpose()) 
+                            + 2*h*v.transpose()*u_cross*u_cross  ) 
+                            +(1/r)*( -u_norm*D*w*(u.cross(v).transpose())-g*D + (u_norm * v.cross(w)+(det/u_norm)*u )*v.transpose()*u_cross*u_cross 
+                            + h*(u_norm*Cross_product_matrix(v) + (1/u_norm)*u*(u.cross(v).transpose())   )  );
+
+
+
+    Eigen::Matrix3d Zeros = Eigen::Matrix3d::Zero();
+
+    Eigen::Matrix<double, 12,12> Hessian;
+
+    Hessian << fp2p2 + fp2p3+ fp2p4 + fp2p3.transpose() + fp3p3 + fp3p4 + fp2p4.transpose() + fp3p4.transpose() + fp4p4   , -fp2p2 -fp2p3.transpose() -fp2p4.transpose() ,-fp2p3 -fp3p3 -fp3p4.transpose(), -fp2p4 - fp3p4 -fp4p4,
+                -fp2p2.transpose() -fp2p3 -fp2p4,fp2p2,fp2p3, fp2p4,
+                -fp2p3.transpose() -fp3p3.transpose() -fp3p4, fp2p3.transpose(), fp3p3, fp3p4,
+                -fp2p4.transpose() - fp3p4.transpose() -fp4p4.transpose(), fp2p4.transpose(), fp3p4.transpose(), fp4p4;
+
+
+    return Hessian; 
+
+
+
+    }
+
 
 } // namespace surface
 

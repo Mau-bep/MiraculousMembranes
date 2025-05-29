@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2024.3.15)  28 MAY 2025 10:12
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2024.3.15)  29 MAY 2025 11:28
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -1385,6 +1385,28 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
 
 [2]
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:625: Undefined control sequence.
+<argument> ...}&= \cfrac {g^2-h^2}{r^2}\left [ -\?
+                                                   ||u|| k \otimes a + ||u||...
+l.625 \end{align}
+                 
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:625: Undefined control sequence.
+<argument> ...}&= \cfrac {g^2-h^2}{r^2}\left [ -\?
+                                                   ||u|| k \otimes a + ||u||...
+l.625 \end{align}
+                 
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
 /home/mrojasve/Documents/DDG/MiraculousMembranes/Algebra/Hessian_term.tex:633: Double subscript.
 <argument> ...} &= (-f_{p_2} -f_{p_3} -f_{p_4})_p_
                                                   1\\ &= f_{p_2p_2} + f_{p_2...
@@ -2080,7 +2102,7 @@ Here is how much of TeX's memory you used:
  59 hyphenation exceptions out of 8191
  84i,16n,89p,562b,365s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/share/texmf/fonts/enc/dvips/lm/lm-ec.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-ts1.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-mathsy.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-rm.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-mathex.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-mathit.enc}</usr/share/texmf/fonts/type1/public/lm/lmbx12.pfb></usr/share/texmf/fonts/type1/public/lm/lmex10.pfb></usr/share/texmf/fonts/type1/public/lm/lmmi10.pfb></usr/share/texmf/fonts/type1/public/lm/lmmi8.pfb></usr/share/texmf/fonts/type1/public/lm/lmr10.pfb></usr/share/texmf/fonts/type1/public/lm/lmr6.pfb></usr/share/texmf/fonts/type1/public/lm/lmr8.pfb></usr/share/texmf/fonts/type1/public/lm/lmsy10.pfb></usr/share/texmf/fonts/type1/public/lm/lmsy8.pfb></usr/share/texmf/fonts/type1/public/lm/lmtt10.pfb>
-Output written on Hessian_term.pdf (7 pages, 165380 bytes).
+Output written on Hessian_term.pdf (7 pages, 165393 bytes).
 PDF statistics:
  178 PDF objects out of 1000 (max. 8388607)
  145 compressed objects within 2 object streams

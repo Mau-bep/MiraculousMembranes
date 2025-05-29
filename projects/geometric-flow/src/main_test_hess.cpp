@@ -483,6 +483,8 @@ int main(int argc, char** argv) {
     
     auto start = chrono::steady_clock::now();
     auto end = chrono::steady_clock::now();
+    srand((unsigned int) time(0));
+
 
 
     std::cout<< "Current path is " << argv[0]<<"\n";
@@ -595,13 +597,80 @@ int main(int argc, char** argv) {
         std::cout<< "The gradient in the direction " << dim << " is " << Dihedral_Gradient[dim] << " and the finite difference is " << Finite_Gradient_Dihedral[dim] << "\n";
     }
 
+    Eigen::Matrix<double, 6,6> Hessian_Edge = geometry->hessian_edge_length(Edge_Positions);
+
+    // So i have the hessian 
+    Eigen::Matrix<double, 6,6> Hessian_Edge_finite = Eigen::Matrix<double,6,6>::Zero(6,6);
+
+    // Ok so i have the base, we need to calculate finite differences, we got the same number of variations as we have dims right?
+
+    for(size_t dim = 0; dim < Edge_Positions.size(); dim++){
+
+        Eigen::Vector<double,6> Edge_Positions2 = Edge_Positions;
+        Edge_Positions2[dim]+=1e-6;
+        Eigen::Vector<double,6> Gradient_fwd = geometry->gradient_edge_length(Edge_Positions2);
+        Edge_Positions2[dim]-=2e-6;
+        Eigen::Vector<double,6> Gradient_prev = geometry->gradient_edge_length(Edge_Positions2);
+        Hessian_Edge_finite.col(dim) = (Gradient_fwd - Gradient_prev)/(2e-6);
+
+
+    }
+
+    // std::cout<<"THe difference between the Hessians is \n";
+    // for(size_t dim = 0; dim < Edge_Positions.size(); dim++){
+        std::cout<<"THe absolute difference between the Edge Hessians is " << (Hessian_Edge_finite-Hessian_Edge).sum() <<" \n";
+        // std::cout<< Hessian_Edge_finite.col(dim) - Hessian_Edge.col(dim) << " \n";
+    // }
+    // std::cout<<"The hessian for the edge length is \n" << Hessian_Edge << " \n";
+
+    // std::cout<<"THe hessian for the edge length with finite differences is \n" << Hessian_Edge_finite << " \n";
+
+
+
+
     Eigen::Matrix<double, 9, 9> Hessian_Area = geometry->hessian_triangle_area(Positions);
 
-    std::cout<<"THis hessian  for the area is is\n" << Hessian_Area << " \n";
+    // std::cout<<"THis hessian  for the area is is\n" << Hessian_Area << " \n";
+    Eigen::Matrix<double, 9,9> Hessian_Area_finite = Eigen::Matrix<double,9,9>::Zero(9,9);
+
+    // Ok so i have the base, we need to calculate finite differences, we got the same number of variations as we have dims right?
+
+    for(size_t dim = 0; dim < Positions.size(); dim++){
+
+        Eigen::Vector<double,9> Positions2 = Positions;
+        Positions2[dim]+=1e-6;
+        Eigen::Vector<double,9> Gradient_fwd = geometry->gradient_triangle_area(Positions2);
+        Positions2[dim]-=2e-6;
+        Eigen::Vector<double,9> Gradient_prev = geometry->gradient_triangle_area(Positions2);
+        Hessian_Area_finite.col(dim) = (Gradient_fwd - Gradient_prev)/(2e-6);
+    }
+
+    // std::cout<<"THe difference between the Hessians is \n";e
+    std::cout<<"THe absolute difference between the Area Hessians is " << (Hessian_Area_finite-Hessian_Area).sum() <<" \n";
+    // std::cout<<"The hessian of the Area is\n " << Hessian_Area << " \n";
+    // std::cout<<"The hessian of the Area with finite differences is \n" << Hessian_Area_finite << " \n";
 
 
+    Eigen::Matrix<double, 12, 12> Hessian_Dihedral = geometry->hessian_dihedral_angle(Dihedral_Positions);
 
+    Eigen::Matrix<double, 12,12> Hessian_Dihedral_finite = Eigen::Matrix<double,12,12>::Zero(12,12);
 
+    // Its time to finite difference this 
+
+    for(size_t dim = 0; dim < Dihedral_Positions.size(); dim++){
+
+        Eigen::Vector<double,12> Dihedral_Positions2 = Dihedral_Positions;
+        Dihedral_Positions2[dim]+=1e-6;
+        Eigen::Vector<double,12> Gradient_fwd = geometry->gradient_dihedral_angle(Dihedral_Positions2);
+        Dihedral_Positions2[dim]-=2e-6;
+        Eigen::Vector<double,12> Gradient_prev = geometry->gradient_dihedral_angle(Dihedral_Positions2);
+        Hessian_Dihedral_finite.col(dim) = (Gradient_fwd - Gradient_prev)/(2e-6);
+
+    }
+    // std::cout<<"THe difference between the Hessians is \n";
+    std::cout<<"THe absolute difference between the Dihedral Hessians is " << (Hessian_Dihedral_finite-Hessian_Dihedral).sum() <<" \n";
+    // std::cout<<"The hessian of the Dihedral angle is\n " << Hessian_Dihedral << " \n";
+    // std::cout<<"The hessian of the Dihedral angle with finite differences is \n" << Hessian_Dihedral_finite << " \n";
 
 
     std::string filepath = "../../../input/sphere.obj";
