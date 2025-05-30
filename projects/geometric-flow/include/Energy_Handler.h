@@ -52,7 +52,11 @@ class E_Handler {
         virtual VertexData<Vector3> F_Bending(std::vector<double> Constants) const;
         
         virtual VertexData<Vector3> F_SurfaceTension_2(std::vector<double> Constants) const;
+        virtual VertexData<Vector3> F_Bending_2(std::vector<double> Constants) const;
+        virtual VertexData<Vector3> F_Volume_constraint_2(std::vector<double> Constants) const;
+
         virtual SparseMatrix<double> H_SurfaceTension(std::vector<double> Constants);
+        virtual SparseMatrix<double> H_Bending(std::vector<double> Constants);
 
 
         virtual void Calculate_energies(double* E);

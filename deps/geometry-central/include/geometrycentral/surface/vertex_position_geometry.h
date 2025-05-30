@@ -151,7 +151,11 @@ class VertexPositionGeometry : public EmbeddedGeometryInterface {
     Eigen::Vector<double, 12> gradient_dihedral_angle(Eigen::Vector<double, 12> Positions) const;
     Eigen::Matrix<double, 12, 12> hessian_dihedral_angle(Eigen::Vector<double, 12> Positions) const;
 
- 
+
+    double Volume(Eigen::Vector<double, 9> Positions) const;
+    Eigen::Vector<double, 9> gradient_volume(Eigen::Vector<double, 9> Positions) const;
+    Eigen::Matrix<double, 9, 9> hessian_volume(Eigen::Vector<double, 9> Positions) const;
+
 
 
   protected:

@@ -484,6 +484,8 @@ int main(int argc, char** argv) {
     
     auto start = chrono::steady_clock::now();
     auto end = chrono::steady_clock::now();
+    auto start2 = chrono::steady_clock::now();
+    auto end2 = chrono::steady_clock::now();
     srand((unsigned int) time(0));
 
 
@@ -517,16 +519,18 @@ int main(int argc, char** argv) {
 
     }
 
-    std::cout<<"Now if we compare the area gradients we get"<<" \n";
-    for(int dim = 0; dim < Positions.size(); dim++){
-        std::cout<< "The gradient in the direction " << dim << " is " << Gradient[dim] << " and the finite difference is " << Finite_Gradient[dim] << "\n";
-    }
+    // std::cout<<"Now if we compare the area gradients we get"<<" \n";
+    // for(int dim = 0; dim < Positions.size(); dim++){
+    //     std::cout<< "The gradient in the direction " << dim << " is " << Gradient[dim] << " and the finite difference is " << Finite_Gradient[dim] << "\n";
+    // }
+    std::cout<<"The summed absolute difference between the area gradients is " << (Gradient-Finite_Gradient).cwiseAbs().sum() << "\n";
 
     // Lets see then 
 
-    std::cout<<"THe current area is " << geometry->Triangle_area(Positions) << "\n";
-    std::cout<<"IF we move with finite difference " << geometry->Triangle_area(Positions+Finite_Gradient*1e-6) << "\n";
-    std::cout<<"If we move with the gradient " << geometry->Triangle_area(Positions+Gradient*1e-6) << "\n";
+    // std::cout<<"THe current area is " << geometry->Triangle_area(Positions) << "\n";
+    // std::cout<<"IF we move with finite difference " << geometry->Triangle_area(Positions+Finite_Gradient*1e-6) << "\n";
+    // std::cout<<"If we move with the gradient " << geometry->Triangle_area(Positions+Gradient*1e-6) << "\n";
+
 
 
     // Now we need to see if the cross product matrix works too.
@@ -537,16 +541,17 @@ int main(int argc, char** argv) {
     Eigen::Vector3d p1p2 = p1.cross(p2);
     Eigen::Vector3d p1p2Mat = geometry->Cross_product_matrix(p1)*p2;
 
-    std::cout<<"THe vectors are\n "<< p1p2 <<" \n" << "and \n " << p1p2Mat << " \n";
+    std::cout<<"We are testing the cross product matrix, ";
+    // std::cout<<"THe vectors are\n "<< p1p2 <<" \n" << "and \n " << p1p2Mat << " \n";
+    std::cout<<"the difference between the two vectors is " << (p1p2-p1p2Mat).norm() << "\n";
 
 
 
-
-    std::cout<<"Lets test the gradient of the edge-length now \n";
+    // std::cout<<"Lets test the gradient of the edge-length now \n";
 
     Eigen::Vector<double,6> Edge_Positions = Eigen::Vector<double,6>::Random(6);
 
-    std::cout<< "THe edge length is" << geometry->Edge_length(Edge_Positions) <<" \n"    ;
+    // std::cout<< "THe edge length is" << geometry->Edge_length(Edge_Positions) <<" \n"    ;
 
     Eigen::Vector<double,6> Edge_Gradient = geometry->gradient_edge_length(Edge_Positions);
 
@@ -563,11 +568,11 @@ int main(int argc, char** argv) {
 
     }
 
-    std::cout<< "Now if we compare the edge length gradients we get"<<" \n";
-    for(int dim = 0; dim < Edge_Positions.size(); dim++){
-        std::cout<< "The gradient in the direction " << dim << " is " << Edge_Gradient[dim] << " and the finite difference is " << Finite_Gradient_Edge[dim] << "\n";
-    }
-    // std::cout<<"The gradient is " << Edge_Gradient << " an the finite difference is " << Finite_Gradient_Edge << "\n";
+    // std::cout<< "Now if we compare the edge length gradients we get"<<" \n";
+    // for(int dim = 0; dim < Edge_Positions.size(); dim++){
+    //     std::cout<< "The gradient in the direction " << dim << " is " << Edge_Gradient[dim] << " and the finite difference is " << Finite_Gradient_Edge[dim] << "\n";
+    // }
+    std::cout<<"The summed absolute difference between the gradients of the edge length is " << (Edge_Gradient-Finite_Gradient_Edge).cwiseAbs().sum() << "\n";
 
 
 
@@ -575,7 +580,7 @@ int main(int argc, char** argv) {
 
     Eigen::Vector<double,12> Dihedral_Positions = Eigen::Vector<double,12>::Random(12);
 
-    std::cout<< "THe dihedral angle is" << geometry->Dihedral_angle(Dihedral_Positions) <<" \n" ;
+    // std::cout<< "THe dihedral angle is" << geometry->Dihedral_angle(Dihedral_Positions) <<" \n" ;
 
     Eigen::Vector<double,12> Dihedral_Gradient = geometry->gradient_dihedral_angle(Dihedral_Positions);
     
@@ -591,12 +596,8 @@ int main(int argc, char** argv) {
         Finite_Gradient_Dihedral[dim] = (fwd_val-prev_val)/(2e-6);
 
     }
-
-    std::cout<< "Now if we compare the dihedral angle gradients we get"<<" \n";
     
-    for(size_t dim = 0; dim < Dihedral_Positions.size(); dim++){
-        std::cout<< "The gradient in the direction " << dim << " is " << Dihedral_Gradient[dim] << " and the finite difference is " << Finite_Gradient_Dihedral[dim] << "\n";
-    }
+    std::cout<<"The summed absolute difference between the dihedral angle gradients is "<< (Dihedral_Gradient-Finite_Gradient_Dihedral).cwiseAbs().sum() << "\n";
 
     Eigen::Matrix<double, 6,6> Hessian_Edge = geometry->hessian_edge_length(Edge_Positions);
 
@@ -616,6 +617,31 @@ int main(int argc, char** argv) {
 
 
     }
+
+
+    // We will test our new volume function
+
+
+    Eigen::Vector<double,9> Volume_Positions = Eigen::Vector<double,9>::Random(9);
+
+    Eigen::Vector<double,9> Volume_gradient = geometry->gradient_volume(Volume_Positions);
+
+    Eigen::Vector<double,9> Volume_gradient_finite = Eigen::Vector<double,9>::Zero(9);
+    for(size_t dim = 0; dim < Volume_Positions.size(); dim++){
+
+        Eigen::Vector<double,9> Volume_Positions2 = Volume_Positions;
+        Volume_Positions2[dim]+=1e-6;
+        fwd_val = geometry->Volume(Volume_Positions2);
+        Volume_Positions2[dim]-=2e-6;
+        prev_val = geometry->Volume(Volume_Positions2);
+        Volume_gradient_finite[dim] = (fwd_val-prev_val)/(2e-6);
+
+    }  
+
+    std::cout<<"The summed absolute difference between the volume gradients is " << (Volume_gradient-Volume_gradient_finite).cwiseAbs().sum() << "\n";
+
+
+
 
     // std::cout<<"THe difference between the Hessians is \n";
     // for(size_t dim = 0; dim < Edge_Positions.size(); dim++){
@@ -674,23 +700,108 @@ int main(int argc, char** argv) {
     // std::cout<<"The hessian of the Dihedral angle with finite differences is \n" << Hessian_Dihedral_finite << " \n";
 
 
-    std::string filepath = "../../../input/sphere.obj";
+    Eigen::Matrix<double, 9,9> Hessian_Volume = geometry->hessian_volume(Volume_Positions);
+    Eigen::Matrix<double, 9,9> Hessian_Volume_finite = Eigen::Matrix<double,9,9>::Zero(9,9);
+
+    // Its time to finite difference this
+
+    for(size_t dim = 0; dim < Volume_Positions.size(); dim++){
+
+        Eigen::Vector<double,9> Volume_Positions2 = Volume_Positions;
+        Volume_Positions2[dim]+=1e-6;
+        Eigen::Vector<double,9> Gradient_fwd = geometry->gradient_volume(Volume_Positions2);
+        Volume_Positions2[dim]-=2e-6;
+        Eigen::Vector<double,9> Gradient_prev = geometry->gradient_volume(Volume_Positions2);
+        Hessian_Volume_finite.col(dim) = (Gradient_fwd - Gradient_prev)/(2e-6);
+
+    }
+
+    std::cout<<"The absolute difference between the Volume Hessians is " << (Hessian_Volume_finite-Hessian_Volume).sum() <<" \n";
+
+
+
+
+    std::string filepath = "../../../input/Simple_cil.obj";
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
 
 
 
     mesh = mesh_uptr.release();
     geometry = geometry_uptr.release();
-    std::vector<std::string> Energies;
-    std::vector<std::vector<double>> Energy_constants;
+    std::vector<std::string> Energies(0);
+    std::vector<std::vector<double>> Energy_constants(0);
     Energies.push_back("Surface_Tension");
-    Energy_constants.push_back({1.0}); // just a dummy value for the surface tension
+    Energy_constants.push_back({1.0,0.0}); // just a dummy value for the surface tension
     E_Handler Sim_handler;
-    Sim_handler E_Handler(*mesh, *geometry, Energies, Energy_constants);
+    Sim_handler = E_Handler(mesh, geometry, Energies, Energy_constants);
+
+    Sim_handler.boundary = false;
+
+    VertexData<Vector3> Force1(*mesh);
+    VertexData<Vector3> Force2(*mesh);
+
+    start = chrono::steady_clock::now();
+    Force1 = Sim_handler.F_SurfaceTension(Energy_constants[0]);
+    end = chrono::steady_clock::now();
+    start2 = chrono::steady_clock::now();
+    Force2 = Sim_handler.F_SurfaceTension_2(Energy_constants[0]);
+    end2 = chrono::steady_clock::now();
+
+    std::cout<<"The time for the first method is " << chrono::duration_cast<chrono::microseconds>(end - start).count() << " microseconds\n";
+    std::cout<<"The time for the second method is " << chrono::duration_cast<chrono::microseconds>(end2 - start2).count() << " microseconds\n";
+
+    // std::cout<<"The difference between the two methods is " << (Tension1-Tension2) << "\n";
+    double abs_diff = 0.0;
+    for(Vertex v: mesh->vertices()){
+        abs_diff += (Force1[v]-Force2[v]).norm2();
+    }
+    std::cout<<"The absolute difference between the two tensions is " << abs_diff << "\n";
+
+    start = chrono::steady_clock::now();
+    Force1 = Sim_handler.F_Bending(Energy_constants[0]);
+    end = chrono::steady_clock::now();
+
+    start2 = chrono::steady_clock::now();
+    Force2 = Sim_handler.F_Bending_2(Energy_constants[0]);
+    end2 = chrono::steady_clock::now();
+
+    std::cout<<"The time for the first bending method is " << chrono::duration_cast<chrono::microseconds>(end - start).count() << " microseconds\n";
+    std::cout<<"The time for the second bending method is " << chrono::duration_cast<chrono::microseconds>(end2 - start2).count() << " microseconds\n";
+
+    abs_diff = 0.0;
+    double abs_tot=0.0;
+    for(Vertex v: mesh->vertices()){
+
+        // std::cout<<"The relative difference is " << (Force1[v]-Force2[v]).norm()/Force1[v].norm() << "\n";
+        // std::cout<<"Force 1 is " << Force1[v] << " and Force 2 is " << Force2[v] << "\n";
+        abs_diff += (Force1[v]-Force2[v]).norm2();
+        abs_tot +=Force1[v].norm2();
+    }
+    std::cout<<"The absolute difference between the two bending forces is " << abs_diff << "\n";
+    // std::cout<<"The relative difference between the two bending forces is " << abs_diff/abs_tot << "\n";
 
 
-
+    Energy_constants.push_back({1.0,4.5});
     
+    start = chrono::steady_clock::now();
+    Force1 = Sim_handler.F_Volume_constraint(Energy_constants[1]);
+    end = chrono::steady_clock::now();
+    start2 = chrono::steady_clock::now();
+    Force2 = Sim_handler.F_Volume_constraint_2(Energy_constants[1]);
+    end2 = chrono::steady_clock::now();
+    std::cout<<"The time for the first volume constraint method is " << chrono::duration_cast<chrono::microseconds>(end - start).count() << " microseconds\n";
+    std::cout<<"The time for the second volume constraint method is " << chrono::duration_cast<chrono::microseconds>(end2 - start2).count() << " microseconds\n";
+
+    abs_diff = 0.0;
+    for(Vertex v: mesh->vertices()){
+        abs_diff += (Force1[v]-Force2[v]).norm2();
+    }
+    std::cout<<"The absolute difference between the two volume constraint forces is " << abs_diff << "\n";
+    
+
+
+
+
     std::string filename_basic = basic_name+"Output_data.txt";
 
     std::ofstream Sim_data;

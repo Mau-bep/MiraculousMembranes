@@ -1659,6 +1659,58 @@ Eigen::Matrix<double,6,6> VertexPositionGeometry::hessian_edge_length(Eigen::Vec
     }
 
 
+    double VertexPositionGeometry::Volume(Eigen::Vector<double, 9> Positions) const{
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+    Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+
+    return p1.dot(p2.cross(p3))/6.0;
+
+    }
+
+    Eigen::Vector<double, 9> VertexPositionGeometry::gradient_volume(Eigen::Vector<double, 9> Positions) const{
+
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+    Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+    
+    Eigen::Vector3d grad_1 = (p2.cross(p3))/6.0;
+    Eigen::Vector3d grad_2 = (p3.cross(p1))/6.0;
+    Eigen::Vector3d grad_3 = (p1.cross(p2))/6.0;
+
+    Eigen::Vector<double, 9> Gradient;
+
+    Gradient << grad_1, grad_2, grad_3;
+
+    return Gradient;
+    
+    
+    }
+
+    Eigen::Matrix<double, 9, 9> VertexPositionGeometry::hessian_volume(Eigen::Vector<double, 9> Positions) const{
+
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+    Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+
+    Eigen::Matrix3d Zeros = Eigen::Matrix3d::Zero();
+
+    Eigen::Matrix3d fp1p2 = -1*Cross_product_matrix(p3)/6.0;
+    Eigen::Matrix3d fp1p3 = Cross_product_matrix(p2)/6.0;
+    Eigen::Matrix3d fp2p3 = -1*Cross_product_matrix(p1)/6.0;
+
+    Eigen::Matrix<double,9,9> Hessian;
+
+    Hessian << Zeros, fp1p2, fp1p3,
+                fp1p2.transpose(), Zeros, fp2p3,
+                fp1p3.transpose(), fp2p3.transpose(), Zeros; 
+
+
+    return Hessian;
+    }
+
+
+
 } // namespace surface
 
 } // namespace geometrycentral
