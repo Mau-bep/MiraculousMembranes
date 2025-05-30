@@ -36,7 +36,8 @@
 
 #include "Mem-3dg.h"
 #include "Beads.h"
-
+#include "Energy_Handler.h"
+#include "math.h"
 
 
 #include "libarcsim/include/cloth.hpp"
@@ -680,7 +681,14 @@ int main(int argc, char** argv) {
 
     mesh = mesh_uptr.release();
     geometry = geometry_uptr.release();
-    
+    std::vector<std::string> Energies;
+    std::vector<std::vector<double>> Energy_constants;
+    Energies.push_back("Surface_Tension");
+    Energy_constants.push_back({1.0}); // just a dummy value for the surface tension
+    E_Handler Sim_handler;
+    Sim_handler E_Handler(*mesh, *geometry, Energies, Energy_constants);
+
+
 
     
     std::string filename_basic = basic_name+"Output_data.txt";

@@ -51,6 +51,9 @@ class E_Handler {
         virtual VertexData<Vector3> F_Area_constraint(std::vector<double> Constants) const;
         virtual VertexData<Vector3> F_Bending(std::vector<double> Constants) const;
         
+        virtual VertexData<Vector3> F_SurfaceTension_2(std::vector<double> Constants) const;
+        virtual SparseMatrix<double> H_SurfaceTension(std::vector<double> Constants);
+
 
         virtual void Calculate_energies(double* E);
         // THis function saves the value of the gradient to current gradient but before saves current gradient to previous gradient

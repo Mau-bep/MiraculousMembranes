@@ -160,6 +160,41 @@ VertexData<Vector3> E_Handler::F_SurfaceTension(std::vector<double> Constants) c
 
 }
 
+VertexData<Vector3> E_Handler::F_SurfaceTension_2(std::vector<double> Constants) const{
+
+
+    double sigma = Constants[0];
+    VertexData<Vector3> Force(*mesh);
+    
+    Eigen::Vector<double,9> Positions;
+    Eigen::Vector<double,9> Grad;
+    std::array<Vertex,3> Vertices;
+    
+    Halfedge he;
+    Vector3 Force_vector;
+    for(Face f:  mesh->faces()){
+        he = f.halfedge();
+        Vertices[0] = he.vertex();
+        Vertices[1] = he.next().vertex();
+        Vertices[2] = he.next().next().vertex();
+
+        Positions << geometry->inputVertexPositions[Vertices[0]].x , geometry->inputVertexPositions[Vertices[0]].y , geometry->inputVertexPositions[Vertices[0]].z,
+                    geometry->inputVertexPositions[Vertices[1]].x, geometry->inputVertexPositions[Vertices[1]].y, geometry->inputVertexPositions[Vertices[1]].z,
+                    geometry->inputVertexPositions[Vertices[2]].x, geometry->inputVertexPositions[Vertices[2]].y, geometry->inputVertexPositions[Vertices[2]].z;
+        Grad = geometry->gradient_triangle_area(Positions);
+        for( size_t i = 0; i < 3; i++){
+            Force_vector = Vector3{Grad[3*i], Grad[3*i+1], Grad[3*i+2]};
+            Force[Vertices[i]] += -1*sigma*Force_vector;
+        }
+
+    }
+
+    return Force;
+
+
+}
+
+
 VertexData<Vector3> E_Handler::F_Area_constraint(std::vector<double> Constants) const{
     double KA = Constants[0];
     double A_bar = Constants[1];
@@ -280,6 +315,63 @@ VertexData<Vector3> E_Handler::F_Bending(std::vector<double> Constants) const{
 
 }
 
+SparseMatrix<double> E_Handler::H_SurfaceTension(std::vector<double> Constants){
+
+    // Ok so this functino will assemble the Hessi an for the surface tension energy 
+    int nVerts = mesh->nVertices();
+    // Eigen::MatrixXd Hessian = Eigen::MatrixXd::Zero(nVerts,nVerts);
+    SparseMatrix<double> Hessian(3*nVerts,3*nVerts);
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+    // Eigen::Matrix<double, nVerts, nVerts> Hessian;
+    Vertex v1;
+    Vertex v2;
+    Vertex v3;
+    Halfedge he;
+    size_t index1;
+    size_t index2;
+    size_t index3;
+    array<int,3> indices;
+    // 
+    for(Face f: mesh->faces()){
+        // 
+        he = f.halfedge();
+        v1 = he.vertex();
+        v2 = he.next().vertex();
+        v3 = he.next().next().vertex();
+        indices[0] = v1.getIndex();
+        indices[1] = v2.getIndex();
+        indices[2] = v3.getIndex();
+        
+
+
+        Eigen::Vector<double,9> Positions;
+
+        Positions << geometry->inputVertexPositions[v1].x,geometry->inputVertexPositions[v1].y,geometry->inputVertexPositions[v1].z,
+                    geometry->inputVertexPositions[v2].x,geometry->inputVertexPositions[v2].y,geometry->inputVertexPositions[v2].z,
+                    geometry->inputVertexPositions[v3].x,geometry->inputVertexPositions[v3].y,geometry->inputVertexPositions[v3].z;
+         
+        Eigen::Matrix<double,9,9> Hessian_block = geometry->hessian_triangle_area(Positions);
+        // Now i need to load this quantities onto a bigger matrix ...
+        for(int i = 0; i < 9; i++){
+            for(int j = 0; j <9; j++){
+
+                // So i am at vertex ij  now the i and j correspond to a vertex  i = 0 1 2 (vertex 1 )  3 4 5 (vertex 2 ) 6 7 8 (vertex 3)
+                tripletList.push_back(T(indices[i/3],indices[i/3],Hessian_block[i,j]) );  
+            }
+        } 
+
+    }
+    Hessian.setFromTriplets(tripletList.begin(),tripletList.end());
+    // That gives me the hessian of the surface tension :O.
+
+
+    return Hessian;
+}
+
+
+
+
 
 void E_Handler::Calculate_energies(double* E){
 
@@ -341,7 +433,7 @@ void E_Handler::Calculate_energies(double* E){
 
 
 
-
+ 
     return;
 }
 

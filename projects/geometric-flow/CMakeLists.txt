@@ -177,6 +177,7 @@ set(TEST_hessian_SRCS
   src/main_test_hess.cpp
   src/Mem-3dg.cpp
   src/Beads.cpp
+  src/Energy_Handler.cpp
   ../../utils/src/colormap.cpp
 )
 
