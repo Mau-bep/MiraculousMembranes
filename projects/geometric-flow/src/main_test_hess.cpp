@@ -497,7 +497,7 @@ int main(int argc, char** argv) {
 
     Eigen::Vector<double,9> Positions = Eigen::Vector<double,9>::Random(9);
       
-    std::cout<<"This is a vector with 9 random components " << Positions <<" \n" << "THe area of the triangle is" << geometry->Triangle_area(Positions) <<" \n"    ;
+    std::cout<<"This is a vector with 9 random components " << Positions.transpose() <<" \n" << "THe area of the triangle is" << geometry->Triangle_area(Positions) <<" \n"    ;
 
 
     // The next step is to calculate the derivatives wrt all the directions 
@@ -720,8 +720,9 @@ int main(int argc, char** argv) {
 
 
 
+    std::cout<<"\n\n We start testing on a mesh now \n\n";
 
-    std::string filepath = "../../../input/4_tetrahedron.obj";
+    std::string filepath = "../../../input/Simple_cil.obj";
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
 
 
@@ -901,7 +902,7 @@ int main(int argc, char** argv) {
 
     DifferenceHessians = Hessian_tension_finite_diff + Hessian_tension;
 
-    std::cout<<"THe difference between the bending energy Hessians is " << DifferenceHessians.sum() <<" \n";
+    std::cout<<"THe difference between the surface tension energy Hessians is " << DifferenceHessians.sum() <<" \n";
 
 
 
