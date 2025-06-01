@@ -59,6 +59,8 @@ class E_Handler {
         virtual SparseMatrix<double> H_Bending(std::vector<double> Constants);
 
 
+        
+
         virtual void Calculate_energies(double* E);
         // THis function saves the value of the gradient to current gradient but before saves current gradient to previous gradient
         virtual void Calculate_gradient();

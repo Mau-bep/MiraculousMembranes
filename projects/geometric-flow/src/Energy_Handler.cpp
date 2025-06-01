@@ -548,6 +548,11 @@ SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants) {
     std::array<Vertex,3> Vertices_face;
     std::array<Vertex,4> Vertices_dihedral;
 
+    std::array<Vertex,3 > Vertices_face_2;
+    std::array<Vertex,2> Vertices_edge_2;
+    std::array<Vertex,4> Vertices_dihedral_2;
+
+
     Eigen::Matrix<double,6,6> Hessian_block_edge;
     Eigen::Matrix<double,9,9> Hessian_block_face;
     Eigen::Matrix<double,12,12> Hessian_block_dihedral;
@@ -559,10 +564,15 @@ SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants) {
     VertexData<double> Scalar_MC(*mesh,0.0);
     EdgeData<double> Edge_lengths(*mesh,0.0);
     EdgeData<double> Dihedral_angles(*mesh,0.0);
+
+
     for(Vertex v : mesh->vertices()){
         Dual_areas[v] = geometry->barycentricDualArea(v);
         Scalar_MC[v] = geometry->scalarMeanCurvature(v);
+
     }
+
+
     for(Edge e: mesh->edges()){
         Edge_lengths[e] = geometry->edgeLength(e);
         Dihedral_angles[e] = geometry->dihedralAngle(e.halfedge());
@@ -572,20 +582,26 @@ SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants) {
     std::vector<Eigen::Vector<double,6>> Gradients_edges;
     std::vector<Eigen::Vector<double,12>> Gradients_dihedrals;
 
+
+    int id= 0;
     for(Face f:mesh -> faces()){
+    
         he = f.halfedge();
 
         Vertices_face[0] = he.vertex();
         Vertices_face[1] = he.next().vertex();
         Vertices_face[2] = he.next().next().vertex();
-        Positions_face << geometry->inputVertexPositions[Vertices_face[0]].x , geometry->inputVertexPositions[Vertices_face[0]].y , geometry->inputVertexPositions[Vertices_face[0]].z,
-                        geometry->inputVertexPositions[Vertices_face[1]].x, geometry->inputVertexPositions[Vertices_face[1]].y, geometry->inputVertexPositions[Vertices_face[1]].z,
-                        geometry->inputVertexPositions[Vertices_face[2]].x, geometry->inputVertexPositions[Vertices_face[2]].y, geometry->inputVertexPositions[Vertices_face[2]].z;
+        Positions_face <<   geometry->inputVertexPositions[Vertices_face[0]].x, geometry->inputVertexPositions[Vertices_face[0]].y, geometry->inputVertexPositions[Vertices_face[0]].z,
+                            geometry->inputVertexPositions[Vertices_face[1]].x, geometry->inputVertexPositions[Vertices_face[1]].y, geometry->inputVertexPositions[Vertices_face[1]].z,
+                            geometry->inputVertexPositions[Vertices_face[2]].x, geometry->inputVertexPositions[Vertices_face[2]].y, geometry->inputVertexPositions[Vertices_face[2]].z;
         
         Grad_face = geometry->gradient_triangle_area(Positions_face);
         Gradients_areas.push_back(Grad_face);
+        
     }
 
+    double dih1 = 0.0;
+    double dih2 = 0.0;
     for(Edge e: mesh->edges()){
         Vertices_edge[0] = e.halfedge().vertex();
         Vertices_edge[1] = e.halfedge().twin().vertex();
@@ -607,11 +623,278 @@ SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants) {
 
         Grad_dihedral = geometry->gradient_dihedral_angle(Positions_dihedral);
         Gradients_dihedrals.push_back(Grad_dihedral);
+        // std::cout<<"The edge " << e.getIndex() << "has a edge grad = " << Gradients_edges[e.getIndex()].transpose() <<"\n and dihedral = " << Gradients_dihedrals[e.getIndex()].transpose()<< "\n";
     }
 
     // I have calculated all the quantities that i will be needing, this takes a lot of memory but lets hope its worth it ahah
 
-    // Lets
+    // Lets iterate over the faces   
+    Eigen::Matrix<double,9,12> M_9_12;
+    Eigen::Matrix<double,9,6> M_9_6;
+    Eigen::Matrix<double,9,9> M_9_9;
+    Eigen::Matrix<double,6,6> M_6_6;
+    Eigen::Matrix<double,6,12> M_6_12;
+    Eigen::Matrix<double,12,6> M_12_6;
+    Eigen::Matrix<double,12,12> M_12_12;
+    Eigen::Matrix<double,6,9> M_6_9;
+    Eigen::Matrix<double,12,9> M_12_9;
+    size_t max_id = 0;
+    for(Face f : mesh->faces()){
+
+        he = f.halfedge();
+        Grad_face = Gradients_areas[f.getIndex()];
+            
+        Vertices_face[0] = he.vertex();
+        Vertices_face[1] = he.next().vertex();
+        Vertices_face[2] = he.next().next().vertex();
+        for(Vertex v: f.adjacentVertices()){
+            
+            constant = -1*(1.0/6.0)*(Scalar_MC[v.getIndex()]-H0)/(Dual_areas[v.getIndex()]*Dual_areas[v.getIndex()]);
+            for(Edge e: v.adjacentEdges()){
+                he = e.halfedge();
+                Vertices_dihedral[0] = he.vertex();
+                Vertices_dihedral[1] = he.next().vertex();
+                Vertices_dihedral[3] = he.next().next().vertex();
+                Vertices_dihedral[2] = he.twin().next().next().vertex();
+
+                Vertices_edge[0] = he.vertex();
+                Vertices_edge[1] = he.next().vertex();
+
+                M_9_12 = constant*Edge_lengths[e.getIndex()]*Grad_face * Gradients_dihedrals[e.getIndex()].transpose();
+
+                for(size_t row = 0; row < 9; row ++){
+                    for(size_t col = 0; col < 12; col++){
+                        tripletList.push_back(T(Vertices_face[row/3].getIndex()*3+row%3, Vertices_dihedral[col/3].getIndex()*3+col%3, M_9_12(row,col)));
+              
+                        
+                }
+                }
+
+                M_9_6 = constant * Dihedral_angles[e]* Grad_face * Gradients_edges[e.getIndex()].transpose();
+
+                for(size_t row = 0; row < 9; row ++){
+                    for(size_t col = 0; col < 6; col++){
+                        tripletList.push_back(T(Vertices_face[row/3].getIndex()*3+row%3, Vertices_edge[col/3].getIndex()*3+col%3, M_9_6(row,col)));
+                    
+                    }
+                }
+
+                M_6_9 = constant * Dihedral_angles[e]*Gradients_edges[e.getIndex()]*Grad_face.transpose();
+
+                    for(size_t row = 0; row < 6; row++){
+                        for(size_t col = 0; col < 9; col++){
+                        tripletList.push_back(T(Vertices_edge[row/3].getIndex()*3+row%3,Vertices_face[col/3].getIndex()*3+col%3, M_6_9(row,col)));
+                     
+                        }
+                    }
+
+                M_12_9 = constant * Edge_lengths[e.getIndex()]*Gradients_dihedrals[e.getIndex()] * Grad_face.transpose();
+
+                    for(size_t row = 0; row < 12; row++){
+                        for( size_t col = 0; col < 9; col++){
+                            tripletList.push_back(T(Vertices_dihedral[row/3].getIndex()*3+row%3,Vertices_face[col/3].getIndex()*3+col%3,M_12_9(row,col)));
+                           
+                        }
+                    }
+
+                
+
+
+
+                ///EDITTT
+            
+            
+            
+            
+            
+            
+            }
+
+            constant = (2.0/9.0) * (Scalar_MC[v.getIndex()]-H0) * (Scalar_MC[v.getIndex()]-H0)/(Dual_areas[v.getIndex()] * Dual_areas[v.getIndex()] * Dual_areas[v.getIndex()]);
+            
+            
+            for(Face f2: v.adjacentFaces()){
+                he = f2.halfedge();
+                
+                Vertices_face_2[0] = he.vertex();
+                Vertices_face_2[1] = he.next().vertex();
+                Vertices_face_2[2] = he.next().next().vertex();
+
+                M_9_9 = constant * Grad_face * Gradients_areas[f2.getIndex()].transpose();
+                    for(size_t row = 0; row < 9; row++){
+                        for(size_t col = 0; col < 9; col++){
+
+                            tripletList.push_back(T(Vertices_face[row/3].getIndex()*3+row%3,Vertices_face_2[col/3].getIndex()*3+col%3, M_9_9(row,col) ));
+                            if(isnan(M_9_9(row,col))) std::cout<<" nan flag 3 \n";
+                        }
+                    }
+
+            }
+
+            // And last but not least we have the hessian term
+
+            constant = -1*(1.0/3.0)*(Scalar_MC[v.getIndex()] - H0)*(Scalar_MC[v.getIndex()] - H0)/(Dual_areas[v.getIndex()]*Dual_areas[v.getIndex()]);
+            
+            Positions_face << geometry->inputVertexPositions[Vertices_face[0]].x , geometry->inputVertexPositions[Vertices_face[0]].y , geometry->inputVertexPositions[Vertices_face[0]].z,
+                        geometry->inputVertexPositions[Vertices_face[1]].x, geometry->inputVertexPositions[Vertices_face[1]].y, geometry->inputVertexPositions[Vertices_face[1]].z,
+                        geometry->inputVertexPositions[Vertices_face[2]].x, geometry->inputVertexPositions[Vertices_face[2]].y, geometry->inputVertexPositions[Vertices_face[2]].z;
+        
+            M_9_9 = constant * geometry->hessian_triangle_area(Positions_face);
+
+            for(size_t row = 0; row < 9; row++){
+                for(size_t col = 0; col < 9; col++){
+                    tripletList.push_back(T(Vertices_face[row/3].getIndex()*3+row%3, Vertices_face[col/3].getIndex()*3+col%3, M_9_9(row,col)));
+                    if(isnan(M_9_9(row,col))) std::cout<<" nan flag 4 \n";
+                }
+            }
+
+
+        }
+    }
+        // And those are all the terms at the sum over all the vertices (On paper is term I)
+
+        for(Edge e: mesh->edges()){
+            he = e.halfedge();
+
+            Vertices_edge[0] = he.vertex();
+            Vertices_edge[1] = he.twin().vertex();
+            
+            Vertices_dihedral[0] = he.vertex();
+            Vertices_dihedral[1] = he.next().vertex();
+            Vertices_dihedral[3] = he.next().next().vertex();
+            Vertices_dihedral[2] = he.twin().next().next().vertex();
+
+            for(Vertex v: e.adjacentVertices()){
+                constant = 1.0/(8.0*Dual_areas[v.getIndex()]);
+                for( Edge e2 : v.adjacentEdges()){
+                    Vertices_edge_2[0] = e2.halfedge().vertex();
+                    Vertices_edge_2[1] = e2.halfedge().twin().vertex();
+
+                    M_6_6 = constant*Dihedral_angles[e.getIndex()]*Dihedral_angles[e2.getIndex()]*Gradients_edges[e.getIndex()]*Gradients_edges[e2.getIndex()].transpose();
+
+                    for(size_t row = 0; row < 6; row++){
+                        for(size_t col = 0; col < 6; col++){
+                            tripletList.push_back(T(Vertices_edge[row/3].getIndex()*3+row%3, Vertices_edge_2[col/3].getIndex()*3+col%3,M_6_6(row,col)));
+                            if(isnan(M_6_6(row,col))) std::cout<<" nan flag 5 \n";
+                        }
+                    }                    
+
+
+                    he = e2.halfedge();
+                    Vertices_dihedral_2[0] = he.vertex();
+                    Vertices_dihedral_2[1] = he.next().vertex();
+                    Vertices_dihedral_2[3] = he.next().next().vertex();
+                    Vertices_dihedral_2[2] = he.twin().next().next().vertex(); 
+
+                    M_6_12 = constant* Dihedral_angles[e.getIndex()]*Edge_lengths[e2.getIndex()]*Gradients_edges[e.getIndex()]*Gradients_dihedrals[e2.getIndex()].transpose();
+
+                    for(size_t row = 0; row < 6; row++){
+                        for(size_t col =0; col < 12; col++){
+                            tripletList.push_back(T(Vertices_edge[row/3].getIndex()*3+row%3, Vertices_dihedral_2[col/3].getIndex()*3+col%3,M_6_12(row,col)));
+                            if(isnan(M_6_12(row,col))) std::cout<<" nan flag 6 \n";
+                        }
+                    }
+
+                     
+
+                    M_12_6 = constant * Edge_lengths[e.getIndex()]*Dihedral_angles[e2.getIndex()]*Gradients_dihedrals[e.getIndex()]*Gradients_edges[e2.getIndex()].transpose();
+
+                    for(size_t row = 0; row < 12; row++){
+                        for(size_t col = 0; col < 6; col++){
+                            tripletList.push_back(T(Vertices_dihedral[row/3].getIndex()*3+row%3, Vertices_edge_2[col/3].getIndex()*3+col%3, M_12_6(row,col)));
+                            if(isnan(M_12_6(row,col))) std::cout<<" nan flag 7 \n";
+                        }
+                    }
+
+                    M_12_12 = constant* Edge_lengths[e.getIndex()] * Edge_lengths[e2.getIndex()]* Gradients_dihedrals[e.getIndex()]*Gradients_dihedrals[e2.getIndex()].transpose();
+
+                    for(size_t row = 0; row < 12; row++){
+                        for(size_t col = 0; col < 12; col++){
+                            tripletList.push_back(T(Vertices_dihedral[row/3].getIndex()*3+row%3,Vertices_dihedral_2[col/3].getIndex()*3+col%3,M_12_12(row,col)));
+                            if(isnan(M_12_12(row,col))) std::cout<<" nan flag 8 \n";
+                        }
+                    }
+
+
+
+
+                }
+
+
+                // Those are the first terms
+                // I MOVED THIS TERMS TO THE OTHER SUMMATION
+
+
+
+
+
+
+            constant = (1.0/2.0)*(Scalar_MC[v.getIndex()]-H0)/(Dual_areas[v.getIndex()]) ;
+
+            M_6_12 = constant * Gradients_edges[e.getIndex()]*Gradients_dihedrals[e.getIndex()].transpose();
+
+            for( size_t row = 0; row < 6; row++){
+                for(size_t col = 0; col < 12; col++){
+                    tripletList.push_back(T(Vertices_edge[row/3].getIndex()*3+row%3,Vertices_dihedral[col/3].getIndex()*3+col%3,M_6_12(row,col)));
+            
+                }
+            }
+
+
+            M_12_6 = constant * Gradients_dihedrals[e.getIndex()]* Gradients_edges[e.getIndex()].transpose();
+
+            for( size_t row = 0; row < 12; row++){
+                for(size_t col = 0; col < 6; col++){
+                    tripletList.push_back(T(Vertices_dihedral[row/3].getIndex()*3+row%3,Vertices_edge[col/3].getIndex()*3+col%3,M_12_6(row,col)));
+                }
+            }
+
+            Positions_dihedral <<   geometry->inputVertexPositions[Vertices_dihedral[0]].x , geometry->inputVertexPositions[Vertices_dihedral[0]].y , geometry->inputVertexPositions[Vertices_dihedral[0]].z,
+                                    geometry->inputVertexPositions[Vertices_dihedral[1]].x, geometry->inputVertexPositions[Vertices_dihedral[1]].y, geometry->inputVertexPositions[Vertices_dihedral[1]].z,
+                                    geometry->inputVertexPositions[Vertices_dihedral[2]].x, geometry->inputVertexPositions[Vertices_dihedral[2]].y, geometry->inputVertexPositions[Vertices_dihedral[2]].z,
+                                    geometry->inputVertexPositions[Vertices_dihedral[3]].x, geometry->inputVertexPositions[Vertices_dihedral[3]].y, geometry->inputVertexPositions[Vertices_dihedral[3]].z;
+
+            
+
+
+            M_12_12 = constant * Edge_lengths[e.getIndex()]* geometry->hessian_dihedral_angle(Positions_dihedral);
+
+            for( size_t row = 0; row < 12; row++){
+                for(size_t col = 0; col < 12; col++){
+                    tripletList.push_back(T(Vertices_dihedral[row/3].getIndex()*3+row%3,Vertices_dihedral[col/3].getIndex()*3+col%3,M_12_12(row,col)));
+                }
+            }
+
+            
+            Positions_edge << geometry->inputVertexPositions[Vertices_edge[0]].x , geometry->inputVertexPositions[Vertices_edge[0]].y , geometry->inputVertexPositions[Vertices_edge[0]].z,
+                        geometry->inputVertexPositions[Vertices_edge[1]].x, geometry->inputVertexPositions[Vertices_edge[1]].y, geometry->inputVertexPositions[Vertices_edge[1]].z;
+
+            M_6_6 = constant * Dihedral_angles[e.getIndex()]* geometry->hessian_edge_length(Positions_edge);
+
+            for( size_t row = 0; row < 6; row++){
+                for(size_t col = 0; col < 6; col++){
+                    tripletList.push_back(T(Vertices_edge[row/3].getIndex()*3+row%3,Vertices_edge[col/3].getIndex()*3+col%3,M_6_6(row,col)));
+                }
+            }
+
+            
+            } //Sumation over adjacent vertices
+
+
+        // Here we do the last terms
+
+
+        } //Summation over edges
+
+
+        Hessian.setFromTriplets(tripletList.begin(),tripletList.end());
+
+
+        return Hessian;
+
+
+
+    }
 
 
 
@@ -624,7 +907,9 @@ SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants) {
 
 
 
-}
+
+
+
 
 
 

@@ -721,7 +721,7 @@ int main(int argc, char** argv) {
 
 
 
-    std::string filepath = "../../../input/Simple_cil.obj";
+    std::string filepath = "../../../input/4_tetrahedron.obj";
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
 
 
@@ -799,6 +799,73 @@ int main(int argc, char** argv) {
     std::cout<<"The absolute difference between the two volume constraint forces is " << abs_diff << "\n";
     
 
+
+
+
+
+    // OK so we want to do the same calculation now for the Hessian;
+
+    const int Nverts = mesh->nVertices();
+
+    SparseMatrix<double> Hessian_bending = Sim_handler.H_Bending(Energy_constants[0]);
+
+    Eigen::MatrixXd Hessian_finite_diff(3*Nverts,3*Nverts);
+
+    VertexData<Vector3> Gradient_fwd(*mesh);
+    VertexData<Vector3> Gradient_prev(*mesh);
+
+    Gradient_fwd = Sim_handler.F_Bending(Energy_constants[0]);
+
+    // Gradient_fwd.array()
+
+    Eigen::VectorXd Difference(3*Nverts);
+
+
+    size_t dim = 0;
+    for(Vertex v: mesh->vertices()){
+        // SO the idea here is  
+        for(size_t coord = 0; coord < 3; coord++){
+            
+            geometry->inputVertexPositions[v][coord]+=1e-6; //move forward
+            geometry->refreshQuantities();
+            Gradient_fwd = Sim_handler.F_Bending_2(Energy_constants[0]);
+            geometry->inputVertexPositions[v][coord]-=2e-6; //move backward
+            geometry->refreshQuantities();
+            Gradient_prev = Sim_handler.F_Bending_2(Energy_constants[0]);
+            geometry->inputVertexPositions[v][coord]+=1e-6; //restore
+            geometry->refreshQuantities();
+            // Create the vector that goes in the column
+            for(Vertex v2: mesh->vertices()){
+                Difference[3*v2.getIndex()] = (Gradient_fwd[v2]-Gradient_prev[v2]).x/(2e-6);
+                Difference[3*v2.getIndex()+1] = (Gradient_fwd[v2]-Gradient_prev[v2]).y/(2e-6);
+                Difference[3*v2.getIndex()+2] = (Gradient_fwd[v2]-Gradient_prev[v2]).z/(2e-6); 
+            }
+
+
+            Hessian_finite_diff.col(dim) = Difference;
+            dim+=1;
+
+
+        }
+    }
+
+    // At this point i have both Hessians
+    // std::cout<<"The finite difference hessian is \n" << Hessian_finite_diff <<"\n";
+
+
+    // std::cout<<"The sparse matrix i guess not so sparse\n" << Hessian_bending <<" \n";
+
+    // OK so this is the part where i compare my hessian with the finite difference one :P 
+
+    Eigen::MatrixXd DifferenceHessians = Hessian_finite_diff + Hessian_bending;
+
+    std::cout<<"THe difference between the bending energy Hessians is " << DifferenceHessians.sum() <<" \n";
+
+
+
+
+
+    // std::cout<<"IF the matrix is symmetric this are zeros\n" << Hessian_bending.transpose( <<" \n";
 
 
 
