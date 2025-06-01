@@ -861,11 +861,49 @@ int main(int argc, char** argv) {
 
     std::cout<<"THe difference between the bending energy Hessians is " << DifferenceHessians.sum() <<" \n";
 
+    SparseMatrix<double> Hessian_tension = Sim_handler.H_SurfaceTension(Energy_constants[0]);
+
+    Eigen::MatrixXd Hessian_tension_finite_diff(3*Nverts,3*Nverts);
+
+    dim = 0;
+    for(Vertex v: mesh->vertices()){
+        // SO the idea here is  
+        for(size_t coord = 0; coord < 3; coord++){
+            
+            geometry->inputVertexPositions[v][coord]+=1e-6; //move forward
+            geometry->refreshQuantities();
+            Gradient_fwd = Sim_handler.F_SurfaceTension_2(Energy_constants[0]);
+            geometry->inputVertexPositions[v][coord]-=2e-6; //move backward
+            geometry->refreshQuantities();
+            Gradient_prev = Sim_handler.F_SurfaceTension_2(Energy_constants[0]);
+            geometry->inputVertexPositions[v][coord]+=1e-6; //restore
+            geometry->refreshQuantities();
+            // Create the vector that goes in the column
+            for(Vertex v2: mesh->vertices()){
+                Difference[3*v2.getIndex()] = (Gradient_fwd[v2]-Gradient_prev[v2]).x/(2e-6);
+                Difference[3*v2.getIndex()+1] = (Gradient_fwd[v2]-Gradient_prev[v2]).y/(2e-6);
+                Difference[3*v2.getIndex()+2] = (Gradient_fwd[v2]-Gradient_prev[v2]).z/(2e-6); 
+            }
 
 
+            Hessian_tension_finite_diff.col(dim) = Difference;
+            dim+=1;
 
 
-    // std::cout<<"IF the matrix is symmetric this are zeros\n" << Hessian_bending.transpose( <<" \n";
+        }
+    }
+
+
+    // std::cout<<"The finite difference hessian is \n" << Hessian_tension_finite_diff <<"\n";
+
+
+    // std::cout<<"The sparse matrix i guess not so sparse\n" << Hessian_tension <<" \n";
+
+    DifferenceHessians = Hessian_tension_finite_diff + Hessian_tension;
+
+    std::cout<<"THe difference between the bending energy Hessians is " << DifferenceHessians.sum() <<" \n";
+
+
 
 
 

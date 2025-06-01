@@ -514,7 +514,7 @@ SparseMatrix<double> E_Handler::H_SurfaceTension(std::vector<double> Constants){
             for(int j = 0; j <9; j++){
 
                 // So i am at vertex ij  now the i and j correspond to a vertex  i = 0 1 2 (vertex 1 )  3 4 5 (vertex 2 ) 6 7 8 (vertex 3)
-                tripletList.push_back(T(indices[i/3],indices[j/3],Hessian_block.coeffRef(i,j)) );  
+                tripletList.push_back(T(indices[i/3]*3+i%3,indices[j/3]*3+j%3,Hessian_block(i,j)) );  
             }
         } 
 
