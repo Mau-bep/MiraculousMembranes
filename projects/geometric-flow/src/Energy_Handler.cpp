@@ -1037,7 +1037,7 @@ void E_Handler::Calculate_gradient(){
         }
 
         if(Energies[i]=="Surface_tension" ){
-            Force_temp = F_SurfaceTension(Energy_constants[i]);
+            Force_temp = F_SurfaceTension_2(Energy_constants[i]);
             grad_norm = 0.0;
             for(Vertex v : mesh->vertices()){
                 grad_norm += Force_temp[v].norm2();
@@ -1058,7 +1058,7 @@ void E_Handler::Calculate_gradient(){
         }
 
         if(Energies[i]=="Bending"){
-            Force_temp = F_Bending(Energy_constants[i]);
+            Force_temp = F_Bending_2(Energy_constants[i]);
             grad_norm = 0.0;
 
             for(Vertex v :mesh->vertices()){
