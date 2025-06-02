@@ -36,7 +36,7 @@ def main(Nsim):
 
         aangles.append(angles[i])
                 # I just want the bending energy
-        E_B = Output_data[-1,4]/(20.0*4*np.pi)
+        E_B = Output_data[-1,3]/Output_data[0,3]
         # E_I1 = Output_data[-1,5]/(20.0*4*np.pi)
 
         # E_B = Output_data[-1,5]
@@ -66,7 +66,8 @@ def main_2(Nsim):
     aangles =[]
     for i in range(len(angles)):
         # Bending_20.0000_Surface_tension_10.0000_Bead_radius_0.2000_str_600.0000_theta_const_1.2500_Bead_radius_0.2000_str_600.0000_theta_const_1.2500_Switch_No_remesh_Switch_t_200000_Nsim_1
-        folder = "Bending_20.0000_Surface_tension_10.0000_Bead_radius_0.2000_str_600.0000_theta_const_{0:.4f}_Bead_radius_0.2000_str_600.0000_theta_const_{0:.4f}_Switch_Free_beads_Switch_t_200000_Nsim_{1}".format(angles[i],Nsim)
+        # folder = "Bending_20.0000_Surface_tension_10.0000_Bead_radius_0.2000_str_600.0000_theta_const_{0:.4f}_Bead_radius_0.2000_str_600.0000_theta_const_{0:.4f}_Switch_Free_beads_Switch_t_200000_Nsim_{1}".format(angles[i],Nsim)
+        folder = "Bending_20.0000_Surface_tension_10.0000_Bead_radius_0.2000_Shifted_LJ_Normal_nopush_str_600.0000_theta_const_{0:.4f}_Bead_radius_0.2000_Shifted_LJ_Normal_nopush_str_600.0000_theta_const_{0:.4f}_Switch_Free_beads_Switch_t_200000_Nsim_3/".format(angles[i])
         # Great i have the folder, next thing is the actual bending energy
 
         Output_data = np.loadtxt(base_path + folder + "/Output_data.txt", skiprows=1)
@@ -79,7 +80,9 @@ def main_2(Nsim):
 
         aangles.append(angles[i])
                 # I just want the bending energy
-        E_B = Output_data[-1,4]/(20.0*4*np.pi)
+        E_B = Output_data[-1,3]/Output_data[0,3] #+Output_data[-1,4]
+
+        
         # E_I1 = Output_data[-1,5]/(20.0*4*np.pi)
 
         # E_B = Output_data[-1,5]

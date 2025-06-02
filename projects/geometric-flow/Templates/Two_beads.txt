@@ -12,7 +12,7 @@
     "saving_states": true,
     "Switch" : "Free_beads",
     "Switch_t" : 200000,
-    "rescale": 2.0,
+    "rescale": 1.5,
     "Displacement": [
         {{xdisp}},
         0.0,
