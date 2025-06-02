@@ -1,7 +1,7 @@
 {
     "init_file": "../../../input/Simplesphere.obj",
-    "save_interval": 1000,
-    "timesteps": 600000,
+    "save_interval": 2000,
+    "timesteps": 800000,
     "continue_sim": false,
     "resize_vol": true,
     "arcsim": true,
@@ -11,7 +11,7 @@
     "recentering": false,
     "saving_states": true,
     "Switch" : "Free_beads",
-    "Switch_t" : 200000,
+    "Switch_t" : 300000,
     "rescale": 1.5,
     "Displacement": [
         {{xdisp}},
@@ -75,7 +75,7 @@
         "refine_angle": 0.7,
         "refine_compression": 0.0001,
         "refine_velocity": 1.0,
-        "size_max": 0.45,
+        "size_max": 0.4,
         "size_min": 0.001
     }
 }
