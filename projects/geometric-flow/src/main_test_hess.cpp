@@ -502,11 +502,11 @@ int main(int argc, char** argv) {
 
     // The next step is to calculate the derivatives wrt all the directions 
     
+
     double prev_val;
     double fwd_val;
     Eigen::Vector<double,9> Finite_Gradient = Eigen::Vector<double,9>::Zero(9);
     Eigen::Vector<double,9> Gradient = geometry->gradient_triangle_area(Positions);
-
 
     for( int dim = 0; dim < Positions.size(); dim++){
 
@@ -541,9 +541,9 @@ int main(int argc, char** argv) {
     Eigen::Vector3d p1p2 = p1.cross(p2);
     Eigen::Vector3d p1p2Mat = geometry->Cross_product_matrix(p1)*p2;
 
-    std::cout<<"We are testing the cross product matrix, ";
+    // std::cout<<"We are testing the cross product matrix, ";
     // std::cout<<"THe vectors are\n "<< p1p2 <<" \n" << "and \n " << p1p2Mat << " \n";
-    std::cout<<"the difference between the two vectors is " << (p1p2-p1p2Mat).norm() << "\n";
+    // std::cout<<"the difference between the two vectors is " << (p1p2-p1p2Mat).norm() << "\n";
 
 
 
@@ -644,7 +644,7 @@ int main(int argc, char** argv) {
 
 
     // std::cout<<"THe difference between the Hessians is \n";
-    // for(size_t dim = 0; dim < Edge_Positions.size(); dim++){
+    // for(size_t dim = 0; dim < EEdge_Positions.size(); dim++){
         std::cout<<"THe absolute difference between the Edge Hessians is " << (Hessian_Edge_finite-Hessian_Edge).sum() <<" \n";
         // std::cout<< Hessian_Edge_finite.col(dim) - Hessian_Edge.col(dim) << " \n";
     // }
@@ -656,11 +656,7 @@ int main(int argc, char** argv) {
 
 
     Eigen::Matrix<double, 9, 9> Hessian_Area = geometry->hessian_triangle_area(Positions);
-
-    // std::cout<<"THis hessian  for the area is is\n" << Hessian_Area << " \n";
     Eigen::Matrix<double, 9,9> Hessian_Area_finite = Eigen::Matrix<double,9,9>::Zero(9,9);
-
-    // Ok so i have the base, we need to calculate finite differences, we got the same number of variations as we have dims right?
 
     for(size_t dim = 0; dim < Positions.size(); dim++){
 
@@ -722,7 +718,9 @@ int main(int argc, char** argv) {
 
     std::cout<<"\n\n We start testing on a mesh now \n\n";
 
-    std::string filepath = "../../../input/Simple_cil.obj";
+    std::string filepath = "../../../input/Simple_cil_regular.obj";
+    // std::string filepath = "../../../input/5_tetrahedron.obj";
+    
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
 
 
@@ -732,7 +730,8 @@ int main(int argc, char** argv) {
     std::vector<std::string> Energies(0);
     std::vector<std::vector<double>> Energy_constants(0);
     Energies.push_back("Surface_Tension");
-    Energy_constants.push_back({1.0,0.0}); // just a dummy value for the surface tension
+    Energy_constants.push_back({10.0,0.0}); // just a dummy value for the surface tension
+    
     E_Handler Sim_handler;
     Sim_handler = E_Handler(mesh, geometry, Energies, Energy_constants);
 
@@ -748,8 +747,8 @@ int main(int argc, char** argv) {
     Force2 = Sim_handler.F_SurfaceTension_2(Energy_constants[0]);
     end2 = chrono::steady_clock::now();
 
-    std::cout<<"The time for the first method is " << chrono::duration_cast<chrono::microseconds>(end - start).count() << " microseconds\n";
-    std::cout<<"The time for the second method is " << chrono::duration_cast<chrono::microseconds>(end2 - start2).count() << " microseconds\n";
+    std::cout<<"The time for the original method is " << chrono::duration_cast<chrono::microseconds>(end - start).count() << " microseconds\n";
+    std::cout<<"The time for the new method is " << chrono::duration_cast<chrono::microseconds>(end2 - start2).count() << " microseconds\n";
 
     // std::cout<<"The difference between the two methods is " << (Tension1-Tension2) << "\n";
     double abs_diff = 0.0;
@@ -766,8 +765,8 @@ int main(int argc, char** argv) {
     Force2 = Sim_handler.F_Bending_2(Energy_constants[0]);
     end2 = chrono::steady_clock::now();
 
-    std::cout<<"The time for the first bending method is " << chrono::duration_cast<chrono::microseconds>(end - start).count() << " microseconds\n";
-    std::cout<<"The time for the second bending method is " << chrono::duration_cast<chrono::microseconds>(end2 - start2).count() << " microseconds\n";
+    std::cout<<"The time for the original bending method is " << chrono::duration_cast<chrono::microseconds>(end - start).count() << " microseconds\n";
+    std::cout<<"The time for the new  bending method is " << chrono::duration_cast<chrono::microseconds>(end2 - start2).count() << " microseconds\n";
 
     abs_diff = 0.0;
     double abs_tot=0.0;
@@ -790,8 +789,8 @@ int main(int argc, char** argv) {
     start2 = chrono::steady_clock::now();
     Force2 = Sim_handler.F_Volume_constraint_2(Energy_constants[1]);
     end2 = chrono::steady_clock::now();
-    std::cout<<"The time for the first volume constraint method is " << chrono::duration_cast<chrono::microseconds>(end - start).count() << " microseconds\n";
-    std::cout<<"The time for the second volume constraint method is " << chrono::duration_cast<chrono::microseconds>(end2 - start2).count() << " microseconds\n";
+    std::cout<<"The time for the original volume constraint method is " << chrono::duration_cast<chrono::microseconds>(end - start).count() << " microseconds\n";
+    std::cout<<"The time for the new volume constraint method is " << chrono::duration_cast<chrono::microseconds>(end2 - start2).count() << " microseconds\n";
 
     abs_diff = 0.0;
     for(Vertex v: mesh->vertices()){
@@ -853,7 +852,7 @@ int main(int argc, char** argv) {
     // At this point i have both Hessians
     // std::cout<<"The finite difference hessian is \n" << Hessian_finite_diff <<"\n";
 
-
+    std::cout<<"\n\n Testing Hessian now \n";
     // std::cout<<"The sparse matrix i guess not so sparse\n" << Hessian_bending <<" \n";
 
     // OK so this is the part where i compare my hessian with the finite difference one :P 
@@ -905,6 +904,145 @@ int main(int argc, char** argv) {
     std::cout<<"THe difference between the surface tension energy Hessians is " << DifferenceHessians.sum() <<" \n";
 
 
+    SparseMatrix<double> Hessian_Volume_mesh = Sim_handler.H_Volume(Energy_constants[0]);
+    Eigen::MatrixXd Hessian_finite_diff_vol(3*Nverts,3*Nverts);
+
+    dim = 0 ;
+    for(Vertex v: mesh->vertices()){
+        for(size_t coord = 0; coord <3; coord++){
+            geometry->inputVertexPositions[v][coord]+=1e-6; //move forward
+            geometry->refreshQuantities();
+            Gradient_fwd = Sim_handler.F_Volume(Energy_constants[0]);
+            geometry->inputVertexPositions[v][coord]-=2e-6; //move backward
+            geometry->refreshQuantities();
+            Gradient_prev = Sim_handler.F_Volume(Energy_constants[0]);
+            geometry->inputVertexPositions[v][coord]+=1e-6; //restore
+            geometry->refreshQuantities();
+
+            for(Vertex v2: mesh->vertices()){
+                Difference[3*v2.getIndex()] = (Gradient_fwd[v2]-Gradient_prev[v2]).x/(2e-6);
+                Difference[3*v2.getIndex()+1] = (Gradient_fwd[v2]-Gradient_prev[v2]).y/(2e-6);
+                Difference[3*v2.getIndex()+2] = (Gradient_fwd[v2]-Gradient_prev[v2]).z/(2e-6); 
+            }
+
+            Hessian_finite_diff_vol.col(dim) = Difference;
+            dim+=1;
+
+        }
+    }
+    DifferenceHessians = Hessian_finite_diff_vol + Hessian_Volume_mesh;
+
+    std::cout<<"The difference between the volume energy Hessians is " << DifferenceHessians.sum() <<" \n";
+
+    // std::cout<<"THe volume hessian is \n" << Hessian_Volume_mesh<<" \n"; 
+    
+    // std::cout<<"The hessian of the finite difference is \n" << Hessian_finite_diff_vol <<" \n";
+
+
+    // Now we do the fire test :P
+
+    
+    Energies.resize(0);
+    Energy_constants.resize(0);
+    std::vector<double> Constants(0);
+    std::vector<std::string> Constraints(0);
+    Eigen::VectorXd Lagrange_mults(3);
+    Lagrange_mults(0) = 0.0;
+    Lagrange_mults(1) = 0.0;
+    Lagrange_mults(2) = 0.0;
+    // Lagrange_mults(3) = 0.0;
+    
+
+    Energies.push_back("Bending");
+    Constants.push_back(10.0);
+    Constants.push_back(0.0);
+    Energy_constants.push_back(Constants);
+    Energies.push_back("Surface_tension");
+    Constants.resize(0);
+    Constants.push_back(10.0);
+    Constants.push_back(0.0);
+    Energy_constants.push_back(Constants);
+
+    // Constraints.push_back("Volume");
+    Constraints.push_back("CMx");
+    Constraints.push_back("CMy");
+    Constraints.push_back("CMz");
+    // Energies.push_back()
+    std::string Integration = "Newton";
+
+    M3DG = Mem3DG(mesh,geometry);
+    Sim_handler = E_Handler(mesh,geometry,Energies,Energy_constants);
+    Sim_handler.Lagrange_mult = Lagrange_mults;
+    Sim_handler.Constraints = Constraints;
+    
+    M3DG.Sim_handler = &Sim_handler;
+    M3DG.recentering = false;
+    M3DG.boundary = false;
+    std::ofstream Some_ofstream;
+
+    arcsim::Cloth Cloth_1;
+    arcsim::Cloth::Remeshing remeshing_params;
+
+    remeshing_params.aspect_min = 0.2;
+    remeshing_params.refine_angle = 0.7;
+    remeshing_params.refine_compression =1.0;
+    remeshing_params.refine_velocity = 1.0;
+    remeshing_params.size_max = 0.1;
+    remeshing_params.size_min = 0.001;
+    remeshing_params.total_op = -1;
+
+    arcsim::Mesh remesher_mesh = translate_to_arcsim(mesh,geometry);
+    Cloth_1.mesh = remesher_mesh;
+    Cloth_1.remeshing = remeshing_params;
+    arcsim::compute_masses(Cloth_1);
+    arcsim::compute_ws_data(Cloth_1.mesh);
+    
+    arcsim::dynamic_remesh(Cloth_1);
+
+    std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
+    arcsim::delete_mesh(Cloth_1.mesh);
+    mesh = mesh_uptr.release();
+    geometry = geometry_uptr.release();
+    M3DG.mesh = mesh;
+    M3DG.geometry = geometry;
+    Sim_handler.mesh = mesh;
+    Sim_handler.geometry = geometry;
+    
+
+    std::cout<<"INtegrating newton\n";
+    Save_mesh("../Results/Test_Hessian_2/",0);
+
+    for(size_t step = 1; step < 10; step++){
+    M3DG.integrate_Newton(Some_ofstream,0.0,Energies,false,Constraints);
+    
+    if(true){
+        arcsim::Mesh remesher_mesh2 = translate_to_arcsim(mesh,geometry);
+        Cloth_1.mesh=remesher_mesh2;
+        Cloth_1.remeshing=remeshing_params;
+        arcsim::compute_masses(Cloth_1);
+        arcsim::compute_ws_data(Cloth_1.mesh);
+        arcsim::dynamic_remesh(Cloth_1);
+
+        delete mesh;
+        delete geometry;
+
+        std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
+        arcsim::delete_mesh(Cloth_1.mesh);
+
+        mesh = mesh_uptr.release();
+        geometry = geometry_uptr.release();
+
+        M3DG.mesh = mesh;
+        M3DG.geometry = geometry;
+        Sim_handler.mesh = mesh;
+        Sim_handler.geometry = geometry;
+
+    }
+
+
+    // mkdir("../Results/Test_Hessian/", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    Save_mesh("../Results/Test_Hessian/",step);
+    }
 
 
 

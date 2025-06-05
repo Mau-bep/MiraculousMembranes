@@ -2425,6 +2425,7 @@ return alpha;
 // }
 
 
+
 double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data){
 
   auto start = chrono::steady_clock::now();
@@ -2515,18 +2516,6 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
   time_gradients = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
   
   
-  // THis is the time it takes for the gradients 
-
-
-
-  // std::cout<<" \n";
-  //  std::cout<<"The energy vals are ";
-  // for(size_t i = 0; i < Energy_vals.size(); i++){
-  //   std::cout<< Energy_vals[i] <<" ";
-
-  // }
-  // std::cout<<" \n";
-  // Ok now i have the force
   double alpha = 1e-3;
   double backtrackstep;
   Total_force = Vector3({0.0, 0.0, 0.0});
@@ -2536,9 +2525,6 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
   double r_eff = 0;
 
 
-  // F_dist.close();
-  // std::cout<<"Moving to backtracking\n";
-  
   start = chrono::steady_clock::now();
   backtrackstep = Backtracking();
   end = chrono::steady_clock::now();
@@ -2581,10 +2567,6 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
     }
 
   
-
-
-
-
   return backtrackstep;
 }
 
@@ -2835,6 +2817,203 @@ Eigen::MatrixXd Mem3DG::integrate_BFGS(std::ofstream& Sim_data , double time, st
 
   return Hessian;
 }
+
+double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data, std::vector<std::string> Constraints){
+
+  auto start = chrono::steady_clock::now();
+  auto end = chrono::steady_clock::now();
+  auto construction_start = chrono::steady_clock::now();
+  auto construction_end = chrono::steady_clock::now();
+  auto solve_start = chrono::steady_clock::now();
+  auto solve_end = chrono::steady_clock::now();
+
+  // std::cout<<"Got to integrating\n";
+
+  double time_construct = 0;
+  double time_solve = 0;
+  double time_compute = 0;
+  double time_gradients = 0;
+  double time_backtracking = 0;
+
+
+  size_t bead_count = 0;
+  // std::cout<<"Bead data\n";
+  if(Bead_data_filenames.size()!=0 && Save_output_data){
+    std::ofstream Bead_data;
+    for(size_t i = 0; i < Beads.size(); i++){
+      
+      Bead_data = std::ofstream(Bead_data_filenames[i],std::ios_base::app);
+      Bead_data<<Beads[i]->Pos.x <<" "<< Beads[i]->Pos.y << " "<< Beads[i]->Pos.z<< " "<< Beads[i]->Total_force.x <<" "<< Beads[i]->Total_force.y << " "<< Beads[i]->Total_force.z <<" \n";
+      // std::cout<<Bead_1.Pos.x << " "<< Bead_1.Pos.y << " "<< Bead_1.Pos.z<<" \n";
+      // std::cout<<"The total force is "<<Bead_1.Total_force <<"\n";
+      Bead_data.close();
+      }
+
+  }
+
+
+  // for(size_t index = 0; index < mesh->nVertices(); index++) {
+  //   // Barycentric_area[index] = geometry->barycentricDualArea(mesh->vertex(index));
+  //   A += Barycentric_area[index];
+  //   Barycentric_area[index] = 1.0;
+  // }
+  A = geometry->totalArea();
+
+  std::cout<<"AREA CALCULATED\n";
+
+  bool H2_grad = false;
+  bool H1_grad = false;
+  
+  size_t N_vert = mesh->nVertices();
+  int N_constraints = 0;
+
+  for(size_t i = 0; i < Constraints.size(); i++){
+    if(Constraints[i]=="Volume") N_constraints +=1;
+    if(Constraints[i]=="Area") N_constraints +=1;
+    if(Constraints[i]=="CM") N_constraints +=3;
+    if(Constraints[i]=="CMx") N_constraints +=1;
+    if(Constraints[i]=="CMy") N_constraints +=1;
+    if(Constraints[i]=="CMz") N_constraints +=1;
+    
+  }
+
+  std::cout<<"The number of constraints is" << N_constraints <<"\n";
+  // SparseMatrix<double> H2_mat;//(N_vert*3+N_constraints,N_vert*3+N_constraints);
+  // SparseMatrix<double> H1_mat;
+  SparseMatrix<double> Hessian;
+  
+  Eigen::SparseLU<SparseMatrix<double>> solverHess;
+  // Eigen::SparseLU<SparseMatrix<double>> solverH1;
+  // int N_vert = mesh->nVertices();
+
+  // We will calculate the gradients here
+  start = chrono::steady_clock::now();
+  // std::cout<<"Calling simulation handler for gradiebts\n";
+  std::cout<<"Calling sim handler\n";
+  // std::cout<<"C"
+  Sim_handler->Calculate_gradient();
+
+  // std::cout<<"The current gradient is"
+  std::cout<<"Callin jacobian\n";
+  Sim_handler->Calculate_Jacobian();
+  std::cout<<"Callin hessian\n";
+  Hessian = Sim_handler->Calculate_Hessian();
+  // We have the Hessian the gradient the jacobian. it is time 
+
+
+  // 
+  int N_beads = 0;
+  SparseMatrix<double> LHS(3*(N_vert+N_beads)+ N_constraints,3*(N_vert+N_beads)+ N_constraints);
+  Eigen::VectorXd RHS(3*(N_vert+N_beads)+ N_constraints);
+  
+  // Ok now we do the fill
+  typedef Eigen::Triplet<double> T;
+  std::vector<T> tripletList;
+  std::cout<<"Filling matrix\n";
+  // But i already have te jacobian I just need to paste it
+  for(int row = 0; row < Sim_handler->Jacobian_constraints.rows(); row++ ){
+    for(int col = 0; col < Sim_handler->Jacobian_constraints.cols(); col++){
+      // Ok so now we need to add this
+      tripletList.push_back(T(col,row+3*(N_vert+N_beads),Sim_handler->Jacobian_constraints(row,col) ));
+      tripletList.push_back(T(row+3*(N_vert+N_beads),col,Sim_handler->Jacobian_constraints(row,col) ));
+    }
+  }
+  // constraints were added
+  std::cout<<"Constraints added\n";
+  // We add the hessian now 
+  int row;
+  int col;
+  double value;
+  for( long int k = 0; k < Hessian.outerSize(); ++k ) {
+        for( SparseMatrix<double>::InnerIterator it(Hessian,k); it; ++it ) {
+            value = it.value();
+            row = it.row();
+            col = it.col();
+            tripletList.push_back(T(row,col,value));
+        }
+    }
+  std::cout<<"FIlled with hessian values\n";
+  // Ok so the hessian values are added too Next is the rhs
+
+  Eigen::VectorXd LambdaJ = Sim_handler->Jacobian_constraints.transpose()*Sim_handler->Lagrange_mult;
+  // std::cout<<"LAMBDA J ready\n";
+  Vector3 Force;
+  for(size_t vi = 0; vi < mesh->nVertices(); vi++){
+    // Ok so the idea now is to 
+    Force = Sim_handler->Current_grad[vi];
+    // std::cout<<"Force is " << Force <<" \n";
+    RHS(3*vi) = LambdaJ(3*vi) + Force.x;
+    RHS(3*vi+1) = LambdaJ(3*vi+1) + Force.y;
+    RHS(3*vi+2) = LambdaJ(3*vi+2) + Force.z;
+  }
+  std::cout<<"RHS  force ready\n";
+  // Now we need to add the constraints 
+  std::cout<<"Te number of constraints is " << N_constraints <<" \n";
+  for(int Ci = 0; Ci < N_constraints; Ci++){
+    // We need to add the value of the constraint
+    if(Constraints[Ci] =="Volume") RHS(3*N_vert+Ci) = 0.0;
+    
+    if(Constraints[Ci] =="Area") RHS(3*N_vert+Ci) = geometry->totalArea();
+    if(Constraints[Ci]=="CMx") RHS(3*N_vert+Ci) = 0.0;
+    if(Constraints[Ci]=="CMy") RHS(3*N_vert+Ci) = 0.0;
+    if(Constraints[Ci]=="CMz") RHS(3*N_vert+Ci) = 0.0;
+    
+  }
+    std::cout<<"RHS  constraints ready\n";
+
+    // We are printing everything before computing
+
+
+    LHS.setFromTriplets(tripletList.begin(),tripletList.end());
+
+    // std::cout<<"The LHS is \n" << LHS << "\n";
+    //     std::cout<<"THE JACOBIAN IS \n " << Sim_handler->Jacobian_constraints <<" \n";
+
+    // std::cout<<"tHE HESSIAN OF THE TETRAHEDRON IS \n" << Hessian <<" \n";
+
+    std::cout<<"THe lagrange multipliers are " << Sim_handler->Lagrange_mult.transpose() <<" \n";
+
+
+
+    // std::cout<<"In the end the LHS is \n"<< LHS << " \n";
+    // std::cout<<"And the RHS is \n"<< RHS.transpose() <<" \n";
+
+    solverHess.compute(LHS);
+    std::cout<<"Computed the solve\n";
+    std::cout<< solverHess.info() <<" \n";
+    Vector<double> result = solverHess.solve(RHS);
+    std::cout<<"Giving result a value\n";
+    // And we got a result from this 
+
+    // We need to do the displacements now
+    std::cout<<"updating positions\n";
+    for(size_t vi = 0; vi < N_vert; vi++){
+      Force = Vector3({result[3*vi],result[3*vi+1], result[3*vi+2]});
+      geometry->inputVertexPositions+=Force;
+
+    }
+    std::cout<<"Updating lagrange mult\n";
+    // We need to update the lagrange multipliers
+    
+    // for(long int ci = 0; ci < Sim_handler->Lagrange_mult.size(); ci++){
+    //   Sim_handler->Lagrange_mult(ci) -= result[3*(N_vert+N_beads)+ci];
+    // }
+
+    geometry->refreshQuantities();
+    // geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+    // geometry->refreshQuantities();
+
+
+    return 1.0;
+  
+
+  // Ok so we have everything i guess?
+
+  
+
+}
+
+
 
 
 double Mem3DG::integrate_implicit(std::vector<std::string> Energies,  std::vector<std::vector<double>> Energy_constants, std::ofstream& Sim_data , double time, std::vector<std::string>Bead_data_filenames, bool Save_output_data){

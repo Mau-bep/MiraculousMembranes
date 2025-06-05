@@ -174,6 +174,44 @@ VertexData<Vector3> E_Handler::F_Volume_constraint_2(std::vector<double> Constan
 
 }
 
+
+VertexData<Vector3> E_Handler::F_Volume(std::vector<double> Constants) const{
+    
+    double KV = Constants[0];
+    // double V_bar = Constants[1];
+    // double V = geometry->totalVolume();
+
+    VertexData<Vector3> Force(*mesh);
+
+    Eigen::Vector<double,9> Positions;
+    Eigen::Vector<double,9> Grad;
+    std::array<Vertex,3> Vertices;
+
+    Halfedge he;
+    Vector3 Force_vector;
+
+    for(Face f: mesh->faces()){
+        he = f.halfedge();
+        Vertices[0] = he.vertex();
+        Vertices[1] = he.next().vertex();
+        Vertices[2] = he.next().next().vertex();
+
+        Positions << geometry->inputVertexPositions[Vertices[0]].x , geometry->inputVertexPositions[Vertices[0]].y , geometry->inputVertexPositions[Vertices[0]].z,
+                    geometry->inputVertexPositions[Vertices[1]].x, geometry->inputVertexPositions[Vertices[1]].y, geometry->inputVertexPositions[Vertices[1]].z,
+                    geometry->inputVertexPositions[Vertices[2]].x, geometry->inputVertexPositions[Vertices[2]].y, geometry->inputVertexPositions[Vertices[2]].z;
+
+        Grad = geometry->gradient_volume(Positions);
+        for( size_t i = 0; i < 3; i++){
+            Force_vector = Vector3{Grad[3*i], Grad[3*i+1], Grad[3*i+2]};
+            Force[Vertices[i]] += Force_vector;
+        }
+    }
+
+    return -1*KV*Force;
+
+
+}
+
 VertexData<Vector3> E_Handler::F_SurfaceTension(std::vector<double> Constants) const{
 
     double sigma = Constants[0];
@@ -897,6 +935,54 @@ SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants) {
     }
 
 
+SparseMatrix<double> E_Handler::H_Volume(std::vector<double> Constants){
+
+    double KV = Constants[0];
+
+    int nVerts = mesh->nVertices();
+    SparseMatrix<double> Hessian(3*nVerts,3*nVerts);
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+
+    Eigen::Matrix<double,9,9> Hessian_block_vol;
+    Eigen::Vector<double, 9> Positions;
+    std::vector<Vertex> Vertices(3);
+    Halfedge he;
+    Eigen::Matrix3d Zeros = Eigen::Matrix3d::Zero();
+
+
+
+    for(Face f: mesh->faces()){
+        he = f.halfedge();
+        Vertices[0] = he.vertex();
+        Vertices[1] = he.next().vertex();
+        Vertices[2] = he.next().next().vertex();
+
+         Positions << geometry->inputVertexPositions[Vertices[0]].x , geometry->inputVertexPositions[Vertices[0]].y , geometry->inputVertexPositions[Vertices[0]].z,
+                    geometry->inputVertexPositions[Vertices[1]].x, geometry->inputVertexPositions[Vertices[1]].y, geometry->inputVertexPositions[Vertices[1]].z,
+                    geometry->inputVertexPositions[Vertices[2]].x, geometry->inputVertexPositions[Vertices[2]].y, geometry->inputVertexPositions[Vertices[2]].z;
+
+        // Now we do the hesian thingy 
+        Hessian_block_vol = geometry->hessian_volume(Positions);
+        
+        for(size_t row = 0; row < 9; row++){
+            for(size_t col = 0; col< 9; col++ ){
+                if( Hessian_block_vol(row,col) > 1e-12 || Hessian_block_vol(row,col) < -1e-12) tripletList.push_back(T(Vertices[row/3].getIndex()*3+row%3,Vertices[col/3].getIndex()*3+col%3,Hessian_block_vol(row,col) ));
+
+            }
+        }
+
+
+    }
+    Hessian.setFromTriplets(tripletList.begin(),tripletList.end());
+
+
+
+
+    return Hessian;
+}
+
+
 
 
 
@@ -982,19 +1068,19 @@ void E_Handler::Calculate_energies(double* E){
 void E_Handler::Calculate_gradient(){
     // This function will calculate the gradient of the energy
 
-    // std::cout<<"1 \n";
+    std::cout<<"1 \n";
     Previous_grad = Current_grad;
-    // std::cout<<"2 \n";
+    std::cout<<"2 \n";
     Current_grad = VertexData<Vector3>(*mesh);
-    // std::cout<<"3 \n";
+    std::cout<<"3 \n";
     VertexData<Vector3> Force_temp;
     int bead_count = 0;
     double grad_norm = 0;
-    // std::cout<<"4 \n";
-    // std::cout<<"THe size of Energies is " << Energies.size() << "\n";
-    // std::cout<<"4 1 \n";
+    std::cout<<"4 \n";
+    std::cout<<"THe size of Energies is " << Energies.size() << "\n";
+    std::cout<<"4 1 \n";
     for(size_t i = 0; i < Energies.size(); i++){
-        // std::cout<<"Energy is " << Energies[i]<<" \n";
+        std::cout<<"Energy is " << Energies[i]<<" \n";
 // 
         if(Energies[i] == "Volume_constraint"){
             Force_temp = F_Volume_constraint(Energy_constants[i]);
@@ -1058,6 +1144,7 @@ void E_Handler::Calculate_gradient(){
         }
 
         if(Energies[i]=="Bending"){
+            std::cout<<"Bending\n";
             Force_temp = F_Bending_2(Energy_constants[i]);
             grad_norm = 0.0;
 
@@ -1122,6 +1209,158 @@ void E_Handler::Calculate_gradient(){
 
     return;
 }
+
+void E_Handler::Calculate_Jacobian(){
+
+    int N_verts = mesh->nVertices();
+    int N_constraints = 0;
+
+    std::vector<double> Constraint_values(0);
+    
+    VertexData<Vector3> grad_sur(*mesh);
+    VertexData<Vector3> grad_vol(*mesh);
+    std::vector<double> Energy_constants_val;
+    for(std::string constraint : Constraints){
+        if(constraint == "Volume"){
+            // I need to find which are the energy constants
+            grad_vol = F_Volume(std::vector<double>{-1.0});
+            N_constraints += 1;
+            Constraint_values.push_back(geometry->totalVolume());
+
+        }
+        if(constraint == "Area_constraint"){
+            grad_sur = F_SurfaceTension_2(std::vector<double>{-1.0});
+            N_constraints += 1;
+            Constraint_values.push_back(geometry->totalArea());
+        }
+        if(constraint == "CM"){
+            N_constraints += 3;        
+        }
+        if(constraint == "CMx"){
+            N_constraints += 1;        
+            Constraint_values.push_back(0.0);
+        }
+
+        if(constraint == "CMy"){
+            N_constraints += 1;        
+            Constraint_values.push_back(0.0);
+        }
+        if(constraint == "CMz"){
+            N_constraints += 1;        
+            Constraint_values.push_back(0.0);
+        }
+        
+
+        
+    }
+
+    Jacobian_constraints.resize( N_constraints,3*N_verts);
+    std::cout<<"The size of the Jacobian is " << Jacobian_constraints.rows() << " " << Jacobian_constraints.cols() << "\n";
+
+    // Now we need to fill the Jacobian matrix with the constraints
+
+    Eigen::VectorXd Column = Eigen::VectorXd::Zero(N_verts*3);
+
+    for( size_t i =0; i < Constraints.size(); i++){
+        Column = Eigen::VectorXd::Zero(N_verts*3);
+        if(Constraints[i] == "Volume"){
+            // std::cout<<"Volume constraint \n";
+            for(size_t vi = 0; vi < mesh->nVertices() ; vi++  ){
+                Column[3*vi] = grad_vol[vi].x;
+                Column[3*vi+1] = grad_vol[vi].y;
+                Column[3*vi+2] = grad_vol[vi].z;
+            }
+            Jacobian_constraints.row(i) = Column;
+            
+            continue;
+        }
+
+        if(Constraints[i]== "Area"){
+
+            for(size_t vi = 0; vi < mesh->nVertices(); vi++){
+                Column[3*vi] = grad_sur[vi].x;
+                Column[3*vi+1] = grad_sur[vi].y;
+                Column[3*vi+2] = grad_sur[vi].z;
+            }
+            Jacobian_constraints.row(i) = Column;
+        }
+        if(Constraints[i]=="CMx"){
+            for(size_t vi = 0; vi < mesh->nVertices(); vi++){
+                Column[3*vi] = 1;
+            }
+             Jacobian_constraints.row(i) = Column;
+        }
+        if(Constraints[i]=="CMy"){
+            for(size_t vi = 0; vi < mesh->nVertices(); vi++){
+                Column[3*vi+1] = 1;
+            }
+             Jacobian_constraints.row(i) = Column;
+        }
+        if(Constraints[i]=="CMz"){
+            for(size_t vi = 0; vi < mesh->nVertices(); vi++){
+                Column[3*vi+2] = 1;
+            }
+             Jacobian_constraints.row(i) = Column;
+        }
+        
+
+
+    }
+
+
+
+}
+
+
+SparseMatrix<double> E_Handler::Calculate_Hessian(){
+
+    // Ok so the Hessian is the normal Hessian + lagrange multipliers * Hessian of the gradients
+    // For beads you need to include the beads at the size of the matrix of the hessian
+    // I recommend adding them at the bottom. 
+
+    int N_verts = mesh->nVertices();
+    int N_constraints = 0;
+    std::vector<double> Energy_constants_val;
+    SparseMatrix<double> Hessian(3*N_verts,3*N_verts);
+    std::string constraint;
+    
+    for(size_t i = 0; i < Constraints.size() ; i++){
+        constraint = Constraints[i];
+
+        if(constraint == "Volume"){
+            // I need to find which are the energy constants       
+            // N_constraints += 1;
+            Hessian += Lagrange_mult(i)*H_Volume(std::vector<double>{1.0});
+
+        }
+        if(constraint == "Area"){
+            N_constraints += 1;
+           
+        }
+        if(constraint == "CM"){
+            N_constraints += 3;        
+        }
+        
+    }
+    int bead_counter= 0;
+    for(size_t i = 0; i < Energies.size(); i++){
+        if(Energies[i] == "Bending"){
+            Hessian += H_Bending(Energy_constants[i]);
+        }
+        if(Energies[i] == "Surface_tension"){
+            Hessian += H_SurfaceTension(Energy_constants[i]);
+        }
+        if(Energies[i] == "Bead"){
+            std::cout<<"FUNCTION NOT AVAILABLE BUT SHOULD LOOK LIKE this\n";
+            // Beads[bead_counter]->Hessian();
+        }
+
+    }
+    
+
+    return Hessian;
+}
+
 
 void E_Handler::Do_nothing(){
     // This function does nothing, it is just a placeholder

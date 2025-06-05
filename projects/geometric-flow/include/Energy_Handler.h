@@ -18,6 +18,9 @@ class E_Handler {
 
         std::vector<std::string> Energies;
         std::vector<std::vector<double>> Energy_constants;
+        std::vector<std::string> Constraints;
+        Eigen::VectorXd Lagrange_mult;
+        
         bool boundary;
         std::vector<Bead *> Beads;
         
@@ -25,6 +28,8 @@ class E_Handler {
         
         VertexData<Vector3> Previous_grad;
         VertexData<Vector3> Current_grad;
+
+        Eigen::MatrixXd Jacobian_constraints;
 
         std::vector<double> Gradient_norms;
 
@@ -54,16 +59,21 @@ class E_Handler {
         virtual VertexData<Vector3> F_SurfaceTension_2(std::vector<double> Constants) const;
         virtual VertexData<Vector3> F_Bending_2(std::vector<double> Constants) const;
         virtual VertexData<Vector3> F_Volume_constraint_2(std::vector<double> Constants) const;
+        virtual VertexData<Vector3> F_Volume(std::vector<double> Constants) const;
 
         virtual SparseMatrix<double> H_SurfaceTension(std::vector<double> Constants);
         virtual SparseMatrix<double> H_Bending(std::vector<double> Constants);
-
+        virtual SparseMatrix<double> H_Volume(std::vector<double> Constants);
 
         
 
         virtual void Calculate_energies(double* E);
         // THis function saves the value of the gradient to current gradient but before saves current gradient to previous gradient
         virtual void Calculate_gradient();
+        virtual void Calculate_Jacobian();
+        
+        virtual SparseMatrix<double> Calculate_Hessian(); 
+
         virtual void Do_nothing();
 
     
