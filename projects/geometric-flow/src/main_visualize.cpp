@@ -174,6 +174,20 @@ double scaling_factor = 1.0;
 int integration_steps = 1;
 int remeshing_ops = -1;
 
+// Eigen::EigenSolver<Eigen::MatrixXd> Eigen_sol_Bending;
+Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> Eigen_sol_Surface;
+
+
+Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> Eigen_sol_Bending;
+// std::vector<Eigen::VectorXd> Eigenvectors_Bending_2(0);
+
+std::vector<Eigen::VectorXd> Eigenvectors_Bending(0);
+std::vector<Eigen::VectorXd> Eigenvectors_Surface(0);
+
+
+// std::vector<Eigen::VectorXd> Eigenvectors_Bending(0);
+// std::vector<Eigen::VectorXd> Eigenvectors_Surface(0);
+
 
 std::array<double, 3> BLUE = {0.11, 0.388, 0.89};
 // glm::vec<3, float> ORANGE_VEC = {1, 0.65, 0};
@@ -192,7 +206,7 @@ void redraw() {
         BeadPositions.push_back(Beads[i].Pos);
         std::cout<<"Positions is " << Beads[i].Pos<<"\n";
     }
-    psCloud->updatePointPositions(BeadPositions);
+    if(Beads.size()>0) psCloud->updatePointPositions(BeadPositions);
     polyscope::requestRedraw();
 }
 
@@ -675,6 +689,7 @@ std::vector<ImVec4*> sState = {&off_currColor, &V_sizing_currColor, &F_sizing_cu
 
 void functionCallback() {
 
+    // std::cout<<"Functioncallback\n";
     ImGui::Text("Total angle defect: %0.1fpi", TOTAL_ANGLE_DEFECT / M_PI);
     ImGui::Text("Euler characteristic: %zu", EULER_CHARACTERISTIC);
     ImGui::Text("Saved slots %i",Save_slot-1);
@@ -693,77 +708,223 @@ void functionCallback() {
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, *sState[0]);
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, *sState[0]);
     
+
+
     if(ImGui::Button("Display grad")){
         // Results/Debug_remesh_trial/Bending_1.0000_Bead_radius_0.3000_str_400.0000_Nsim_8
+        std::cout<<"Calculating gradient\n";
         M3DG.Sim_handler->Calculate_gradient();
         Gradient_vertex = M3DG.Sim_handler->Current_grad;
         // Gradient_vertex = M3DG.Bending(0.0) + Beads[0].Gradient();
         psMesh->addVertexVectorQuantity("Gradient", Gradient_vertex);
 
     }
+    
+    if(Eigenvectors_Bending.size()>0){
 
-   if (ImGui::Button("Vertex Sizing")) {
-    Face_sizings = M3DG.Face_sizings();
-    Vert_sizings = M3DG.Vert_sizing(Face_sizings);
-    psMesh->addVertexScalarQuantity("Vert sizing", Vert_sizings);
-//         vertexColors = psMesh->addVertexColorQuantity("Plot", Vert_sizings);
-//         // for (size_t j = 0; j < sColors.size(); j++) {
-//             // *sState[j] = i == j ? pressColor : releaseColor;
-        
+        if(ImGui::Button("First eigenval ")){
+            VertexData<Vector3> Eigenvector(*mesh, Vector3{0.0, 0.0, 0.0});
+            for(Vertex v: mesh->vertices()){
+                Eigenvector[v] = Vector3{Eigenvectors_Bending[0][3*v.getIndex()],
+                                          Eigenvectors_Bending[0][3*v.getIndex()+1],
+                                          Eigenvectors_Bending[0][3*v.getIndex()+2]};
+            }
+            std::cout<<"Displaying bending eigenvals\n";
+            psMesh->addVertexVectorQuantity("Bending eigenvals "+std::to_string(0), Eigenvector);
         }
-    if(ImGui::Button("Face Sizing")){
-        Face_sizings = M3DG.Face_sizings();
-        psMesh->addFaceScalarQuantity("Face sizing", Face_sizings);
-    }
-    if(ImGui::Button("Edge sizing")){
-        Face_sizings = M3DG.Face_sizings();
-        Vert_sizings = M3DG.Vert_sizing(Face_sizings);    
-        Edge_sizings = M3DG.Edge_sizing(Vert_sizings);
-        psMesh->addEdgeScalarQuantity("Edge sizing", Edge_sizings);
+    }         
+    if(Eigenvectors_Bending.size()>1){
 
+        if(ImGui::Button("Second eigenval ")){
+            VertexData<Vector3> Eigenvector(*mesh, Vector3{0.0, 0.0, 0.0});
+            for(Vertex v: mesh->vertices()){
+                Eigenvector[v] = Vector3{Eigenvectors_Bending[1][3*v.getIndex()],
+                                          Eigenvectors_Bending[1][3*v.getIndex()+1],
+                                          Eigenvectors_Bending[1][3*v.getIndex()+2]};
+            }
+            std::cout<<"Displaying bending eigenvals\n";
+            psMesh->addVertexVectorQuantity("Bending eigenvals "+std::to_string(1), Eigenvector);
+        }
     }
+    if(Eigenvectors_Bending.size()>2){
+
+        if(ImGui::Button("Third eigenval ")){
+            VertexData<Vector3> Eigenvector(*mesh, Vector3{0.0, 0.0, 0.0});
+            for(Vertex v: mesh->vertices()){
+                Eigenvector[v] = Vector3{Eigenvectors_Bending[2][3*v.getIndex()],
+                                          Eigenvectors_Bending[2][3*v.getIndex()+1],
+                                          Eigenvectors_Bending[2][3*v.getIndex()+2]};
+            }
+            std::cout<<"Displaying bending eigenvals\n";
+            psMesh->addVertexVectorQuantity("Bending eigenvals "+std::to_string(2), Eigenvector);
+        }
+    }
+    if(Eigenvectors_Bending.size()>3){
+
+        if(ImGui::Button("Forth eigenval ")){
+            VertexData<Vector3> Eigenvector(*mesh, Vector3{0.0, 0.0, 0.0});
+            for(Vertex v: mesh->vertices()){
+                Eigenvector[v] = Vector3{Eigenvectors_Bending[3][3*v.getIndex()],
+                                          Eigenvectors_Bending[3][3*v.getIndex()+1],
+                                          Eigenvectors_Bending[3][3*v.getIndex()+2]};
+            }
+            std::cout<<"Displaying bending eigenvals\n";
+            psMesh->addVertexVectorQuantity("Bending eigenvals "+std::to_string(3), Eigenvector);
+        }
+    }
+    if(Eigenvectors_Bending.size()>4){
+
+        if(ImGui::Button("Fifth eigenval ")){
+            VertexData<Vector3> Eigenvector(*mesh, Vector3{0.0, 0.0, 0.0});
+            for(Vertex v: mesh->vertices()){
+                Eigenvector[v] = Vector3{Eigenvectors_Bending[4][3*v.getIndex()],
+                                          Eigenvectors_Bending[4][3*v.getIndex()+1],
+                                          Eigenvectors_Bending[4][3*v.getIndex()+2]};
+            }
+            std::cout<<"Displaying bending eigenvals\n";
+            psMesh->addVertexVectorQuantity("Bending eigenvals "+std::to_string(4), Eigenvector);
+        }
+    }
+    if(Eigenvectors_Bending.size()>5){
+
+        if(ImGui::Button("Sixth eigenval ")){
+            VertexData<Vector3> Eigenvector(*mesh, Vector3{0.0, 0.0, 0.0});
+            for(Vertex v: mesh->vertices()){
+                Eigenvector[v] = Vector3{Eigenvectors_Bending[5][3*v.getIndex()],
+                                          Eigenvectors_Bending[5][3*v.getIndex()+1],
+                                          Eigenvectors_Bending[5][3*v.getIndex()+2]};
+            }
+            std::cout<<"Displaying bending eigenvals\n";
+            psMesh->addVertexVectorQuantity("Bending eigenvals "+std::to_string(5), Eigenvector);
+        }
+    }
+    if(Eigenvectors_Bending.size()>6){
+
+        if(ImGui::Button("Seventh eigenval ")){
+            VertexData<Vector3> Eigenvector(*mesh, Vector3{0.0, 0.0, 0.0});
+            for(Vertex v: mesh->vertices()){
+                Eigenvector[v] = Vector3{Eigenvectors_Bending[6][3*v.getIndex()],
+                                          Eigenvectors_Bending[6][3*v.getIndex()+1],
+                                          Eigenvectors_Bending[6][3*v.getIndex()+2]};
+            }
+            std::cout<<"Displaying bending eigenvals\n";
+            psMesh->addVertexVectorQuantity("Bending eigenvals "+std::to_string(6), Eigenvector);
+        }
+    }
+    if(Eigenvectors_Bending.size()>7){
+
+        if(ImGui::Button("Eigth eigenval ")){
+            VertexData<Vector3> Eigenvector(*mesh, Vector3{0.0, 0.0, 0.0});
+            for(Vertex v: mesh->vertices()){
+                Eigenvector[v] = Vector3{Eigenvectors_Bending[7][3*v.getIndex()],
+                                          Eigenvectors_Bending[7][3*v.getIndex()+1],
+                                          Eigenvectors_Bending[7][3*v.getIndex()+2]};
+            }
+            std::cout<<"Displaying bending eigenvals\n";
+            psMesh->addVertexVectorQuantity("Bending eigenvals "+std::to_string(7), Eigenvector);
+        }
+    }
+    // if(ImGui::Button("Bending 0 eigenvals"))
+
+
+//    if (ImGui::Button("Vertex Sizing")) {
+//     Face_sizings = M3DG.Face_sizings();
+//     Vert_sizings = M3DG.Vert_sizing(Face_sizings);
+//     psMesh->addVertexScalarQuantity("Vert sizing", Vert_sizings);
+// //         vertexColors = psMesh->addVertexColorQuantity("Plot", Vert_sizings);
+// //         // for (size_t j = 0; j < sColors.size(); j++) {
+// //             // *sState[j] = i == j ? pressColor : releaseColor;
+        
+//         }
+//     if(ImGui::Button("Face Sizing")){
+//         Face_sizings = M3DG.Face_sizings();
+//         psMesh->addFaceScalarQuantity("Face sizing", Face_sizings);
+//     }
+//     if(ImGui::Button("Edge sizing")){
+//         Face_sizings = M3DG.Face_sizings();
+//         Vert_sizings = M3DG.Vert_sizing(Face_sizings);    
+//         Edge_sizings = M3DG.Edge_sizing(Vert_sizings);
+//         psMesh->addEdgeScalarQuantity("Edge sizing", Edge_sizings);
+
+//     }
     int bead_counter = 0 ;
   
 
  
-        // if(ImGui::Button(Energies[i].c_str()))
-            // Here we get that particular gradient
-            // I need to add the ifs here but thats the idea
-           
-            if(ImGui::Button(Energies[1].c_str()))
-            {
-                VertexData<Vector3> Gradient_temp = M3DG.Sim_handler->F_Bending(Energy_constants[1]); 
-                psMesh->addVertexVectorQuantity("Gradient Bending", Gradient_temp);
+       
+           if(ImGui::Button("Display newton")){
+            std::cout<<"Calculating gradient newton\n";
+            VertexData<Vector3> Gradient_newton;
+            Eigen::VectorXd Lagrange_mults(4);
+            Lagrange_mults(0) = 0.0;
+            Lagrange_mults(1) = 0.0;
+            Lagrange_mults(2) = 0.0;
+            Lagrange_mults(3) = 0.0;
+            Sim_handler.Lagrange_mult = Lagrange_mults;
+            Sim_handler.Constraints = std::vector<std::string>{"Volume", "Area","CMx","CMy","CMz"};
+
+            M3DG.integrate_Newton(Sim_data,0.0,Energies,false,std::vector<std::string>{"Volume","Area","CMx","CMy","CMz"});
+            Gradient_newton = Sim_handler.Current_grad;
+            psMesh->addVertexVectorQuantity("Gradient Newton", Gradient_newton);
+           }
+           if(ImGui::Button("Step newton")){
+            std::cout<<"Calculating gradient newton\n";
+            VertexData<Vector3> Gradient_newton;
+            Eigen::VectorXd Lagrange_mults(5);
+            Lagrange_mults(0) = 0.0;
+            Lagrange_mults(1) = 0.0;
+            Lagrange_mults(2) = 0.0;
+            Lagrange_mults(3) = 0.0;
+            Lagrange_mults(4) = 0.0;
+            Sim_handler.Lagrange_mult = Lagrange_mults;
+            Sim_handler.Constraints = std::vector<std::string>{"Volume","CMx","CMy","CMz"};
+
+            M3DG.integrate_Newton(Sim_data,0.0,Energies,false,std::vector<std::string>{"Volume","CMx","CMy","CMz"});
+            Gradient_newton = Sim_handler.Current_grad;
+            geometry->inputVertexPositions +=Gradient_newton;
+            std::cout<<"Redrawing\n";
+            redraw();
+            // psMesh->addVertexVectorQuantity("Gradient Newton", Gradient_newton);
+           }
+
+
+
+            // if(ImGui::Button(Energies[1].c_str()))
+            // {
+            //     VertexData<Vector3> Gradient_temp = M3DG.Sim_handler->F_Bending(Energy_constants[1]); 
+            //     psMesh->addVertexVectorQuantity("Gradient Bending", Gradient_temp);
             
-            }
+            // }
             
             
 
-            if(ImGui::Button(Energies[0].c_str()))  
-            {
-                VertexData<Vector3> Gradient_temp = M3DG.Sim_handler->F_SurfaceTension(Energy_constants[0]);
-                psMesh->addVertexVectorQuantity("Gradient Surface tension", Gradient_temp);
-            }
+            // if(ImGui::Button(Energies[0].c_str()))  
+            // {
+            //     VertexData<Vector3> Gradient_temp = M3DG.Sim_handler->F_SurfaceTension(Energy_constants[0]);
+            //     psMesh->addVertexVectorQuantity("Gradient Surface tension", Gradient_temp);
+            // }
             
             
+            // if(Beads.size()>0){
 
-            // VertexData<Vector3> Gradient_temp = Beads[bead_counter].Gradient();
-            if(ImGui::Button(Energies[2].c_str())) 
-            {
-                VertexData<Vector3> Gradient_temp = Beads[0].Gradient();
-                std::cout<<"The gradient of this bead is " << Gradient_temp[0].x << " " << Gradient_temp[0].y << " " << Gradient_temp[0].z << "\n";
-                psMesh->addVertexVectorQuantity("Gradient Bead 1" , Gradient_temp);
+            // // VertexData<Vector3> Gradient_temp = Beads[bead_counter].Gradient();
+            // if(ImGui::Button(Energies[2].c_str())) 
+            // {
+            //     VertexData<Vector3> Gradient_temp = Beads[0].Gradient();
+            //     std::cout<<"The gradient of this bead is " << Gradient_temp[0].x << " " << Gradient_temp[0].y << " " << Gradient_temp[0].z << "\n";
+            //     psMesh->addVertexVectorQuantity("Gradient Bead 1" , Gradient_temp);
               
             
-            }
-            if(ImGui::Button("Bead 2")) 
-            {
-                VertexData<Vector3> Gradient_temp = Beads[1].Gradient();
-                std::cout<<"The gradient of this bead is " << Gradient_temp[0].x << " " << Gradient_temp[0].y << " " << Gradient_temp[0].z << "\n";
-                psMesh->addVertexVectorQuantity("Gradient Bead 2" , Gradient_temp);
+            // }
+            // if(ImGui::Button("Bead 2")) 
+            // {
+            //     VertexData<Vector3> Gradient_temp = Beads[1].Gradient();
+            //     std::cout<<"The gradient of this bead is " << Gradient_temp[0].x << " " << Gradient_temp[0].y << " " << Gradient_temp[0].z << "\n";
+            //     psMesh->addVertexVectorQuantity("Gradient Bead 2" , Gradient_temp);
                
             
-            }
+            // }  
+            // }
             
         
 
@@ -772,12 +933,14 @@ void functionCallback() {
     if(ImGui::Button("Save current state")){
 
         Saved_mesh = save_geometry(mesh,geometry);
-        
         Save_mesh(basic_name,Save_slot);
+        if(Beads.size()>0){
+        
         std::ofstream bead_saved(basic_name+"Bead_data_0.txt",ios_base::app);
         bead_saved << Beads[0].Pos.x << " "<< Beads[0].Pos.y <<" " << Beads[0].Pos.z <<"\n";
         bead_saved.close();
-
+        Saved_beadpos[0] = Beads[0].Pos;
+        }
 
         Save_slot++;
         std::cout<<"SAVE SLOT IS "<< Save_slot <<" \n";
@@ -789,7 +952,7 @@ void functionCallback() {
         // Saved_vertex_positions = geometry->inputVertexPositions;
         // arcsim::Mesh remesher_mesh2 = translate_to_arcsim(mesh,geometry);
         // Saved_meshes[0] =  arcsim::deep_copy(remesher_mesh2);
-        Saved_beadpos[0] = Beads[0].Pos;
+        
         // std::cout<<"Saved mesh in a state\n";
 
     }
@@ -816,7 +979,9 @@ void functionCallback() {
         M3DG.mesh = mesh;
         M3DG.geometry = geometry;
         std::cout<<"deleted\n";
-        Beads[0].Pos = Saved_beadpos[0]; 
+        if(Beads.size()>0){
+        Beads[0].Pos = Saved_beadpos[0];
+        } 
         geometry->requireVertexPositions();
         std::cout<<"relocated\n";
         psMesh = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions,mesh->getFaceVertexList());
@@ -939,6 +1104,7 @@ int main(int argc, char** argv) {
     
     std::string Integration = "Gradient_descent";
 
+    bool Eigenvals = true;
 
     if(Data.contains("Integration")){
         Integration = Data["Integration"];
@@ -977,7 +1143,7 @@ int main(int argc, char** argv) {
     geometry->refreshQuantities();
 
     V_bar = geometry->totalVolume();
-
+    Sim_handler.Trgt_vol = V_bar;
     // We will deal with the energies now
     
 
@@ -1394,7 +1560,48 @@ int main(int argc, char** argv) {
     EdgeLengths.close();
 
 
-    
+    // We will do the eigenvalues thingy
+    // std::cout<<"Doing the eigenvals"
+    Eigen::MatrixXd Hessian_bending = Sim_handler.H_Bending(Energy_constants[1]).toDense();
+    Eigen::MatrixXd Hessian_surface = Sim_handler.H_SurfaceTension(Energy_constants[0]).toDense();
+
+    // Eigen_sol_Bending = Eigen::EigenSolver<Eigen::MatrixXd>(Hessian_bending);
+    Eigen_sol_Bending = Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd>(Hessian_bending);
+    Eigen_sol_Surface = Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd>(Hessian_surface);
+    // We now can do the solve;
+
+    Eigen::VectorXd Eigenvalues_bending = Eigen_sol_Bending.eigenvalues();
+    Eigen::MatrixXd Eigenvectors_bending = Eigen_sol_Bending.eigenvectors();
+
+
+    // Eigen::VectorXd Eigenvalues_bending = Eigen_sol_Surface.eigenvalues();
+    // Eigen::MatrixXd Eigenvectors_bending = Eigen_sol_Surface.eigenvectors();
+
+    std::cout<<"The Hessian is \n" << Hessian_surface <<" \n"; 
+
+    Eigen::VectorXd Eigenvalues_surface = Eigen_sol_Surface.eigenvalues();
+    Eigen::MatrixXd Eigenvectors_surface = Eigen_sol_Surface.eigenvectors();
+    std::cout<<"The eigenvalues are "<< Eigenvalues_bending.transpose()<<std::endl;
+    for(int i = 0;  i < Eigenvalues_bending.size(); i++){
+        // std::cout<<"is is" << i <<" \n";
+        
+        
+        double eig = Eigenvalues_bending(i);
+        std::cout<< Eigenvalues_bending(i) <<" ";
+        if(fabs(eig) < 1e-7){
+            Eigenvectors_Bending.push_back(Eigenvectors_bending.col(i));
+        }
+    }
+   
+
+    std::cout<<std::endl;
+    for(int i = 0;  i < Eigenvalues_surface.size(); i++){
+        //  std::cout<<"is is" << i <<" \n";
+        double eig = Eigenvalues_surface(i);
+        if(fabs(eig) < 1e-7){
+            Eigenvectors_Surface.push_back(Eigenvectors_surface.col(i));
+        }
+    }
 
     // Here we start the polyscope thingy
     // We need a remesh function tho 
@@ -1415,11 +1622,12 @@ int main(int argc, char** argv) {
     for(size_t i = 0; i<Beads.size(); i++){
         points.push_back(glm::vec3(Beads[i].Pos.x,Beads[i].Pos.y,Beads[i].Pos.z));
     }
-    psCloud = polyscope::registerPointCloud("really great points", points);
+    if(Beads.size()>0){ 
+        psCloud = polyscope::registerPointCloud("really great points", points);
     
     std::cout<<"The radius would be " <<Beads[0].sigma*1.0 <<"\n";  
     psCloud->setPointRadius(Beads[0].sigma);
-    
+    }
 
     std::cout<<"Here7\n";
 

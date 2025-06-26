@@ -2544,7 +2544,7 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
   Timings.close();
   // std::cout<<"The backtrackstep is " << backtrackstep << " \n";
   // After backtracking i have to save.
-
+  A = geometry->totalArea();
   // 
   if(Save_output_data || backtrackstep <0 ){
   double tot_E=0;
@@ -2893,13 +2893,17 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
   // std::cout<<"C"
   Sim_handler->Calculate_gradient();
 
-  // std::cout<<"The current gradient is"
+  // std::cout<<"The current gradient is" << Sim_handler->Current_grad << "\n";
+  //  std::cout<<"\n";
   std::cout<<"Callin jacobian\n";
   Sim_handler->Calculate_Jacobian();
+  // std::cout<<"The Jacobian is " << Sim_handler->Jacobian_constraints << "\n";
+  //  std::cout<<"\n";
   std::cout<<"Callin hessian\n";
   Hessian = Sim_handler->Calculate_Hessian();
   // We have the Hessian the gradient the jacobian. it is time 
-
+  // std::cout<<"The hessian is \n" << Hessian << "\n";
+  std::cout<<"\n";
 
   // 
   int N_beads = 0;
@@ -2924,6 +2928,22 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
   int row;
   int col;
   double value;
+  
+
+  // SparseMatrix<double> J = geometry->laplaceMatrix();
+
+  // for( long int  k = 0; k < J.outerSize(); ++k ) {
+  //       for( SparseMatrix<double>::InnerIterator it(J,k); it; ++it ) {
+  //           value = it.value();
+  //           row = it.row();
+  //           col = it.col();
+  //           tripletList.push_back(T(3*row,3*col,value));
+  //           tripletList.push_back(T(3*row+1,3*col+1,value));
+  //           tripletList.push_back(T(3*row+2,3*col+2,value));
+  //       }
+  //   }
+
+
   for( long int k = 0; k < Hessian.outerSize(); ++k ) {
         for( SparseMatrix<double>::InnerIterator it(Hessian,k); it; ++it ) {
             value = it.value();
@@ -2932,27 +2952,42 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
             tripletList.push_back(T(row,col,value));
         }
     }
-  std::cout<<"FIlled with hessian values\n";
-  // Ok so the hessian values are added too Next is the rhs
+
+
+
+
+
+
 
   Eigen::VectorXd LambdaJ = Sim_handler->Jacobian_constraints.transpose()*Sim_handler->Lagrange_mult;
   // std::cout<<"LAMBDA J ready\n";
+  std::cout<<"THe size of Lambda J is " << LambdaJ.rows() <<" and " << LambdaJ.cols() << "\n";
   Vector3 Force;
+  double dual_area = 0.0;
   for(size_t vi = 0; vi < mesh->nVertices(); vi++){
     // Ok so the idea now is to 
     Force = Sim_handler->Current_grad[vi];
+    // dual_area = geometry->barycentricDualArea(mesh->vertex(vi));
     // std::cout<<"Force is " << Force <<" \n";
-    RHS(3*vi) = LambdaJ(3*vi) + Force.x;
-    RHS(3*vi+1) = LambdaJ(3*vi+1) + Force.y;
-    RHS(3*vi+2) = LambdaJ(3*vi+2) + Force.z;
+    // RHS(3*vi) = -1*LambdaJ(3*vi) + Force.x;
+    // RHS(3*vi+1) = -1*LambdaJ(3*vi+1) + Force.y;
+    // RHS(3*vi+2) = -1*LambdaJ(3*vi+2) + Force.z;
+    RHS(3*vi) =  dual_area * Force.x;
+    RHS(3*vi+1) =  dual_area * Force.y;
+    RHS(3*vi+2) =  dual_area * Force.z;
+    // RHS(3*vi) =  Force.x;
+    // RHS(3*vi+1) = Force.y;
+    // RHS(3*vi+2) = Force.z;
+  
   }
   std::cout<<"RHS  force ready\n";
   // Now we need to add the constraints 
   std::cout<<"Te number of constraints is " << N_constraints <<" \n";
   for(int Ci = 0; Ci < N_constraints; Ci++){
     // We need to add the value of the constraint
-    if(Constraints[Ci] =="Volume") RHS(3*N_vert+Ci) = 0.0;
-    
+    if(Constraints[Ci] =="Volume"){ RHS(3*N_vert+Ci) = -1*(geometry->totalVolume() - Sim_handler->Trgt_vol);
+    std::cout<<"The total volume is " << geometry->totalVolume() << " and the target is " << Sim_handler->Trgt_vol << "\n";
+    }
     if(Constraints[Ci] =="Area") RHS(3*N_vert+Ci) = geometry->totalArea();
     if(Constraints[Ci]=="CMx") RHS(3*N_vert+Ci) = 0.0;
     if(Constraints[Ci]=="CMy") RHS(3*N_vert+Ci) = 0.0;
@@ -2966,8 +3001,8 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
 
     LHS.setFromTriplets(tripletList.begin(),tripletList.end());
 
-    // std::cout<<"The LHS is \n" << LHS << "\n";
-    //     std::cout<<"THE JACOBIAN IS \n " << Sim_handler->Jacobian_constraints <<" \n";
+    // std::cout<<"The LHS is \n" << LHS << "\n\n";
+      // std::cout<<"THE JACOBIAN IS \n " << Sim_handler->Jacobian_constraints <<" \n";
 
     // std::cout<<"tHE HESSIAN OF THE TETRAHEDRON IS \n" << Hessian <<" \n";
 
@@ -2979,24 +3014,46 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
     // std::cout<<"And the RHS is \n"<< RHS.transpose() <<" \n";
 
     solverHess.compute(LHS);
+  
     std::cout<<"Computed the solve\n";
-    std::cout<< solverHess.info() <<" \n";
+
+
+
+    // std::cout<< solverHess.info() <<" \n";
     Vector<double> result = solverHess.solve(RHS);
-    std::cout<<"Giving result a value\n";
+    // std::cout<<"Giving result a value\n";
     // And we got a result from this 
 
-    // We need to do the displacements now
-    std::cout<<"updating positions\n";
-    for(size_t vi = 0; vi < N_vert; vi++){
-      Force = Vector3({result[3*vi],result[3*vi+1], result[3*vi+2]});
-      geometry->inputVertexPositions+=Force;
+    // Ok so one idea will be displaying this force on polyscope
 
+    VertexData<Vector3> Force_result(*mesh,Vector3({0.0,0.0,0.0}));
+    for(size_t vi = 0; vi < mesh->nVertices(); vi++){
+      Force_result[vi].x = result[3*vi];
+      Force_result[vi].y = result[3*vi+1];
+      Force_result[vi].z = result[3*vi+2];
     }
+    Sim_handler->Current_grad = Force_result;
+
+    // return 1.0;
+
+
+
+    // We need to do the displacements now
+    // std::cout<<"updating positions\n";
+    // for(size_t vi = 0; vi < N_vert; vi++){
+      
+    //   Force = 0.1*Vector3({result[3*vi],result[3*vi+1], result[3*vi+2]});
+    //   // std::cout<<
+    //   // std::cout<<"The force is " << Force <<" \n";
+    //   geometry->inputVertexPositions[vi]+=Force;
+
+    // }
+    geometry->inputVertexPositions += Force_result;
     std::cout<<"Updating lagrange mult\n";
     // We need to update the lagrange multipliers
     
     // for(long int ci = 0; ci < Sim_handler->Lagrange_mult.size(); ci++){
-    //   Sim_handler->Lagrange_mult(ci) -= result[3*(N_vert+N_beads)+ci];
+    //   Sim_handler->Lagrange_mult(ci) -= 0.1*result[3*(N_vert+N_beads)+ci];
     // }
 
     geometry->refreshQuantities();

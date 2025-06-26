@@ -718,8 +718,9 @@ int main(int argc, char** argv) {
 
     std::cout<<"\n\n We start testing on a mesh now \n\n";
 
-    std::string filepath = "../../../input/Simple_cil_regular.obj";
-    // std::string filepath = "../../../input/5_tetrahedron.obj";
+    std::string filepath = "../../../input/sphere.obj";
+    // std::string filepath = "../Results/Mem3DG_Cell_Shape_KB_evol_flip/nu_0.625_c0_0.000_KA_10.000_KB_0.010000_init_cond_2_Nsim_11/Membrane_2067500.obj";
+    // std::string filepath = "../../../input/20_icosahedron.obj";
     
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
 
@@ -807,137 +808,232 @@ int main(int argc, char** argv) {
 
     const int Nverts = mesh->nVertices();
 
-    SparseMatrix<double> Hessian_bending = Sim_handler.H_Bending(Energy_constants[0]);
+    // SparseMatrix<double> Hessian_bending = Sim_handler.H_Bending(Energy_constants[0]);
 
-    Eigen::MatrixXd Hessian_finite_diff(3*Nverts,3*Nverts);
+    // Eigen::MatrixXd Hessian_finite_diff(3*Nverts,3*Nverts);
 
-    VertexData<Vector3> Gradient_fwd(*mesh);
-    VertexData<Vector3> Gradient_prev(*mesh);
+    // VertexData<Vector3> Gradient_fwd(*mesh);
+    // VertexData<Vector3> Gradient_prev(*mesh);
 
-    Gradient_fwd = Sim_handler.F_Bending(Energy_constants[0]);
+    // Gradient_fwd = Sim_handler.F_Bending(Energy_constants[0]);
 
-    // Gradient_fwd.array()
+    // // Gradient_fwd.array()
 
-    Eigen::VectorXd Difference(3*Nverts);
+    // Eigen::VectorXd Difference(3*Nverts);
 
 
-    size_t dim = 0;
-    for(Vertex v: mesh->vertices()){
-        // SO the idea here is  
-        for(size_t coord = 0; coord < 3; coord++){
+    // size_t dim = 0;
+    // for(Vertex v: mesh->vertices()){
+    //     // SO the idea here is  
+    //     for(size_t coord = 0; coord < 3; coord++){
             
-            geometry->inputVertexPositions[v][coord]+=1e-6; //move forward
-            geometry->refreshQuantities();
-            Gradient_fwd = Sim_handler.F_Bending_2(Energy_constants[0]);
-            geometry->inputVertexPositions[v][coord]-=2e-6; //move backward
-            geometry->refreshQuantities();
-            Gradient_prev = Sim_handler.F_Bending_2(Energy_constants[0]);
-            geometry->inputVertexPositions[v][coord]+=1e-6; //restore
-            geometry->refreshQuantities();
-            // Create the vector that goes in the column
-            for(Vertex v2: mesh->vertices()){
-                Difference[3*v2.getIndex()] = (Gradient_fwd[v2]-Gradient_prev[v2]).x/(2e-6);
-                Difference[3*v2.getIndex()+1] = (Gradient_fwd[v2]-Gradient_prev[v2]).y/(2e-6);
-                Difference[3*v2.getIndex()+2] = (Gradient_fwd[v2]-Gradient_prev[v2]).z/(2e-6); 
-            }
+    //         geometry->inputVertexPositions[v][coord]+=1e-6; //move forward
+    //         geometry->refreshQuantities();
+    //         Gradient_fwd = Sim_handler.F_Bending_2(Energy_constants[0]);
+    //         geometry->inputVertexPositions[v][coord]-=2e-6; //move backward
+    //         geometry->refreshQuantities();
+    //         Gradient_prev = Sim_handler.F_Bending_2(Energy_constants[0]);
+    //         geometry->inputVertexPositions[v][coord]+=1e-6; //restore
+    //         geometry->refreshQuantities();
+    //         // Create the vector that goes in the column
+    //         for(Vertex v2: mesh->vertices()){
+    //             Difference[3*v2.getIndex()] = (Gradient_fwd[v2]-Gradient_prev[v2]).x/(2e-6);
+    //             Difference[3*v2.getIndex()+1] = (Gradient_fwd[v2]-Gradient_prev[v2]).y/(2e-6);
+    //             Difference[3*v2.getIndex()+2] = (Gradient_fwd[v2]-Gradient_prev[v2]).z/(2e-6); 
+    //         }
 
 
-            Hessian_finite_diff.col(dim) = Difference;
-            dim+=1;
+    //         Hessian_finite_diff.col(dim) = Difference;
+    //         dim+=1;
 
 
-        }
-    }
+    //     }
+    // }
 
-    // At this point i have both Hessians
-    // std::cout<<"The finite difference hessian is \n" << Hessian_finite_diff <<"\n";
+    // // At this point i have both Hessians
+    // // std::cout<<"The finite difference hessian is \n" << Hessian_finite_diff <<"\n";
 
-    std::cout<<"\n\n Testing Hessian now \n";
-    // std::cout<<"The sparse matrix i guess not so sparse\n" << Hessian_bending <<" \n";
+    // std::cout<<"\n\n Testing Hessians now \n";
+    // // std::cout<<"The sparse matrix i guess not so sparse\n" << Hessian_bending <<" \n";
 
-    // OK so this is the part where i compare my hessian with the finite difference one :P 
+    // // OK so this is the part where i compare my hessian with the finite difference one :P 
 
-    Eigen::MatrixXd DifferenceHessians = Hessian_finite_diff + Hessian_bending;
+    // Eigen::MatrixXd DifferenceHessians = Hessian_finite_diff + Hessian_bending;
 
-    std::cout<<"THe difference between the bending energy Hessians is " << DifferenceHessians.sum() <<" \n";
+    // // std::cout<<"The matrix difference between the hessians is \n" << DifferenceHessians <<"\n";
 
-    SparseMatrix<double> Hessian_tension = Sim_handler.H_SurfaceTension(Energy_constants[0]);
+    // // Ok lets do this 
+    // std::cout<<"THe difference between the bending energy Hessians is " << DifferenceHessians.cwiseAbs().sum() <<" \n";
 
-    Eigen::MatrixXd Hessian_tension_finite_diff(3*Nverts,3*Nverts);
+    // // Ok lets do our thing now we want the eigenvalues of this hessian
 
-    dim = 0;
-    for(Vertex v: mesh->vertices()){
-        // SO the idea here is  
-        for(size_t coord = 0; coord < 3; coord++){
+    // // Eigen::EigenSolver<Eigen::SPARSE> EIGENSOLVER;
+
+    
+    // Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(Hessian_finite_diff);
+
+    // // std::cout << "The eigenvalues of the  hessian are :" 
+    // //  << std::endl << es.eigenvalues() << std::endl;
+
+    // //  Eigen::MatrixXcd EIGENVECS = es.eigenvectors();
+
+    // // for(int i = 0 ; i < EIGENVECS.cols(); i++){
+    // //     // NOW WE DO THE THINGY
+    // //     double eig = es.eigenvalues()(i).real();
+    // //     std::cout<<"The eigenvalue is "<< eig <<" \n";
+    // //     std::cout<<"With eigenvector " << EIGENVECS.col(i).transpose() <<"\n";
+    // // }
+    
+    // Eigen::MatrixXd Bending_H_analitical = Hessian_bending.toDense();
+    // Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> ES(Bending_H_analitical);
+
+
+    // // std::cout << "The eigenvalues of the hessian are :" 
+    // //  << std::endl << ES.eigenvalues() << std::endl;
+    
+
+    // // Eigen::VectorXd Eigenvals_mat = EIGENSOLVER.eigenvalues().real();
+
+    // // std::cout<<"The eigenvalues are " << Eigenvals_mat.transpose() <<"\n";
+
+
+
+
+
+    // SparseMatrix<double> Hessian_tension = Sim_handler.H_SurfaceTension(Energy_constants[0]);
+
+    // Eigen::MatrixXd Hessian_tension_finite_diff(3*Nverts,3*Nverts);
+
+
+
+
+
+    // dim = 0;
+    // for(Vertex v: mesh->vertices()){
+    //     // SO the idea here is  
+    //     for(size_t coord = 0; coord < 3; coord++){
             
-            geometry->inputVertexPositions[v][coord]+=1e-6; //move forward
-            geometry->refreshQuantities();
-            Gradient_fwd = Sim_handler.F_SurfaceTension_2(Energy_constants[0]);
-            geometry->inputVertexPositions[v][coord]-=2e-6; //move backward
-            geometry->refreshQuantities();
-            Gradient_prev = Sim_handler.F_SurfaceTension_2(Energy_constants[0]);
-            geometry->inputVertexPositions[v][coord]+=1e-6; //restore
-            geometry->refreshQuantities();
-            // Create the vector that goes in the column
-            for(Vertex v2: mesh->vertices()){
-                Difference[3*v2.getIndex()] = (Gradient_fwd[v2]-Gradient_prev[v2]).x/(2e-6);
-                Difference[3*v2.getIndex()+1] = (Gradient_fwd[v2]-Gradient_prev[v2]).y/(2e-6);
-                Difference[3*v2.getIndex()+2] = (Gradient_fwd[v2]-Gradient_prev[v2]).z/(2e-6); 
-            }
+    //         geometry->inputVertexPositions[v][coord]+=1e-6; //move forward
+    //         geometry->refreshQuantities();
+    //         Gradient_fwd = Sim_handler.F_SurfaceTension_2(Energy_constants[0]);
+    //         geometry->inputVertexPositions[v][coord]-=2e-6; //move backward
+    //         geometry->refreshQuantities();
+    //         Gradient_prev = Sim_handler.F_SurfaceTension_2(Energy_constants[0]);
+    //         geometry->inputVertexPositions[v][coord]+=1e-6; //restore
+    //         geometry->refreshQuantities();
+    //         // Create the vector that goes in the column
+    //         for(Vertex v2: mesh->vertices()){
+    //             Difference[3*v2.getIndex()] = (Gradient_fwd[v2]-Gradient_prev[v2]).x/(2e-6);
+    //             Difference[3*v2.getIndex()+1] = (Gradient_fwd[v2]-Gradient_prev[v2]).y/(2e-6);
+    //             Difference[3*v2.getIndex()+2] = (Gradient_fwd[v2]-Gradient_prev[v2]).z/(2e-6); 
+    //         }
 
 
-            Hessian_tension_finite_diff.col(dim) = Difference;
-            dim+=1;
+    //         Hessian_tension_finite_diff.col(dim) = Difference;
+    //         dim+=1;
 
 
-        }
-    }
+    //     }
+    // }
+
+    // // std::cout<<"The finite difference hessian is \n" << Hessian_tension_finite_diff <<"\n";
+    // // std::cout<<"The analitical hessian is \n"<< Hessian_tension <<"\n";
+
+    // Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> ES_TFINITE(Hessian_tension_finite_diff);
 
 
-    // std::cout<<"The finite difference hessian is \n" << Hessian_tension_finite_diff <<"\n";
+    // // std::cout<< " THe eigenvalues of the finite difference hessian of the tension are " << std::endl << ES_TFINITE.eigenvalues() << std::endl;
+    
 
 
-    // std::cout<<"The sparse matrix i guess not so sparse\n" << Hessian_tension <<" \n";
-
-    DifferenceHessians = Hessian_tension_finite_diff + Hessian_tension;
-
-    std::cout<<"THe difference between the surface tension energy Hessians is " << DifferenceHessians.sum() <<" \n";
+    // Eigen::MatrixXd Tension_H_analitical = Hessian_tension.toDense();
+    // Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> ES2(Tension_H_analitical);
 
 
-    SparseMatrix<double> Hessian_Volume_mesh = Sim_handler.H_Volume(Energy_constants[0]);
-    Eigen::MatrixXd Hessian_finite_diff_vol(3*Nverts,3*Nverts);
+    // // std::cout << "The eigenvalues of the hessian are :" 
+    // //  << std::endl << ES2.eigenvalues() << std::endl;
 
-    dim = 0 ;
-    for(Vertex v: mesh->vertices()){
-        for(size_t coord = 0; coord <3; coord++){
-            geometry->inputVertexPositions[v][coord]+=1e-6; //move forward
-            geometry->refreshQuantities();
-            Gradient_fwd = Sim_handler.F_Volume(Energy_constants[0]);
-            geometry->inputVertexPositions[v][coord]-=2e-6; //move backward
-            geometry->refreshQuantities();
-            Gradient_prev = Sim_handler.F_Volume(Energy_constants[0]);
-            geometry->inputVertexPositions[v][coord]+=1e-6; //restore
-            geometry->refreshQuantities();
+    // // std::cout<<"The sparse matrix i guess not so sparse\n" << Hessian_tension <<" \n";
 
-            for(Vertex v2: mesh->vertices()){
-                Difference[3*v2.getIndex()] = (Gradient_fwd[v2]-Gradient_prev[v2]).x/(2e-6);
-                Difference[3*v2.getIndex()+1] = (Gradient_fwd[v2]-Gradient_prev[v2]).y/(2e-6);
-                Difference[3*v2.getIndex()+2] = (Gradient_fwd[v2]-Gradient_prev[v2]).z/(2e-6); 
-            }
+    // DifferenceHessians = Hessian_tension_finite_diff + Hessian_tension;
 
-            Hessian_finite_diff_vol.col(dim) = Difference;
-            dim+=1;
+    // std::cout<<"THe difference between the surface tension energy Hessians is " << DifferenceHessians.cwiseAbs().sum() <<" \n";
 
-        }
-    }
-    DifferenceHessians = Hessian_finite_diff_vol + Hessian_Volume_mesh;
 
-    std::cout<<"The difference between the volume energy Hessians is " << DifferenceHessians.sum() <<" \n";
+    // // Lets do a mixture
+
+    // // Eigen::MatrixXd B_T_H_analitical = Bending_H_analitical + Tension_H_analitical;
+    // // Eigen::EigenSolver<Eigen::MatrixXd> ES3(B_T_H_analitical, false);
+    // // std::cout << "The eigenvalues of the bending + tension hessian are :" 
+    // //  << std::endl << ES3.eigenvalues() << std::endl;
+
+    // //  Eigen::MatrixXcd EIGENVECSs = ES3.eigenvectors();
+
+    // // for(int i = 0 ; i < EIGENVECSs.cols(); i++){
+    //     // NOW WE DO THE THINGY
+    //     // double eig = ES3.eigenvalues()(i).real();
+    //     // if(eig < 1e-8 && eig > -1e-8){
+    //         // std::cout<<"The eigenvalue is "<< eig <<" \n";
+    //         // std::cout<<"With eigenvector " << EIGENVECSs.col(i) <<"\n";
+    //     // }
+    // // }
+
+
+    // SparseMatrix<double> Hessian_Volume_mesh = Sim_handler.H_Volume(Energy_constants[0]);
+    // Eigen::MatrixXd Hessian_finite_diff_vol(3*Nverts,3*Nverts);
+
+    // dim = 0 ;
+    // for(Vertex v: mesh->vertices()){
+    //     for(size_t coord = 0; coord <3; coord++){
+    //         geometry->inputVertexPositions[v][coord]+=1e-6; //move forward
+    //         geometry->refreshQuantities();
+    //         Gradient_fwd = Sim_handler.F_Volume(Energy_constants[0]);
+    //         geometry->inputVertexPositions[v][coord]-=2e-6; //move backward
+    //         geometry->refreshQuantities();
+    //         Gradient_prev = Sim_handler.F_Volume(Energy_constants[0]);
+    //         geometry->inputVertexPositions[v][coord]+=1e-6; //restore
+    //         geometry->refreshQuantities();
+
+    //         for(Vertex v2: mesh->vertices()){
+    //             Difference[3*v2.getIndex()] = (Gradient_fwd[v2]-Gradient_prev[v2]).x/(2e-6);
+    //             Difference[3*v2.getIndex()+1] = (Gradient_fwd[v2]-Gradient_prev[v2]).y/(2e-6);
+    //             Difference[3*v2.getIndex()+2] = (Gradient_fwd[v2]-Gradient_prev[v2]).z/(2e-6); 
+    //         }
+
+    //         Hessian_finite_diff_vol.col(dim) = Difference;
+    //         dim+=1;
+
+    //     }
+    // }
+    // DifferenceHessians = Hessian_finite_diff_vol + Hessian_Volume_mesh;
+
+
+
+
+    // std::cout<<"The difference between the volume energy Hessians is " << DifferenceHessians.cwiseAbs().sum() <<" \n";
+
+
+    // std::ofstream Data_hess("../Results/Test_Hessian_2/Hessian_vol.txt");
+    // Data_hess << Hessian_Volume_mesh;
+    // Data_hess.close();
+    // Data_hess = std::ofstream("../Results/Test_Hessian_2/Hessian_vol_finite.txt");
+    // Data_hess << Hessian_finite_diff_vol;
+    // Data_hess.close();
 
     // std::cout<<"THe volume hessian is \n" << Hessian_Volume_mesh<<" \n"; 
     
     // std::cout<<"The hessian of the finite difference is \n" << Hessian_finite_diff_vol <<" \n";
 
+    arcsim::Cloth Cloth_1;
+    arcsim::Cloth::Remeshing remeshing_params;
+
+    remeshing_params.aspect_min = 0.2;
+    remeshing_params.refine_angle = 0.7;
+    remeshing_params.refine_compression =1.0;
+    remeshing_params.refine_velocity = 1.0;
+    remeshing_params.size_max = 0.5;
+    remeshing_params.size_min = 0.001;
+    remeshing_params.total_op = -1;
 
     // Now we do the fire test :P
 
@@ -946,24 +1042,27 @@ int main(int argc, char** argv) {
     Energy_constants.resize(0);
     std::vector<double> Constants(0);
     std::vector<std::string> Constraints(0);
-    Eigen::VectorXd Lagrange_mults(3);
+    Eigen::VectorXd Lagrange_mults(4);
     Lagrange_mults(0) = 0.0;
     Lagrange_mults(1) = 0.0;
     Lagrange_mults(2) = 0.0;
-    // Lagrange_mults(3) = 0.0;
+    Lagrange_mults(3) = 0.0;
     
 
     Energies.push_back("Bending");
     Constants.push_back(10.0);
     Constants.push_back(0.0);
     Energy_constants.push_back(Constants);
-    Energies.push_back("Surface_tension");
+    Energies.push_back("Area_constraint");
     Constants.resize(0);
-    Constants.push_back(10.0);
-    Constants.push_back(0.0);
+    Constants.push_back(1000.0);
+    double A_bar = geometry->totalArea();
+    std::cout<<"The target area is "  << A_bar<<" and the area is" <<  geometry->totalArea() <<"  \n";
+    Constants.push_back(A_bar);
     Energy_constants.push_back(Constants);
 
-    // Constraints.push_back("Volume");
+    Constraints.push_back("Volume");
+
     Constraints.push_back("CMx");
     Constraints.push_back("CMy");
     Constraints.push_back("CMz");
@@ -980,42 +1079,56 @@ int main(int argc, char** argv) {
     M3DG.boundary = false;
     std::ofstream Some_ofstream;
 
-    arcsim::Cloth Cloth_1;
-    arcsim::Cloth::Remeshing remeshing_params;
-
-    remeshing_params.aspect_min = 0.2;
-    remeshing_params.refine_angle = 0.7;
-    remeshing_params.refine_compression =1.0;
-    remeshing_params.refine_velocity = 1.0;
-    remeshing_params.size_max = 0.1;
-    remeshing_params.size_min = 0.001;
-    remeshing_params.total_op = -1;
-
-    arcsim::Mesh remesher_mesh = translate_to_arcsim(mesh,geometry);
-    Cloth_1.mesh = remesher_mesh;
-    Cloth_1.remeshing = remeshing_params;
-    arcsim::compute_masses(Cloth_1);
-    arcsim::compute_ws_data(Cloth_1.mesh);
     
-    arcsim::dynamic_remesh(Cloth_1);
-
-    std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
-    arcsim::delete_mesh(Cloth_1.mesh);
-    mesh = mesh_uptr.release();
-    geometry = geometry_uptr.release();
-    M3DG.mesh = mesh;
-    M3DG.geometry = geometry;
-    Sim_handler.mesh = mesh;
-    Sim_handler.geometry = geometry;
+    // arcsim::Mesh remesher_mesh = translate_to_arcsim(mesh,geometry);
+    // Cloth_1.mesh = remesher_mesh;
+    // Cloth_1.remeshing = remeshing_params;
+    // arcsim::compute_masses(Cloth_1);
+    // arcsim::compute_ws_data(Cloth_1.mesh);
     
+    // arcsim::dynamic_remesh(Cloth_1);
+
+    // std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
+    // arcsim::delete_mesh(Cloth_1.mesh);
+    // mesh = mesh_uptr.release();
+    // geometry = geometry_uptr.release();
+    // M3DG.mesh = mesh;
+    // M3DG.geometry = geometry;
+    // Sim_handler.mesh = mesh;
+    // Sim_handler.geometry = geometry;
+    
+    std::cout<<"\t \t The volume is " << geometry->totalVolume() <<" \n";
+
+    Sim_handler.Trgt_vol = geometry->totalVolume();
+    // Sim_handler.Trgt_vol = 4.0;
+    std::cout<<"The trgt vol is " << Sim_handler.Trgt_vol << "\n";
 
     std::cout<<"INtegrating newton\n";
-    Save_mesh("../Results/Test_Hessian_2/",0);
+    Save_mesh("../Results/Test_Hessian_3/",0);
 
-    for(size_t step = 1; step < 10; step++){
+
+
+
+    std::cout<<"Lets explore something\n";
+    VertexData<Vector3> grad_vol = Sim_handler.F_Volume(std::vector<double>{-1.0});
+
+    std::cout<<"The current volume is " << geometry->totalVolume() << " ";
+    geometry->inputVertexPositions = geometry->inputVertexPositions + grad_vol*1e-3;
+    geometry->refreshQuantities();
+    std::cout<<" after moving forward is " << geometry->totalVolume() << " ";
+    geometry->inputVertexPositions = geometry->inputVertexPositions - grad_vol*2e-3;
+    geometry->refreshQuantities();
+    std::cout<<" after moving backwards is " << geometry->totalVolume() << " ";
+
+    geometry->inputVertexPositions = geometry->inputVertexPositions + grad_vol*1e-3;
+
+
+
+    for(size_t step = 1; step < 20; step++){
+    // M3DG.integrate(Some_ofstream,0.0,Energies,false);
     M3DG.integrate_Newton(Some_ofstream,0.0,Energies,false,Constraints);
-    
-    if(true){
+    std::cout<<"THe area is " << geometry->totalArea()<< " and the volume is  " << geometry->totalVolume() << "\n";
+    if(false){
         arcsim::Mesh remesher_mesh2 = translate_to_arcsim(mesh,geometry);
         Cloth_1.mesh=remesher_mesh2;
         Cloth_1.remeshing=remeshing_params;
@@ -1041,7 +1154,7 @@ int main(int argc, char** argv) {
 
 
     // mkdir("../Results/Test_Hessian/", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    Save_mesh("../Results/Test_Hessian/",step);
+    Save_mesh("../Results/Test_Hessian_3/",step);
     }
 
 

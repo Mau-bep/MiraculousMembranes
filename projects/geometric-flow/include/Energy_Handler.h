@@ -21,6 +21,7 @@ class E_Handler {
         std::vector<std::string> Constraints;
         Eigen::VectorXd Lagrange_mult;
         
+        double Trgt_vol;
         bool boundary;
         std::vector<Bead *> Beads;
         

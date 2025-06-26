@@ -1648,8 +1648,8 @@ Eigen::Matrix<double,6,6> VertexPositionGeometry::hessian_edge_length(Eigen::Vec
 
     Hessian << fp2p2 + fp2p3+ fp2p4 + fp2p3.transpose() + fp3p3 + fp3p4 + fp2p4.transpose() + fp3p4.transpose() + fp4p4   , -fp2p2 -fp2p3.transpose() -fp2p4.transpose() ,-fp2p3 -fp3p3 -fp3p4.transpose(), -fp2p4 - fp3p4 -fp4p4,
                 -fp2p2.transpose() -fp2p3 -fp2p4,fp2p2,fp2p3, fp2p4,
-                -fp2p3.transpose() -fp3p3.transpose() -fp3p4, fp2p3.transpose(), fp3p3, fp3p4,
-                -fp2p4.transpose() - fp3p4.transpose() -fp4p4.transpose(), fp2p4.transpose(), fp3p4.transpose(), fp4p4;
+                -fp2p3.transpose() -fp3p3.transpose() -fp3p4, fp2p3.transpose(), fp3p3, Zeros,
+                -fp2p4.transpose() - fp3p4.transpose() -fp4p4.transpose(), fp2p4.transpose(), Zeros, fp4p4;
 
 
     return Hessian; 
