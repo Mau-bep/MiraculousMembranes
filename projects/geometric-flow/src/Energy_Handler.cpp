@@ -1254,6 +1254,19 @@ void E_Handler::Calculate_Jacobian(){
             N_constraints += 1;        
             Constraint_values.push_back(0.0);
         }
+        if(constraint == "Rx"){
+            N_constraints += 1;        
+            Constraint_values.push_back(0.0);
+        }
+
+        if(constraint == "Ry"){
+            N_constraints += 1;        
+            Constraint_values.push_back(0.0);
+        }
+        if(constraint == "Rz"){
+            N_constraints += 1;        
+            Constraint_values.push_back(0.0);
+        }
         
 
         
@@ -1265,7 +1278,7 @@ void E_Handler::Calculate_Jacobian(){
     // Now we need to fill the Jacobian matrix with the constraints
 
     Eigen::VectorXd Column = Eigen::VectorXd::Zero(N_verts*3);
-
+    Vector3 Pos;
     for( size_t i =0; i < Constraints.size(); i++){
         Column = Eigen::VectorXd::Zero(N_verts*3);
         if(Constraints[i] == "Volume"){
@@ -1290,25 +1303,59 @@ void E_Handler::Calculate_Jacobian(){
             Jacobian_constraints.row(i) = Column;
         }
         if(Constraints[i]=="CMx"){
+            std::cout<<"CMX for the win \n";
             for(size_t vi = 0; vi < mesh->nVertices(); vi++){
                 Column[3*vi] = 1;
             }
-             Jacobian_constraints.row(i) = Column;
+            Jacobian_constraints.row(i) = Column;
+            continue;
         }
         if(Constraints[i]=="CMy"){
+            std::cout<<"CMy for the win \n";
             for(size_t vi = 0; vi < mesh->nVertices(); vi++){
                 Column[3*vi+1] = 1;
             }
-             Jacobian_constraints.row(i) = Column;
+            Jacobian_constraints.row(i) = Column;
+            continue;
         }
         if(Constraints[i]=="CMz"){
+            std::cout<<"CMz for the win \n";
             for(size_t vi = 0; vi < mesh->nVertices(); vi++){
                 Column[3*vi+2] = 1;
             }
-             Jacobian_constraints.row(i) = Column;
+            Jacobian_constraints.row(i) = Column;
+            continue;
         }
-        
-
+        if(Constraints[i]=="Rx"){
+            std::cout<<"RX for the win \n";
+            for(size_t vi = 0; vi < mesh->nVertices(); vi++){
+                Pos = geometry->inputVertexPositions[vi];
+                Column[3*vi+1] = Pos.z;
+                Column[3*vi+2] = -Pos.y;
+            }
+            Jacobian_constraints.row(i) = Column;
+            continue;
+        }
+        if(Constraints[i]=="Ry"){
+            std::cout<<"RY for the win \n";
+            for(size_t vi = 0; vi < mesh->nVertices(); vi++){
+                Pos = geometry->inputVertexPositions[vi];
+                Column[3*vi] = -Pos.z;
+                Column[3*vi+2] = Pos.x;
+            }
+            Jacobian_constraints.row(i) = Column;
+            continue;
+        }
+        if(Constraints[i]=="Rz"){
+            std::cout<<"RZ for the win \n";
+            for(size_t vi = 0; vi < mesh->nVertices(); vi++){
+                Pos = geometry->inputVertexPositions[vi];
+                Column[3*vi] = Pos.y;
+                Column[3*vi+1] = -Pos.x;
+            }
+            Jacobian_constraints.row(i) = Column;
+            continue;
+        }       
 
     }
 

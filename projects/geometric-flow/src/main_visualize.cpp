@@ -855,33 +855,40 @@ void functionCallback() {
            if(ImGui::Button("Display newton")){
             std::cout<<"Calculating gradient newton\n";
             VertexData<Vector3> Gradient_newton;
-            Eigen::VectorXd Lagrange_mults(4);
+            Eigen::VectorXd Lagrange_mults(8);
             Lagrange_mults(0) = 0.0;
             Lagrange_mults(1) = 0.0;
             Lagrange_mults(2) = 0.0;
             Lagrange_mults(3) = 0.0;
+            Lagrange_mults(4) = 0.0;
+            Lagrange_mults(5) = 0.0;
+            Lagrange_mults(6) = 0.0;
+            Lagrange_mults(7) = 0.0;
             Sim_handler.Lagrange_mult = Lagrange_mults;
-            Sim_handler.Constraints = std::vector<std::string>{"Volume", "Area","CMx","CMy","CMz"};
+            Sim_handler.Constraints = std::vector<std::string>{"Volume", "Area","CMx","CMy","CMz","Rx","Ry","Rz"};
 
-            M3DG.integrate_Newton(Sim_data,0.0,Energies,false,std::vector<std::string>{"Volume","Area","CMx","CMy","CMz"});
+            M3DG.integrate_Newton(Sim_data,0.0,Energies,false,std::vector<std::string>{"Volume","Area","CMx","CMy","CMz","Rx","Ry","Rz"});
             Gradient_newton = Sim_handler.Current_grad;
             psMesh->addVertexVectorQuantity("Gradient Newton", Gradient_newton);
            }
            if(ImGui::Button("Step newton")){
             std::cout<<"Calculating gradient newton\n";
             VertexData<Vector3> Gradient_newton;
-            Eigen::VectorXd Lagrange_mults(5);
+            Eigen::VectorXd Lagrange_mults(8);
             Lagrange_mults(0) = 0.0;
             Lagrange_mults(1) = 0.0;
             Lagrange_mults(2) = 0.0;
             Lagrange_mults(3) = 0.0;
             Lagrange_mults(4) = 0.0;
+            Lagrange_mults(5) = 0.0;
+            Lagrange_mults(6) = 0.0;
+            Lagrange_mults(7) = 0.0;
             Sim_handler.Lagrange_mult = Lagrange_mults;
-            Sim_handler.Constraints = std::vector<std::string>{"Volume","CMx","CMy","CMz"};
+            Sim_handler.Constraints = std::vector<std::string>{"Volume","Area","CMx","CMy","CMz","Rx","Ry","Rz"};
 
-            M3DG.integrate_Newton(Sim_data,0.0,Energies,false,std::vector<std::string>{"Volume","CMx","CMy","CMz"});
+            M3DG.integrate_Newton(Sim_data,0.0,Energies,false,std::vector<std::string>{"Volume","Area","CMx","CMy","CMz","Rx","Ry","Rz"});
             Gradient_newton = Sim_handler.Current_grad;
-            geometry->inputVertexPositions +=Gradient_newton;
+            geometry->inputVertexPositions += Gradient_newton;
             std::cout<<"Redrawing\n";
             redraw();
             // psMesh->addVertexVectorQuantity("Gradient Newton", Gradient_newton);
@@ -1143,7 +1150,8 @@ int main(int argc, char** argv) {
     geometry->refreshQuantities();
 
     V_bar = geometry->totalVolume();
-    Sim_handler.Trgt_vol = V_bar;
+    std::cout<<"The target volume is originally " << V_bar <<" \n";
+    
     // We will deal with the energies now
     
 
@@ -1234,7 +1242,8 @@ int main(int argc, char** argv) {
 
     M3DG = Mem3DG(mesh,geometry);
     Sim_handler = E_Handler(mesh,geometry,Energies, Energy_constants);
-
+    Sim_handler.Trgt_vol = V_bar;
+    Sim_handler.Trgt_area = geometry->totalArea();
     M3DG.recentering = Data["recentering"];
     M3DG.boundary = Data["boundary"]; 
     Sim_handler.boundary = Data["boundary"];
@@ -1561,14 +1570,17 @@ int main(int argc, char** argv) {
 
 
     // We will do the eigenvalues thingy
-    // std::cout<<"Doing the eigenvals"
-    Eigen::MatrixXd Hessian_bending = Sim_handler.H_Bending(Energy_constants[1]).toDense();
-    Eigen::MatrixXd Hessian_surface = Sim_handler.H_SurfaceTension(Energy_constants[0]).toDense();
-
-    // Eigen_sol_Bending = Eigen::EigenSolver<Eigen::MatrixXd>(Hessian_bending);
+    // std::cout<<"Doing the eigen
+    Eigen::MatrixXd Hessian_bending = Sim_handler.H_Bending(Energy_constants[0]).toDense();
     Eigen_sol_Bending = Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd>(Hessian_bending);
+    
+    if(Energy_constants.size()>1)
+    {
+    Eigen::MatrixXd Hessian_surface = Sim_handler.H_SurfaceTension(Energy_constants[1]).toDense();
+   
     Eigen_sol_Surface = Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd>(Hessian_surface);
-    // We now can do the solve;
+    // std::cout<<"The Hessian is \n" << Hessian_surface <<" \n"; 
+    }    // We now can do the solve;
 
     Eigen::VectorXd Eigenvalues_bending = Eigen_sol_Bending.eigenvalues();
     Eigen::MatrixXd Eigenvectors_bending = Eigen_sol_Bending.eigenvectors();
@@ -1577,10 +1589,11 @@ int main(int argc, char** argv) {
     // Eigen::VectorXd Eigenvalues_bending = Eigen_sol_Surface.eigenvalues();
     // Eigen::MatrixXd Eigenvectors_bending = Eigen_sol_Surface.eigenvectors();
 
-    std::cout<<"The Hessian is \n" << Hessian_surface <<" \n"; 
+    
 
-    Eigen::VectorXd Eigenvalues_surface = Eigen_sol_Surface.eigenvalues();
-    Eigen::MatrixXd Eigenvectors_surface = Eigen_sol_Surface.eigenvectors();
+    // Eigen::VectorXd Eigenvalues_surface = Eigen_sol_Surface.eigenvalues();
+    // Eigen::MatrixXd Eigenvectors_surface = Eigen_sol_Surface.eigenvectors();
+
     std::cout<<"The eigenvalues are "<< Eigenvalues_bending.transpose()<<std::endl;
     for(int i = 0;  i < Eigenvalues_bending.size(); i++){
         // std::cout<<"is is" << i <<" \n";
@@ -1595,13 +1608,14 @@ int main(int argc, char** argv) {
    
 
     std::cout<<std::endl;
-    for(int i = 0;  i < Eigenvalues_surface.size(); i++){
-        //  std::cout<<"is is" << i <<" \n";
-        double eig = Eigenvalues_surface(i);
-        if(fabs(eig) < 1e-7){
-            Eigenvectors_Surface.push_back(Eigenvectors_surface.col(i));
-        }
-    }
+
+    // for(int i = 0;  i < Eigenvalues_surface.size(); i++){
+    //     //  std::cout<<"is is" << i <<" \n";
+    //     double eig = Eigenvalues_surface(i);
+    //     if(fabs(eig) < 1e-7){
+    //         Eigenvectors_Surface.push_back(Eigenvectors_surface.col(i));
+    //     }
+    // }
 
     // Here we start the polyscope thingy
     // We need a remesh function tho 

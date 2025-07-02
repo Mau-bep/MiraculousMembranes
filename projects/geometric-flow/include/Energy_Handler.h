@@ -22,6 +22,7 @@ class E_Handler {
         Eigen::VectorXd Lagrange_mult;
         
         double Trgt_vol;
+        double Trgt_area;
         bool boundary;
         std::vector<Bead *> Beads;
         

@@ -2874,7 +2874,11 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
     if(Constraints[i]=="CMx") N_constraints +=1;
     if(Constraints[i]=="CMy") N_constraints +=1;
     if(Constraints[i]=="CMz") N_constraints +=1;
+    if(Constraints[i]=="Rx") N_constraints +=1;
+    if(Constraints[i]=="Ry") N_constraints +=1;
+    if(Constraints[i]=="Rz") N_constraints +=1;
     
+
   }
 
   std::cout<<"The number of constraints is" << N_constraints <<"\n";
@@ -2883,6 +2887,7 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
   SparseMatrix<double> Hessian;
   
   Eigen::SparseLU<SparseMatrix<double>> solverHess;
+  // Eigen::SimplicialLLT<SparseMatrix<double>> solverHess;
   // Eigen::SparseLU<SparseMatrix<double>> solverH1;
   // int N_vert = mesh->nVertices();
 
@@ -2897,6 +2902,7 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
   //  std::cout<<"\n";
   std::cout<<"Callin jacobian\n";
   Sim_handler->Calculate_Jacobian();
+  std::cout<<"THe jacobian is \n"<< Sim_handler->Jacobian_constraints <<" \n"; 
   // std::cout<<"The Jacobian is " << Sim_handler->Jacobian_constraints << "\n";
   //  std::cout<<"\n";
   std::cout<<"Callin hessian\n";
@@ -2972,12 +2978,12 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
     // RHS(3*vi) = -1*LambdaJ(3*vi) + Force.x;
     // RHS(3*vi+1) = -1*LambdaJ(3*vi+1) + Force.y;
     // RHS(3*vi+2) = -1*LambdaJ(3*vi+2) + Force.z;
-    RHS(3*vi) =  dual_area * Force.x;
-    RHS(3*vi+1) =  dual_area * Force.y;
-    RHS(3*vi+2) =  dual_area * Force.z;
-    // RHS(3*vi) =  Force.x;
-    // RHS(3*vi+1) = Force.y;
-    // RHS(3*vi+2) = Force.z;
+    // RHS(3*vi) =  dual_area * Force.x;
+    // RHS(3*vi+1) =  dual_area * Force.y;
+    // RHS(3*vi+2) =  dual_area * Force.z;
+    RHS(3*vi) =  Force.x;
+    RHS(3*vi+1) = Force.y;
+    RHS(3*vi+2) = Force.z;
   
   }
   std::cout<<"RHS  force ready\n";
@@ -2985,35 +2991,37 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
   std::cout<<"Te number of constraints is " << N_constraints <<" \n";
   for(int Ci = 0; Ci < N_constraints; Ci++){
     // We need to add the value of the constraint
-    if(Constraints[Ci] =="Volume"){ RHS(3*N_vert+Ci) = -1*(geometry->totalVolume() - Sim_handler->Trgt_vol);
-    std::cout<<"The total volume is " << geometry->totalVolume() << " and the target is " << Sim_handler->Trgt_vol << "\n";
+    if(Constraints[Ci] =="Volume"){ 
+      RHS(3*N_vert+Ci) = -1*(geometry->totalVolume() - Sim_handler->Trgt_vol);
+      std::cout<<"The total volume is " << geometry->totalVolume() << " and the target is " << Sim_handler->Trgt_vol << "\n";
     }
-    if(Constraints[Ci] =="Area") RHS(3*N_vert+Ci) = geometry->totalArea();
+    if(Constraints[Ci] =="Area") {
+      RHS(3*N_vert+Ci) = -1*(geometry->totalArea()-Sim_handler->Trgt_area);
+      std::cout<<"The total area  is " << geometry->totalArea() << " and the target is " << Sim_handler->Trgt_area << "\n";
+    }
     if(Constraints[Ci]=="CMx") RHS(3*N_vert+Ci) = 0.0;
     if(Constraints[Ci]=="CMy") RHS(3*N_vert+Ci) = 0.0;
     if(Constraints[Ci]=="CMz") RHS(3*N_vert+Ci) = 0.0;
+    if(Constraints[Ci]=="Rx") RHS(3*N_vert+Ci) = 0.0;
+    if(Constraints[Ci]=="Ry") RHS(3*N_vert+Ci) = 0.0;
+    if(Constraints[Ci]=="Rz") RHS(3*N_vert+Ci) = 0.0;
     
   }
     std::cout<<"RHS  constraints ready\n";
 
-    // We are printing everything before computing
-
 
     LHS.setFromTriplets(tripletList.begin(),tripletList.end());
 
-    // std::cout<<"The LHS is \n" << LHS << "\n\n";
-      // std::cout<<"THE JACOBIAN IS \n " << Sim_handler->Jacobian_constraints <<" \n";
-
-    // std::cout<<"tHE HESSIAN OF THE TETRAHEDRON IS \n" << Hessian <<" \n";
-
     std::cout<<"THe lagrange multipliers are " << Sim_handler->Lagrange_mult.transpose() <<" \n";
 
-
-
-    // std::cout<<"In the end the LHS is \n"<< LHS << " \n";
-    // std::cout<<"And the RHS is \n"<< RHS.transpose() <<" \n";
-
     solverHess.compute(LHS);
+
+    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> Solver_eigen(LHS.toDense());
+
+    Eigen::VectorXd Eigenvalues_fullhesian = Solver_eigen.eigenvalues();
+
+    std::cout<<"The eigenvalues of the full hessian are "<< Eigenvalues_fullhesian.transpose() <<" \n";
+    
   
     std::cout<<"Computed the solve\n";
 
@@ -3034,7 +3042,7 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
     }
     Sim_handler->Current_grad = Force_result;
 
-    // return 1.0;
+    return 1.0;
 
 
 
