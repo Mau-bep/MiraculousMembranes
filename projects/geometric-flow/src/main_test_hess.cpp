@@ -1118,9 +1118,19 @@ int main(int argc, char** argv) {
     std::cout<<" after moving forward is " << geometry->totalVolume() << " ";
     geometry->inputVertexPositions = geometry->inputVertexPositions - grad_vol*2e-3;
     geometry->refreshQuantities();
-    std::cout<<" after moving backwards is " << geometry->totalVolume() << " ";
+    std::cout<<" after moving backwards is " << geometry->totalVolume() << " \n";
 
     geometry->inputVertexPositions = geometry->inputVertexPositions + grad_vol*1e-3;
+
+    VertexData<Vector3> grad_area = Sim_handler.F_SurfaceTension_2(std::vector<double>{-1.0});
+    std::cout<<"The current area is " << geometry->totalArea() << " ";
+    geometry->inputVertexPositions = geometry->inputVertexPositions + grad_area*1e-3;
+    geometry->refreshQuantities();
+    std::cout<<" after moving forward is " << geometry->totalArea() << " ";
+    geometry->inputVertexPositions = geometry->inputVertexPositions - grad_area*2e-3;
+    geometry->refreshQuantities();
+    std::cout<<" after moving backwards is " << geometry->totalArea() << " \n";
+    geometry->inputVertexPositions = geometry->inputVertexPositions + grad_area*1e-3;
 
 
 

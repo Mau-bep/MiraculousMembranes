@@ -552,7 +552,7 @@ SparseMatrix<double> E_Handler::H_SurfaceTension(std::vector<double> Constants){
             for(int j = 0; j <9; j++){
 
                 // So i am at vertex ij  now the i and j correspond to a vertex  i = 0 1 2 (vertex 1 )  3 4 5 (vertex 2 ) 6 7 8 (vertex 3)
-                tripletList.push_back(T(indices[i/3]*3+i%3,indices[j/3]*3+j%3,Hessian_block(i,j)) );  
+                if( Hessian_block(i,j) > 1e-12 || Hessian_block(i,j) < -1e-12) tripletList.push_back(T(indices[i/3]*3+i%3,indices[j/3]*3+j%3,Hessian_block(i,j)) );  
             }
         } 
 
@@ -899,7 +899,7 @@ SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants) {
 
             for( size_t row = 0; row < 12; row++){
                 for(size_t col = 0; col < 12; col++){
-                    tripletList.push_back(T(Vertices_dihedral[row/3].getIndex()*3+row%3,Vertices_dihedral[col/3].getIndex()*3+col%3,M_12_12(row,col)));
+                    if(M_12_12(row,col) > 1e-12 || M_12_12(row,col) < -1e-12) tripletList.push_back(T(Vertices_dihedral[row/3].getIndex()*3+row%3,Vertices_dihedral[col/3].getIndex()*3+col%3,M_12_12(row,col)));
                 }
             }
 
@@ -1273,7 +1273,7 @@ void E_Handler::Calculate_Jacobian(){
     }
 
     Jacobian_constraints.resize( N_constraints,3*N_verts);
-    std::cout<<"The size of the Jacobian is " << Jacobian_constraints.rows() << " " << Jacobian_constraints.cols() << "\n";
+    // std::cout<<"The size of the Jacobian is " << Jacobian_constraints.rows() << " " << Jacobian_constraints.cols() << "\n";
 
     // Now we need to fill the Jacobian matrix with the constraints
 
@@ -1303,7 +1303,7 @@ void E_Handler::Calculate_Jacobian(){
             Jacobian_constraints.row(i) = Column;
         }
         if(Constraints[i]=="CMx"){
-            std::cout<<"CMX for the win \n";
+            // std::cout<<"CMX for the win \n";
             for(size_t vi = 0; vi < mesh->nVertices(); vi++){
                 Column[3*vi] = 1;
             }
@@ -1311,7 +1311,7 @@ void E_Handler::Calculate_Jacobian(){
             continue;
         }
         if(Constraints[i]=="CMy"){
-            std::cout<<"CMy for the win \n";
+            // std::cout<<"CMy for the win \n";
             for(size_t vi = 0; vi < mesh->nVertices(); vi++){
                 Column[3*vi+1] = 1;
             }
@@ -1319,7 +1319,7 @@ void E_Handler::Calculate_Jacobian(){
             continue;
         }
         if(Constraints[i]=="CMz"){
-            std::cout<<"CMz for the win \n";
+            // std::cout<<"CMz for the win \n";
             for(size_t vi = 0; vi < mesh->nVertices(); vi++){
                 Column[3*vi+2] = 1;
             }
@@ -1327,7 +1327,7 @@ void E_Handler::Calculate_Jacobian(){
             continue;
         }
         if(Constraints[i]=="Rx"){
-            std::cout<<"RX for the win \n";
+            // std::cout<<"RX for the win \n";
             for(size_t vi = 0; vi < mesh->nVertices(); vi++){
                 Pos = geometry->inputVertexPositions[vi];
                 Column[3*vi+1] = Pos.z;
@@ -1337,7 +1337,7 @@ void E_Handler::Calculate_Jacobian(){
             continue;
         }
         if(Constraints[i]=="Ry"){
-            std::cout<<"RY for the win \n";
+            // std::cout<<"RY for the win \n";
             for(size_t vi = 0; vi < mesh->nVertices(); vi++){
                 Pos = geometry->inputVertexPositions[vi];
                 Column[3*vi] = -Pos.z;
@@ -1347,7 +1347,7 @@ void E_Handler::Calculate_Jacobian(){
             continue;
         }
         if(Constraints[i]=="Rz"){
-            std::cout<<"RZ for the win \n";
+            // std::cout<<"RZ for the win \n";
             for(size_t vi = 0; vi < mesh->nVertices(); vi++){
                 Pos = geometry->inputVertexPositions[vi];
                 Column[3*vi] = Pos.y;
@@ -1371,29 +1371,25 @@ SparseMatrix<double> E_Handler::Calculate_Hessian(){
     // I recommend adding them at the bottom. 
 
     int N_verts = mesh->nVertices();
-    int N_constraints = 0;
+    
     std::vector<double> Energy_constants_val;
     SparseMatrix<double> Hessian(3*N_verts,3*N_verts);
     std::string constraint;
     
-    // for(size_t i = 0; i < Constraints.size() ; i++){
-    //     constraint = Constraints[i];
+    for(size_t i = 0; i < Constraints.size() ; i++){
+        constraint = Constraints[i];
 
-    //     if(constraint == "Volume"){
-    //         // I need to find which are the energy constants       
-    //         // N_constraints += 1;
-    //         Hessian += Lagrange_mult(i)*H_Volume(std::vector<double>{1.0});
+        if(constraint == "Volume"){
+            // I need to find which are the energy constants       
+            Hessian += -1.0*Lagrange_mult(i)*H_Volume(std::vector<double>{1.0});
 
-    //     }
-    //     if(constraint == "Area"){
-    //         N_constraints += 1;
-           
-    //     }
-    //     if(constraint == "CM"){
-    //         N_constraints += 3;        
-    //     }
+        }
+        if(constraint == "Area"){
+            Hessian += -1.0*Lagrange_mult(i)*H_SurfaceTension(std::vector<double>{1.0});
+        }
+
         
-    // }
+    }
 
 
     int bead_counter= 0;

@@ -93,6 +93,7 @@ std::vector<arcsim::Mesh> Saved_after_remesh(6);
 float TIMESTEP = -4;
 float kappa = 1.0;
 
+bool first_newton = true;
 
 float H0 = 1.0;
 float V_bar= (4/3)*PI*10; 
@@ -855,7 +856,8 @@ void functionCallback() {
            if(ImGui::Button("Display newton")){
             std::cout<<"Calculating gradient newton\n";
             VertexData<Vector3> Gradient_newton;
-            Eigen::VectorXd Lagrange_mults(8);
+            if(first_newton){
+            Eigen::VectorXd Lagrange_mults(7);
             Lagrange_mults(0) = 0.0;
             Lagrange_mults(1) = 0.0;
             Lagrange_mults(2) = 0.0;
@@ -863,17 +865,21 @@ void functionCallback() {
             Lagrange_mults(4) = 0.0;
             Lagrange_mults(5) = 0.0;
             Lagrange_mults(6) = 0.0;
-            Lagrange_mults(7) = 0.0;
-            Sim_handler.Lagrange_mult = Lagrange_mults;
-            Sim_handler.Constraints = std::vector<std::string>{"Volume", "Area","CMx","CMy","CMz","Rx","Ry","Rz"};
 
-            M3DG.integrate_Newton(Sim_data,0.0,Energies,false,std::vector<std::string>{"Volume","Area","CMx","CMy","CMz","Rx","Ry","Rz"});
+            Sim_handler.Lagrange_mult = Lagrange_mults;
+            
+            Sim_handler.Constraints = std::vector<std::string>{"Volume","CMx","CMy","CMz","Rx","Ry","Rz"};
+            first_newton = false;
+            }
+            M3DG.integrate_Newton(Sim_data,0.0,Energies,false,std::vector<std::string>{"Volume","CMx","CMy","CMz","Rx","Ry","Rz"});
             Gradient_newton = Sim_handler.Current_grad;
             psMesh->addVertexVectorQuantity("Gradient Newton", Gradient_newton);
+            redraw();
            }
            if(ImGui::Button("Step newton")){
             std::cout<<"Calculating gradient newton\n";
             VertexData<Vector3> Gradient_newton;
+            if(first_newton){
             Eigen::VectorXd Lagrange_mults(8);
             Lagrange_mults(0) = 0.0;
             Lagrange_mults(1) = 0.0;
@@ -884,7 +890,10 @@ void functionCallback() {
             Lagrange_mults(6) = 0.0;
             Lagrange_mults(7) = 0.0;
             Sim_handler.Lagrange_mult = Lagrange_mults;
+            
             Sim_handler.Constraints = std::vector<std::string>{"Volume","Area","CMx","CMy","CMz","Rx","Ry","Rz"};
+            first_newton = false;
+            }
 
             M3DG.integrate_Newton(Sim_data,0.0,Energies,false,std::vector<std::string>{"Volume","Area","CMx","CMy","CMz","Rx","Ry","Rz"});
             Gradient_newton = Sim_handler.Current_grad;

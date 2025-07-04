@@ -1207,6 +1207,289 @@ double Mem3DG::Backtracking(){
 }
 
 
+double Mem3DG::Backtracking_grad(){
+
+  double c1 = 1e-4;
+  double rho = 0.5;
+  double alpha = 1;
+  // alpha = 5e-4;
+  double position_Projeection = 0;
+  double X_pos;
+
+  // if(system_time>10) std::cout<<"Printing this as system time is " << system_time <<" \n";
+  // Sim_handler.Calculate_energies(previousE);
+  double previousE = 0;
+  Sim_handler->Calculate_energies(&previousE);
+  // std::cout<<"Current e is  " << previousE << "\n";
+  for(size_t i = 0; i < Sim_handler->Energies.size(); i++) {
+    // previousE += Sim_handler.Energy_values[i];
+    if(isnan(Sim_handler->Energy_values[i])) std::cout<<"Energy " << Sim_handler->Energies[i] << " is nan\n";
+  }
+
+  // std::cout<<"THe previous energy is "<< previousE<<" \n";
+  double NewE;
+  VertexData<Vector3> initial_pos(*mesh);
+  if(recentering){
+    if(Field != "None"){
+      // std::cout<<"THere is a field\n";
+      Vector3 leftmost = Vector3({1e10,1e10,1e10});
+      for(Vertex v: mesh->vertices()){
+      if(geometry->inputVertexPositions[v].x < leftmost.x) leftmost = geometry->inputVertexPositions[v];
+      }
+      // I have the leftmost vertex, the position of this vertex should be P 
+      leftmost = Vector3({-1.0,0.0,0.0})-leftmost;
+      VertexData<Vector3> Displacement(*mesh,leftmost);
+      geometry->inputVertexPositions+=Displacement;
+
+    }
+    else{
+    // Ok so if there is a field the way we normalize is different.
+    // 
+      Vector3 CoM = geometry->centerOfMass();
+
+      geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+    }
+  }
+  Vector3 CoM = geometry->centerOfMass();
+    
+  initial_pos = geometry->inputVertexPositions;
+
+  std::vector<Vector3> Bead_init;
+
+  for( size_t i = 0 ; i < Beads.size() ; i++) Bead_init.push_back( Beads[i]->Pos);
+
+  double Projection = 0;
+  Vector3 center;  
+
+
+  // We start the evolution
+  // We move the vertices
+  // std::cout<<" checking for nan grads\n";
+  for(Vertex v : mesh->vertices()){
+    if(isnan(Sim_handler->Current_grad[v].x || Sim_handler->Current_grad[v].y || Sim_handler->Current_grad[v].z)) std::cout<<" Is this force nan at vertex but norm2 is " << Sim_handler->Current_grad[v.getIndex()].norm2() <<"\n";
+  
+  }
+
+  // std::cout<<"doing the stepping \n";
+  geometry->inputVertexPositions+=alpha * Sim_handler->Current_grad;
+  bool nanflag = false;
+  for(Vertex v : mesh->vertices()){
+    if(isnan( geometry->inputVertexPositions[v].norm2()))  nanflag = true;
+  }
+
+  if(nanflag) std::cout<<"At least one vertex has nan position\n";
+
+  geometry->refreshQuantities();
+  center = geometry->centerOfMass();
+  Vector3 Vertex_pos;
+  
+  // We move the beads;
+  for(size_t i = 0 ; i < Beads.size(); i++) Beads[i]->Move_bead(alpha,Vector3({0,0,0})); 
+
+  Projection = Sim_handler->Gradient_norms[Sim_handler->Energies.size()];
+
+  size_t bead_count = 0;
+  NewE = 0.0;
+  // std::cout<<" calculating energies again\n";
+  Sim_handler->Calculate_energies(&NewE);
+  // std::cout<<"New E is " << NewE << "\n";
+  // std::cout<<"The projection is " << Projection << "\n";
+  size_t counter = 0;
+  
+  bool displacement_cond = true;
+
+  // std::cout<<"THe projection is " << Projection <<" \n";
+  // std::cout<<"The number of beads is " << Beads.size() << " \n";
+  
+  if(Projection < 1e-7) {
+    small_TS = true;
+      std::cout<<"The energy diff is quite small and so is the gradient\n";
+      std::cout<<"The energy diff is"<< abs(NewE-previousE)/previousE<<"\n";
+      std::cout<<"The projection is"<< Projection<<"\n";
+      return -1.0;
+  }
+
+  while(true) {
+    displacement_cond = true;
+    
+    for(size_t i = 0 ; i< Beads.size() ; i++) displacement_cond = displacement_cond && Beads[i]->Total_force.norm()*alpha<0.1*Beads[i]->sigma;
+    
+      if(NewE <= previousE - c1 * alpha * Projection && displacement_cond  && fabs(NewE-previousE)<1e2 ) {
+    
+        if(fabs(NewE-previousE) > 5e1  && false){
+          
+      
+          std::cout<<"The energies are ";
+          for(size_t i = 0; i < Sim_handler->Energies.size(); i++) std::cout<< Sim_handler->Energies[i] << " is " << Sim_handler->Energy_values[i] << " ";
+          std::cout<<" \n";
+          std::cout<<"The projection is " << Projection <<" \n";
+
+          double Max_projection = 0.0;
+          int maxproj_index = 0;
+
+          double maxDisplacement = 0.0;
+          std::cout<<"Finding breaking point\n";
+          for (Vertex v : mesh->vertices()) {
+            if(Sim_handler->Current_grad[v].norm() > Max_projection) {
+              Max_projection = Sim_handler->Current_grad[v].norm();
+              maxproj_index = v.getIndex();
+              }
+            double displacement = (geometry->inputVertexPositions[v] - initial_pos[v]).norm();
+            if (displacement > maxDisplacement) {
+              maxDisplacement = displacement;
+            }
+          }
+          std::cout<<"The max displacement is " << maxDisplacement <<" \n";
+          std::cout<<"The value of alpha is " << alpha <<" \n";
+          std::cout<<"We will recalculate the energies, lets go back one step for now\n";
+          geometry->inputVertexPositions = initial_pos;
+          geometry->refreshQuantities();
+          mesh->compress();
+          // I want something else 
+        
+        alpha = 0.0;
+
+        // Lets troubleshoot this hehe
+        std::cout<<"The previous energy was" << previousE <<" \n";
+        std::cout<<"The projection of the bigges vertex is " << Max_projection <<" \n";
+        std::cout<<"This vertex is located at " << geometry->inputVertexPositions[maxproj_index] <<" \n";
+        std::cout<<"This vertex in init pos is  at " << initial_pos[maxproj_index] <<" \n";
+      
+        // Lets explore the sorroundings
+        Vertex v = mesh->vertex(maxproj_index);
+        for(Face f : v.adjacentFaces()){
+          std::cout<<"The adjacent faces are " << f.getIndex() <<" \n";
+          std::cout<<"With area " << geometry->faceArea(f) <<" \n";
+        }
+        for(Halfedge he : v.outgoingHalfedges()){
+          std::cout<<"The adjacent halfedges are " << he.getIndex() <<" \n";
+          std::cout<<"With cotan " << geometry->cotan(he) <<" \n";
+        }
+
+        }
+      break;
+    }
+    
+
+    if(std::isnan(NewE)){
+      alpha = -1.0;
+      break;
+
+    }
+    
+    alpha *=rho;
+    if( (abs((NewE-previousE)/previousE) < 1e-7 && Projection < 0.5) || Projection < 1e-5){
+      small_TS = true;
+      std::cout<<"The energy diff is quite small and so is the gradient\n";
+      std::cout<<"The energy diff is"<< abs(NewE-previousE)/previousE<<"\n";
+      std::cout<<"The projection is"<< Projection<<"\n";
+      return -1.0;
+    }
+
+    if(alpha<1e-10){
+      std::cout<<"THe timestep got small so the simulation would end \n";
+      std::cout<<"THe timestep is "<< alpha <<" \n";
+      std::cout<<"The energy diff is"<< abs(NewE-previousE)<<"\n";
+      std::cout<<"THe relative energy diff  is"<<abs((NewE-previousE)/previousE)<<"\n";
+      std::cout<<"The projection is"<< Projection<<"\n";
+      std::cout<<"The projection is too big "<< (Projection>1.0e8) <<" \n";
+      if(Projection>1.0e8){
+      // return alpha;
+      std::cout<<"The gradient got crazy\n";
+      std::cout<<"The projections is "<< Projection<<"\n";
+      geometry->inputVertexPositions = initial_pos;
+      return -1;
+      }
+      small_TS = true;
+
+      break;
+
+    }
+    else if(small_TS) small_TS = false;
+    // std::cout<<"System time is" << system_time <<" \n";
+    if(alpha>0) {geometry->inputVertexPositions = initial_pos + alpha*Sim_handler->Current_grad;
+    
+    for(size_t i = 0; i<Beads.size(); i++){
+      Beads[i]->Reset_bead(Bead_init[i]);
+      Beads[i]->Move_bead(alpha, Vector3({0,0,0}));
+    }
+    }
+    else {
+    for(size_t i = 0; i<Beads.size(); i++){
+      Beads[i]->Reset_bead(Bead_init[i]);
+      // Beads[i]->Move_bead(alpha, Vector3({0,0,0}));
+    }
+    geometry->inputVertexPositions = initial_pos;
+    }
+    
+    geometry->refreshQuantities();
+
+    bead_count = 0;
+
+    NewE = 0.0;
+    Sim_handler->Calculate_energies(&NewE);
+   
+  
+  }
+
+
+  nanflag = false;
+
+  for(Vertex v : mesh->vertices()) if(isnan(geometry->inputVertexPositions[v].x+ geometry->inputVertexPositions[v].y  + geometry->inputVertexPositions[v].z )) nanflag = true;  
+
+  if(nanflag) std::cout<< "After backtracking one vertex is nan :( also the value of alpha is"<< alpha << " \n";
+  if(alpha<=0.0){ 
+  // std::cout<<"Repositioning\n";
+  geometry->inputVertexPositions = initial_pos;
+  }
+  if(recentering) {
+
+    if(alpha<=0.0){
+      std::cout<<"NotRecentering after crisis\n";
+    }
+    else{
+    // std::cout<<"rENORMALIZING\n";
+    CoM = geometry->centerOfMass();
+
+    if(Field != "None"){
+      // std::cout<<"THere is a field\n";
+      Vector3 leftmost = Vector3({1e10,1e10,1e10});
+      for(Vertex v: mesh->vertices()){
+      if(geometry->inputVertexPositions[v].x < leftmost.x) leftmost = geometry->inputVertexPositions[v];
+      }
+      // I have the leftmost vertex, the position of this vertex should be P 
+      leftmost = Vector3({-1.0,0.0,0.0})-leftmost;
+      CoM = leftmost;
+      VertexData<Vector3> Displacement(*mesh,leftmost);
+      geometry->inputVertexPositions+=Displacement;
+
+    }
+    else{
+    geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+    }
+  // CoM = geometry->centerOfMass();
+    
+  for(size_t i = 0; i < Beads.size(); i++){
+
+    // Here i need to move the bead
+    // if(Beads[i]->state!= "froze"){
+      Beads[i]->Pos -= CoM;
+    // }
+
+  }
+  // }
+  // 
+    }
+  geometry->refreshQuantities();
+  }
+
+
+  // std::cout<<"The difference in energy is " << fabs(NewE-previousE) <<"(: \n";
+
+  return alpha;
+}
+
+
 /**
  * @brief Performs the backtracking algorithm for the Mem3DG class using a Force given.
  *
@@ -2885,6 +3168,7 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
   // SparseMatrix<double> H2_mat;//(N_vert*3+N_constraints,N_vert*3+N_constraints);
   // SparseMatrix<double> H1_mat;
   SparseMatrix<double> Hessian;
+  SparseMatrix<double> Hessian_constraints;
   
   Eigen::SparseLU<SparseMatrix<double>> solverHess;
   // Eigen::SimplicialLLT<SparseMatrix<double>> solverHess;
@@ -2902,11 +3186,13 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
   //  std::cout<<"\n";
   std::cout<<"Callin jacobian\n";
   Sim_handler->Calculate_Jacobian();
-  std::cout<<"THe jacobian is \n"<< Sim_handler->Jacobian_constraints <<" \n"; 
+  // std::cout<<"THe jacobian is \n"<< Sim_handler->Jacobian_constraints <<" \n"; 
   // std::cout<<"The Jacobian is " << Sim_handler->Jacobian_constraints << "\n";
   //  std::cout<<"\n";
   std::cout<<"Callin hessian\n";
   Hessian = Sim_handler->Calculate_Hessian();
+  // Hessian_constraints = Sim_handler->Calculate_Hessian_constraints(Constraints);
+
   // We have the Hessian the gradient the jacobian. it is time 
   // std::cout<<"The hessian is \n" << Hessian << "\n";
   std::cout<<"\n";
@@ -2948,17 +3234,22 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
   //           tripletList.push_back(T(3*row+2,3*col+2,value));
   //       }
   //   }
+  // for( long int k = 0; k < 3 * N_vert; k++){
+  //   tripletList.push_back(T(k,k,1.0));
+  // }
 
-
+  int smol_counter = 0;
   for( long int k = 0; k < Hessian.outerSize(); ++k ) {
         for( SparseMatrix<double>::InnerIterator it(Hessian,k); it; ++it ) {
             value = it.value();
             row = it.row();
             col = it.col();
+            if(value < 1e-8 && value > -1e-8) smol_counter +=1;
             tripletList.push_back(T(row,col,value));
         }
     }
 
+  std::cout<<"The number of small values in the Hessian is " << smol_counter <<" \n";
 
 
 
@@ -2975,15 +3266,15 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
     Force = Sim_handler->Current_grad[vi];
     // dual_area = geometry->barycentricDualArea(mesh->vertex(vi));
     // std::cout<<"Force is " << Force <<" \n";
-    // RHS(3*vi) = -1*LambdaJ(3*vi) + Force.x;
-    // RHS(3*vi+1) = -1*LambdaJ(3*vi+1) + Force.y;
-    // RHS(3*vi+2) = -1*LambdaJ(3*vi+2) + Force.z;
+    RHS(3*vi) = LambdaJ(3*vi) + Force.x;
+    RHS(3*vi+1) = LambdaJ(3*vi+1) + Force.y;
+    RHS(3*vi+2) = LambdaJ(3*vi+2) + Force.z;
     // RHS(3*vi) =  dual_area * Force.x;
     // RHS(3*vi+1) =  dual_area * Force.y;
     // RHS(3*vi+2) =  dual_area * Force.z;
-    RHS(3*vi) =  Force.x;
-    RHS(3*vi+1) = Force.y;
-    RHS(3*vi+2) = Force.z;
+    // RHS(3*vi) =  Force.x;
+    // RHS(3*vi+1) = Force.y;
+    // RHS(3*vi+2) = Force.z;
   
   }
   std::cout<<"RHS  force ready\n";
@@ -3016,11 +3307,11 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
 
     solverHess.compute(LHS);
 
-    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> Solver_eigen(LHS.toDense());
+    // Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> Solver_eigen(LHS.toDense());
 
-    Eigen::VectorXd Eigenvalues_fullhesian = Solver_eigen.eigenvalues();
+    // Eigen::VectorXd Eigenvalues_fullhesian = Solver_eigen.eigenvalues();
 
-    std::cout<<"The eigenvalues of the full hessian are "<< Eigenvalues_fullhesian.transpose() <<" \n";
+    // std::cout<<"The eigenvalues of the full hessian are "<< Eigenvalues_fullhesian.transpose() <<" \n";
     
   
     std::cout<<"Computed the solve\n";
@@ -3042,7 +3333,13 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
     }
     Sim_handler->Current_grad = Force_result;
 
-    return 1.0;
+    // return 1.0;
+
+    // Lets try backtracking
+
+    double backtrackstep = Backtracking();
+    double backtrackstep = 1.0;
+    std::cout<<"The backtrackstep is " << backtrackstep << " \n";
 
 
 
@@ -3056,13 +3353,19 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
     //   geometry->inputVertexPositions[vi]+=Force;
 
     // }
-    geometry->inputVertexPositions += Force_result;
-    std::cout<<"Updating lagrange mult\n";
-    // We need to update the lagrange multipliers
     
-    // for(long int ci = 0; ci < Sim_handler->Lagrange_mult.size(); ci++){
-    //   Sim_handler->Lagrange_mult(ci) -= 0.1*result[3*(N_vert+N_beads)+ci];
-    // }
+
+    geometry->inputVertexPositions += backtrackstep*Force_result;
+    std::cout<<"Updating lagrange mult\n";
+
+
+    for(long int ci = 0; ci < Sim_handler->Lagrange_mult.size(); ci++){
+      if(Constraints[ci]=="Volume") Sim_handler->Lagrange_mult(ci) -= backtrackstep*result[3*(N_vert+N_beads)+ci];
+      if(Constraints[ci]=="Area") Sim_handler->Lagrange_mult(ci) -= backtrackstep*result[3*(N_vert+N_beads)+ci];
+      // Sim_handler->Lagrange_mult(ci) += backtrackstep*result[3*(N_vert+N_beads)+ci];
+    }
+
+    std::cout<<"THe lagrange multipliers are " << Sim_handler->Lagrange_mult.transpose() <<" \n";
 
     geometry->refreshQuantities();
     // geometry->normalize(Vector3({0.0,0.0,0.0}),false);
