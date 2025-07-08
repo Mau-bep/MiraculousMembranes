@@ -1207,9 +1207,10 @@ double Mem3DG::Backtracking(){
 }
 
 
-double Mem3DG::Backtracking_grad(){
 
-  double c1 = 1e-4;
+double Mem3DG::Backtracking_grad(double Projection, double Current_grad_norm){
+
+  double c1 = 0.2;
   double rho = 0.5;
   double alpha = 1;
   // alpha = 5e-4;
@@ -1218,8 +1219,17 @@ double Mem3DG::Backtracking_grad(){
 
   // if(system_time>10) std::cout<<"Printing this as system time is " << system_time <<" \n";
   // Sim_handler.Calculate_energies(previousE);
-  double previousE = 0;
-  Sim_handler->Calculate_energies(&previousE);
+
+
+  // Ok so the first thing is to  calculate the norm of the gradient right?
+
+
+
+
+
+  double PrevNorm = Current_grad_norm;
+
+  // Sim_handler->Calculate_energies(&previousE);
   // std::cout<<"Current e is  " << previousE << "\n";
   for(size_t i = 0; i < Sim_handler->Energies.size(); i++) {
     // previousE += Sim_handler.Energy_values[i];
@@ -1228,7 +1238,12 @@ double Mem3DG::Backtracking_grad(){
 
   // std::cout<<"THe previous energy is "<< previousE<<" \n";
   double NewE;
+  double NewNorm;
+  
   VertexData<Vector3> initial_pos(*mesh);
+  Eigen::VectorXd initial_lag = Sim_handler->Lagrange_mult;
+
+
   if(recentering){
     if(Field != "None"){
       // std::cout<<"THere is a field\n";
@@ -1258,17 +1273,10 @@ double Mem3DG::Backtracking_grad(){
 
   for( size_t i = 0 ; i < Beads.size() ; i++) Bead_init.push_back( Beads[i]->Pos);
 
-  double Projection = 0;
+  // double Projection = 0;
   Vector3 center;  
 
 
-  // We start the evolution
-  // We move the vertices
-  // std::cout<<" checking for nan grads\n";
-  for(Vertex v : mesh->vertices()){
-    if(isnan(Sim_handler->Current_grad[v].x || Sim_handler->Current_grad[v].y || Sim_handler->Current_grad[v].z)) std::cout<<" Is this force nan at vertex but norm2 is " << Sim_handler->Current_grad[v.getIndex()].norm2() <<"\n";
-  
-  }
 
   // std::cout<<"doing the stepping \n";
   geometry->inputVertexPositions+=alpha * Sim_handler->Current_grad;
@@ -1286,7 +1294,17 @@ double Mem3DG::Backtracking_grad(){
   // We move the beads;
   for(size_t i = 0 ; i < Beads.size(); i++) Beads[i]->Move_bead(alpha,Vector3({0,0,0})); 
 
-  Projection = Sim_handler->Gradient_norms[Sim_handler->Energies.size()];
+  // I 
+
+  // Projection = Sim_handler->Gradient_norms[Sim_handler->Energies.size()];
+  // std::cout<<"The regular projection is" << Projection <<"\n";
+
+  // Projection = 0;
+  // for(Vertex v: mesh->vertices()){
+  //   Projection += dot(Sim_handler->Current_grad[v], Sim_handler->Previous_grad[v]); 
+  // }
+  // Projection -= Sim_handler->Lagrange_mult[0]*(geometry->totalVolume() - Sim_handler->Trgt_vol );
+  // std::cout<<"The updated projection is" << Projection <<"\n";
 
   size_t bead_count = 0;
   NewE = 0.0;
@@ -1314,7 +1332,7 @@ double Mem3DG::Backtracking_grad(){
     
     for(size_t i = 0 ; i< Beads.size() ; i++) displacement_cond = displacement_cond && Beads[i]->Total_force.norm()*alpha<0.1*Beads[i]->sigma;
     
-      if(NewE <= previousE - c1 * alpha * Projection && displacement_cond  && fabs(NewE-previousE)<1e2 ) {
+      if(NewE <= previousE + c1 * alpha * Projection  ) {
     
         if(fabs(NewE-previousE) > 5e1  && false){
           
@@ -1488,7 +1506,6 @@ double Mem3DG::Backtracking_grad(){
 
   return alpha;
 }
-
 
 /**
  * @brief Performs the backtracking algorithm for the Mem3DG class using a Force given.
@@ -3319,26 +3336,41 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
 
 
     // std::cout<< solverHess.info() <<" \n";
-    Vector<double> result = solverHess.solve(RHS);
+    Eigen::VectorXd result = solverHess.solve(RHS);
     // std::cout<<"Giving result a value\n";
     // And we got a result from this 
 
     // Ok so one idea will be displaying this force on polyscope
 
     VertexData<Vector3> Force_result(*mesh,Vector3({0.0,0.0,0.0}));
+    // Eigen::VectorXd Grad_L = LambdaJ+ ;
     for(size_t vi = 0; vi < mesh->nVertices(); vi++){
-      Force_result[vi].x = result[3*vi];
-      Force_result[vi].y = result[3*vi+1];
-      Force_result[vi].z = result[3*vi+2];
+      Force_result[vi].x = result(3*vi);
+      Force_result[vi].y = result(3*vi+1);
+      Force_result[vi].z = result(3*vi+2);
     }
+    Sim_handler->Previous_grad = Sim_handler->Current_grad;
     Sim_handler->Current_grad = Force_result;
-
+    
+    
     // return 1.0;
 
     // Lets try backtracking
 
-    double backtrackstep = Backtracking();
-    double backtrackstep = 1.0;
+    // Eigen::VectorXd Grad_L = -1*RHS.head(3*N_vert);
+    // Grad_L-=LambdaJ;
+    // Eigen::VectorXd Grad_L = -1*RHS;
+
+    // So we have the Grad_L
+
+    double Projection = -1*result.transpose()*LHS*RHS;
+
+    // Current grad norm is 
+    double Current_grad_norm = 0.5*RHS.dot(RHS);
+
+
+    double backtrackstep = Backtracking_grad(result,Projection,Current_grad_norm);
+    // double backtrackstep = 1.0;
     std::cout<<"The backtrackstep is " << backtrackstep << " \n";
 
 
@@ -3360,8 +3392,8 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
 
 
     for(long int ci = 0; ci < Sim_handler->Lagrange_mult.size(); ci++){
-      if(Constraints[ci]=="Volume") Sim_handler->Lagrange_mult(ci) -= backtrackstep*result[3*(N_vert+N_beads)+ci];
-      if(Constraints[ci]=="Area") Sim_handler->Lagrange_mult(ci) -= backtrackstep*result[3*(N_vert+N_beads)+ci];
+      if(Constraints[ci]=="Volume") Sim_handler->Lagrange_mult(ci) -= backtrackstep*result(3*(N_vert+N_beads)+ci);
+      if(Constraints[ci]=="Area") Sim_handler->Lagrange_mult(ci) -= backtrackstep*result(3*(N_vert+N_beads)+ci);
       // Sim_handler->Lagrange_mult(ci) += backtrackstep*result[3*(N_vert+N_beads)+ci];
     }
 

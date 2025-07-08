@@ -113,7 +113,7 @@ class Mem3DG {
     void Smooth_vertices();
 
     double Backtracking();
-    double Backtracking_grad();
+    double Backtracking_grad(double Projection, double Current_grad_norm);
     double Backtracking_BFGS(VertexData<Vector3> Force);
     double Backtracking(VertexData<Vector3> Force,double P0,double V_bar,double A_bar,double KA,double KB,double H_bar,bool bead, bool pulling) ;
     double Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar) ;
