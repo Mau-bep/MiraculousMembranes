@@ -20,7 +20,7 @@ class E_Handler {
         std::vector<std::vector<double>> Energy_constants;
         std::vector<std::string> Constraints;
         Eigen::VectorXd Lagrange_mult;
-        
+        int N_constraints;
         double Trgt_vol;
         double Trgt_area;
         bool boundary;
@@ -70,6 +70,7 @@ class E_Handler {
         
 
         virtual void Calculate_energies(double* E);
+        virtual void Calculate_Lag_norm(double* Norm);
         // THis function saves the value of the gradient to current gradient but before saves current gradient to previous gradient
         virtual void Calculate_gradient();
         virtual void Calculate_Jacobian();

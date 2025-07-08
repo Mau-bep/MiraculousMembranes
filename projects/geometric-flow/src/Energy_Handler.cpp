@@ -1065,6 +1065,32 @@ void E_Handler::Calculate_energies(double* E){
     return;
 }
 
+void E_Handler::Calculate_Lag_norm(double* Norm){
+
+    // Now  i need to get this norm
+    Calculate_gradient();
+    Calculate_Jacobian();
+
+    Vector3 Force;
+    double val = 0;
+    Eigen::VectorXd LambdaJ = Jacobian_constraints.transpose()*Lagrange_mult;
+    for(size_t vi = 0; vi < mesh->nVertices(); vi++){
+        Force = Current_grad[vi];
+
+        val = LambdaJ(3*vi)+Force.x;
+        *Norm += val*val;
+    
+        val = LambdaJ(3*vi+1)+Force.y;
+        *Norm += val*val;
+    
+        val = LambdaJ(3*vi+2)+Force.z;
+        *Norm += val*val;
+    }
+
+
+}
+
+
 void E_Handler::Calculate_gradient(){
     // This function will calculate the gradient of the energy
 
