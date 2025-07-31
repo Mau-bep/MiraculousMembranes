@@ -1220,6 +1220,8 @@ double Mem3DG::Backtracking_grad(Eigen::VectorXd p_lambda, double Projection, do
   int N_vert = mesh->nVertices();
 
   VertexData<Vector3> Step_newton = Sim_handler->Current_grad;
+
+  double some_val = Step_newton[5].norm2();
   // if(system_time>10) std::cout<<"Printing this as system time is " << system_time <<" \n";
   // Sim_handler.Calculate_energies(previousE);
 
@@ -1324,10 +1326,17 @@ double Mem3DG::Backtracking_grad(Eigen::VectorXd p_lambda, double Projection, do
   // std::cout<<"Calculating new norm\n";
   Sim_handler->Calculate_Lag_norm(&NewNorm);
   NewNorm = 0.5*NewNorm;
-  std::cout<<"The old norm is" << PrevNorm << "\n";
-  std::cout<<"New Norm is " << NewNorm << "\n";
+  // std::cout<<"The old norm is" << PrevNorm << "\n";
+  // std::cout<<"New Norm is " << NewNorm << "\n";
   // std::cout<<"The projection is " << Projection << "\n";
   size_t counter = 0;
+
+  if( some_val - Step_newton[5].norm2() > 1e-7) {
+    std::cout<<"The gradient changed too much, something is wrong  \n";
+    std::cout<<"The value of the gradient at vertex 5 is " << Step_newton[5].norm2() << "\n";
+    std::cout<<"The previous value was " << some_val << "\n";
+    // return -1.0;
+  }
   
   bool displacement_cond = true;
 
@@ -1376,6 +1385,9 @@ double Mem3DG::Backtracking_grad(Eigen::VectorXd p_lambda, double Projection, do
           std::cout<<"The value of alpha is " << alpha <<" \n";
           std::cout<<"We will recalculate the energies, lets go back one step for now\n";
           geometry->inputVertexPositions = initial_pos;
+
+          Sim_handler->Lagrange_mult = initial_lag;
+          
           geometry->refreshQuantities();
           mesh->compress();
           // I want something else 
@@ -1423,7 +1435,7 @@ double Mem3DG::Backtracking_grad(Eigen::VectorXd p_lambda, double Projection, do
     if(alpha<1e-10){
       std::cout<<"THe timestep got small so the simulation would end \n";
       std::cout<<"THe timestep is "<< alpha <<" \n";
-      std::cout<<"The energy diff is"<< abs(NewNorm-PrevNorm)<<"\n";
+      std::cout<<"The NORM diff is"<< abs(NewNorm-PrevNorm)<<"\n";
       std::cout<<"THe relative energy diff  is"<<abs((NewNorm-PrevNorm)/PrevNorm)<<"\n";
       std::cout<<"The projection is"<< Projection<<"\n";
       std::cout<<"The projection is too big "<< (Projection>1.0e8) <<" \n";
@@ -1443,15 +1455,16 @@ double Mem3DG::Backtracking_grad(Eigen::VectorXd p_lambda, double Projection, do
     else if(small_TS) small_TS = false;
     // std::cout<<"System time is" << system_time <<" \n";
     if(alpha>0) {
-      std::cout<<"UPDATING POSITIONS\n";
+      // std::cout<<"UPDATING POSITIONS\n";
       geometry->inputVertexPositions = initial_pos + alpha*Step_newton;
 
       for(int i = 0; i < Sim_handler->N_constraints; i++) {
       if(Sim_handler->Constraints[i]=="Volume" || Sim_handler->Constraints[i]=="Area"){
-      std::cout<<"Updating lagrange multipliers\n";
-        Sim_handler->Lagrange_mult[i] -= alpha * p_lambda[i];
+      // std::cout<<"Updating lagrange multipliers\n";
+        Sim_handler->Lagrange_mult[i] = initial_lag(i) - alpha * p_lambda[i];
       }
       }
+      // std::cout<<"The lagrange multipliers are " << Sim_handler->Lagrange_mult.transpose() << "\n";
 
     for(size_t i = 0; i<Beads.size(); i++){
       Beads[i]->Reset_bead(Bead_init[i]);
@@ -1464,6 +1477,7 @@ double Mem3DG::Backtracking_grad(Eigen::VectorXd p_lambda, double Projection, do
       // Beads[i]->Move_bead(alpha, Vector3({0,0,0}));
     }
     geometry->inputVertexPositions = initial_pos;
+    Sim_handler->Lagrange_mult = initial_lag;
     }
     
     geometry->refreshQuantities();
@@ -1472,9 +1486,17 @@ double Mem3DG::Backtracking_grad(Eigen::VectorXd p_lambda, double Projection, do
 
     // NewE = 0.0;
     // Sim_handler->Calculate_energies(&NewE);
+    NewNorm = 0.0;
     Sim_handler->Calculate_Lag_norm(&NewNorm);
     NewNorm = 0.5*NewNorm;
-    std::cout<<"The new norm is " << NewNorm << "\n";
+
+    if( some_val - Step_newton[5].norm2() > 1e-7) {
+    std::cout<<"The gradient changed too much, something is wrong  \n";
+    std::cout<<"The value of the gradient at vertex 5 is " << Step_newton[5].norm2() << "\n";
+    std::cout<<"The previous value was " << some_val << "\n";
+    // return -1.0;
+  }
+    
    
   
   }
@@ -1532,7 +1554,7 @@ double Mem3DG::Backtracking_grad(Eigen::VectorXd p_lambda, double Projection, do
 
 
   // std::cout<<"The difference in energy is " << fabs(NewE-previousE) <<"(: \n";
-
+  // std::cout<<"The new norm is " << NewNorm << "\n";
   return alpha;
 }
 
@@ -3147,7 +3169,7 @@ Eigen::MatrixXd Mem3DG::integrate_BFGS(std::ofstream& Sim_data , double time, st
   return Hessian;
 }
 
-double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data, std::vector<std::string> Constraints){
+double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data, std::vector<std::string> Constraints,std::vector<std::string> Data_filenames){
 
   auto start = chrono::steady_clock::now();
   auto end = chrono::steady_clock::now();
@@ -3190,27 +3212,25 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
 
   // std::cout<<"AREA CALCULATED\n";
 
-  bool H2_grad = false;
-  bool H1_grad = false;
   
   size_t N_vert = mesh->nVertices();
   int N_constraints = 0;
 
+  // std::cout<<"Constraints are ";
+
   for(size_t i = 0; i < Constraints.size(); i++){
     if(Constraints[i]=="Volume") N_constraints +=1;
     if(Constraints[i]=="Area") N_constraints +=1;
-    if(Constraints[i]=="CM") N_constraints +=3;
     if(Constraints[i]=="CMx") N_constraints +=1;
     if(Constraints[i]=="CMy") N_constraints +=1;
     if(Constraints[i]=="CMz") N_constraints +=1;
     if(Constraints[i]=="Rx") N_constraints +=1;
     if(Constraints[i]=="Ry") N_constraints +=1;
     if(Constraints[i]=="Rz") N_constraints +=1;
-    
 
   }
+  
 
-  // std::cout<<"The number of constraints is" << N_constraints <<"\n";
   Sim_handler->N_constraints = N_constraints;
   // SparseMatrix<double> H2_mat;//(N_vert*3+N_constraints,N_vert*3+N_constraints);
   // SparseMatrix<double> H1_mat;
@@ -3242,7 +3262,7 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
 
   // We have the Hessian the gradient the jacobian. it is time 
   // std::cout<<"The hessian is \n" << Hessian << "\n";
-  std::cout<<"\n";
+  // std::cout<<"\n";
 
   // 
   int N_beads = 0;
@@ -3268,23 +3288,6 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
   int col;
   double value;
   
-
-  // SparseMatrix<double> J = geometry->laplaceMatrix();
-
-  // for( long int  k = 0; k < J.outerSize(); ++k ) {
-  //       for( SparseMatrix<double>::InnerIterator it(J,k); it; ++it ) {
-  //           value = it.value();
-  //           row = it.row();
-  //           col = it.col();
-  //           tripletList.push_back(T(3*row,3*col,value));
-  //           tripletList.push_back(T(3*row+1,3*col+1,value));
-  //           tripletList.push_back(T(3*row+2,3*col+2,value));
-  //       }
-  //   }
-  // for( long int k = 0; k < 3 * N_vert; k++){
-  //   tripletList.push_back(T(k,k,1.0));
-  // }
-
   int smol_counter = 0;
   for( long int k = 0; k < Hessian.outerSize(); ++k ) {
         for( SparseMatrix<double>::InnerIterator it(Hessian,k); it; ++it ) {
@@ -3331,11 +3334,11 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
     // We need to add the value of the constraint
     if(Constraints[Ci] =="Volume"){ 
       RHS(3*N_vert+Ci) = -1*(geometry->totalVolume() - Sim_handler->Trgt_vol);
-      std::cout<<"The total volume is " << geometry->totalVolume() << " and the target is " << Sim_handler->Trgt_vol << "\n";
+      // std::cout<<"The total volume is " << geometry->totalVolume() << " and the target is " << Sim_handler->Trgt_vol << "\n";
     }
     if(Constraints[Ci] =="Area") {
       RHS(3*N_vert+Ci) = -1*(geometry->totalArea()-Sim_handler->Trgt_area);
-      std::cout<<"The total area  is " << geometry->totalArea() << " and the target is " << Sim_handler->Trgt_area << "\n";
+      // std::cout<<"The total area  is " << geometry->totalArea() << " and the target is " << Sim_handler->Trgt_area << "\n";
     }
     if(Constraints[Ci]=="CMx") RHS(3*N_vert+Ci) = 0.0;
     if(Constraints[Ci]=="CMy") RHS(3*N_vert+Ci) = 0.0;
@@ -3345,13 +3348,15 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
     if(Constraints[Ci]=="Rz") RHS(3*N_vert+Ci) = 0.0;
     
   }
+  // std::cout<<"The constraints are " << Constraints <<" \n";
     // std::cout<<"RHS  constraints ready\n";
-
+  
 
     LHS.setFromTriplets(tripletList.begin(),tripletList.end());
 
-    std::cout<<"THe lagrange multipliers are " << Sim_handler->Lagrange_mult.transpose() <<" \n";
+    // std::cout<<"THe lagrange multipliers are " << Sim_handler->Lagrange_mult.transpose() <<" \n";
 
+    // std::cout<<"Solving\n";
     solverHess.compute(LHS);
 
     // Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> Solver_eigen(LHS.toDense());
@@ -3359,19 +3364,25 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
     // Eigen::VectorXd Eigenvalues_fullhesian = Solver_eigen.eigenvalues();
 
     // std::cout<<"The eigenvalues of the full hessian are "<< Eigenvalues_fullhesian.transpose() <<" \n";
-    
+    // std::cout<<"COmputed\n";
   
     // std::cout<<"Computed the solve\n";
 
 
 
     // std::cout<< solverHess.info() <<" \n";
+
+    // std::cout<<"The size of LHS is" << LHS.rows() << " and " << LHS.cols() << "\n";
+    // std::cout<<"The size of RHS is" << RHS.rows() << " and " << RHS.cols() << "\n";
+
     Eigen::VectorXd result = solverHess.solve(RHS);
     // std::cout<<"Giving result a value\n";
     // And we got a result from this 
 
-    // Ok so one idea will be displaying this force on polyscope
+    // std::cout<<"The RHS is" << RHS.transpose() << "\n";
 
+    // Ok so one idea will be displaying this force on polyscope
+    // std::cout<<"Solved\n";
     VertexData<Vector3> Force_result(*mesh,Vector3({0.0,0.0,0.0}));
     // Eigen::VectorXd Grad_L = LambdaJ+ ;
     for(size_t vi = 0; vi < mesh->nVertices(); vi++){
@@ -3379,6 +3390,7 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
       Force_result[vi].y = result(3*vi+1);
       Force_result[vi].z = result(3*vi+2);
     }
+
     Sim_handler->Previous_grad = Sim_handler->Current_grad;
     Sim_handler->Current_grad = Force_result;
     
@@ -3399,27 +3411,31 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
     double Current_grad_norm = 0.5*RHS.dot(RHS);
 
     // std::cout<<"Lets backtrack now\n";
+    std::cout<<"The projection is " << Projection << "The current grad norm is" << Current_grad_norm <<"\n";
+    std::cout<<"The lagrange multipliers are" << Sim_handler->Lagrange_mult.transpose() << "\n";
+
     double backtrackstep = Backtracking_grad(result.tail(N_constraints),Projection,Current_grad_norm);
     // double backtrackstep = 1.0;
-    std::cout<<"The backtrackstep is " << backtrackstep << " \n";
+    // std::cout<<"The backtrackstep is " << backtrackstep << " \n";
 
 
 
-    // We need to do the displacements now
-    // std::cout<<"updating positions\n";
-    // for(size_t vi = 0; vi < N_vert; vi++){
-      
-    //   Force = 0.1*Vector3({result[3*vi],result[3*vi+1], result[3*vi+2]});
-    //   // std::cout<<
-    //   // std::cout<<"The force is " << Force <<" \n";
-    //   geometry->inputVertexPositions[vi]+=Force;
-
-    // }
+    double TotE = 0.0;
     
+    Sim_handler->Calculate_energies(&TotE);
 
-    // geometry->inputVertexPositions += backtrackstep*Force_result;
-    // std::cout<<"Updating lagrange mult\n";
+    Sim_data << time+backtrackstep <<" "<< geometry->totalVolume()<<" " << geometry->totalArea()<<" ";
+    for(size_t i = 0; i < Sim_handler->Energies.size(); i++){
+      // std::cout<<"Printing " << Energies[i] << " ";
 
+      Sim_data << Sim_handler->Energy_values[i] << " ";
+      // std::cout<<"the val is " << Energy_vals[i] << " ";
+      // TotE += Sim_handler->Energy_values[i];
+    }
+
+    Sim_data << TotE <<" ";
+
+    Sim_data << Current_grad_norm <<" " << backtrackstep <<" \n";
 
     // for(long int ci = 0; ci < Sim_handler->Lagrange_mult.size(); ci++){
     //   if(Constraints[ci]=="Volume") Sim_handler->Lagrange_mult(ci) -= backtrackstep*result(3*(N_vert+N_beads)+ci);
@@ -3427,9 +3443,9 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
     //   // Sim_handler->Lagrange_mult(ci) += backtrackstep*result[3*(N_vert+N_beads)+ci];
     // }
 
-    std::cout<<"THe lagrange multipliers are " << Sim_handler->Lagrange_mult.transpose() <<" \n";
+    // std::cout<<"THe lagrange multipliers are " << Sim_handler->Lagrange_mult.transpose() <<" \n";
 
-    geometry->refreshQuantities();
+    
     // geometry->normalize(Vector3({0.0,0.0,0.0}),false);
     // geometry->refreshQuantities();
 

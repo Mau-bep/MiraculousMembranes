@@ -1136,7 +1136,7 @@ int main(int argc, char** argv) {
 
     for(size_t step = 1; step < 20; step++){
     // M3DG.integrate(Some_ofstream,0.0,Energies,false);
-    M3DG.integrate_Newton(Some_ofstream,0.0,Energies,false,Constraints);
+    M3DG.integrate_Newton(Some_ofstream,0.0,Energies,false,Constraints,Constraints);
     std::cout<<"THe area is " << geometry->totalArea()<< " and the volume is  " << geometry->totalVolume() << "\n";
     if(false){
         arcsim::Mesh remesher_mesh2 = translate_to_arcsim(mesh,geometry);

@@ -829,6 +829,7 @@ int main(int argc, char** argv) {
         Directory = Directory + "Switch_t_" + stream.str() + "_";
     }
 
+
     
     Directory = Directory+ "Nsim_" + std::to_string(Nsim)+"/";
     std::cout<<"Directory is " << Directory << " \n";
@@ -931,7 +932,12 @@ int main(int argc, char** argv) {
         // if(current_t>400){
         //     save_interval = 1;
         // }
-
+        if(Switch =="Newton" && current_t >= Switch_t){
+            Integration = "Newton";
+            remesh_every = 200;
+            save_interval = 10;
+        }
+        
         if(Switch=="Free_beads" && current_t>= Switch_t){
 
             std::cout<<"Switching the beahaviour of the beads\n";
@@ -967,7 +973,7 @@ int main(int argc, char** argv) {
 
         start_time_control=chrono::steady_clock::now();
 
-        if( arcsim && (current_t%remesh_every==0 || dt_sim == 0.0)){
+        if( arcsim  && (current_t%remesh_every==0 || dt_sim == 0.0)){
             // if(dt_sim==0.0){ std::cout<<"wE ARE REMESHING CAUSE THINGS DONT MAKE SENSE\n";}
 
             int n_vert_old=0;
@@ -1175,21 +1181,8 @@ int main(int argc, char** argv) {
         else if(Integration == "BFGS"){
             // std::cout<<"Integrating BFGS\n";
             if(current_t%remesh_every == 0){
-                // std::cout<<"Redoing the matrix at step " << current_t <<" \n";
-                // Hessian_matrix = Eigen::MatrixXd(mesh->nVertices()*3, mesh->nVertices()*3);
                 Hessian_matrix = Eigen::MatrixXd::Identity(mesh->nVertices()*3, mesh->nVertices()*3);
-                // typedef Eigen::Triplet<double> T;
-                // std::vector<T> tripletList;
-                // tripletList.reserve(mesh->nVertices()*3);
-                // for(size_t i = 0 ; i < 3*mesh->nVertices(); i++){
-                //     tripletList.push_back(T(i,i,1.0));
-                //     Hessian_matrix(i,i) = 1.0;
-                // }
-                // Hessian = Eigen::SparseMatrix<double>(mesh->nVertices()*3, mesh->nVertices()*3);
-                // Hessian.setFromTriplets(tripletList.begin(), tripletList.end());
-                // Hessian_matrix.setFromTriplets(tripletList.begin(), tripletList.end());
-                // Lets save all the hessianss
-            }
+             }
                 bool Save_Hessian = false;
                 if(Save_Hessian){
                     // std::cout<<"Saving Hessian\n";
@@ -1217,6 +1210,28 @@ int main(int argc, char** argv) {
             Hessian_matrix = M3DG.integrate_BFGS(Sim_data, time, Bead_filenames, Save_output_data, Hessian_matrix);
             // Hessian = M3DG.integrate_BFGS(Sim_data, time, Bead_filenames, Save_output_data, Hessian);
         
+        }
+        else if(Integration == "Newton"){
+            if(current_t == 0 || current_t == Switch_t){
+                std::cout<<"defining lagrange mults\n";
+            Eigen::VectorXd Lagrange_mults(7);
+            Lagrange_mults(0) = 0.0;
+            Lagrange_mults(1) = 0.0;
+            Lagrange_mults(2) = 0.0;
+            Lagrange_mults(3) = 0.0;
+            Lagrange_mults(4) = 0.0;
+            Lagrange_mults(5) = 0.0;
+            Lagrange_mults(6) = 0.0;
+            Sim_handler.Lagrange_mult = Lagrange_mults;
+            Sim_handler.Trgt_vol = geometry->totalVolume();
+            }
+
+            std::vector<std::string> Constraints(0);
+            Constraints = std::vector<std::string>{"Volume","CMx","CMy","CMz","Rx","Ry","Rz"};
+            Sim_handler.Constraints = Constraints;
+            std::vector<std::string> Data_filenames(0);
+            M3DG.integrate_Newton(Sim_data, time, Energies, Save_output_data, Constraints, Data_filenames);
+            // std::cout<<"INtegrated newton (: \n";
         }
         // if(dt_sim==0){
         //     Save_mesh(basic_name,-1);

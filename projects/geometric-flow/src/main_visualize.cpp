@@ -871,7 +871,7 @@ void functionCallback() {
             Sim_handler.Constraints = std::vector<std::string>{"Volume","CMx","CMy","CMz","Rx","Ry","Rz"};
             first_newton = false;
             }
-            M3DG.integrate_Newton(Sim_data,0.0,Energies,false,std::vector<std::string>{"Volume","CMx","CMy","CMz","Rx","Ry","Rz"});
+            M3DG.integrate_Newton(Sim_data,0.0,Energies,false,std::vector<std::string>{"Volume","CMx","CMy","CMz","Rx","Ry","Rz"},std::vector<std::string>{"Files"});
             Gradient_newton = Sim_handler.Current_grad;
             psMesh->addVertexVectorQuantity("Gradient Newton", Gradient_newton);
             redraw();
@@ -895,9 +895,9 @@ void functionCallback() {
             first_newton = false;
             }
 
-            M3DG.integrate_Newton(Sim_data,0.0,Energies,false,std::vector<std::string>{"Volume","Area","CMx","CMy","CMz","Rx","Ry","Rz"});
-            Gradient_newton = Sim_handler.Current_grad;
-            geometry->inputVertexPositions += Gradient_newton;
+            M3DG.integrate_Newton(Sim_data,0.0,Energies,false,std::vector<std::string>{"Volume","Area","CMx","CMy","CMz","Rx","Ry","Rz"},std::vector<std::string>{"Files"});
+            // Gradient_newton = Sim_handler.Current_grad;
+            // geometry->inputVertexPositions += Gradient_newton;
             std::cout<<"Redrawing\n";
             redraw();
             // psMesh->addVertexVectorQuantity("Gradient Newton", Gradient_newton);

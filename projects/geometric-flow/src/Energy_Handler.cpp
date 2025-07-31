@@ -929,8 +929,7 @@ SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants) {
 
 
         return KB*Hessian;
-
-
+  
 
     }
 
@@ -1074,6 +1073,8 @@ void E_Handler::Calculate_Lag_norm(double* Norm){
     Vector3 Force;
     double val = 0;
     Eigen::VectorXd LambdaJ = Jacobian_constraints.transpose()*Lagrange_mult;
+
+            
     for(size_t vi = 0; vi < mesh->nVertices(); vi++){
         Force = Current_grad[vi];
 
@@ -1086,6 +1087,17 @@ void E_Handler::Calculate_Lag_norm(double* Norm){
         val = LambdaJ(3*vi+2)+Force.z;
         *Norm += val*val;
     }
+    for(int i = 0 ; i < N_constraints; i++){
+        if(Constraints[i]=="Volume"){
+        val = -1*(geometry->totalVolume()- Trgt_vol);
+        *Norm += val*val;
+        }
+        if(Constraints[i]=="Area"){
+            val = -1*(geometry->totalArea() - Trgt_area);
+            *Norm +=val*val;
+        }
+    }
+
 
 
 }
@@ -1097,17 +1109,17 @@ void E_Handler::Calculate_gradient(){
     // std::cout<<"1 \n";
     Previous_grad = Current_grad;
     // std::cout<<"2 \n";
-    Current_grad = VertexData<Vector3>(*mesh);
+    Current_grad = VertexData<Vector3>(*mesh, Vector3{0.0, 0.0, 0.0});
     // std::cout<<"3 \n";
-    VertexData<Vector3> Force_temp;
+    VertexData<Vector3> Force_temp(*mesh, Vector3{0.0, 0.0, 0.0});
     int bead_count = 0;
     double grad_norm = 0;
     // std::cout<<"4 \n";
-    std::cout<<"THe size of Energies is " << Energies.size() << "\n";
+    // std::cout<<"THe size of Energies is " << Energies.size() << "\n";
     // std::cout<<"4 1 \n";
     // std::cout<<"The "
     for(size_t i = 0; i < Energies.size(); i++){
-        std::cout<<"Energy is " << Energies[i]<<" \n";
+        // std::cout<<"Energy is " << Energies[i]<<" \n";
 // 
         if(Energies[i] == "Volume_constraint"){
             Force_temp = F_Volume_constraint(Energy_constants[i]);
@@ -1150,7 +1162,7 @@ void E_Handler::Calculate_gradient(){
         }
 
         if(Energies[i]=="Surface_tension"){
-            std::cout<<"Surface tension \n";
+            // std::cout<<"Surface tension \n";
             Force_temp = F_SurfaceTension_2(Energy_constants[i]);
             
             grad_norm = 0.0;
@@ -1173,7 +1185,7 @@ void E_Handler::Calculate_gradient(){
         }
 
         if(Energies[i]=="Bending"){
-            std::cout<<"Bending\n";
+            // std::cout<<"Bending\n";
             Force_temp = F_Bending_2(Energy_constants[i]);
             grad_norm = 0.0;
 
@@ -1223,12 +1235,12 @@ void E_Handler::Calculate_gradient(){
         }
 
         }
-    std::cout<<"5 \n";
+    // std::cout<<"5 \n";
     grad_norm = 0.0;
     for(size_t i = 0; i < mesh->nVertices(); i++){
         grad_norm+=Current_grad[i].norm2();
     }
-    std::cout<<"6 \n";
+    // std::cout<<"6 \n";
     if(Gradient_norms.size() == Energies.size()){
             Gradient_norms.push_back(grad_norm);
         }
@@ -1402,20 +1414,6 @@ SparseMatrix<double> E_Handler::Calculate_Hessian(){
     SparseMatrix<double> Hessian(3*N_verts,3*N_verts);
     std::string constraint;
     
-    for(size_t i = 0; i < Constraints.size() ; i++){
-        constraint = Constraints[i];
-
-        if(constraint == "Volume"){
-            // I need to find which are the energy constants       
-            Hessian += -1.0*Lagrange_mult(i)*H_Volume(std::vector<double>{1.0});
-
-        }
-        if(constraint == "Area"){
-            Hessian += -1.0*Lagrange_mult(i)*H_SurfaceTension(std::vector<double>{1.0});
-        }
-
-        
-    }
 
 
     int bead_counter= 0;
@@ -1432,6 +1430,34 @@ SparseMatrix<double> E_Handler::Calculate_Hessian(){
         }
 
     }
+
+    // Eigen::MatrixXd Hessian_E = Hessian.toDense();
+    // Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(Hessian_E);
+
+    // Eigen::VectorXd Eigenvalues = solver.eigenvalues();
+
+    // double min_eig = Eigenvalues.minCoeff();
+    // std::cout<<"The minimum eigenvalue is " << min_eig << "\n";
+    
+    // SparseMatrix<double> Id_reg = 
+
+    // Eigen::SparseMatrix::Ide
+    for(size_t i = 0; i < Constraints.size() ; i++){
+        constraint = Constraints[i];
+
+        if(constraint == "Volume"){
+            // I need to find which are the energy constants       
+            Hessian += -1.0*Lagrange_mult(i)*H_Volume(std::vector<double>{1.0});
+
+        }
+        if(constraint == "Area"){
+            Hessian += -1.0*Lagrange_mult(i)*H_SurfaceTension(std::vector<double>{1.0});
+        }
+
+        
+    }
+
+    // I want this t
     
 
     return Hessian;
