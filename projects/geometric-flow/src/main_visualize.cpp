@@ -111,6 +111,11 @@ float KB=0.0001;
 float sigma=0.1;
 double TS=0.0001;
 
+int inspect_timestep = 0;
+std::string Switch;
+size_t Switch_t = 0;
+
+
 double Curv_adap=1.0;
 double Min_rel_length=0.5;
 double trgt_len;
@@ -193,6 +198,7 @@ std::vector<Eigen::VectorXd> Eigenvectors_Surface(0);
 std::array<double, 3> BLUE = {0.11, 0.388, 0.89};
 // glm::vec<3, float> ORANGE_VEC = {1, 0.65, 0};
 std::array<double, 3> ORANGE = {1, 0.65, 0};
+
 
 
 void showSelected() {
@@ -709,7 +715,20 @@ void functionCallback() {
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, *sState[0]);
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, *sState[0]);
     
-
+    // if(Energies[0]=="Laplace"){
+        if(ImGui::Button("Laplace")){
+            Gradient_vertex = Sim_handler.F_Laplace(Energy_constants[0]);
+            
+            std::cout<<"Calculating Laplace\n";
+            psMesh->addVertexVectorQuantity("Laplace", Gradient_vertex);
+        }
+        if(ImGui::Button("Edge_reg")){
+            Gradient_vertex = Sim_handler.F_Edge_reg(Energy_constants[0]);
+            
+            std::cout<<"Calculating Edge reg energy\n";
+            psMesh->addVertexVectorQuantity("Edge reg", Gradient_vertex);
+        }
+    // }
 
     if(ImGui::Button("Display grad")){
         // Results/Debug_remesh_trial/Bending_1.0000_Bead_radius_0.3000_str_400.0000_Nsim_8
@@ -824,6 +843,96 @@ void functionCallback() {
             std::cout<<"Displaying bending eigenvals\n";
             psMesh->addVertexVectorQuantity("Bending eigenvals "+std::to_string(7), Eigenvector);
         }
+    }
+
+
+    if(ImGui::InputInt("Timestep to inspect", &inspect_timestep ));
+
+    if(ImGui::Button("Display grad to inspect")){
+
+        VertexData<Vector3> Gradient; 
+        VertexData<Vector3> Gradient2; 
+        VertexData<Vector3> Gradient3;
+        Vector3 Sample;
+        std::cout<<"Inspecting timestep "<< inspect_timestep <<"\n";
+
+        std::string filename = basic_name + "RHS_Norm" + std::to_string(inspect_timestep) + ".txt";
+
+        std::ifstream f(filename);
+        string s;
+        if(!f.is_open()){
+            std::cout<<"The file "<< filename <<" does not exist\n";
+        }
+        else{
+                getline(f,s);
+                std::vector<std::string> splitted = split(s," ");
+                if(splitted.size() > 100){
+                    std::cout<<"We are loading the memebrane now \n";
+                    std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(basic_name + "membrane_" + std::to_string(inspect_timestep) + ".obj");
+                    mesh = mesh_uptr.release();
+                    geometry = geometry_uptr.release();
+                    M3DG.mesh = mesh;
+                    M3DG.geometry = geometry;
+                    Sim_handler.mesh = mesh;
+                    Sim_handler.geometry = geometry;
+
+                    std::cout<<"The mesh has " << mesh->nVertices() << " vertices and " << mesh->nFaces() << " faces\n";
+                    geometry->requireVertexPositions();
+                    std::cout<<"Registering surfaces\n";
+                    Gradient_vertex = VertexData<Vector3>(*mesh, Vector3{0.0, 0.0, 0.0});
+
+                    Gradient = VertexData<Vector3>(*mesh, Vector3{0.0, 0.0, 0.0});
+                    Gradient2 = VertexData<Vector3>(*mesh, Vector3{0.0, 0.0, 0.0});
+                    Gradient3 = VertexData<Vector3>(*mesh, Vector3{0.0, 0.0, 0.0});
+                    
+                    
+                    // We are going to create the file 
+                    // std::cout<<"The line is "<< s <<"\n";
+
+
+                    std::cout<<"The size of splitted is "<< splitted.size() <<"\n";
+                    std::cout<<"THe number of vertices times 3 is " << mesh->nVertices()*3 <<"\n";
+                    for(size_t i = 0; i < mesh->nVertices(); i++){
+                        // std::cout<<"The splitted size is "<< splitted.size() <<"\n"
+                        // std::cout<<"The next line is " << splitted[3*i] << " " << splitted[3*i+1] << " " << splitted[3*i+2] <<"\n";
+                        // std::cout<<"The size of splitted is "<< splitted.size() <<"\n";
+                        // std::cout<<"The number of vertices is \n";
+                        Sample.x = std::stod(splitted[3*i]);
+                        Sample.y = std::stod(splitted[3*i+1]);
+                        Sample.z = std::stod(splitted[3*i+2]);
+                        Gradient[i] = Sample;
+                    }
+
+                
+            }
+                getline(f,s);
+                splitted = split(s," ");
+                for(size_t i = 0; i < mesh->nVertices(); i++){
+                    // std::cout<<"The next line is " << splitted[3*i] << " " << splitted[3*i+1] << " " << splitted[3*i+2] <<"\n";
+                    Sample.x = std::stod(splitted[3*i]);
+                    Sample.y = std::stod(splitted[3*i+1]);
+                    Sample.z = std::stod(splitted[3*i+2]);
+                    Gradient2[i] = Sample;
+                }
+                getline(f,s);
+                splitted = split(s," ");
+                for(size_t i = 0; i < mesh->nVertices(); i++){
+                    // std::cout<<"The next line is " << splitted[3*i] << " " << splitted[3*i+1] << " " << splitted[3*i+2] <<"\n";
+                    Sample.x = std::stod(splitted[3*i]);
+                    Sample.y = std::stod(splitted[3*i+1]);
+                    Sample.z = std::stod(splitted[3*i+2]);
+                    Gradient3[i] = Sample;
+                }
+            
+        
+            psMesh = polyscope::registerSurfaceMesh("MyMesh",geometry->vertexPositions,mesh->getFaceVertexList());
+            psMesh->addVertexVectorQuantity("Gradient Lag", Gradient);
+            psMesh->addVertexVectorQuantity("Gradient E", Gradient2);
+            psMesh->addVertexVectorQuantity("Jacobian ", Gradient3);
+            // Now that we have the gradient we need to display it 
+
+        }
+
     }
     // if(ImGui::Button("Bending 0 eigenvals"))
 
@@ -1127,6 +1236,13 @@ int main(int argc, char** argv) {
     }
     else{
         std::cout<<"The integration method is not defined, using Gradient descent\n";
+    }
+    if(Data.contains("Switch")){
+        Switch = Data["Switch"];
+        Switch_t = Data["Switch_t"];
+    }
+    else{
+        std::cout<<"No switch in this run";
     }
 
     int remesh_every = 1;
@@ -1464,6 +1580,13 @@ int main(int argc, char** argv) {
         }
     }
 
+    if(Switch !="None"){
+        Directory = Directory + "Switch_" + Switch + "_";
+        stream.str(std::string());
+        stream << std::fixed << std::setprecision(1) << Switch_t;
+        Directory = Directory + "Switch_t_" + stream.str() + "_";
+    }
+
     
     Directory = Directory+ "Nsim_" + std::to_string(Nsim)+"/";
 
@@ -1490,7 +1613,7 @@ int main(int argc, char** argv) {
     std::string filename = basic_name+"Output_data.txt";
 
 
-    Sim_data = std::ofstream(filename);
+    Sim_data = std::ofstream(filename, std::ios_base::app);
     Sim_data<<"T_Volume T_Area time Volume Area E_vol E_sur E_bend grad_norm backtrackstep\n";
     Sim_data.close();
 
@@ -1580,10 +1703,11 @@ int main(int argc, char** argv) {
 
     // We will do the eigenvalues thingy
     // std::cout<<"Doing the eigen
-    Eigen::MatrixXd Hessian_bending = Sim_handler.H_Bending(Energy_constants[0]).toDense();
-    Eigen_sol_Bending = Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd>(Hessian_bending);
+    Eigen::MatrixXd Hessian_bending; // = Sim_handler.H_Bending(Energy_constants[0]).toDense();
+    Eigen_sol_Bending;
+    // = Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd>(Hessian_bending);
     
-    if(Energy_constants.size()>1)
+    if(Energy_constants.size()>1 && false)
     {
     Eigen::MatrixXd Hessian_surface = Sim_handler.H_SurfaceTension(Energy_constants[1]).toDense();
    
@@ -1591,8 +1715,8 @@ int main(int argc, char** argv) {
     // std::cout<<"The Hessian is \n" << Hessian_surface <<" \n"; 
     }    // We now can do the solve;
 
-    Eigen::VectorXd Eigenvalues_bending = Eigen_sol_Bending.eigenvalues();
-    Eigen::MatrixXd Eigenvectors_bending = Eigen_sol_Bending.eigenvectors();
+    Eigen::VectorXd Eigenvalues_bending;// = Eigen_sol_Bending.eigenvalues();
+    Eigen::MatrixXd Eigenvectors_bending;// = Eigen_sol_Bending.eigenvectors();
 
 
     // Eigen::VectorXd Eigenvalues_bending = Eigen_sol_Surface.eigenvalues();
@@ -1603,17 +1727,17 @@ int main(int argc, char** argv) {
     // Eigen::VectorXd Eigenvalues_surface = Eigen_sol_Surface.eigenvalues();
     // Eigen::MatrixXd Eigenvectors_surface = Eigen_sol_Surface.eigenvectors();
 
-    std::cout<<"The eigenvalues are "<< Eigenvalues_bending.transpose()<<std::endl;
-    for(int i = 0;  i < Eigenvalues_bending.size(); i++){
-        // std::cout<<"is is" << i <<" \n";
+    // std::cout<<"The eigenvalues are "<< Eigenvalues_bending.transpose()<<std::endl;
+    // for(int i = 0;  i < Eigenvalues_bending.size(); i++){
+    //     // std::cout<<"is is" << i <<" \n";
         
         
-        double eig = Eigenvalues_bending(i);
-        std::cout<< Eigenvalues_bending(i) <<" ";
-        if(fabs(eig) < 1e-7){
-            Eigenvectors_Bending.push_back(Eigenvectors_bending.col(i));
-        }
-    }
+    //     double eig = Eigenvalues_bending(i);
+    //     std::cout<< Eigenvalues_bending(i) <<" ";
+    //     if(fabs(eig) < 1e-7){
+    //         Eigenvectors_Bending.push_back(Eigenvectors_bending.col(i));
+    //     }
+    // }
    
 
     std::cout<<std::endl;

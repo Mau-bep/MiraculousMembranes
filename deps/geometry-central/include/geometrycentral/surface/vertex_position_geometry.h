@@ -146,11 +146,29 @@ class VertexPositionGeometry : public EmbeddedGeometryInterface {
     Eigen::Vector<double, 6> gradient_edge_length(Eigen::Vector<double,6> Positions) const;
     Eigen::Matrix<double,6,6> hessian_edge_length(Eigen::Vector<double,6> Positions) const;
 
+    double Ej_edge_regular(Eigen::Vector<double,12> Positions) const;
+    double Ej_edge_regular(Eigen::Vector<double,12> Positions, Eigen::Vector<double,5> Edge_lengths) const;
+    Eigen::Vector<double,12> gradient_edge_regular(Eigen::Vector<double,12> Positions) const;
+    Eigen::Vector<double,12> gradient_edge_regular(Eigen::Vector<double,12> Positions, Eigen::Vector<double,5> Edge_lengths) const;
+    
+    Eigen::Vector<double,12> gradient_edge_regular_I(Eigen::Vector<double,12> Positions, Eigen::Vector<double,5> Edge_lengths) const;
+
+    Eigen::Matrix<double,12,12> hessian_edge_regular(Eigen::Vector<double,12> Positions) const;
+    Eigen::Matrix<double,12,12> hessian_edge_regular(Eigen::Vector<double,12> Positions, Eigen::Vector<double,5> Edge_lengths) const;
 
     double Dihedral_angle(Eigen::Vector<double, 12> Positions) const;
     Eigen::Vector<double, 12> gradient_dihedral_angle(Eigen::Vector<double, 12> Positions) const;
     Eigen::Matrix<double, 12, 12> hessian_dihedral_angle(Eigen::Vector<double, 12> Positions) const;
 
+
+    double Cotan(Eigen::Vector<double,9> Positions) const;
+
+    double Angle(Eigen::Vector<double,9> Positions) const;
+    Eigen::Vector<double, 9 > gradient_angle(Eigen::Vector<double, 9> Positions) const;
+
+    double Cotan_weight(Eigen::Vector<double,12> Positions) const;
+    Eigen::Vector<double, 12> gradient_cotan_weight(Eigen::Vector<double, 12> Positions) const;
+    Eigen::Matrix<double, 12, 12> hessian_cotan_weight(Eigen::Vector<double, 12> Positions) const;
 
     double Volume(Eigen::Vector<double, 9> Positions) const;
     Eigen::Vector<double, 9> gradient_volume(Eigen::Vector<double, 9> Positions) const;

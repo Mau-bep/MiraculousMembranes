@@ -934,7 +934,7 @@ int main(int argc, char** argv) {
         // }
         if(Switch =="Newton" && current_t >= Switch_t){
             Integration = "Newton";
-            remesh_every = 200;
+            remesh_every = -1;
             save_interval = 10;
         }
         
@@ -975,6 +975,10 @@ int main(int argc, char** argv) {
 
         if( arcsim  && (current_t%remesh_every==0 || dt_sim == 0.0)){
             // if(dt_sim==0.0){ std::cout<<"wE ARE REMESHING CAUSE THINGS DONT MAKE SENSE\n";}
+            // std::cout<<"\t\t Remeshing\n";
+            // Here we want to explore whats going on 
+            
+
 
             int n_vert_old=0;
             int n_vert_new=0;
@@ -1081,10 +1085,43 @@ int main(int argc, char** argv) {
                 std::cout<<"Which is clearly too big :P \n";    
                 break;
             }
-            // std::cout<<"The change in the number of vertices is "<< n_vert_new-n_vert_old <<" \n";
-            // std::cout<<"The average dihedral before was " << avg_dih1 << " and now it is " << avg_dih2 <<" \n";
-            // std::cout<<"The previous min dih was" << min_dih1 << " and now it is " << min_dih2 <<" \n";
-            // std::cout<<"The previous max dih was" << max_dih1 << " and now it is " << max_dih2 <<" \n\n";
+
+            // Ok so here we have remeshed, and the idea is that everytime u remesh you have to recompute the lagrange multipliers
+            if(Integration == "Newton" && current_t> Switch_t){
+
+                std::cout<<"\t \t At this step\n";
+            Sim_handler.Calculate_Jacobian();
+            std::cout<<"\t \t The Jacobian is calculated\n";
+            Sim_handler.Calculate_gradient();
+            std::cout<<"\t \t The gradient is calculated\n";
+
+            // std::vector<double> RHS(0);
+            Eigen::VectorXd RHS(3* mesh->nVertices());
+            int index;
+            for(Vertex v: mesh->vertices()){
+            
+                index = v.getIndex();            
+                RHS(3*index) = Sim_handler.Current_grad[v].x;
+                RHS(3*index+1) = Sim_handler.Current_grad[v].y;
+                RHS(3*index+2) = Sim_handler.Current_grad[v].z;
+                
+            }
+            std::cout<<"Doing the solve now\n";
+
+            std::cout<<"The dimension of the jacobian is " << Sim_handler.Jacobian_constraints.rows() << " x " << Sim_handler.Jacobian_constraints.cols() << "\n";
+            std::cout<<"The dimension of the RHS is " << RHS.size() << "\n";
+            // std::cout<<"The Jacobian is \n" << Sim_handler.Jacobian_constraints.transpose() << "\n";
+
+            // std::cout<<"THe RHS is \n" << RHS.transpose() << "\n";
+            Eigen::MatrixXd J_transpose = Sim_handler.Jacobian_constraints.transpose();
+            Eigen::VectorXd  Lagrange_mul = J_transpose.colPivHouseholderQr().solve(RHS);
+            // Eigen::VectorXd  Lagrange_mul = (J_transpose.transpose() * J_transpose).ldlt().solve(J_transpose.transpose()*RHS);
+            // Sim_handler.Lagrange_multipliers = Lagrange_mul;
+            std::cout<<"SOlve done\n";
+            std::cout<<"THe previous Lagrange multipliers were " << Sim_handler.Lagrange_mult.transpose() <<" \n";
+            Sim_handler.Lagrange_mult = Lagrange_mul;
+            std::cout<<"THe new  Lagrange multipliers were " << Sim_handler.Lagrange_mult.transpose() <<" \n";
+        }
              
         }
         end_time_control=chrono::steady_clock::now();
@@ -1094,7 +1131,7 @@ int main(int argc, char** argv) {
         Bead_datas << std::chrono::duration_cast<std::chrono::milliseconds>(end_time_control-start_time_control).count()  <<" ";
         Bead_datas.close();
                 
-        if(current_t%save_interval == 0 ){
+        if(current_t%save_interval == 0 || (Integration == "Newton" && current_t%save_interval == save_interval-1 )){
             // Bead_data.close();
             // Sim_data.close();
             // std::cout<<"Saving\n";
@@ -1230,6 +1267,11 @@ int main(int argc, char** argv) {
             Constraints = std::vector<std::string>{"Volume","CMx","CMy","CMz","Rx","Ry","Rz"};
             Sim_handler.Constraints = Constraints;
             std::vector<std::string> Data_filenames(0);
+            if(Integration == "Newton" && ( current_t%remesh_every == remesh_every-1  || current_t%remesh_every == 0) ){
+                // This is the integration that happens just before the remeshing
+                Save_output_data = true;
+                Data_filenames.push_back(basic_name+"RHS_Norm"+std::to_string(current_t)+".txt"); 
+            }
             M3DG.integrate_Newton(Sim_data, time, Energies, Save_output_data, Constraints, Data_filenames);
             // std::cout<<"INtegrated newton (: \n";
         }

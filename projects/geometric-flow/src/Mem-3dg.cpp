@@ -3375,7 +3375,38 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
     // std::cout<<"The size of LHS is" << LHS.rows() << " and " << LHS.cols() << "\n";
     // std::cout<<"The size of RHS is" << RHS.rows() << " and " << RHS.cols() << "\n";
 
+
+    // hERE I WANT THIS RHS !! 
+
+    if(Data_filenames.size()!= 0){
+      std::cout<<"We are saving the RHS to be used later, with norm " << 0.5*RHS.dot(RHS)  << "\n";
+
+      std::ofstream RHS_data = std::ofstream(Data_filenames[0],std::ios_base::app);
+      for(size_t i = 0; i < RHS.size(); i++){
+        RHS_data << RHS(i) <<" ";
+      }
+      RHS_data << "\n";
+
+      for(size_t i = 0; i < RHS.size(); i++){
+        RHS_data<< LambdaJ(i) <<" ";
+      }
+      RHS_data << "\n";
+      for(size_t i = 0; i < Sim_handler->Current_grad.size(); i++){
+        Force = Sim_handler->Current_grad[i];
+        RHS_data << Force.x <<" "<< Force.y <<" "<< Force.z <<" ";
+      }
+      RHS_data << "\n";
+      
+      RHS_data.close();
+    }
+
+
+
     Eigen::VectorXd result = solverHess.solve(RHS);
+
+
+
+    
     // std::cout<<"Giving result a value\n";
     // And we got a result from this 
 
@@ -3405,7 +3436,7 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
 
     // So we have the Grad_L
 
-    double Projection = result.transpose()*LHS*RHS;
+    double Projection = 0.5*result.transpose()*LHS*RHS;
 
     // Current grad norm is 
     double Current_grad_norm = 0.5*RHS.dot(RHS);
@@ -3413,13 +3444,17 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
     // std::cout<<"Lets backtrack now\n";
     std::cout<<"The projection is " << Projection << "The current grad norm is" << Current_grad_norm <<"\n";
     std::cout<<"The lagrange multipliers are" << Sim_handler->Lagrange_mult.transpose() << "\n";
+    std::cout<<"THe dot produc between the result and the RHS is " << result.dot(RHS) << " \n";
 
-    double backtrackstep = Backtracking_grad(result.tail(N_constraints),Projection,Current_grad_norm);
-    // double backtrackstep = 1.0;
-    // std::cout<<"The backtrackstep is " << backtrackstep << " \n";
-
-
-
+    double backtrackstep;
+    if(result.dot(RHS)<0){
+      // 
+      std::cout<<"The result is not a descent direction, we will not backtrack\n";
+      backtrackstep = integrate(Sim_data,time,Bead_data_filenames,Save_output_data);
+    }
+    else{
+      backtrackstep = Backtracking_grad(result.tail(N_constraints),Projection,Current_grad_norm);
+    
     double TotE = 0.0;
     
     Sim_handler->Calculate_energies(&TotE);
@@ -3436,7 +3471,7 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
     Sim_data << TotE <<" ";
 
     Sim_data << Current_grad_norm <<" " << backtrackstep <<" \n";
-
+    }
     // for(long int ci = 0; ci < Sim_handler->Lagrange_mult.size(); ci++){
     //   if(Constraints[ci]=="Volume") Sim_handler->Lagrange_mult(ci) -= backtrackstep*result(3*(N_vert+N_beads)+ci);
     //   if(Constraints[ci]=="Area") Sim_handler->Lagrange_mult(ci) -= backtrackstep*result(3*(N_vert+N_beads)+ci);

@@ -108,6 +108,108 @@ double E_Handler::E_Bending(std::vector<double> Constants) const {
 
 }
 
+double E_Handler::E_Laplace(std::vector<double> Constants) const{
+
+    double E_L = 0.0;
+
+    double Lambda = Constants[0];
+    size_t index;
+    Vector3 Pos;
+    Vector3 Pos2;
+    Eigen::Vector<double,12> Positions;
+
+    double dual_Area;
+    double Q1;
+    double Q2;
+    double Q3;
+    double Wij;
+    for(Vertex v : mesh->vertices()) {
+        //boundary_fix
+        if(v.isBoundary()) continue;
+
+        
+        index=v.getIndex();
+        Pos = geometry->inputVertexPositions[v];
+        dual_Area = geometry->vertexDualArea(v);
+        
+        // I need to iterate over all the edges
+
+       
+        Q1 = 0;
+        Q2 = 0;
+        Q3 = 0;
+        // For each coordinate i have to calculate the quantity
+        for(Halfedge he : v.outgoingHalfedges()) {
+            // 
+            Vertex v_f=he.tipVertex();
+            Pos2 = geometry->inputVertexPositions[v_f];
+            // Ok so the idea now is that i need to calculate the weights and multiply by (uj-ui)
+            
+            Positions << geometry->inputVertexPositions[v].x, geometry->inputVertexPositions[v].y, geometry->inputVertexPositions[v].z,
+                        geometry->inputVertexPositions[v_f].x, geometry->inputVertexPositions[v_f].y, geometry->inputVertexPositions[v_f].z,
+                        geometry->inputVertexPositions[he.next().tipVertex()].x, geometry->inputVertexPositions[he.next().tipVertex()].y, geometry->inputVertexPositions[he.next().tipVertex()].z,
+                        geometry->inputVertexPositions[he.twin().next().tipVertex()].x, geometry->inputVertexPositions[he.twin().next().tipVertex()].y, geometry->inputVertexPositions[he.twin().next().tipVertex()].z;
+
+            Wij = geometry->Cotan_weight(Positions);
+            
+            Q1 += Wij*(Pos2.x-Pos.x);
+            Q2 += Wij*(Pos2.y-Pos.y);
+            Q3 += Wij*(Pos2.z-Pos.z);
+        
+        }
+        // Here we have the 3 quantities
+        Q1/=2.0;
+        Q2/=2.0;
+        Q3/=2.0;
+        E_L += (Q1*Q1 + Q2*Q2 + Q3*Q3)/(dual_Area*dual_Area);
+
+
+    }
+
+
+    return Lambda * E_L;
+
+}
+
+double E_Handler::E_Edge_reg(std::vector<double> Constants) const{
+
+    double E_edge = 0.0;
+    double KE = Constants[0];
+
+    // Ok perfect so now we add the energy 
+    Halfedge he;
+    Eigen::Vector<double,12> Positions;
+    Eigen::Vector<double,5> Edge_lengths_prev;
+
+    EdgeData<double> Edge_lengths(*mesh);
+    for(Edge e: mesh->edges()){
+        Edge_lengths[e] = geometry->edgeLength(e);
+    }
+    
+    for(Edge e: mesh->edges()) {
+        // I need to get the edge length
+        he = e.halfedge();
+        
+        Positions << geometry->inputVertexPositions[he.vertex()].x, geometry->inputVertexPositions[he.vertex()].y, geometry->inputVertexPositions[he.vertex()].z,
+                    geometry->inputVertexPositions[he.next().vertex()].x, geometry->inputVertexPositions[he.next().vertex()].y, geometry->inputVertexPositions[he.next().vertex()].z,
+                    geometry->inputVertexPositions[he.next().next().vertex()].x, geometry->inputVertexPositions[he.next().next().vertex()].y, geometry->inputVertexPositions[he.next().next().vertex()].z,
+                    geometry->inputVertexPositions[he.twin().next().next().vertex()].x, geometry->inputVertexPositions[he.twin().next().next().vertex()].y, geometry->inputVertexPositions[he.twin().next().next().vertex()].z;
+        Edge_lengths_prev << Edge_lengths[he.edge()], 
+                            Edge_lengths[he.next().next().edge()], 
+                            Edge_lengths[he.twin().next().edge()],
+                            Edge_lengths[he.next().edge()],
+                            Edge_lengths[he.twin().next().next().edge()];
+        
+        E_edge += KE*geometry->Ej_edge_regular(Positions, Edge_lengths_prev);
+    }
+
+
+    return E_edge;
+}
+
+
+
+
 
 VertexData<Vector3> E_Handler::F_Volume_constraint(std::vector<double> Constants) const{
     double KV = Constants[0];
@@ -508,6 +610,205 @@ VertexData<Vector3> E_Handler::F_Bending_2(std::vector<double> Constants) const{
 }
 
 
+VertexData<Vector3> E_Handler::F_Laplace(std::vector<double> Constants) const{
+
+    double Lambda = Constants[0];
+    
+
+    VertexData<Vector3> Force(*mesh);
+
+    Eigen::Vector<double,12> Positions_quad;
+    Eigen::Vector<double,9> Positions_face;
+
+    Eigen::Vector<double,12> Grad_quad;
+    Eigen::Vector<double,9> Grad_face;
+    Eigen::Vector<double,6> Grad_edge;
+
+    std::array<Vertex,3> Vertices_face;
+    std::array<Vertex,4> Vertices_quad;
+   
+    EdgeData<double> Wij(*mesh,0.0);
+    VertexData<double> Dual_areas(*mesh,0.0);
+
+    Halfedge he;
+    double constant;
+    double Q1;
+    double Q2;
+    double Q3;
+    Vector3 Q;
+    Vector3 Force_vector;
+    Vector3 dx;
+
+    for(Vertex v : mesh->vertices()){
+        Dual_areas[v] = geometry->barycentricDualArea(v);
+    }
+    for(Edge e: mesh->edges()){
+        he = e.halfedge();
+        Positions_quad << geometry->inputVertexPositions[he.vertex()].x, geometry->inputVertexPositions[he.vertex()].y, geometry->inputVertexPositions[he.vertex()].z,
+                        geometry->inputVertexPositions[he.next().vertex()].x, geometry->inputVertexPositions[he.next().vertex()].y, geometry->inputVertexPositions[he.next().vertex()].z,
+                        geometry->inputVertexPositions[he.next().next().vertex()].x, geometry->inputVertexPositions[he.next().next().vertex()].y, geometry->inputVertexPositions[he.next().next().vertex()].z,
+                        geometry->inputVertexPositions[he.twin().next().next().vertex()].x, geometry->inputVertexPositions[he.twin().next().next().vertex()].y, geometry->inputVertexPositions[he.twin().next().next().vertex()].z;
+        Wij[e] = geometry->Cotan_weight(Positions_quad);
+        
+    }
+
+    
+    // Ok so we have the two terms and we need to start calculating stuff
+
+
+    for(Vertex v: mesh->vertices()){
+
+        Q1 = 0;
+        Q2 = 0;
+        Q3 = 0;
+        Q = Vector3{0,0,0};
+        for(Halfedge he: v.outgoingHalfedges()){
+
+            Q += Wij[he.edge()]*(geometry->inputVertexPositions[he.tipVertex()] - geometry->inputVertexPositions[v])/2.0;
+        }
+        
+        constant = -2.0/(3.0*Dual_areas[v]*Dual_areas[v]*Dual_areas[v])*(dot(Q,Q));
+        // 
+        for(Face f: v.adjacentFaces()){
+            he = f.halfedge();
+            Vertices_face[0] = he.vertex();
+            Vertices_face[1] = he.next().vertex();
+            Vertices_face[2] = he.next().next().vertex();
+
+            Positions_face << geometry->inputVertexPositions[Vertices_face[0]].x , geometry->inputVertexPositions[Vertices_face[0]].y , geometry->inputVertexPositions[Vertices_face[0]].z,
+                            geometry->inputVertexPositions[Vertices_face[1]].x, geometry->inputVertexPositions[Vertices_face[1]].y, geometry->inputVertexPositions[Vertices_face[1]].z,
+                            geometry->inputVertexPositions[Vertices_face[2]].x, geometry->inputVertexPositions[Vertices_face[2]].y, geometry->inputVertexPositions[Vertices_face[2]].z;
+            
+            Grad_face = geometry->gradient_triangle_area(Positions_face);
+
+            for(size_t i = 0; i < 3; i++){
+                Force_vector = Vector3{Grad_face[i*3], Grad_face[i*3+1], Grad_face[i*3+2]};
+                Force_vector *= constant*Lambda;
+                // Force_vector *= Lambda;
+                Force[Vertices_face[i]] -= Force_vector;
+            }
+        }
+
+
+        // THe second term is also tricky more so even.
+
+        // I  have Q at this point, which is 
+
+        constant = 2/(Dual_areas[v]*Dual_areas[v]);
+
+        for(Halfedge he: v.outgoingHalfedges()){
+            // 
+            Vertices_quad[0] = he.vertex();
+            Vertices_quad[1] = he.next().vertex();
+            Vertices_quad[2] = he.next().next().vertex();
+            Vertices_quad[3] = he.twin().next().next().vertex();
+
+
+            Positions_quad << geometry->inputVertexPositions[Vertices_quad[0]].x, geometry->inputVertexPositions[Vertices_quad[0]].y, geometry->inputVertexPositions[Vertices_quad[0]].z,
+                            geometry->inputVertexPositions[Vertices_quad[1]].x, geometry->inputVertexPositions[Vertices_quad[1]].y, geometry->inputVertexPositions[Vertices_quad[1]].z,
+                            geometry->inputVertexPositions[Vertices_quad[2]].x, geometry->inputVertexPositions[Vertices_quad[2]].y, geometry->inputVertexPositions[Vertices_quad[2]].z,
+                            geometry->inputVertexPositions[Vertices_quad[3]].x, geometry->inputVertexPositions[Vertices_quad[3]].y, geometry->inputVertexPositions[Vertices_quad[3]].z;
+
+            Grad_quad = geometry->gradient_cotan_weight(Positions_quad)/2.0;
+
+            dx = geometry->inputVertexPositions[Vertices_quad[1]] - geometry->inputVertexPositions[v];
+            for(size_t i = 0; i < 4; i++){
+                Force_vector = Vector3{Grad_quad[i*3], Grad_quad[i*3+1], Grad_quad[i*3+2]};
+                
+                Force_vector *= constant*Lambda*(dot(Q,dx));
+
+                Force[Vertices_quad[i]] -= Force_vector;
+            }
+
+            // What about the other term now the other term is 
+            
+            Force_vector = -1*Q*Wij[he.edge()];
+            Force_vector *= constant*Lambda/2.0;
+            Force[he.vertex()] -= Force_vector;
+            Force[he.twin().vertex()] += Force_vector;
+
+
+
+
+
+        }
+
+
+
+
+    }
+
+    // That is the first term
+    return Force;
+
+
+
+}
+
+
+VertexData<Vector3> E_Handler::F_Edge_reg(std::vector<double> Constants) const{
+
+    VertexData<Vector3> Force(*mesh);
+    double KE = Constants[0];
+
+    // Ok perfect so now we add the energy 
+    Halfedge he;
+
+    // std::vector<int> 
+    Eigen::Vector<double,12> Positions;
+    Eigen::Vector<double,5> Edge_lengths_prev;
+    Eigen::Vector<double,12> Grad_E;
+
+    std::array<Vertex,4> Vertices;
+    Vector3 Force_vector;
+
+
+    EdgeData<double> Edge_lengths(*mesh);
+    for(Edge e: mesh->edges()){
+        Edge_lengths[e] = geometry->edgeLength(e);
+    }
+    
+    // Till here everything is the same
+
+
+    for(Edge e: mesh->edges()) {
+        // I need to get the edge length
+        he = e.halfedge();
+
+        Vertices[0] = he.vertex();
+        Vertices[1] = he.next().vertex();
+        Vertices[2] = he.next().next().vertex();
+        Vertices[3] = he.twin().next().next().vertex();
+        
+        Positions << geometry->inputVertexPositions[he.vertex()].x, geometry->inputVertexPositions[he.vertex()].y, geometry->inputVertexPositions[he.vertex()].z,
+                    geometry->inputVertexPositions[he.next().vertex()].x, geometry->inputVertexPositions[he.next().vertex()].y, geometry->inputVertexPositions[he.next().vertex()].z,
+                    geometry->inputVertexPositions[he.next().next().vertex()].x, geometry->inputVertexPositions[he.next().next().vertex()].y, geometry->inputVertexPositions[he.next().next().vertex()].z,
+                    geometry->inputVertexPositions[he.twin().next().next().vertex()].x, geometry->inputVertexPositions[he.twin().next().next().vertex()].y, geometry->inputVertexPositions[he.twin().next().next().vertex()].z;
+        Edge_lengths_prev << Edge_lengths[he.edge()], 
+                            Edge_lengths[he.next().next().edge()], 
+                            Edge_lengths[he.twin().next().edge()],
+                            Edge_lengths[he.next().edge()],
+                            Edge_lengths[he.twin().next().next().edge()];
+        
+        
+        Grad_E = geometry->gradient_edge_regular(Positions, Edge_lengths_prev);
+
+
+        // Now we have the gradient of the edge regularization energy, we need to add it to the force
+        for(size_t i = 0; i < 4; i++){
+            Force_vector = Vector3{Grad_E[3*i], Grad_E[3*i+1], Grad_E[3*i+2]};
+            Force_vector *= KE;
+            Force[Vertices[i]] -= Force_vector;
+        }
+
+    }
+
+
+    return Force;
+}
+
+
+
 
 SparseMatrix<double> E_Handler::H_SurfaceTension(std::vector<double> Constants){
 
@@ -739,7 +1040,7 @@ SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants) {
 
 
 
-                ///EDITTT
+
             
             
             
@@ -982,6 +1283,65 @@ SparseMatrix<double> E_Handler::H_Volume(std::vector<double> Constants){
 }
 
 
+SparseMatrix<double> E_Handler::H_Edge_reg(std::vector<double> Constants){
+
+    // Lets get this hessian
+    double KE = Constants[0];
+
+    int nVerts = mesh->nVertices();
+    SparseMatrix<double> Hessian(3*nVerts,3*nVerts);
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+
+    Eigen::Matrix<double,12,12> Hessian_block_edge;
+    Eigen::Vector<double, 12> Positions;
+    std::vector<Vertex> Vertices(4);
+    Halfedge he;
+    Eigen::Matrix3d Zeros = Eigen::Matrix3d::Zero();
+
+    EdgeData<double> Edge_lengths(*mesh, 0.0);
+
+    Eigen::Vector<double, 5> Edge_lengths_prev;
+
+    for(Edge e: mesh->edges()){
+        Edge_lengths[e] = geometry->edgeLength(e);
+        // std::cout<<"" << e.getIndex() << " and its length is " << Edge_lengths[e] << "\n";
+    }
+
+    for(Edge e: mesh->edges()){
+        he = e.halfedge();
+        Vertices[0] = he.vertex();
+        Vertices[1] = he.next().vertex();
+        Vertices[2] = he.next().next().vertex();
+        Vertices[3] = he.twin().next().next().vertex();
+
+        Positions << geometry->inputVertexPositions[Vertices[0]].x , geometry->inputVertexPositions[Vertices[0]].y , geometry->inputVertexPositions[Vertices[0]].z,
+                    geometry->inputVertexPositions[Vertices[1]].x, geometry->inputVertexPositions[Vertices[1]].y, geometry->inputVertexPositions[Vertices[1]].z,
+                    geometry->inputVertexPositions[Vertices[2]].x, geometry->inputVertexPositions[Vertices[2]].y, geometry->inputVertexPositions[Vertices[2]].z,
+                    geometry->inputVertexPositions[Vertices[3]].x, geometry->inputVertexPositions[Vertices[3]].y, geometry->inputVertexPositions[Vertices[3]].z;
+
+        Edge_lengths_prev << Edge_lengths[he.edge()], 
+                            Edge_lengths[he.next().next().edge()], 
+                            Edge_lengths[he.twin().next().edge()],
+                            Edge_lengths[he.next().edge()],
+                            Edge_lengths[he.twin().next().next().edge()];
+        // Now we do the hesian thingy 
+        Hessian_block_edge = geometry->hessian_edge_regular(Positions, Edge_lengths_prev);
+        // std::cout<<"block calculated\n";
+        for(size_t row = 0; row < 12; row++){
+            for(size_t col = 0; col< 12; col++ ){
+                if( Hessian_block_edge(row,col) > 1e-12 || Hessian_block_edge(row,col) < -1e-12) tripletList.push_back(T(Vertices[row/3].getIndex()*3+row%3,Vertices[col/3].getIndex()*3+col%3,Hessian_block_edge(row,col) ));
+
+            }
+        }
+    }
+        
+    Hessian.setFromTriplets(tripletList.begin(),tripletList.end());
+
+    return KE*Hessian;
+
+}
+
 
 
 
@@ -1050,6 +1410,22 @@ void E_Handler::Calculate_energies(double* E){
             Energy_values[i] = Beads[bead_count]->Energy();
             *E += Energy_values[i];
             bead_count++;
+            // std::cout<<"The energy value is " << Energy_values[i]<<" \n";
+            // std::cout<<"The value of E is" << *E <<" \n";
+            continue;
+        }
+
+        if(Energies[i] =="Laplace"){
+            Energy_values[i] = E_Laplace(Energy_constants[i]);
+            *E += Energy_values[i];
+            // std::cout<<"The energy value is " << Energy_values[i]<<" \n";
+            // std::cout<<"The value of E is" << *E <<" \n";
+            continue;
+        }
+
+        if(Energies[i]=="Edge_reg"){
+            Energy_values[i] = E_Edge_reg(Energy_constants[i]);
+            *E += Energy_values[i];
             // std::cout<<"The energy value is " << Energy_values[i]<<" \n";
             // std::cout<<"The value of E is" << *E <<" \n";
             continue;
@@ -1231,6 +1607,41 @@ void E_Handler::Calculate_gradient(){
             Current_grad+=Force_temp;
             bead_count +=1;
 
+            continue;
+        }
+
+        if(Energies[i]=="Laplace"){
+
+            Force_temp = F_Laplace(Energy_constants[i]);
+            grad_norm = 0.0;
+            for(Vertex v : mesh->vertices()){
+                grad_norm += Force_temp[v].norm2();
+            }
+            if(Gradient_norms.size() == i){
+                Gradient_norms.push_back(grad_norm);
+            
+            }
+            else{
+                Gradient_norms[i] = grad_norm;
+            }
+            Current_grad+=Force_temp;
+            continue;
+        }
+
+        if(Energies[i]=="Edge_reg"){
+            Force_temp = F_Edge_reg(Energy_constants[i]);
+            grad_norm = 0.0;
+            for(Vertex v : mesh->vertices()){
+                grad_norm += Force_temp[v].norm2();
+            }
+            if(Gradient_norms.size() == i){
+                Gradient_norms.push_back(grad_norm);
+            
+            }
+            else{
+                Gradient_norms[i] = grad_norm;
+            }
+            Current_grad+=Force_temp;
             continue;
         }
 
@@ -1427,6 +1838,9 @@ SparseMatrix<double> E_Handler::Calculate_Hessian(){
         if(Energies[i] == "Bead"){
             std::cout<<"FUNCTION NOT AVAILABLE BUT SHOULD LOOK LIKE this\n";
             // Beads[bead_counter]->Hessian();
+        }
+        if(Energies[i] =="Edge_reg"){
+            Hessian += H_Edge_reg(Energy_constants[i]);
         }
 
     }

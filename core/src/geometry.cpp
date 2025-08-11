@@ -1529,6 +1529,222 @@ Eigen::Matrix<double,6,6> VertexPositionGeometry::hessian_edge_length(Eigen::Vec
 
     return Hessian;
 }
+double VertexPositionGeometry::Ej_edge_regular(Eigen::Vector<double,12> Positions) const{
+
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+    Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+    Eigen::Vector3d p4 = { Positions[9], Positions[10], Positions[11] };
+
+    Eigen::Vector<double,5> Edge_lengths;
+    Edge_lengths[0] = (p2 - p1).norm(); // u
+    Edge_lengths[1] = (p3 - p1).norm(); // v
+    Edge_lengths[2] = (p4 - p1).norm(); // w
+    Edge_lengths[3] = (p2 - p3).norm(); // x
+    Edge_lengths[4] = (p4 - p2).norm(); // y
+
+    double I = ( Edge_lengths[0] - 0.25*( Edge_lengths[1] + Edge_lengths[2] + Edge_lengths[3] + Edge_lengths[4]) );
+
+    return 0.5*I*I;
+}
+double VertexPositionGeometry::Ej_edge_regular(Eigen::Vector<double,12> Positions, Eigen::Vector<double,5> Edge_lengths) const{
+
+    double I = ( Edge_lengths[0] - 0.25*( Edge_lengths[1] + Edge_lengths[2] + Edge_lengths[3] + Edge_lengths[4]) );
+
+    return 0.5*I*I;
+}
+
+Eigen::Vector<double, 12> VertexPositionGeometry::gradient_edge_regular(Eigen::Vector<double,12> Positions) const{
+
+    // 
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+    Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+    Eigen::Vector3d p4 = { Positions[9], Positions[10], Positions[11] };
+    
+    Eigen::Vector3d u = p2 - p1;
+    Eigen::Vector3d v = p3 - p1;
+    Eigen::Vector3d w = p4 - p1;
+    Eigen::Vector3d x = p2 - p3;
+    Eigen::Vector3d y = p4 - p2;
+
+    double u_norm = u.norm();
+    double v_norm = v.norm();
+    double w_norm = w.norm();
+    double x_norm = x.norm();
+    double y_norm = y.norm();
+
+    // Now  
+    double I  = ( u_norm - 0.25*( v_norm + w_norm + x_norm + y_norm) );
+
+    Eigen::Vector3d grad_1 = I*(-u/u_norm + 0.25*(v/v_norm + w/w_norm ));
+    Eigen::Vector3d grad_2 = I*(u/u_norm - 0.25*(  x/x_norm - y/y_norm));
+    Eigen::Vector3d grad_3 = I*( 0.25*(-v/v_norm + x/x_norm));
+    Eigen::Vector3d grad_4 = I*( 0.25*(-w/w_norm - y/y_norm));
+
+    Eigen::Vector<double, 12> Gradient;
+    Gradient << grad_1, grad_2, grad_3, grad_4;
+
+    return Gradient;
+
+
+}
+
+Eigen::Vector<double, 12> VertexPositionGeometry::gradient_edge_regular(Eigen::Vector<double,12> Positions, Eigen::Vector<double,5> Edge_lengths) const{
+
+    // 
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+    Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+    Eigen::Vector3d p4 = { Positions[9], Positions[10], Positions[11] };
+    double u_norm = Edge_lengths[0];
+    double v_norm = Edge_lengths[1];
+    double w_norm = Edge_lengths[2];
+    double x_norm = Edge_lengths[3];
+    double y_norm = Edge_lengths[4];
+    Eigen::Vector3d u = p2 - p1;
+    Eigen::Vector3d v = p3 - p1;
+    Eigen::Vector3d w = p4 - p1;
+    Eigen::Vector3d x = p2 - p3;
+    Eigen::Vector3d y = p4 - p2;
+
+    // Now  
+    double I  = ( u_norm - 0.25*( v_norm + w_norm + x_norm + y_norm) );
+
+    Eigen::Vector3d grad_1 = I*(-u/u_norm + 0.25*(v/v_norm + w/w_norm ));
+    Eigen::Vector3d grad_2 = I*(u/u_norm - 0.25*(  x/x_norm - y/y_norm));
+    Eigen::Vector3d grad_3 = I*( 0.25*(-v/v_norm + x/x_norm));
+    Eigen::Vector3d grad_4 = I*( 0.25*(-w/w_norm - y/y_norm));
+
+    Eigen::Vector<double, 12> Gradient;
+    Gradient << grad_1, grad_2, grad_3, grad_4;
+
+    return Gradient;
+
+
+}
+
+Eigen::Vector<double, 12> VertexPositionGeometry::gradient_edge_regular_I(Eigen::Vector<double,12> Positions, Eigen::Vector<double, 5> Edge_lengths) const {
+
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+    Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+    Eigen::Vector3d p4 = { Positions[9], Positions[10], Positions[11] };
+    double u_norm = Edge_lengths[0];
+    double v_norm = Edge_lengths[1];
+    double w_norm = Edge_lengths[2];
+    double x_norm = Edge_lengths[3];
+    double y_norm = Edge_lengths[4];
+    Eigen::Vector3d u = p2 - p1;
+    Eigen::Vector3d v = p3 - p1;
+    Eigen::Vector3d w = p4 - p1;
+    Eigen::Vector3d x = p2 - p3;
+    Eigen::Vector3d y = p4 - p2;
+
+    // Now  
+    double I  = ( u_norm - 0.25*( v_norm + w_norm + x_norm + y_norm) );
+
+    Eigen::Vector3d grad_1 = (-u/u_norm + 0.25*(v/v_norm + w/w_norm ));
+    Eigen::Vector3d grad_2 = (u/u_norm - 0.25*(  x/x_norm - y/y_norm));
+    Eigen::Vector3d grad_3 = ( 0.25*(-v/v_norm + x/x_norm));
+    Eigen::Vector3d grad_4 = ( 0.25*(-w/w_norm - y/y_norm));
+
+    Eigen::Vector<double, 12> Gradient;
+    Gradient << grad_1, grad_2, grad_3, grad_4;
+
+    return Gradient;
+
+}
+
+
+Eigen::Matrix<double,12,12> VertexPositionGeometry::hessian_edge_regular(Eigen::Vector<double,12> Positions) const {
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+    Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+    Eigen::Vector3d p4 = { Positions[9], Positions[10], Positions[11] };
+    Eigen::Vector3d u = p2 - p1;
+    Eigen::Vector3d v = p3 - p1;
+    Eigen::Vector3d w = p4 - p1;
+    Eigen::Vector3d x = p2 - p3;
+    Eigen::Vector3d y = p4 - p2;
+    double u_norm = u.norm();
+    double v_norm = v.norm();
+    double w_norm = w.norm();
+    double x_norm = x.norm();
+    double y_norm = y.norm();
+
+    double I = ( u_norm - 0.25*( v_norm + w_norm + x_norm + y_norm) );
+
+    // I have all the info, i just need to build the matrices
+    Eigen::Matrix<double,3,3> Id = Eigen::Matrix<double,3,3>::Identity(3,3);
+    Eigen::Matrix<double,3,3> Zeros = Eigen::Matrix<double,3,3>::Zero(3,3);
+
+    Eigen::Matrix<double,3,3> Qu = (1.0/u_norm)*( -1.0*(u*u.transpose())/(u_norm*u_norm) + Id );
+    Eigen::Matrix<double,3,3> Qv = (1.0/v_norm)*( -1.0*(v*v.transpose())/(v_norm*v_norm) + Id );
+    Eigen::Matrix<double,3,3> Qw = (1.0/w_norm)*( -1.0*(w*w.transpose())/(w_norm*w_norm) + Id );
+    Eigen::Matrix<double,3,3> Qx = (1.0/x_norm)*( -1.0*(x*x.transpose())/(x_norm*x_norm) + Id );
+    Eigen::Matrix<double,3,3> Qy = (1.0/y_norm)*( -1.0*(y*y.transpose())/(y_norm*y_norm) + Id );
+
+    Eigen::Matrix<double,12,12> Hessian;
+
+    Eigen::Vector<double,12> Grad_I = gradient_edge_regular(Positions);
+
+    Hessian << Qu - 0.25 * ( Qv + Qw) , -1*Qu , 0.25*Qv, 0.25*Qw,
+               -1*Qu, Qu - 0.25 * ( Qx + Qy) , 0.25*Qx, 0.25*Qy,
+                0.25*Qv, 0.25*Qx, -1*0.25*( Qv + Qx) , Zeros ,
+                0.25*Qw, 0.25*Qy, Zeros, -1*0.25*( Qw + Qy);
+
+    return I*Hessian + Grad_I*Grad_I.transpose()/(I*I);
+
+}
+Eigen::Matrix<double,12,12> VertexPositionGeometry::hessian_edge_regular(Eigen::Vector<double,12> Positions, Eigen::Vector<double,5> Edge_lengths) const {
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+    Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+    Eigen::Vector3d p4 = { Positions[9], Positions[10], Positions[11] };
+    Eigen::Vector3d u = p2 - p1;
+    Eigen::Vector3d v = p3 - p1;
+    Eigen::Vector3d w = p4 - p1;
+    Eigen::Vector3d x = p2 - p3;
+    Eigen::Vector3d y = p4 - p2;
+    double u_norm = Edge_lengths[0];
+    double v_norm = Edge_lengths[1];
+    double w_norm = Edge_lengths[2];
+    double x_norm = Edge_lengths[3];
+    double y_norm = Edge_lengths[4];
+
+    double I = ( u_norm - 0.25*( v_norm + w_norm + x_norm + y_norm) );
+
+    // I have all the info, i just need to build the matrices
+    Eigen::Matrix<double,3,3> Id = Eigen::Matrix<double,3,3>::Identity(3,3);
+    Eigen::Matrix<double,3,3> Zeros = Eigen::Matrix<double,3,3>::Zero(3,3);
+
+    Eigen::Matrix<double,3,3> Qu = (1.0/u_norm)*( -1.0*(u*u.transpose())/(u_norm*u_norm) + Id );
+    Eigen::Matrix<double,3,3> Qv = (1.0/v_norm)*( -1.0*(v*v.transpose())/(v_norm*v_norm) + Id );
+    Eigen::Matrix<double,3,3> Qw = (1.0/w_norm)*( -1.0*(w*w.transpose())/(w_norm*w_norm) + Id );
+    Eigen::Matrix<double,3,3> Qx = (1.0/x_norm)*( -1.0*(x*x.transpose())/(x_norm*x_norm) + Id );
+    Eigen::Matrix<double,3,3> Qy = (1.0/y_norm)*( -1.0*(y*y.transpose())/(y_norm*y_norm) + Id );
+
+    Eigen::Matrix<double,12,12> Hessian;
+    Eigen::Vector<double,12> Grad_I = gradient_edge_regular_I(Positions,Edge_lengths);
+
+      Hessian << Qu - 0.25 * ( Qv + Qw) , -1*Qu , 0.25*Qv, 0.25*Qw,
+               -1*Qu, Qu - 0.25 * ( Qx + Qy) , 0.25*Qx, 0.25*Qy,
+                0.25*Qv, 0.25*Qx, -1*0.25*( Qv + Qx) , Zeros ,
+                0.25*Qw, 0.25*Qy, Zeros, -1*0.25*( Qw + Qy);
+
+
+
+    return I*Hessian + Grad_I*Grad_I.transpose();
+
+
+
+}
+    
+
+
+
+
 
     double VertexPositionGeometry::Dihedral_angle(Eigen::Vector<double,12> Positions) const{
     Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
@@ -1657,6 +1873,141 @@ Eigen::Matrix<double,6,6> VertexPositionGeometry::hessian_edge_length(Eigen::Vec
 
 
     }
+
+    double VertexPositionGeometry::Cotan(Eigen::Vector<double,9> Positions) const{
+
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+    Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+
+    Eigen::Vector3d u = p1 - p2;
+    Eigen::Vector3d v = p3 - p2;
+
+    return (u.dot(v))/(u.cross(v)).norm();
+
+    }
+
+    double VertexPositionGeometry::Angle(Eigen::Vector<double,9> Positions) const{
+        // std::cout<<"Calculating angle \n";
+        Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+        Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+        Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+        
+        Eigen::Vector3d u = p3 -p2;
+        Eigen::Vector3d v = p1 - p2;
+
+        
+
+        return acos(u.dot(v)/(u.norm()*v.norm()));
+        
+        }
+
+    Eigen::Vector<double,9> VertexPositionGeometry::gradient_angle(Eigen::Vector<double,9> Positions) const{
+        // We will calculate the gradient of an angle wrt the three vertices of the triangle
+        Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+        Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+        Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+        // The angle is in vertex p2;
+        Eigen::Vector3d u = p3 - p2;
+        Eigen::Vector3d v = p1 - p2;
+
+
+        // double u_norm = u.norm();
+        // double v_norm = v.norm();
+        Eigen::Vector3d N = (u.cross(v))/(u.cross(v)).norm();
+
+        Eigen::Vector3d grad_a;
+        Eigen::Vector3d grad_b;
+        Eigen::Vector3d grad_c;
+
+        grad_b = -1*(N.cross(u))/(u.dot(u));
+        grad_c = (N.cross(v))/(v.dot(v));
+        grad_a = -1*(grad_b + grad_c);
+
+
+
+        
+        Eigen::Vector<double,9> Gradient;
+
+        Gradient << grad_c, grad_a, grad_b;
+
+        return Gradient;
+
+
+
+    }
+
+    double VertexPositionGeometry::Cotan_weight(Eigen::Vector<double,12> Positions) const{
+        Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+        Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+        Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+        Eigen::Vector3d p4 = { Positions[9], Positions[10], Positions[11] };
+
+        double cot = 0;
+        Eigen::Vector<double,9> Pos_cot;
+
+        Pos_cot << p2, p3 , p1;
+        cot += Cotan(Pos_cot);
+        // std::cout<<"First cotan is " << cot <<" \n";
+        Pos_cot << p1, p4, p2;
+        cot+= Cotan(Pos_cot);
+        // std::cout<<"Second cotan is " << cot <<" \n";
+
+        return cot;
+
+    }
+
+    Eigen::Vector<double,12> VertexPositionGeometry::gradient_cotan_weight(Eigen::Vector<double,12> Positions) const{
+
+
+        Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+        Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+        Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+        Eigen::Vector3d p4 = { Positions[9], Positions[10], Positions[11] };
+
+        Eigen::Vector<double,9> Pos_cot;
+
+        Pos_cot << p2, p3 , p1;
+        
+        double cot = Cotan(Pos_cot);
+
+
+        
+
+        double factor = -1*(1+ cot*cot );
+
+        Eigen::Vector<double,9> Gradient_angle_1 = factor * gradient_angle(Pos_cot);
+        
+        Pos_cot << p1, p4, p2; 
+     
+        cot = Cotan(Pos_cot);
+
+        factor = -1*(1+ cot*cot );
+        Eigen::Vector<double,9> Gradient_angle_2 = factor * gradient_angle(Pos_cot);
+        
+        Eigen::Vector<double,12> Gradient;
+
+        // std::cout<<"The first cotan w gradient is " << Gradient_angle_1.transpose() << "\n";
+        // std::cout<<"The second cotan w gradient is " << Gradient_angle_2.transpose() << "\n";
+
+
+
+        Gradient << (Gradient_angle_1[6] + Gradient_angle_2[0]),
+                    Gradient_angle_1(7) + Gradient_angle_2(1),
+                    Gradient_angle_1(8) + Gradient_angle_2(2), //THis is p1
+                    Gradient_angle_1[0] + Gradient_angle_2[6], //This is p2
+                    Gradient_angle_1[1] + Gradient_angle_2[7],
+                    Gradient_angle_1[2] + Gradient_angle_2[8],
+                    Gradient_angle_1[3], Gradient_angle_1[4], Gradient_angle_1[5], //This is p3
+                    Gradient_angle_2[3], Gradient_angle_2[4], Gradient_angle_2[5]; // This is p4
+
+
+        return Gradient;
+
+
+    }
+    
+
 
 
     double VertexPositionGeometry::Volume(Eigen::Vector<double, 9> Positions) const{

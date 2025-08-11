@@ -532,6 +532,63 @@ int main(int argc, char** argv) {
     // std::cout<<"If we move with the gradient " << geometry->Triangle_area(Positions+Gradient*1e-6) << "\n";
 
 
+    
+    std::cout<<"Lets do the gradient of the angle now\n";
+
+    Eigen::Vector<double,9> Angle_positions;
+
+    Angle_positions = Eigen::Vector<double,9>::Random(9);
+    std::cout<<"Angle positions defined \n";
+    std::cout<<"The angle is " << geometry->Angle(Angle_positions) << "\n";
+    Eigen::Vector<double,9> Angle_gradient = geometry->gradient_angle(Angle_positions);
+    Eigen::Vector<double,9> Finite_Gradient_Angle = Eigen::Vector<double,9>::Zero(9);
+
+    for( int dim = 0; dim < Angle_positions.size(); dim++){
+
+        Eigen::Vector<double,9> Angle_positions2 = Angle_positions;
+        Angle_positions2[dim]+=1e-6;
+        fwd_val = geometry->Angle(Angle_positions2);
+        Angle_positions2[dim]-=2e-6;
+        prev_val = geometry->Angle(Angle_positions2);
+        Finite_Gradient_Angle[dim] = (fwd_val-prev_val)/(2e-6);
+
+    }
+
+    std::cout<<"Now if we compare the angle gradients we get"<<" \n";
+    
+    std::cout<<"The analitical gradient is " << Angle_gradient.transpose() << "\n";
+    std::cout<<"The finite difference gradient is " << Finite_Gradient_Angle.transpose() << "\n";
+    std::cout<<"The summed absolute difference between the angle gradients is " << (Angle_gradient-Finite_Gradient_Angle).cwiseAbs().sum() << "\n";
+
+
+    Eigen::Vector<double, 12> Cotan_w_positions;
+
+    Cotan_w_positions = Eigen::Vector<double, 12>::Random(12);
+
+    std::cout<<"The cotangent weight is " << geometry->Cotan_weight(Cotan_w_positions) << "\n";
+    Eigen::Vector<double, 12> Cotan_w_gradient = geometry->gradient_cotan_weight(Cotan_w_positions);
+    Eigen::Vector<double, 12> Finite_Gradient_Cotan_w = Eigen::Vector<double, 12>::Zero(12);
+
+    for( int dim = 0; dim < Cotan_w_positions.size(); dim++){
+
+        Eigen::Vector<double,12> Cotan_w_positions2 = Cotan_w_positions;
+        Cotan_w_positions2[dim]+=1e-6;
+        fwd_val = geometry->Cotan_weight(Cotan_w_positions2);
+        Cotan_w_positions2[dim]-=2e-6;
+        prev_val = geometry->Cotan_weight(Cotan_w_positions2);
+        Finite_Gradient_Cotan_w[dim] = (fwd_val-prev_val)/(2e-6);
+
+    }
+
+    std::cout<<"Now if we compare the cotangent weight gradients we get"<<" \n";
+    std::cout<<"The analitical gradient is " << Cotan_w_gradient.transpose() << "\n";
+    std::cout<<"The finite difference gradient is " << Finite_Gradient_Cotan_w.transpose() << "\n";
+    std::cout<<"The summed absolute difference between the cotangent weight gradients is " << (Cotan_w_gradient-Finite_Gradient_Cotan_w).cwiseAbs().sum() << "\n";
+
+
+
+
+
 
     // Now we need to see if the cross product matrix works too.
 
@@ -573,6 +630,69 @@ int main(int argc, char** argv) {
     //     std::cout<< "The gradient in the direction " << dim << " is " << Edge_Gradient[dim] << " and the finite difference is " << Finite_Gradient_Edge[dim] << "\n";
     // }
     std::cout<<"The summed absolute difference between the gradients of the edge length is " << (Edge_Gradient-Finite_Gradient_Edge).cwiseAbs().sum() << "\n";
+
+
+
+    // We test this new energy
+
+    Eigen::Vector<double,12> Edge_positions_reg = Eigen::Vector<double,12>::Random(12);
+    Eigen::Vector<double,5> Edge_lenghts_red;
+
+    Eigen::Vector3d p1_reg = { Edge_positions_reg[0], Edge_positions_reg[1], Edge_positions_reg[2] };
+    Eigen::Vector3d p2_reg = { Edge_positions_reg[3], Edge_positions_reg[4], Edge_positions_reg[5] };
+    Eigen::Vector3d p3_reg = { Edge_positions_reg[6], Edge_positions_reg[7], Edge_positions_reg[8] };
+    Eigen::Vector3d p4_reg = { Edge_positions_reg[9], Edge_positions_reg[10], Edge_positions_reg[11] };
+    Edge_lenghts_red[0] = (p1_reg-p2_reg).norm();
+    Edge_lenghts_red[1] = (p1_reg-p3_reg).norm();
+    Edge_lenghts_red[2] = (p1_reg-p4_reg).norm();
+    Edge_lenghts_red[3] = (p2_reg-p3_reg).norm();
+    Edge_lenghts_red[4] = (p2_reg-p4_reg).norm();
+
+    std::cout<<"The edge lengths are " << Edge_lenghts_red.transpose() << "\n";
+    std::cout<<"The edge length regularization energy is " << geometry->Ej_edge_regular(Edge_positions_reg) << "\n";
+
+    Eigen::Vector<double,12> Edge_Gradient_reg = geometry->gradient_edge_regular(Edge_positions_reg);
+    Eigen::Vector<double,12> Finite_Gradient_Edge_reg = Eigen::Vector<double,12>::Zero(12);
+
+    for( int dim = 0; dim < Edge_positions_reg.size(); dim++){
+
+        Eigen::Vector<double,12> Edge_positions_reg2 = Edge_positions_reg;
+        Edge_positions_reg2[dim]+=1e-6;
+
+        fwd_val = geometry->Ej_edge_regular(Edge_positions_reg2);
+        Edge_positions_reg2[dim]-=2e-6;
+
+        prev_val = geometry->Ej_edge_regular(Edge_positions_reg2);
+        Finite_Gradient_Edge_reg[dim] = (fwd_val-prev_val)/(2e-6);
+
+    }
+
+    std::cout<<"Now if we compare the edge regularization gradients we get"<<" \n";
+    std::cout<<"The analitical gradient is " << Edge_Gradient_reg.transpose() << "\n";
+    std::cout<<"The finite difference gradient is " << Finite_Gradient_Edge_reg.transpose() << "\n";
+    std::cout<<"The summed absolute difference between the edge regularization gradients is " << (Edge_Gradient_reg-Finite_Gradient_Edge_reg).cwiseAbs().sum() << "\n";
+
+
+    // We will test the hessian of the Edge regularizer
+
+    Eigen::Matrix<double, 12,12> Hessian_Edge_reg = geometry->hessian_edge_regular(Edge_positions_reg);
+    Eigen::Matrix<double, 12,12> Hessian_Edge_reg_finite = Eigen::Matrix<double,12,12>::Zero(12,12);
+    // So i have the base, we need to calculate finite differences, we got the same number of variations as we have dims right?
+    for(size_t dim = 0; dim < Edge_positions_reg.size(); dim++){
+
+        Eigen::Vector<double,12> Edge_positions_reg2 = Edge_positions_reg;
+        Edge_positions_reg2[dim]+=1e-6;
+        Eigen::Vector<double,12> Gradient_fwd = geometry->gradient_edge_regular(Edge_positions_reg2);
+        Edge_positions_reg2[dim]-=2e-6;
+        Eigen::Vector<double,12> Gradient_prev = geometry->gradient_edge_regular(Edge_positions_reg2);
+        Hessian_Edge_reg_finite.col(dim) = (Gradient_fwd - Gradient_prev)/(2e-6);
+    }
+
+    std::cout<<"THe absolute difference between the Edge regularization Hessians is " << (Hessian_Edge_reg_finite-Hessian_Edge_reg).cwiseAbs().sum() <<" \n";
+    // std::cout<<"The hessian of the Edge regularization is \n" << Hessian_Edge_reg << " \n";
+    // std::cout<<"The hessian of the Edge regularization with finite differences is \n" << Hessian_Edge_reg_finite << " \n";
+
+
 
 
 
@@ -718,7 +838,7 @@ int main(int argc, char** argv) {
 
     std::cout<<"\n\n We start testing on a mesh now \n\n";
 
-    std::string filepath = "../../../input/sphere.obj";
+    std::string filepath = "../../../input/4_tetrahedron.obj";
     // std::string filepath = "../Results/Mem3DG_Cell_Shape_KB_evol_flip/nu_0.625_c0_0.000_KA_10.000_KB_0.010000_init_cond_2_Nsim_11/Membrane_2067500.obj";
     // std::string filepath = "../../../input/20_icosahedron.obj";
     
@@ -731,7 +851,7 @@ int main(int argc, char** argv) {
     std::vector<std::string> Energies(0);
     std::vector<std::vector<double>> Energy_constants(0);
     Energies.push_back("Surface_Tension");
-    Energy_constants.push_back({10.0,0.0}); // just a dummy value for the surface tension
+    Energy_constants.push_back({1.0,0.0}); // just a dummy value for the surface tension
     
     E_Handler Sim_handler;
     Sim_handler = E_Handler(mesh, geometry, Energies, Energy_constants);
@@ -801,6 +921,130 @@ int main(int argc, char** argv) {
     
 
 
+    // I want to test my Laplace Energy (:
+
+
+    double E_Lap = Sim_handler.E_Laplace(Energy_constants[0]);
+    double E_Lap_fwd;
+    double E_lap_bkwd;
+    std::cout<<"The Laplace Energy is " << E_Lap << "\n";
+
+    VertexData<Vector3> Gradient_Laplace = Sim_handler.F_Laplace(Energy_constants[0]);
+    VertexData<Vector3> Gradient_Laplace_finite(*mesh);
+    VertexData<Vector3> Difference(*mesh);
+
+    size_t dim = 0;
+    for(Vertex v: mesh->vertices()){
+        // SO the idea here is  
+        for(size_t coord = 0; coord < 3; coord++){
+            
+            geometry->inputVertexPositions[v][coord]+=1e-6; //move forward
+            geometry->refreshQuantities();
+            E_Lap_fwd = Sim_handler.E_Laplace(Energy_constants[0]);
+            geometry->inputVertexPositions[v][coord]-=2e-6; //move backward
+            geometry->refreshQuantities();
+            E_lap_bkwd = Sim_handler.E_Laplace(Energy_constants[0]);
+            geometry->inputVertexPositions[v][coord]+=1e-6; //restore
+            geometry->refreshQuantities();
+
+            Gradient_Laplace_finite[v][coord] = (E_Lap_fwd - E_lap_bkwd)/(2e-6);
+            
+            }
+        // std::cout<<"The gradient for vertex " << v.getIndex() << " is " << Gradient_Laplace[v] << "\n";
+        // std::cout<<"The finite diff gradient for vertex " << v.getIndex() << " is " << Gradient_Laplace_finite[v] << "\n";
+        // std::cout<<"The difference for vertex " << v.getIndex() << " is " << Difference[v] << "\n";
+
+    }
+    // std::cout<<"The gradient of the Laplace energy is \n" << Gradient_Laplace << "\n";
+    // std::cout<<"The finite difference gradient of the Laplace energy is \n" << Gradient_Laplace_finite << "\n";
+    // std::cout<<"The difference between gradients is \n" << Difference << "\n";
+
+
+    double E_reg = Sim_handler.E_Edge_reg(Energy_constants[0]);
+    double E_reg_fwd;
+    double E_reg_bkwd;
+
+    std::cout<<"The Edge Regularization Energy is " << E_reg << "\n";
+    VertexData<Vector3> Gradient_Edge_reg = Sim_handler.F_Edge_reg(Energy_constants[0]);
+    VertexData<Vector3> Gradient_Edge_reg_finite(*mesh);
+
+    for(Vertex v: mesh->vertices()){
+        // SO the idea here is  
+        for(size_t coord = 0; coord < 3; coord++){
+            
+            geometry->inputVertexPositions[v][coord]+=1e-6; //move forward
+            geometry->refreshQuantities();
+            E_reg_fwd = Sim_handler.E_Edge_reg(Energy_constants[0]);
+            geometry->inputVertexPositions[v][coord]-=2e-6; //move backward
+            geometry->refreshQuantities();
+            E_reg_bkwd = Sim_handler.E_Edge_reg(Energy_constants[0]);
+            geometry->inputVertexPositions[v][coord]+=1e-6; //restore
+            geometry->refreshQuantities();
+
+            Gradient_Edge_reg_finite[v][coord] = (E_reg_fwd - E_reg_bkwd)/(2e-6);
+            
+        }
+        // std::cout<<"The gradient for vertex " << v.getIndex() << " is " << Gradient_Edge_reg[v] << "\n";
+        // std::cout<<"The finite diff gradient for vertex " << v.getIndex() << " is " << Gradient_Edge_reg_finite[v] << "\n";
+    }
+
+
+
+    // std::cout<<"The gradient of the Edge Regularization energy is \n" << Gradient_Edge_reg << "\n";
+    // std::cout<<"The finite difference gradient of the Edge Regularization energy is \n" << Gradient_Edge_reg_finite << "\n";
+    // std::cout<<"The difference between gradients is \n" << (Gradient_Edge_reg - Gradient_Edge_reg_finite) << "\n";
+    std::cout<<"Lets check the hessian of the edge regularization in the mesh\n";
+
+    SparseMatrix<double> Hessian_Edge_reg_mesh = Sim_handler.H_Edge_reg(Energy_constants[0]);
+    Eigen::MatrixXd Hessian_Edge_reg_finite_mesh(3*mesh->nVertices(),3*mesh->nVertices());
+    VertexData<Vector3> Gradient_fwd(*mesh);
+    VertexData<Vector3> Gradient_prev(*mesh);
+    
+    Eigen::VectorXd Difference_grad(3*mesh->nVertices());
+    dim = 0;
+
+  
+    for(Vertex v: mesh->vertices()){
+        // SO the idea here is  
+        for(size_t coord = 0; coord < 3; coord++){
+            
+            geometry->inputVertexPositions[v][coord]+=1e-6; //move forward
+            geometry->refreshQuantities();
+            Gradient_fwd = Sim_handler.F_Edge_reg(Energy_constants[0]);
+            geometry->inputVertexPositions[v][coord]-=2e-6; //move backward
+            geometry->refreshQuantities();
+            Gradient_prev = Sim_handler.F_Edge_reg(Energy_constants[0]);
+            geometry->inputVertexPositions[v][coord]+=1e-6; //restore
+            geometry->refreshQuantities();
+            // Create the vector that goes in the column
+            for(Vertex v2: mesh->vertices()){
+                Difference_grad[3*v2.getIndex()] = (Gradient_fwd[v2]-Gradient_prev[v2]).x/(2e-6);
+                Difference_grad[3*v2.getIndex()+1] = (Gradient_fwd[v2]-Gradient_prev[v2]).y/(2e-6);
+                Difference_grad[3*v2.getIndex()+2] = (Gradient_fwd[v2]-Gradient_prev[v2]).z/(2e-6); 
+            }
+
+
+            Hessian_Edge_reg_finite_mesh.col(dim) = Difference_grad;
+            dim+=1;
+
+
+        }
+    }
+    
+     std::cout<<"The finite difference hessian is \n" << Hessian_Edge_reg_finite_mesh <<"\n";
+
+    // std::cout<<"\n\n Testing Hessians now \n";
+    std::cout<<"The sparse matrix i guess not so sparse\n" << Hessian_Edge_reg_mesh <<" \n";
+
+    // // OK so this is the part where i compare my hessian with the finite difference one :P 
+
+    // Eigen::MatrixXd DifferenceHessians = Hessian_finite_diff + Hessian_bending;
+    Eigen::MatrixXd DifferenceHessians = Hessian_Edge_reg_finite_mesh + Hessian_Edge_reg_mesh;
+    std::cout<<"The matrix difference between the hessians is \n" << DifferenceHessians <<"\n";
+
+
+
+    return 0; //Finishhh
 
 
 
