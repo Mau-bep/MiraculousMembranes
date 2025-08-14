@@ -339,7 +339,7 @@ int main(int argc, char** argv) {
     bool check_forces = false;
 
 
-    for ( int KB_it = 0; KB_it < KBs.size(); KB_it++){
+    for ( size_t KB_it = 0; KB_it < KBs.size(); KB_it++){
         KB = KBs[KB_it];
     
 

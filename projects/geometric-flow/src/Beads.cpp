@@ -5,7 +5,7 @@
 #include <omp.h>
 #include <chrono>
 #include <Eigen/Core>
-
+#include "Interaction.h"
 
 using namespace std;
 /* Constructor 
@@ -57,7 +57,31 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
     // interaction = "test_angle_normal_r_normalized_LJ_Full";
     Total_force={0,0,0};
     prev_E_stationary=0;
-}   
+}
+Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, Vector3 Position, std::vector<double> Energy_constants, Interaction* Interact, int id, int Number_beads){
+    // Build member variables: mesh, geometry
+    mesh = inputMesh;
+    geometry = inputGeo;
+    Pos = Position;
+    sigma = Energy_constants[1];
+    strength = Energy_constants[0];
+    rc = Energy_constants[2];
+    interaction = "";
+
+    Bead_I = Interact;
+    Bead_id = id;
+    Total_beads = Number_beads;
+
+    state = "default"; //The other two states are manual and frozee
+    Velocity = Vector3({0,0,0});
+    
+
+    pulling_speed = 1.0;
+    prev_force=0.0;
+    Total_force={0,0,0};
+    prev_E_stationary=0;
+}
+       
 
     void Bead::Add_bead(Bead *bead, std::string Interaction, vector<double> Interaction_constants){
 
@@ -868,6 +892,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
                 unit_r2 = Unit_rs[v2_idx];
                 unit_r3 = Unit_rs[v3_idx];
                 if((dot(unit_r,Face_normal)<0 || rs[v1_idx] > this->rc ) && (dot(unit_r2,Face_normal) < 0|| rs[v2_idx] > this->rc )&& (dot(unit_r3,Face_normal) < 0 || rs[v3_idx] > this->rc) ){
+                    // std::cout<<"THis happens at face "<<f.getIndex()<<" with vertices "<<v1_idx<<" "<<v2_idx<<" "<<v3_idx<<"\n";
                     break;
                 }
                 // if(rs[v1_idx]>this->rc  && (rs[v2_idx]>this->rc )&& (rs[v3_idx]>this->rc) ){
@@ -899,7 +924,8 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vect
                 
                 alpha=2*(rc2/(sigma*sigma))*pow( 3/(2*( (rc2/(sigma*sigma)) -1))  ,3 );
 
-                F=dot(Face_normal,unit_r)*(-2)*(Face_area/3)*strength*alpha*(  (sigma*sigma/(r*r*r))*pow(( (rc2/(r*r))-1),2 )+ 2*((sigma*sigma/(r*r))-1)*( (rc2/(r*r))-1 )*(rc2/(r*r*r)) )*unit_r;
+                F=dot(Face_normal,unit_r)*(-2)*(Face_area/3)*strength*alpha*(  (sigma*sigma/(r*r*r))*pow(( (rc2/(r*r))-1),2 )
+                + 2*((sigma*sigma/(r*r))-1)*( (rc2/(r*r))-1 )*(rc2/(r*r*r)) )*unit_r;
                 // F=(Face_area/3)*dot(Face_normal,unit_r)*strength*alpha*(-2)*(  (sigma*sigma/(r*r*r))*pow(( (rc2/(r*r))-1),2 )+ 2*((sigma*sigma/(r*r))-1)*( (rc2/(r*r))-1 )*(rc2/(r*r*r)) )*unit_r;
                 Total_force-=F;
                 Force[v1_idx]+=F;

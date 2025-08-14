@@ -1226,8 +1226,8 @@ int main(int argc, char** argv) {
                     std::ofstream Hess_data(basic_name+"Hessian_"+std::to_string(current_t)+".txt");
 
                     // Now i just need to save the whole matrix
-                    for(int i = 0; i < mesh->nVertices()*3; i++){
-                        for(int j = 0; j < mesh->nVertices()*3; j++){
+                    for(size_t i = 0; i < mesh->nVertices()*3; i++){
+                        for(size_t j = 0; j < mesh->nVertices()*3; j++){
                             Hess_data << Hessian_matrix(i,j) << " ";
                         } 
                         Hess_data << "\n";
@@ -1251,16 +1251,16 @@ int main(int argc, char** argv) {
         else if(Integration == "Newton"){
             if(current_t == 0 || current_t == Switch_t){
                 std::cout<<"defining lagrange mults\n";
-            Eigen::VectorXd Lagrange_mults(7);
-            Lagrange_mults(0) = 0.0;
-            Lagrange_mults(1) = 0.0;
-            Lagrange_mults(2) = 0.0;
-            Lagrange_mults(3) = 0.0;
-            Lagrange_mults(4) = 0.0;
-            Lagrange_mults(5) = 0.0;
-            Lagrange_mults(6) = 0.0;
-            Sim_handler.Lagrange_mult = Lagrange_mults;
-            Sim_handler.Trgt_vol = geometry->totalVolume();
+                Eigen::VectorXd Lagrange_mults(7);
+                Lagrange_mults(0) = 0.0;
+                Lagrange_mults(1) = 0.0;
+                Lagrange_mults(2) = 0.0;
+                Lagrange_mults(3) = 0.0;
+                Lagrange_mults(4) = 0.0;
+                Lagrange_mults(5) = 0.0;
+                Lagrange_mults(6) = 0.0;
+                Sim_handler.Lagrange_mult = Lagrange_mults;
+                Sim_handler.Trgt_vol = geometry->totalVolume();
             }
 
             std::vector<std::string> Constraints(0);

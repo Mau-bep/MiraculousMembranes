@@ -125,6 +125,22 @@ inline Vector3 VertexPositionGeometry::faceNormal(Face f) const {
   Vector3 normal = unit(normalSum);
   return normal;
 }
+
+inline Vector3 VertexPositionGeometry::faceNormal_vec(Face f) const {
+  // For general polygons, take the sum of the cross products at each corner
+  
+  Halfedge he = f.halfedge();
+  Vector3 pA = inputVertexPositions[he.vertex()];
+  he = he.next();
+  Vector3 pB = inputVertexPositions[he.vertex()];
+  he = he.next();
+  Vector3 pC = inputVertexPositions[he.vertex()];
+  Vector3 normal = cross(pB - pA, pC - pA);
+
+
+
+  return normal;
+}
   
 
 inline Vector3 VertexPositionGeometry::halfedgeVector(Halfedge he) const {

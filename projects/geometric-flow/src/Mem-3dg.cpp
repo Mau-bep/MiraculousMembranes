@@ -3319,12 +3319,7 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
     RHS(3*vi) = LambdaJ(3*vi) + Force.x;
     RHS(3*vi+1) = LambdaJ(3*vi+1) + Force.y;
     RHS(3*vi+2) = LambdaJ(3*vi+2) + Force.z;
-    // RHS(3*vi) =  dual_area * Force.x;
-    // RHS(3*vi+1) =  dual_area * Force.y;
-    // RHS(3*vi+2) =  dual_area * Force.z;
-    // RHS(3*vi) =  Force.x;
-    // RHS(3*vi+1) = Force.y;
-    // RHS(3*vi+2) = Force.z;
+
   
   }
   // std::cout<<"RHS  force ready\n";
@@ -3382,12 +3377,12 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
       std::cout<<"We are saving the RHS to be used later, with norm " << 0.5*RHS.dot(RHS)  << "\n";
 
       std::ofstream RHS_data = std::ofstream(Data_filenames[0],std::ios_base::app);
-      for(size_t i = 0; i < RHS.size(); i++){
+      for(long int i = 0; i < RHS.size(); i++){
         RHS_data << RHS(i) <<" ";
       }
       RHS_data << "\n";
 
-      for(size_t i = 0; i < RHS.size(); i++){
+      for(long int i = 0; i < RHS.size(); i++){
         RHS_data<< LambdaJ(i) <<" ";
       }
       RHS_data << "\n";

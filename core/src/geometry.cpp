@@ -1529,6 +1529,8 @@ Eigen::Matrix<double,6,6> VertexPositionGeometry::hessian_edge_length(Eigen::Vec
 
     return Hessian;
 }
+
+
 double VertexPositionGeometry::Ej_edge_regular(Eigen::Vector<double,12> Positions) const{
 
     Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
@@ -1697,6 +1699,7 @@ Eigen::Matrix<double,12,12> VertexPositionGeometry::hessian_edge_regular(Eigen::
     return I*Hessian + Grad_I*Grad_I.transpose()/(I*I);
 
 }
+
 Eigen::Matrix<double,12,12> VertexPositionGeometry::hessian_edge_regular(Eigen::Vector<double,12> Positions, Eigen::Vector<double,5> Edge_lengths) const {
     Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
     Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
@@ -1741,6 +1744,187 @@ Eigen::Matrix<double,12,12> VertexPositionGeometry::hessian_edge_regular(Eigen::
 
 }
     
+
+double VertexPositionGeometry::Ej_edge_regular(Eigen::Vector<double,9> Positions) const{
+
+    double E_T = 0.0;
+
+
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+    Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+    Eigen::Vector3d u = p2 - p1;
+    Eigen::Vector3d v = p3 - p1;
+    Eigen::Vector3d w = p3 - p2;
+
+    double u_norm = u.norm();
+    double v_norm = v.norm();
+    double w_norm = w.norm();
+
+    E_T = 0.5*( ( u_norm - v_norm)*( u_norm - v_norm) + 
+              ( u_norm - w_norm)*( u_norm - w_norm) +
+              ( v_norm - w_norm)*( v_norm - w_norm) );
+
+
+    return E_T;
+}
+
+Eigen::Vector<double,9> VertexPositionGeometry::gradient_edge_regular(Eigen::Vector<double,9> Positions) const{
+
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+    Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+
+    Eigen::Vector3d u = p2 - p1;
+    Eigen::Vector3d v = p3 - p1;
+    Eigen::Vector3d w = p3 - p2;
+
+    double u_norm = u.norm();   
+    double v_norm = v.norm();
+    double w_norm = w.norm();
+
+
+    Eigen::Vector3d Eu = (2*u_norm - v_norm - w_norm)*(u/u_norm);
+    Eigen::Vector3d Ev = (2*v_norm - u_norm - w_norm)*(v/v_norm);
+    Eigen::Vector3d Ew = (2*w_norm - u_norm - v_norm)*(w/w_norm);
+
+    Eigen::Vector<double,9> Gradient;
+    Gradient << -Eu-Ev, Eu - Ew, Ew+Ev;
+
+    return Gradient;
+
+
+}
+
+Eigen::Matrix<double,9,9> VertexPositionGeometry::hessian_edge_regular(Eigen::Vector<double,9> Positions) const{
+
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+    Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+
+    Eigen::Vector3d u = p2 - p1;
+    Eigen::Vector3d v = p3 - p1;
+    Eigen::Vector3d w = p3 - p2;
+
+    double u_norm = u.norm();
+    double v_norm = v.norm();
+    double w_norm = w.norm();
+
+    Eigen::Matrix<double, 3, 3> Id = Eigen::Matrix<double, 3, 3>::Identity(3, 3);
+
+    Eigen::Matrix<double, 3, 3> Euu =2*Id - (v_norm + w_norm)*(Id - u*u.transpose()/(u_norm*u_norm) )/(u_norm );
+    Eigen::Matrix<double, 3, 3> Euv = -1.0*(u * v.transpose() )/(u_norm*v_norm);
+    Eigen::Matrix<double, 3, 3> Euw = -1.0*(u * w.transpose() )/(u_norm*w_norm);
+
+    Eigen::Matrix<double, 3, 3> Evv = 2*Id - (u_norm + w_norm)*(Id - v*v.transpose()/(v_norm*v_norm) )/(v_norm );
+    Eigen::Matrix<double, 3, 3> Evw = -1.0*(v * w.transpose() )/(v_norm*w_norm);
+
+    Eigen::Matrix<double, 3, 3> Eww = 2*Id - (u_norm + v_norm)*(Id - w*w.transpose()/(w_norm*w_norm) )/(w_norm );
+
+    Eigen::Matrix<double, 9,9> Hessian;
+
+    Hessian <<  Euu+ Euv + Euv.transpose() + Evv , -Euu + Euw - Euv.transpose() + Evw , -Euv - Euw - Evv - Evw,
+                (-Euu + Euw - Euv.transpose()+ Evw).transpose() , Euu - Euw - Euw.transpose() + Eww, Euv + Euw - Evw.transpose() - Eww,
+                (-Euv - Euw - Evv - Evw).transpose(), (Euv + Euw - Evw.transpose() - Eww).transpose(), Evv+Evw + Evw.transpose()+ Eww;
+
+    return Hessian;
+
+
+
+ 
+
+}
+
+double VertexPositionGeometry::Ej_edge_regular(Eigen::Vector<double,9> Positions, Eigen::Vector<double,3> EdgeLenghts) const{
+
+    double E_T = 0.0;
+
+
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+    Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+    Eigen::Vector3d u = p2 - p1;
+    Eigen::Vector3d v = p3 - p1;
+    Eigen::Vector3d w = p3 - p2;
+
+    double u_norm = EdgeLenghts[0];
+    double v_norm = EdgeLenghts[1];
+    double w_norm = EdgeLenghts[2];
+
+    E_T = 0.5*( ( u_norm - v_norm)*( u_norm - v_norm) + 
+              ( u_norm - w_norm)*( u_norm - w_norm) +
+              ( v_norm - w_norm)*( v_norm - w_norm) );
+
+
+    return E_T;
+}
+
+Eigen::Vector<double,9> VertexPositionGeometry::gradient_edge_regular(Eigen::Vector<double,9> Positions, Eigen::Vector<double,3> EdgeLenghts) const{
+
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+    Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+
+    Eigen::Vector3d u = p2 - p1;
+    Eigen::Vector3d v = p3 - p1;
+    Eigen::Vector3d w = p3 - p2;
+
+    double u_norm = EdgeLenghts[0];
+    double v_norm = EdgeLenghts[1];
+    double w_norm = EdgeLenghts[2];
+
+
+    Eigen::Vector3d Eu = (2*u_norm - v_norm - w_norm)*(u/u_norm);
+    Eigen::Vector3d Ev = (2*v_norm - u_norm - w_norm)*(v/v_norm);
+    Eigen::Vector3d Ew = (2*w_norm - u_norm - v_norm)*(w/w_norm);
+
+    Eigen::Vector<double,9> Gradient;
+    Gradient << -Eu-Ev, Eu - Ew, Ew+Ev;
+
+    return Gradient;
+
+
+}
+
+Eigen::Matrix<double,9,9> VertexPositionGeometry::hessian_edge_regular(Eigen::Vector<double,9> Positions, Eigen::Vector<double,3> EdgeLenghts) const{
+
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+    Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+
+    Eigen::Vector3d u = p2 - p1;
+    Eigen::Vector3d v = p3 - p1;
+    Eigen::Vector3d w = p3 - p2;
+
+    double u_norm = EdgeLenghts[0];
+    double v_norm = EdgeLenghts[1];
+    double w_norm = EdgeLenghts[2];
+
+    Eigen::Matrix<double, 3, 3> Id = Eigen::Matrix<double, 3, 3>::Identity(3, 3);
+
+    Eigen::Matrix<double, 3, 3> Euu =2*Id - (v_norm + w_norm)*(Id - u*u.transpose()/(u_norm*u_norm) )/(u_norm );
+    Eigen::Matrix<double, 3, 3> Euv = -1.0*(u * v.transpose() )/(u_norm*v_norm);
+    Eigen::Matrix<double, 3, 3> Euw = -1.0*(u * w.transpose() )/(u_norm*w_norm);
+
+    Eigen::Matrix<double, 3, 3> Evv = 2*Id - (u_norm + w_norm)*(Id - v*v.transpose()/(v_norm*v_norm) )/(v_norm );
+    Eigen::Matrix<double, 3, 3> Evw = -1.0*(v * w.transpose() )/(v_norm*w_norm);
+
+    Eigen::Matrix<double, 3, 3> Eww = 2*Id - (u_norm + v_norm)*(Id - w*w.transpose()/(w_norm*w_norm) )/(w_norm );
+
+    Eigen::Matrix<double, 9,9> Hessian;
+
+    Hessian <<  Euu+ Euv + Euv.transpose() + Evv , -Euu + Euw - Euv.transpose() + Evw , -Euv - Euw - Evv - Evw,
+                (-Euu + Euw - Euv.transpose()+ Evw).transpose() , Euu - Euw - Euw.transpose() + Eww, Euv + Euw - Evw.transpose() - Eww,
+                (-Euv - Euw - Evv - Evw).transpose(), (Euv + Euw - Evw.transpose() - Eww).transpose(), Evv+Evw + Evw.transpose()+ Eww;
+
+    return Hessian;
+
+
+
+ 
+
+}
+
 
 
 
@@ -2061,6 +2245,160 @@ Eigen::Matrix<double,12,12> VertexPositionGeometry::hessian_edge_regular(Eigen::
     }
 
 
+    double VertexPositionGeometry::Triple_product(Eigen::Vector<double, 13> Positions) const{
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+    Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+    Eigen::Vector3d pB = { Positions[9], Positions[10], Positions[11] };
+
+    Eigen::Vector3d u = p2 - p1;
+    Eigen::Vector3d v = p3 - p1;
+    // That is how we decide which r we are taking
+    Eigen::Vector3d r = pB - Eigen::Vector3d{ Positions[3*Positions[12]+0], Positions[3*Positions[12]+1], Positions[3*Positions[12]+2] };
+
+    // std::cout<<" r  is" << r.transpose() <<"\n";
+    // std::cout<<" r1 is" << (pB  -p1).transpose() << "\n";
+    // std::cout<<" r2 is" << (pB  -p2).transpose() << "\n";
+    // std::cout<<" r3 is" << (pB  -p3).transpose() << "\n";
+
+    return r.dot(u.cross(v));
+
+
+    }
+
+    Eigen::Vector<double,12> VertexPositionGeometry::gradient_triple_product(Eigen::Vector<double, 13> Positions) const{
+    
+    int index = (int) Positions[12];
+
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+    Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+    Eigen::Vector3d pB = { Positions[9], Positions[10], Positions[11] };
+
+    Eigen::Vector3d u = p2 - p1;
+    Eigen::Vector3d v = p3 - p1;
+    // That is how we decide which r we are taking
+    Eigen::Vector3d r = pB - Eigen::Vector3d{ Positions[3*Positions[index]+0], Positions[3*Positions[index]+1], Positions[3*Positions[index]+2] };
+    
+    // std::cout<<"THe bool val is " << 1*(index ==0) << " and " << 1*(index ==1 ) << " and "  << 1*(index ==2 ) <<" \n";
+    Eigen::Vector3d grad_1 = pB.cross(v-u) - p2.cross(p3);
+    Eigen::Vector3d grad_2 = v.cross(pB) - p3.cross(p1);
+    Eigen::Vector3d grad_3 = pB.cross(u) - p1.cross(p2);
+    // Eigen::Vector3d grad_1 = -1*(v.cross(r)) -1*(r.cross(u)) - (p2.cross(p3))*(index ==0);
+    // Eigen::Vector3d grad_2 = (v.cross(r)) - (-1*p1).cross(v)*(index == 1);
+    // Eigen::Vector3d grad_3 = -1*(r.cross(u)) - u.cross(-1*p1)*(index == 2);
+    Eigen::Vector3d grad_B = u.cross(v);
+
+    Eigen::Vector<double, 12> Gradient;
+    Gradient << grad_1, grad_2, grad_3, grad_B;
+    return Gradient;
+    }
+
+    Eigen::Matrix<double, 12, 12> VertexPositionGeometry::hessian_triple_product(Eigen::Vector<double, 13> Positions) const{
+
+    int index = (int) Positions[12];
+    if(index>2) std::cout<<"THe index is ill defined\n";
+
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+    Eigen::Vector3d p3 = { Positions[6], Positions[7], Positions[8] };
+    Eigen::Vector3d pB = { Positions[9], Positions[10], Positions[11] };
+    Eigen::Vector3d u = p2 - p1;
+    Eigen::Vector3d v = p3 - p1;
+    // That is how we decide which r we are taking
+    Eigen::Vector3d r = pB - Eigen::Vector3d{ Positions[3*Positions[index]+0], Positions[3*Positions[index]+1], Positions[3*Positions[index]+2] };
+
+    Eigen::Matrix3d Zeros = Eigen::Matrix3d::Zero(3,3);
+    
+    Eigen::Matrix3d fp1p2 = Cross_product_matrix(p3-pB);
+    Eigen::Matrix3d fp1p3 = Cross_product_matrix(pB-p2);
+    Eigen::Matrix3d fp1pB = Cross_product_matrix(p2-p3);
+    Eigen::Matrix3d fp2p3 = Cross_product_matrix(p1-pB);
+    Eigen::Matrix3d fp2pB = Cross_product_matrix(p3-p1);
+    Eigen::Matrix3d fp3pB = Cross_product_matrix(p1-p2);
+    Eigen::Matrix<double,12,12> Hessian;
+
+    Hessian << Zeros, fp1p2 , fp1p3, fp1pB,
+                fp1p2.transpose(), Zeros, fp2p3, fp2pB,
+                fp1p3.transpose(), fp2p3.transpose(), Zeros, fp3pB,
+                fp1pB.transpose(), fp2pB.transpose(), fp3pB.transpose(), Zeros;
+
+    return Hessian;
+    }
+
+
+    double VertexPositionGeometry::r(Eigen::Vector<double, 6> Positions) const{
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+
+    return (p2 - p1).norm();
+
+    }
+
+
+    Eigen::Vector<double, 6> VertexPositionGeometry::gradient_r(Eigen::Vector<double, 6> Positions) const{
+
+        Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+        Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+        Eigen::Vector3d r = p2 - p1;
+        // P2 is the bead
+        double r_norm = r.norm();
+
+        Eigen::Vector3d grad_1 = -1*(r/r_norm);
+        Eigen::Vector3d grad_2 = r/r_norm;
+
+        Eigen::Vector<double, 6> Gradient;
+        Gradient << grad_1, grad_2;
+        return Gradient;
+    }
+    Eigen::Vector<double,6> VertexPositionGeometry::gradient_r(Eigen::Vector<double, 6> Positions, double r_norm) const{
+    
+        Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+        Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+        Eigen::Vector3d r = p2 - p1;
+        // P2 is the bead
+        Eigen::Vector3d grad_1 = -1*(r/r_norm);
+        // Eigen::Vector3d grad_2 = r/r_norm;
+
+        Eigen::Vector<double, 6> Gradient;
+        Gradient << grad_1, -grad_1;
+        return Gradient;
+    }
+
+    Eigen::Matrix<double, 6, 6> VertexPositionGeometry::hessian_r(Eigen::Vector<double, 6> Positions) const{
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+
+    Eigen::Vector3d r = p2 - p1;
+
+    Eigen::Matrix3d Id = Eigen::Matrix3d::Identity(3,3);
+
+    Eigen::Matrix3d Mat = (1.0/r.norm())*(-1.0*(r*r.transpose())/(r.norm()*r.norm()) + Id);
+    Eigen::Matrix<double, 6, 6> Hessian;
+
+    Hessian << Mat, -1*Mat,
+                -1*Mat, Mat;
+
+    return Hessian;
+    }   
+    Eigen::Matrix<double, 6, 6> VertexPositionGeometry::hessian_r(Eigen::Vector<double, 6> Positions, double r_norm) const{
+    Eigen::Vector3d p1 = { Positions[0], Positions[1], Positions[2] };
+    Eigen::Vector3d p2 = { Positions[3], Positions[4], Positions[5] };
+
+    Eigen::Vector3d r = p2 - p1;
+
+    Eigen::Matrix3d Id = Eigen::Matrix3d::Identity(3,3);
+
+    Eigen::Matrix3d Mat = (1.0/r_norm)*(-1.0*(r*r.transpose())/(r_norm*r_norm) + Id);
+    Eigen::Matrix<double, 6, 6> Hessian;
+
+    Hessian << Mat, -1*Mat,
+                -1*Mat, Mat;
+
+    return Hessian;
+    }   
+
+    
 
 } // namespace surface
 

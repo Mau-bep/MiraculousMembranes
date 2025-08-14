@@ -50,6 +50,7 @@ class VertexPositionGeometry : public EmbeddedGeometryInterface {
     double halfedgeCotanWeight(Halfedge he) const;
     double edgeCotanWeight(Edge e) const;
     Vector3 faceNormal(Face f) const;
+    Vector3 faceNormal_vec(Face f) const;
     Vector3 halfedgeVector(Halfedge he) const;
     double edgeDihedralAngle(Edge e) const;
     double vertexMeanCurvature(Vertex v) const;
@@ -148,13 +149,23 @@ class VertexPositionGeometry : public EmbeddedGeometryInterface {
 
     double Ej_edge_regular(Eigen::Vector<double,12> Positions) const;
     double Ej_edge_regular(Eigen::Vector<double,12> Positions, Eigen::Vector<double,5> Edge_lengths) const;
+    
     Eigen::Vector<double,12> gradient_edge_regular(Eigen::Vector<double,12> Positions) const;
     Eigen::Vector<double,12> gradient_edge_regular(Eigen::Vector<double,12> Positions, Eigen::Vector<double,5> Edge_lengths) const;
-    
     Eigen::Vector<double,12> gradient_edge_regular_I(Eigen::Vector<double,12> Positions, Eigen::Vector<double,5> Edge_lengths) const;
 
     Eigen::Matrix<double,12,12> hessian_edge_regular(Eigen::Vector<double,12> Positions) const;
     Eigen::Matrix<double,12,12> hessian_edge_regular(Eigen::Vector<double,12> Positions, Eigen::Vector<double,5> Edge_lengths) const;
+
+    double Ej_edge_regular(Eigen::Vector<double,9> Positions) const;
+    Eigen::Vector<double,9> gradient_edge_regular(Eigen::Vector<double,9> Positions) const;
+    Eigen::Matrix<double,9,9> hessian_edge_regular(Eigen::Vector<double,9> Positions) const;
+    
+    double Ej_edge_regular(Eigen::Vector<double,9> Positions, Eigen::Vector<double,3> EdgeLenghts) const;
+    Eigen::Vector<double,9> gradient_edge_regular(Eigen::Vector<double,9> Positions, Eigen::Vector<double,3> EdgeLenghts) const;
+    Eigen::Matrix<double,9,9> hessian_edge_regular(Eigen::Vector<double,9> Positions, Eigen::Vector<double,3> EdgeLenghts) const;
+    
+
 
     double Dihedral_angle(Eigen::Vector<double, 12> Positions) const;
     Eigen::Vector<double, 12> gradient_dihedral_angle(Eigen::Vector<double, 12> Positions) const;
@@ -175,6 +186,16 @@ class VertexPositionGeometry : public EmbeddedGeometryInterface {
     Eigen::Matrix<double, 9, 9> hessian_volume(Eigen::Vector<double, 9> Positions) const;
 
 
+  
+    double Triple_product(Eigen::Vector<double, 13> Positions) const;
+    Eigen::Vector<double,12> gradient_triple_product(Eigen::Vector<double, 13> Positions) const;
+    Eigen::Matrix<double,12,12> hessian_triple_product(Eigen::Vector<double, 13> Positions) const;
+
+    double r(Eigen::Vector<double,6> Positions) const;
+    Eigen::Vector<double,6> gradient_r(Eigen::Vector<double,6> Positions) const;
+    Eigen::Vector<double,6> gradient_r(Eigen::Vector<double, 6> Positions, double r_norm) const;
+    Eigen::Matrix<double,6,6> hessian_r(Eigen::Vector<double,6> Positions) const;
+    Eigen::Matrix<double,6,6> hessian_r(Eigen::Vector<double,6> Positions, double r_norm) const;
 
   protected:
     // Override the compute vertex positions method for embedded geometry

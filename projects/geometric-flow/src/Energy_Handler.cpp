@@ -176,6 +176,34 @@ double E_Handler::E_Edge_reg(std::vector<double> Constants) const{
     double E_edge = 0.0;
     double KE = Constants[0];
 
+    Halfedge he; 
+    Eigen::Vector<double,9> Positions;
+    Eigen::Vector<double,3> Edge_lengths_prev;
+    EdgeData<double> Edge_lengths(*mesh);
+    for(Edge e: mesh->edges()){
+        Edge_lengths[e] = geometry->edgeLength(e);
+    }
+
+    for(Face f: mesh->faces()){
+        he = f.halfedge();
+
+        Positions << geometry->inputVertexPositions[he.vertex()].x, geometry->inputVertexPositions[he.vertex()].y, geometry->inputVertexPositions[he.vertex()].z,
+                    geometry->inputVertexPositions[he.next().vertex()].x, geometry->inputVertexPositions[he.next().vertex()].y, geometry->inputVertexPositions[he.next().vertex()].z,
+                    geometry->inputVertexPositions[he.next().next().vertex()].x, geometry->inputVertexPositions[he.next().next().vertex()].y, geometry->inputVertexPositions[he.next().next().vertex()].z;
+        Edge_lengths_prev << Edge_lengths[he.edge()], 
+                            Edge_lengths[he.next().next().edge()], 
+                            Edge_lengths[he.next().edge()];
+        E_edge += KE*geometry->Ej_edge_regular(Positions, Edge_lengths_prev);
+    }
+
+    return E_edge;
+
+}
+double E_Handler::E_Edge_reg_2(std::vector<double> Constants) const{
+
+    double E_edge = 0.0;
+    double KE = Constants[0];
+
     // Ok perfect so now we add the energy 
     Halfedge he;
     Eigen::Vector<double,12> Positions;
@@ -745,8 +773,55 @@ VertexData<Vector3> E_Handler::F_Laplace(std::vector<double> Constants) const{
 
 }
 
-
 VertexData<Vector3> E_Handler::F_Edge_reg(std::vector<double> Constants) const{
+
+    VertexData<Vector3> Force(*mesh);
+    double KE = Constants[0];
+
+    // Ok perfect so now we add the energy
+    Halfedge he;
+
+    Eigen::Vector<double,9> Positions;
+    Eigen::Vector<double,3> Edge_lengths_prev;
+    Eigen::Vector<double,9> Grad_E;
+
+    std::array<Vertex,3> Vertices;
+    Vector3 Force_vector;
+    EdgeData<double> Edge_lengths(*mesh);
+    for(Edge e: mesh->edges()){
+        Edge_lengths[e] = geometry->edgeLength(e);
+    }
+    // Till here everything is the same
+    for(Face f: mesh->faces()) {
+        // I need to get the edge length
+        he = f.halfedge();
+
+        Vertices[0] = he.vertex();
+        Vertices[1] = he.next().vertex();
+        Vertices[2] = he.next().next().vertex();
+        
+        Positions << geometry->inputVertexPositions[he.vertex()].x, geometry->inputVertexPositions[he.vertex()].y, geometry->inputVertexPositions[he.vertex()].z,
+                    geometry->inputVertexPositions[he.next().vertex()].x, geometry->inputVertexPositions[he.next().vertex()].y, geometry->inputVertexPositions[he.next().vertex()].z,
+                    geometry->inputVertexPositions[he.next().next().vertex()].x, geometry->inputVertexPositions[he.next().next().vertex()].y, geometry->inputVertexPositions[he.next().next().vertex()].z;
+        Edge_lengths_prev << Edge_lengths[he.edge()], 
+                            Edge_lengths[he.next().next().edge()], 
+                            Edge_lengths[he.next().edge()];
+        
+        Grad_E = geometry->gradient_edge_regular(Positions, Edge_lengths_prev);
+
+        // Now we have the gradient of the edge regularization energy, we need to add it to the force
+        for(size_t i = 0; i < 3; i++){
+            Force_vector = Vector3{Grad_E[3*i], Grad_E[3*i+1], Grad_E[3*i+2]};
+            Force_vector *= KE;
+            Force[Vertices[i]] -= Force_vector;
+        }
+    
+    }
+
+    return Force;   
+}
+
+VertexData<Vector3> E_Handler::F_Edge_reg_2(std::vector<double> Constants) const{
 
     VertexData<Vector3> Force(*mesh);
     double KE = Constants[0];
@@ -1284,6 +1359,61 @@ SparseMatrix<double> E_Handler::H_Volume(std::vector<double> Constants){
 
 
 SparseMatrix<double> E_Handler::H_Edge_reg(std::vector<double> Constants){
+    double KE = Constants[0];
+
+    int nVerts = mesh->nVertices();
+    SparseMatrix<double> Hessian(3*nVerts,3*nVerts);
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+    Eigen::Matrix<double,9,9> Hessian_block_edge;
+    Eigen::Vector<double, 9> Positions;
+    std::vector<Vertex> Vertices(3);
+    Halfedge he;
+    Eigen::Matrix3d Zeros = Eigen::Matrix3d::Zero();
+    EdgeData<double> Edge_lengths(*mesh, 0.0);
+    Eigen::Vector<double, 3> Edge_lengths_prev;
+
+    for(Edge e: mesh->edges()){
+        Edge_lengths[e] = geometry->edgeLength(e);
+        // std::cout<<"" << e.getIndex() << " and its length is " << Edge_lengths[e] << "\n";
+    }
+
+    for(Face f: mesh->faces()){
+        he = f.halfedge();
+
+        Vertices[0] = he.vertex();
+        Vertices[1] = he.next().vertex();
+        Vertices[2] = he.next().next().vertex();
+
+        Positions << geometry->inputVertexPositions[Vertices[0]].x , geometry->inputVertexPositions[Vertices[0]].y , geometry->inputVertexPositions[Vertices[0]].z,
+                    geometry->inputVertexPositions[Vertices[1]].x, geometry->inputVertexPositions[Vertices[1]].y, geometry->inputVertexPositions[Vertices[1]].z,
+                    geometry->inputVertexPositions[Vertices[2]].x, geometry->inputVertexPositions[Vertices[2]].y, geometry->inputVertexPositions[Vertices[2]].z;
+        Edge_lengths_prev << Edge_lengths[he.edge()], 
+                            Edge_lengths[he.next().next().edge()], 
+                            Edge_lengths[he.twin().next().edge()];
+
+        // Now we do the hesian thingy
+        Hessian_block_edge = geometry->hessian_edge_regular(Positions, Edge_lengths_prev);
+
+        // std::cout<<"block calculated\n";
+        for(size_t row = 0; row < 9; row++){
+            for(size_t col = 0; col< 9; col++ ){
+                if( Hessian_block_edge(row,col) > 1e-12 || Hessian_block_edge(row,col) < -1e-12) tripletList.push_back(T(Vertices[row/3].getIndex()*3+row%3,Vertices[col/3].getIndex()*3+col%3,Hessian_block_edge(row,col) ));
+
+            }
+        }
+    }
+
+    Hessian.setFromTriplets(tripletList.begin(),tripletList.end());
+
+
+    return KE*Hessian;
+
+
+
+}   
+
+SparseMatrix<double> E_Handler::H_Edge_reg_2(std::vector<double> Constants){
 
     // Lets get this hessian
     double KE = Constants[0];

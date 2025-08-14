@@ -498,7 +498,7 @@ VertexData<Vector3> IMem3DG::Sobolev_operator() const {
     int col;
     double value;
 
-    for( size_t k = 0; k < L.outerSize(); ++k ) {
+    for( long int k = 0; k < L.outerSize(); ++k ) {
         for( SparseMatrix<double>::InnerIterator it(L,k); it; ++it ) {
             value = it.value();
             row = it.row();
@@ -536,7 +536,7 @@ VertexData<Vector3> IMem3DG::Sobolev_operator() const {
 
     // std::cout<<"The highest index is " << highest_idx <<"\n";
     // std::cout<<"CREATING RHS\n";
-    for(size_t index = 0; index<Num_constraints;index++)
+    for(int index = 0; index<Num_constraints;index++)
     {
         RHS.coeffRef(3*N_vert+index)=0;
     }

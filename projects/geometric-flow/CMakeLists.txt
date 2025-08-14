@@ -99,6 +99,7 @@ set(SRCScluster
   src/Mem-3dg.cpp
   src/Beads.cpp
   src/Energy_Handler.cpp
+  src/Interaction.cpp
   ../../utils/src/colormap.cpp
 )
 
@@ -107,6 +108,7 @@ set(SRCSvisualize
   src/Mem-3dg.cpp
   src/Beads.cpp
   src/Energy_Handler.cpp
+  src/Interaction.cpp
   ../../utils/src/colormap.cpp
 )
 
@@ -114,6 +116,7 @@ set(SRCSmainpreserv
   src/main_preserving_mean_curv.cpp  
   src/Mem-3dg.cpp
   src/Beads.cpp
+  src/Interaction.cpp
   ../../utils/src/colormap.cpp
 )
 
@@ -143,6 +146,7 @@ set(SRCSprocessing
   src/Post_processing.cpp  
   src/Mem-3dg.cpp
   src/Beads.cpp
+  src/Interaction.cpp
   ../../utils/src/colormap.cpp
 )
 
@@ -150,6 +154,7 @@ set(SRCSprocessingtube
   src/Processing_tube.cpp  
   src/Mem-3dg.cpp
   src/Beads.cpp
+  src/Interaction.cpp
   ../../utils/src/colormap.cpp
 )
 
@@ -178,6 +183,7 @@ set(TEST_hessian_SRCS
   src/Mem-3dg.cpp
   src/Beads.cpp
   src/Energy_Handler.cpp
+  src/Interaction.cpp
   ../../utils/src/colormap.cpp
 )
 
@@ -185,6 +191,7 @@ set(TEST_Grad_th_SRCS
   src/E_test_2.cpp
   src/Mem-3dg.cpp
   src/Beads.cpp
+  src/Interaction.cpp
   ../../utils/src/colormap.cpp
 )
 
@@ -192,6 +199,7 @@ set(TEST_fan_SRCS
   src/Test_fan_basic.cpp
   src/Mem-3dg.cpp
   src/Beads.cpp
+  src/Interaction.cpp
   ../../utils/src/colormap.cpp
 )
 

@@ -38,6 +38,7 @@
 #include "Beads.h"
 #include "Energy_Handler.h"
 #include "math.h"
+#include "Interaction.h"
 
 
 #include "libarcsim/include/cloth.hpp"
@@ -678,7 +679,7 @@ int main(int argc, char** argv) {
     Eigen::Matrix<double, 12,12> Hessian_Edge_reg = geometry->hessian_edge_regular(Edge_positions_reg);
     Eigen::Matrix<double, 12,12> Hessian_Edge_reg_finite = Eigen::Matrix<double,12,12>::Zero(12,12);
     // So i have the base, we need to calculate finite differences, we got the same number of variations as we have dims right?
-    for(size_t dim = 0; dim < Edge_positions_reg.size(); dim++){
+    for(long int dim = 0; dim < Edge_positions_reg.size(); dim++){
 
         Eigen::Vector<double,12> Edge_positions_reg2 = Edge_positions_reg;
         Edge_positions_reg2[dim]+=1e-6;
@@ -706,7 +707,7 @@ int main(int argc, char** argv) {
     
     Eigen::Vector<double,12> Finite_Gradient_Dihedral = Eigen::Vector<double,12>::Zero(12);
 
-    for(size_t dim = 0; dim < Dihedral_Positions.size(); dim++){
+    for(long int dim = 0; dim < Dihedral_Positions.size(); dim++){
 
         Eigen::Vector<double,12> Dihedral_Positions2 = Dihedral_Positions;
         Dihedral_Positions2[dim]+=1e-6;
@@ -726,7 +727,7 @@ int main(int argc, char** argv) {
 
     // Ok so i have the base, we need to calculate finite differences, we got the same number of variations as we have dims right?
 
-    for(size_t dim = 0; dim < Edge_Positions.size(); dim++){
+    for(long int dim = 0; dim < Edge_Positions.size(); dim++){
 
         Eigen::Vector<double,6> Edge_Positions2 = Edge_Positions;
         Edge_Positions2[dim]+=1e-6;
@@ -747,7 +748,7 @@ int main(int argc, char** argv) {
     Eigen::Vector<double,9> Volume_gradient = geometry->gradient_volume(Volume_Positions);
 
     Eigen::Vector<double,9> Volume_gradient_finite = Eigen::Vector<double,9>::Zero(9);
-    for(size_t dim = 0; dim < Volume_Positions.size(); dim++){
+    for(long int dim = 0; dim < Volume_Positions.size(); dim++){
 
         Eigen::Vector<double,9> Volume_Positions2 = Volume_Positions;
         Volume_Positions2[dim]+=1e-6;
@@ -764,7 +765,7 @@ int main(int argc, char** argv) {
 
 
     // std::cout<<"THe difference between the Hessians is \n";
-    // for(size_t dim = 0; dim < EEdge_Positions.size(); dim++){
+    // for(long int dim = 0; dim < EEdge_Positions.size(); dim++){
         std::cout<<"THe absolute difference between the Edge Hessians is " << (Hessian_Edge_finite-Hessian_Edge).sum() <<" \n";
         // std::cout<< Hessian_Edge_finite.col(dim) - Hessian_Edge.col(dim) << " \n";
     // }
@@ -778,7 +779,7 @@ int main(int argc, char** argv) {
     Eigen::Matrix<double, 9, 9> Hessian_Area = geometry->hessian_triangle_area(Positions);
     Eigen::Matrix<double, 9,9> Hessian_Area_finite = Eigen::Matrix<double,9,9>::Zero(9,9);
 
-    for(size_t dim = 0; dim < Positions.size(); dim++){
+    for(long int dim = 0; dim < Positions.size(); dim++){
 
         Eigen::Vector<double,9> Positions2 = Positions;
         Positions2[dim]+=1e-6;
@@ -800,7 +801,7 @@ int main(int argc, char** argv) {
 
     // Its time to finite difference this 
 
-    for(size_t dim = 0; dim < Dihedral_Positions.size(); dim++){
+    for(long int dim = 0; dim < Dihedral_Positions.size(); dim++){
 
         Eigen::Vector<double,12> Dihedral_Positions2 = Dihedral_Positions;
         Dihedral_Positions2[dim]+=1e-6;
@@ -821,7 +822,7 @@ int main(int argc, char** argv) {
 
     // Its time to finite difference this
 
-    for(size_t dim = 0; dim < Volume_Positions.size(); dim++){
+    for(long int dim = 0; dim < Volume_Positions.size(); dim++){
 
         Eigen::Vector<double,9> Volume_Positions2 = Volume_Positions;
         Volume_Positions2[dim]+=1e-6;
@@ -834,6 +835,123 @@ int main(int argc, char** argv) {
 
     std::cout<<"The absolute difference between the Volume Hessians is " << (Hessian_Volume_finite-Hessian_Volume).sum() <<" \n";
 
+
+    // Lets test our new functinos
+
+    Eigen::Vector<double,6 > R_positions = Eigen::Vector<double,6>::Random(6);
+    Eigen::Vector<double,6> R_gradient = geometry->gradient_r(R_positions);
+    Eigen::Vector<double,6> R_gradient_finite = Eigen::Vector<double,6>::Zero(6);
+    for(long int dim = 0; dim < R_positions.size(); dim++){
+
+        Eigen::Vector<double,6> R_positions2 = R_positions;
+        R_positions2[dim]+=1e-6;
+        fwd_val = geometry->r(R_positions2);
+        R_positions2[dim]-=2e-6;
+        prev_val = geometry->r(R_positions2);
+        R_gradient_finite[dim] = (fwd_val-prev_val)/(2e-6);
+
+    }
+    std::cout<<"The summed absolute difference between the r gradients is " << (R_gradient-R_gradient_finite).cwiseAbs().sum() << "\n";
+    std::cout<<"THe r gradient is " << R_gradient.transpose() << "\n";
+    std::cout<<"THe r finite gradient is " << R_gradient_finite.transpose() << "\n";
+    Eigen::Matrix<double, 6,6> Hessian_R = geometry->hessian_r(R_positions);
+    Eigen::Matrix<double, 6,6> Hessian_R_finite = Eigen::Matrix<double,6,6>::Zero(6,6);
+    // Its time to finite difference this
+    for(long int dim = 0; dim < R_positions.size(); dim++){
+
+        Eigen::Vector<double,6> R_positions2 = R_positions;
+        R_positions2[dim]+=1e-6;
+        Eigen::Vector<double,6> Gradient_fwd = geometry->gradient_r(R_positions2);
+        R_positions2[dim]-=2e-6;
+        Eigen::Vector<double,6> Gradient_prev = geometry->gradient_r(R_positions2);
+        Hessian_R_finite.col(dim) = (Gradient_fwd - Gradient_prev)/(2e-6);
+
+    }
+    std::cout<<"The absolute difference between the Hessian of r is " << (Hessian_R_finite-Hessian_R).sum() <<" \n";
+    // std::cout<<"The Hessian of r is \n" << Hessian_R << " \n";
+    // std::cout<<"The Hessian of r with finite differences is \n" << Hessian_R_finite << " \n";
+
+    // Now we do the next test for the triple product
+    Eigen::Vector<double,13> Triple_positions = Eigen::Vector<double,13>::Random(13);
+        
+    for(int index = 0  ; index <3; index++){
+        Triple_positions[12] = index;
+        // std::cout<<"The index is" << Triple_positions[12] <<" \n";
+        Eigen::Vector<double,12> Triple_gradient = geometry->gradient_triple_product(Triple_positions);
+        Eigen::Vector<double,12> Triple_gradient_finite = Eigen::Vector<double,12>::Zero(12);
+        
+        std::cout<<"The triple product is " << geometry->Triple_product(Triple_positions)<<" \n";
+
+
+        for(long int dim = 0; dim < 12; dim++){
+
+            Eigen::Vector<double,13> Triple_positions2 = Triple_positions;
+            // std::cout<<"THe index is " << Triple_positions2[12 ] << " \n";
+            Triple_positions2[dim]+=1e-6;
+            fwd_val = geometry->Triple_product(Triple_positions2);
+            Triple_positions2[dim]-=2e-6;
+            prev_val = geometry->Triple_product(Triple_positions2);
+            Triple_gradient_finite[dim] = (fwd_val-prev_val)/(2e-6);
+
+        }
+        std::cout<<"The summed absolute difference between the triple product gradients is " << (Triple_gradient-Triple_gradient_finite).cwiseAbs().sum() << "\n";
+        // std::cout<<"THe triple product gradient is " << Triple_gradient.transpose() << "\n";
+        // std::cout<<"THe triple product finite gradient is " << Triple_gradient_finite.transpose() << "\n";
+
+        // Lets do the hessian too
+        Eigen::Matrix<double, 12,12> Hessian_Triple = geometry->hessian_triple_product(Triple_positions);
+        Eigen::Matrix<double, 12,12> Hessian_Triple_finite = Eigen::Matrix<double,12,12>::Zero(12,12);
+
+        for(long int dim = 0; dim < 12; dim++){
+            Eigen::Vector<double,13> Triple_positions2 = Triple_positions;
+            Triple_positions2[dim]+=1e-6;
+            Eigen::Vector<double,12> fwd_val = geometry->gradient_triple_product(Triple_positions2);
+            Triple_positions2[dim]-=2e-6;
+            Eigen::Vector<double,12> prev_val = geometry->gradient_triple_product(Triple_positions2);
+            Hessian_Triple_finite.col(dim) = (fwd_val-prev_val)/(2e-6);
+
+        }
+
+        std::cout<<"The absolute difference between the Hessian of triple prod is " << (Hessian_Triple-Hessian_Triple_finite).sum() <<" \n";
+    
+
+    }
+
+    // we DO THE NEW EDGE REG
+
+    Eigen::Vector<double,9> Positions_edge_reg = Eigen::Vector<double,9>::Random(9);
+    Eigen::Vector<double,9> Edge_reg_gradient = geometry->gradient_edge_regular(Positions_edge_reg);
+    Eigen::Vector<double,9> Edge_reg_gradient_finite = Eigen::Vector<double,9>::Zero(9);
+    for(long int dim = 0; dim < Positions_edge_reg.size(); dim++){
+
+        Eigen::Vector<double,9> Positions_edge_reg2 = Positions_edge_reg;
+        Positions_edge_reg2[dim]+=1e-6;
+        fwd_val = geometry->Ej_edge_regular(Positions_edge_reg2);
+        Positions_edge_reg2[dim]-=2e-6;
+        prev_val = geometry->Ej_edge_regular(Positions_edge_reg2);
+        Edge_reg_gradient_finite[dim] = (fwd_val-prev_val)/(2e-6);
+
+    }
+    std::cout<<"The summed absolute difference between the edge regularization gradients is " << (Edge_reg_gradient-Edge_reg_gradient_finite).cwiseAbs().sum() << "\n";
+    std::cout<<"THe edge regularization gradient is " << Edge_reg_gradient.transpose() << "\n";
+    std::cout<<"THe edge regularization finite gradient is " << Edge_reg_gradient_finite.transpose() << "\n";
+
+    Eigen::Matrix<double, 9,9> Edge_reg_Hessian = geometry->hessian_edge_regular(Positions_edge_reg);
+    Eigen::Matrix<double, 9,9> Edge_reg_Hessian_finite = Eigen::Matrix<double,9,9>::Zero(9,9);
+    // Its time to finite difference this
+    for(long int dim = 0; dim < Positions_edge_reg.size(); dim++){
+
+        Eigen::Vector<double,9> Positions_edge_reg2 = Positions_edge_reg;
+        Positions_edge_reg2[dim]+=1e-6;
+        Eigen::Vector<double,9> Gradient_fwd = geometry->gradient_edge_regular(Positions_edge_reg2);
+        Positions_edge_reg2[dim]-=2e-6;
+        Eigen::Vector<double,9> Gradient_prev = geometry->gradient_edge_regular(Positions_edge_reg2);
+        Edge_reg_Hessian_finite.col(dim) = (Gradient_fwd - Gradient_prev)/(2e-6);
+
+    }
+    std::cout<<"The absolute difference between the Hessian of edge regularization is " << (Edge_reg_Hessian_finite-Edge_reg_Hessian).sum() <<" \n";
+    std::cout<<"The Hessian of edge regularization is \n" << Edge_reg_Hessian  << " \n";
+    std::cout<<"The Hessian of edge regularization with finite differences is \n" << Edge_reg_Hessian_finite << " \n";
 
 
     std::cout<<"\n\n We start testing on a mesh now \n\n";
@@ -933,7 +1051,7 @@ int main(int argc, char** argv) {
     VertexData<Vector3> Gradient_Laplace_finite(*mesh);
     VertexData<Vector3> Difference(*mesh);
 
-    size_t dim = 0;
+    long int dim = 0;
     for(Vertex v: mesh->vertices()){
         // SO the idea here is  
         for(size_t coord = 0; coord < 3; coord++){
@@ -1036,13 +1154,305 @@ int main(int argc, char** argv) {
     // std::cout<<"\n\n Testing Hessians now \n";
     std::cout<<"The sparse matrix i guess not so sparse\n" << Hessian_Edge_reg_mesh <<" \n";
 
-    // // OK so this is the part where i compare my hessian with the finite difference one :P 
+    // OK so this is the part where i compare my hessian with the finite difference one :P 
 
     // Eigen::MatrixXd DifferenceHessians = Hessian_finite_diff + Hessian_bending;
     Eigen::MatrixXd DifferenceHessians = Hessian_Edge_reg_finite_mesh + Hessian_Edge_reg_mesh;
-    std::cout<<"The matrix difference between the hessians is \n" << DifferenceHessians <<"\n";
+    std::cout<<"The matrix difference between the hessians is \n" << DifferenceHessians <<"\n";                                                                                     
 
 
+
+
+
+    // We want to test the Energies now
+
+    Interaction* Bead_I;
+    double rc = -1;
+    std::vector<double> params(0);
+    params.push_back(1.0); // epsilon
+    params.push_back(1.0); // sigma
+    params.push_back(rc); // cutoff
+
+    // Bead_I = new Constant_Normal(params);
+    // Bead_I = new Frenkel_Normal(params);
+    Bead_I = new LJ(params);
+
+    double r = 1.7325;
+    double r_2;
+    // I want do debug the Frenkel Normal interaction
+
+    double E_fwd;
+    double E_prev;
+
+    double Grad_E = Bead_I->dE_r(r,params);
+
+    r_2 = r;
+    r_2 += 1e-6; // move forward
+    E_fwd = Bead_I->E_r(r_2,params);
+    r_2 -= 2e-6; // move backward
+    E_prev = Bead_I->E_r(r_2,params);
+
+    double Finite_diff_grad = (E_fwd - E_prev)/(2e-6);
+    std::cout<<"The gradient of the Frenkel Normal interaction is " << Grad_E << "\n";
+    std::cout<<"The finite difference gradient of the Frenkel Normal interaction is " << Finite_diff_grad << "\n";
+
+    // First thing is to 
+
+    double DD_E = Bead_I->ddE_r(r,params);
+
+    double d_E_fwd;
+    double d_E_prev;
+    r_2 = r;
+    r_2 += 1e-6; // move forward
+    d_E_fwd = Bead_I->dE_r(r_2,params);
+    r_2 -= 2e-6; // move backward
+    d_E_prev = Bead_I->dE_r(r_2,params);
+    double Finite_diff_dE = (d_E_fwd - d_E_prev)/(2e-6);
+    std::cout<<"The second derivative of the Frenkel Normal interaction is " << DD_E << "\n";
+    std::cout<<"The finite difference second derivative of the Frenkel Normal interaction is " << Finite_diff_dE << "\n";
+
+
+
+    // Lets do an experiment here 
+
+    double E_over_r = Bead_I->E_r(r,params)/r;
+
+    double dE_over_r = Bead_I->dE_r(r,params)/r - Bead_I->E_r(r,params)/(r*r);
+
+    double dE_over_r_finite;
+
+    r_2 = r;
+    r_2 += 1e-6; // move forward
+    E_fwd = Bead_I->E_r(r_2,params)/r_2;
+    r_2 -= 2e-6; // move backward
+    E_prev = Bead_I->E_r(r_2,params)/r_2;
+    dE_over_r_finite = (E_fwd - E_prev)/(2e-6);
+
+    std::cout<<"The energy over r is " << E_over_r << "\n";
+    std::cout<<"The derivative of the energy over r is " << dE_over_r << "\n";
+    std::cout<<"The finitative of the energy over r is " << dE_over_r_finite << "\n";
+
+
+
+
+    // I need to create a Bead now
+
+    std::cout<<"Creating bead\n";
+    int N_beads =1;
+    Bead Bead_1(mesh,geometry,Vector3{2.0,0.0,0.0},params,Bead_I,0,N_beads);
+    std::cout<<"Calculating bead energy\n";
+    Bead_I->mesh = mesh;
+    Bead_I->geometry = geometry;
+    Bead_I->Bead_1 = &Bead_1;
+
+    Bead_1.interaction = "Shifted_LJ_Normal_nopush";
+    Bead_1.rc = 2.0;
+    Bead_1.sigma = 1.0;
+    Bead_1.strength = 1.0;
+
+    VertexData<Vector3> Force_old_method = Bead_1.Gradient();
+    Vector3 old_Bead_F = Bead_1.Total_force;
+    Bead_1.Total_force = Vector3{0.0,0.0,0.0};
+
+    std::cout<<"The bead energy is" << Bead_1.Bead_I->Tot_Energy() << " \n";
+
+    VertexData<Vector3> Inter_Force = Bead_1.Bead_I->Gradient();
+    VertexData<Vector3> Inter_Force_finite(*mesh,{0.0,0.0,0.0});
+
+    double fwd_val_x;
+    double prev_val_x;
+    double fwd_val_y;
+    double prev_val_y;
+    double fwd_val_z;
+    double prev_val_z;
+    // Now we want to calculate the finite difference gradient of the bead interaction
+    for(Vertex v: mesh->vertices()){
+        // SO the idea here is  
+            // std::cout<<"THe vertex is " << v.getIndex() << "\n";
+            // std::cout<<"Position is " << geometry->inputVertexPositions[v] << "\n";
+
+            
+            geometry->inputVertexPositions[v].x+=1e-7; //move forward
+            geometry->refreshQuantities();
+            fwd_val_x = Bead_1.Bead_I->Tot_Energy();
+            geometry->inputVertexPositions[v].x-=2e-7; //move backward
+            geometry->refreshQuantities();
+            prev_val_x = Bead_1.Bead_I->Tot_Energy();
+            geometry->inputVertexPositions[v].x+=1e-7; //restore
+            geometry->refreshQuantities();
+
+            // std::cout<< setprecision(9)<<"The contribution of vertex to the bead energy is " << fwd_val_x << "and " << prev_val_x << "\n";
+
+            geometry->inputVertexPositions[v].y+=1e-7; //move forward
+            geometry->refreshQuantities();
+            fwd_val_y = Bead_1.Bead_I->Tot_Energy();
+            geometry->inputVertexPositions[v].y-=2e-7; //move backward
+            geometry->refreshQuantities();
+            prev_val_y = Bead_1.Bead_I->Tot_Energy();
+            geometry->inputVertexPositions[v].y+=1e-7; //restore
+            geometry->refreshQuantities();
+
+            // std::cout<< setprecision(9) <<"The contribution of vertex to the bead energy is " << fwd_val_y << "and " << prev_val_y << "\n";
+
+
+            geometry->inputVertexPositions[v].z+=1e-7; //move forward
+            geometry->refreshQuantities();
+            fwd_val_z = Bead_1.Bead_I->Tot_Energy();
+            geometry->inputVertexPositions[v].z-=2e-7; //move backward
+            geometry->refreshQuantities();
+            prev_val_z = Bead_1.Bead_I->Tot_Energy();
+            geometry->inputVertexPositions[v].z+=1e-7; //restore
+            geometry->refreshQuantities();
+
+            // std::cout<< setprecision(9)<<"The contribution of vertex to the bead energy is " << fwd_val_y << "and " << prev_val_y << "\n";
+
+
+            Inter_Force_finite[v].x = (fwd_val_x - prev_val_x)/(2e-7);
+            Inter_Force_finite[v].y = (fwd_val_y - prev_val_y)/(2e-7);
+            Inter_Force_finite[v].z = (fwd_val_z - prev_val_z)/(2e-7);
+
+            
+
+        // std::cout<<"The gradient for vertex " << v.getIndex() << " is " << Inter_Force[v] << "\n";
+        // std::cout<<"The finite diff gradient for vertex " << v.getIndex() << " is " << Inter_Force_finite[v] << "\n";
+    }
+    // std::cout<<"We calculated the gradient for the bead interaction\n";
+
+    for(Vertex v: mesh->vertices()){
+        // std::cout<<"The position is" << geometry->inputVertexPositions[v] << "\n";
+        std::cout<<"The gradient for vertex " << v.getIndex() << " is " << Inter_Force[v] << "\n";
+        // std::cout<<"The olgradit for vertex " << v.getIndex() << " is " << Force_old_method[v] << "\n";
+        std::cout<<"The finigrad for vertex " << v.getIndex() << " is " << Inter_Force_finite[v] << "\n";
+    }
+    std::cout<<"The gradient for the Bead is "  << Bead_1.Total_force << "\n";
+
+    Bead_1.Pos.x += 1e-6;
+    fwd_val_x = Bead_1.Bead_I->Tot_Energy();
+    Bead_1.Pos.x -= 2e-6; //move backward
+    prev_val_x = Bead_1.Bead_I->Tot_Energy();
+    Bead_1.Pos.x += 1e-6; //restore
+
+    Bead_1.Pos.y += 1e-6;
+    fwd_val_y = Bead_1.Bead_I->Tot_Energy();
+    Bead_1.Pos.y -= 2e-6; //move backward
+    prev_val_y = Bead_1.Bead_I->Tot_Energy();
+    Bead_1.Pos.y += 1e-6; //restore
+
+    Bead_1.Pos.z += 1e-6;
+    fwd_val_z = Bead_1.Bead_I->Tot_Energy();
+    Bead_1.Pos.z -= 2e-6; //move backward
+    prev_val_z = Bead_1.Bead_I->Tot_Energy();
+    Bead_1.Pos.z += 1e-6; //restore
+
+    Vector3 Finite_diff_Bead_grad;
+    Finite_diff_Bead_grad.x = (fwd_val_x - prev_val_x)/(2e-6);
+    Finite_diff_Bead_grad.y = (fwd_val_y - prev_val_y)/(2e-6);
+    Finite_diff_Bead_grad.z = (fwd_val_z - prev_val_z)/(2e-6);
+    std::cout<<"THe oldgradi for the Bead is " << old_Bead_F << "\n";
+    std::cout<<"The finigrad for the Bead is " << Finite_diff_Bead_grad << "\n";
+
+    for(Vertex v: mesh->vertices()){
+        std::cout<<"The position is" << geometry->inputVertexPositions[v] << "\n";
+    }
+
+
+    
+
+
+    // Now we have a full Potential tested. WHat was the next step? 
+    // Right, the Hessian
+    
+    // We are testing the Hessian now, this is insane
+
+    std::cout<<"Testing the Hessian now\n";
+
+    std::cout<<"The bead id is" << Bead_1.Bead_id << "\n";
+
+    Eigen::MatrixXd Hessian_Bead = Bead_1.Bead_I->Hessian();
+
+    // std::cout<<"The Hessian of the Bead interaction is \n" << Hessian_Bead << "\n";
+
+    Eigen::MatrixXd Hessian_Bead_finite = Eigen::MatrixXd::Zero(3*mesh->nVertices()+3*N_beads,3*mesh->nVertices()+3*N_beads);
+
+    // Its time to finite difference this
+    
+
+    dim = 0;
+    Eigen::VectorXd Difference_grad_B(3*mesh->nVertices()+3*N_beads);
+    Vector3 Force_fwd;
+    Vector3 Force_prev;
+    for(Vertex v: mesh->vertices()){
+        // SO the idea here is  
+        for(size_t coord = 0; coord < 3; coord++){
+            
+            geometry->inputVertexPositions[v][coord]+=1e-6; //move forward
+            geometry->refreshQuantities();
+            Bead_1.Total_force= Vector3{0.0,0.0,0.0}; // reset the force
+            Gradient_fwd = Bead_1.Bead_I->Gradient();
+            Force_fwd = Bead_1.Total_force;
+
+            Bead_1.Total_force= Vector3{0.0,0.0,0.0}; // reset the force
+            geometry->inputVertexPositions[v][coord]-=2e-6; //move backward
+            geometry->refreshQuantities();
+            Gradient_prev = Bead_1.Bead_I->Gradient();
+            Force_prev = Bead_1.Total_force;
+            geometry->inputVertexPositions[v][coord]+=1e-6; //restore
+            geometry->refreshQuantities();
+            // Create the vector that goes in the column
+            for(Vertex v2: mesh->vertices()){
+                Difference_grad_B[3*v2.getIndex()] = (Gradient_fwd[v2]-Gradient_prev[v2]).x/(2e-6);
+                Difference_grad_B[3*v2.getIndex()+1] = (Gradient_fwd[v2]-Gradient_prev[v2]).y/(2e-6);
+                Difference_grad_B[3*v2.getIndex()+2] = (Gradient_fwd[v2]-Gradient_prev[v2]).z/(2e-6); 
+            }
+            Difference_grad_B[3*mesh->nVertices()+3*Bead_1.Bead_id+0] = (Force_fwd.x - Force_prev.x)/(2e-6);
+            Difference_grad_B[3*mesh->nVertices()+3*Bead_1.Bead_id+1] = (Force_fwd.y - Force_prev.y)/(2e-6);
+            Difference_grad_B[3*mesh->nVertices()+3*Bead_1.Bead_id+2] = (Force_fwd.z - Force_prev.z)/(2e-6);
+
+
+            Hessian_Bead_finite.col(dim) = Difference_grad_B;
+            dim+=1;
+
+
+        }
+        }
+        // And u also need to do the one for the bead
+        for(size_t coord = 0; coord < 3; coord++){
+            
+            Bead_1.Pos[coord]+=1e-6; //move forward
+            geometry->refreshQuantities();
+            Bead_1.Total_force= Vector3{0.0,0.0,0.0}; // reset the force
+
+            Gradient_fwd = Bead_1.Bead_I->Gradient();
+            Force_fwd = Bead_1.Total_force;
+            Bead_1.Total_force= Vector3{0.0,0.0,0.0}; // reset the force
+            Bead_1.Pos[coord]-=2e-6; //move backward
+            geometry->refreshQuantities();
+            Gradient_prev = Bead_1.Bead_I->Gradient();
+            Force_prev = Bead_1.Total_force;
+
+            Bead_1.Total_force =  Vector3{0.0,0.0,0.0};; // reset the force
+            Bead_1.Pos[coord]+=1e-6; //restore
+            geometry->refreshQuantities();
+            // Create the vector that goes in the column
+            for(Vertex v2: mesh->vertices()){
+                Difference_grad_B[3*v2.getIndex()] = (Gradient_fwd[v2]-Gradient_prev[v2]).x/(2e-6);
+                Difference_grad_B[3*v2.getIndex()+1] = (Gradient_fwd[v2]-Gradient_prev[v2]).y/(2e-6);
+                Difference_grad_B[3*v2.getIndex()+2] = (Gradient_fwd[v2]-Gradient_prev[v2]).z/(2e-6); 
+            }
+            Difference_grad_B[3*mesh->nVertices()+3*Bead_1.Bead_id+0] = (Force_fwd.x - Force_prev.x)/(2e-6);
+            Difference_grad_B[3*mesh->nVertices()+3*Bead_1.Bead_id+1] = (Force_fwd.y - Force_prev.y)/(2e-6);
+            Difference_grad_B[3*mesh->nVertices()+3*Bead_1.Bead_id+2] = (Force_fwd.z - Force_prev.z)/(2e-6);
+
+            Hessian_Bead_finite.col(dim) = Difference_grad_B;
+            dim+=1;
+        }
+
+
+    
+    
+
+    // std::cout<<"THe Hessian of the Bead interaction with finite differences is \n" << Hessian_Bead_finite << "\n";
+    std::cout<<"The summ of the Hessians is" << (Hessian_Bead_finite+Hessian_Bead).cwiseAbs().sum() << "\n";
 
     return 0; //Finishhh
 
@@ -1066,7 +1476,7 @@ int main(int argc, char** argv) {
     // Eigen::VectorXd Difference(3*Nverts);
 
 
-    // size_t dim = 0;
+    // long int dim = 0;
     // for(Vertex v: mesh->vertices()){
     //     // SO the idea here is  
     //     for(size_t coord = 0; coord < 3; coord++){

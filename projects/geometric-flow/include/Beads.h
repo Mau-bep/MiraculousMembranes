@@ -4,6 +4,9 @@
 #include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/vertex_position_geometry.h"
 // #include "Mem-3dg.h"
+#include "Interaction.h"
+
+class Interaction;
 
 using namespace geometrycentral;
 using namespace geometrycentral::surface;
@@ -11,6 +14,8 @@ using namespace geometrycentral::surface;
 class Bead {
 
   public:
+    int Bead_id;
+    int Total_beads;
     Vector3 Pos;
     Vector3 Total_force;
     double sigma;
@@ -36,12 +41,13 @@ class Bead {
     std::string Constraint;
     std::vector<double> Constraint_constants;
 
+    Interaction* Bead_I;
 
     // constructors
     Bead() {};
     Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, Vector3 Position, double sigma_bead, double strg );
     Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vector3 Position,double input_sigma , double strg, double input_rc);
-
+    Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, Vector3 Position, std::vector<double> Energy_constants, Interaction* Interact, int id, int Number_beads);
     void Reasign_mesh(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo);
 
     VertexData<Vector3> Gradient();

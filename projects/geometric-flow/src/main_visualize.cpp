@@ -728,6 +728,12 @@ void functionCallback() {
             std::cout<<"Calculating Edge reg energy\n";
             psMesh->addVertexVectorQuantity("Edge reg", Gradient_vertex);
         }
+        if(ImGui::Button("Edge_reg_2")){
+            Gradient_vertex = Sim_handler.F_Edge_reg_2(Energy_constants[0]);
+            std::cout<<"Calculating Edge reg energy 2\n";
+            psMesh->addVertexVectorQuantity("Edge reg 2", Gradient_vertex);
+
+        }
     // }
 
     if(ImGui::Button("Display grad")){
@@ -982,6 +988,7 @@ void functionCallback() {
             }
             M3DG.integrate_Newton(Sim_data,0.0,Energies,false,std::vector<std::string>{"Volume","CMx","CMy","CMz","Rx","Ry","Rz"},std::vector<std::string>{"Files"});
             Gradient_newton = Sim_handler.Current_grad;
+
             psMesh->addVertexVectorQuantity("Gradient Newton", Gradient_newton);
             redraw();
            }
@@ -1182,6 +1189,18 @@ void functionCallback() {
         M3DG.integrate(Sim_data, 0.0, Bead_filenames, false);
         std::cout<<"Integrating\n";
         redraw();
+        double min_l = 1e5;
+        double max_l = 0.0;
+        double l;
+        for(Edge e : mesh->edges()){
+            l = geometry->edgeLength(e);
+            if(l < min_l) min_l = l;
+            if(l > max_l) max_l = l;
+
+
+        }
+        std::cout<<"The min edge length is " << min_l <<" and the max edge length is " << max_l <<"\n";
+
         }
         // geometry->refreshQuantities();
         // psMesh->updateVertexPositions(geometry->inputVertexPositions);
