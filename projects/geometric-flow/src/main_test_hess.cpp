@@ -1167,7 +1167,7 @@ int main(int argc, char** argv) {
     // We want to test the Energies now
 
     Interaction* Bead_I;
-    double rc = -1;
+    double rc = 2.0;
     std::vector<double> params(0);
     params.push_back(1.0); // epsilon
     params.push_back(1.0); // sigma
@@ -1175,7 +1175,7 @@ int main(int argc, char** argv) {
 
     // Bead_I = new Constant_Normal(params);
     // Bead_I = new Frenkel_Normal(params);
-    Bead_I = new LJ(params);
+    Bead_I = new Frenkel_Normal(params);
 
     double r = 1.7325;
     double r_2;
@@ -1255,7 +1255,7 @@ int main(int argc, char** argv) {
     Bead_1.Total_force = Vector3{0.0,0.0,0.0};
 
     std::cout<<"The bead energy is" << Bead_1.Bead_I->Tot_Energy() << " \n";
-
+    std::cout<<"The bead energyold" << Bead_1.Energy()<<"\n";
     VertexData<Vector3> Inter_Force = Bead_1.Bead_I->Gradient();
     VertexData<Vector3> Inter_Force_finite(*mesh,{0.0,0.0,0.0});
 
@@ -1454,6 +1454,44 @@ int main(int argc, char** argv) {
     // std::cout<<"THe Hessian of the Bead interaction with finite differences is \n" << Hessian_Bead_finite << "\n";
     std::cout<<"The summ of the Hessians is" << (Hessian_Bead_finite+Hessian_Bead).cwiseAbs().sum() << "\n";
 
+    Energies.resize(0);
+    Energy_constants.resize(0);
+
+
+    Energies.push_back("Bending");
+    Energy_constants.push_back(std::vector<double>{1.0,0.0});
+    
+    Energies.push_back("Bead");
+    Energy_constants.push_back(params);
+
+    Energies.push_back("Edge_reg");
+    Energy_constants.push_back(std::vector<double>{1.0});
+
+    
+
+    Sim_handler = E_Handler(mesh, geometry, Energies, Energy_constants);
+    Sim_handler.Add_Bead(&Bead_1);
+    Sim_handler.boundary = false;
+
+    M3DG.mesh = mesh;
+    M3DG.geometry = geometry;
+    M3DG.Add_bead(&Bead_1);
+    Sim_handler.mesh = mesh;
+    Sim_handler.geometry = geometry;
+    M3DG.Sim_handler = &Sim_handler;
+
+    std::ofstream Some_ofstream;
+    std::vector<std::string> Constraints(0);
+    Constraints.push_back("Volume");
+    Eigen::VectorXd Lagrange_mults(1);
+    Lagrange_mults(0) = 0.0;
+    Sim_handler.Lagrange_mult = Lagrange_mults;
+    Sim_handler.Trgt_vol = geometry->totalVolume();
+
+
+    Sim_handler.Constraints = Constraints;
+    double step = M3DG.integrate_Newton(Some_ofstream,0.0,Energies,false,Constraints,std::vector<std::string>{"Files"});
+    std::cout<<"Took a step of " << step <<" wow";
     return 0; //Finishhh
 
 
@@ -1695,8 +1733,9 @@ int main(int argc, char** argv) {
     Energies.resize(0);
     Energy_constants.resize(0);
     std::vector<double> Constants(0);
-    std::vector<std::string> Constraints(0);
-    Eigen::VectorXd Lagrange_mults(4);
+    Constraints.resize(0);
+    // Eigen::VectorXd Lagrange_mults(4);
+    Lagrange_mults.resize(4);
     Lagrange_mults(0) = 0.0;
     Lagrange_mults(1) = 0.0;
     Lagrange_mults(2) = 0.0;
@@ -1731,7 +1770,7 @@ int main(int argc, char** argv) {
     M3DG.Sim_handler = &Sim_handler;
     M3DG.recentering = false;
     M3DG.boundary = false;
-    std::ofstream Some_ofstream;
+    // std::ofstream Some_ofstream;
 
     
     // arcsim::Mesh remesher_mesh = translate_to_arcsim(mesh,geometry);

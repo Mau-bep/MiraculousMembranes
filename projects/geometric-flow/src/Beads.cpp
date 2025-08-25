@@ -69,13 +69,14 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, Vec
     interaction = "";
 
     Bead_I = Interact;
+    Bead_I->Bead_1 = this;
     Bead_id = id;
     Total_beads = Number_beads;
 
     state = "default"; //The other two states are manual and frozee
     Velocity = Vector3({0,0,0});
     
-
+    // std::printf("meow =3");
     pulling_speed = 1.0;
     prev_force=0.0;
     Total_force={0,0,0};
@@ -93,6 +94,9 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, Vec
     void Bead::Reasign_mesh(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo){
         mesh = inputMesh;
         geometry = inputGeo;
+        Bead_I->mesh = inputMesh;
+        Bead_I->geometry = inputGeo;
+        Bead_I->Bead_1 = this;
 
     }
 
@@ -248,7 +252,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, Vec
         }
     
     }
-    if( interaction == "Shifted_LJ_Normal"||interaction == "Shifted_LJ_Normal_var" || interaction == "Shifted_LJ_Normal_nopush"|| interaction == "Shifted_LJ_Normal_nopush_inside" || interaction=="test_angle_normal_r_normalized"||interaction=="test_angle_normal_r_normalized_LJ"|| interaction=="test_angle_normal_r_normalized_LJ_Full"){
+    if( interaction == "Shifted_LJ_Normal"||interaction == "Shifted_LJ_Normal_var" || interaction == "Shifted_LJ_Normal_nopush" || interaction == "Frenkel_Normal_nopush" || interaction == "Frenkel_Normal_nopush_inside" || interaction == "Shifted_LJ_Normal_nopush_inside" || interaction=="test_angle_normal_r_normalized"||interaction=="test_angle_normal_r_normalized_LJ"|| interaction=="test_angle_normal_r_normalized_LJ_Full"){
         // std::cout<<"Loading essential quantities\n";
         for(Vertex v : mesh->vertices()){
 
@@ -838,7 +842,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, Vec
     }
 
 
-    if(interaction=="Shifted_LJ_Normal_nopush"){
+    if(interaction=="Shifted_LJ_Normal_nopush" || interaction == "Frenkel_Normal_nopush"){
 
 
         int v1_idx;
@@ -977,7 +981,7 @@ Bead::Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, Vec
     }
 
 
-        if(interaction=="Shifted_LJ_Normal_nopush_inside"){
+        if(interaction=="Shifted_LJ_Normal_nopush_inside"|| interaction == "Frenkel_Normal_nopush_inside"){
 
 
         int v1_idx;
@@ -2237,7 +2241,7 @@ double Bead::Energy() {
         }
 
         // std::cout<<"Energy is here still" << Total_E << " \n";
-        if(interaction == "Shifted_LJ_Normal_nopush")
+        if(interaction == "Shifted_LJ_Normal_nopush" || interaction == "Frenkel_Normal_nopush" )
         {
         double val;
         Vector3 unit_r;
@@ -2276,7 +2280,7 @@ double Bead::Energy() {
         
         } 
 
-        if(interaction == "Shifted_LJ_Normal_nopush_inside")
+        if(interaction == "Shifted_LJ_Normal_nopush_inside" || interaction == "Frenkel_Normal_nopush_inside")
         {
         double val;
         Vector3 unit_r;
@@ -2446,3 +2450,11 @@ void Bead::Move_bead(double dt,Vector3 center) {
     // std::cout<<"The bead is moving "<< norm(Total_force*dt -center)<<"\n";
     return;
 }
+
+
+SparseMatrix<double> Bead::H_Bead()
+    {
+        std::cout<<"Calling this function\n";
+        std::cout<<"THe bead interaction has params" << Bead_I->Energy_constants[0]<< " " << Bead_I->Energy_constants[1] <<" \n";
+      return Bead_I->Hessian();
+    }

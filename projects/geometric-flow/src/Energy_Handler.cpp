@@ -34,6 +34,11 @@ E_Handler::E_Handler(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inp
 void E_Handler::Add_Bead(Bead *bead){
 
     Beads.push_back(bead);
+    // std::cout<<"THe original direction is " << bead->Bead_I <<" \n";
+    // // Beads[Beads.size()-1]->Bead_I = bead->Bead_I;
+    // std::cout<<"Moving pointers\n";
+    // std::cout<<"Te direction of the I is" << Beads[Beads.size()-1]->Bead_I <<" \n";
+    // std::cout<<"The energy constant is "<< Beads[Beads.size()-1]->Bead_I->Energy_constants[0] << "MEDG \n";
 
 }
 
@@ -945,8 +950,9 @@ SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants) {
     double KB = Constants[0];
     double H0 = Constants[1];
 
-    int nVerts = mesh->nVertices();
-    SparseMatrix<double> Hessian(3*nVerts,3*nVerts);
+    int N_verts = mesh->nVertices();
+    int N_beads = Beads.size();
+    SparseMatrix<double> Hessian(3*(N_verts+N_beads),3*(N_verts+N_beads));
     typedef Eigen::Triplet<double> T;
     std::vector<T> tripletList;
 
@@ -1139,7 +1145,7 @@ SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants) {
                         for(size_t col = 0; col < 9; col++){
 
                             tripletList.push_back(T(Vertices_face[row/3].getIndex()*3+row%3,Vertices_face_2[col/3].getIndex()*3+col%3, M_9_9(row,col) ));
-                            if(isnan(M_9_9(row,col))) std::cout<<" nan flag 3 \n";
+                            // if(isnan(M_9_9(row,col))) std::cout<<" nan flag 3 \n";
                         }
                     }
 
@@ -1158,7 +1164,7 @@ SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants) {
             for(size_t row = 0; row < 9; row++){
                 for(size_t col = 0; col < 9; col++){
                     tripletList.push_back(T(Vertices_face[row/3].getIndex()*3+row%3, Vertices_face[col/3].getIndex()*3+col%3, M_9_9(row,col)));
-                    if(isnan(M_9_9(row,col))) std::cout<<" nan flag 4 \n";
+                    // if(isnan(M_9_9(row,col))) std::cout<<" nan flag 4 \n";
                 }
             }
 
@@ -1189,7 +1195,7 @@ SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants) {
                     for(size_t row = 0; row < 6; row++){
                         for(size_t col = 0; col < 6; col++){
                             tripletList.push_back(T(Vertices_edge[row/3].getIndex()*3+row%3, Vertices_edge_2[col/3].getIndex()*3+col%3,M_6_6(row,col)));
-                            if(isnan(M_6_6(row,col))) std::cout<<" nan flag 5 \n";
+                            // if(isnan(M_6_6(row,col))) std::cout<<" nan flag 5 \n";
                         }
                     }                    
 
@@ -1205,7 +1211,7 @@ SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants) {
                     for(size_t row = 0; row < 6; row++){
                         for(size_t col =0; col < 12; col++){
                             tripletList.push_back(T(Vertices_edge[row/3].getIndex()*3+row%3, Vertices_dihedral_2[col/3].getIndex()*3+col%3,M_6_12(row,col)));
-                            if(isnan(M_6_12(row,col))) std::cout<<" nan flag 6 \n";
+                            // if(isnan(M_6_12(row,col))) std::cout<<" nan flag 6 \n";
                         }
                     }
 
@@ -1216,7 +1222,7 @@ SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants) {
                     for(size_t row = 0; row < 12; row++){
                         for(size_t col = 0; col < 6; col++){
                             tripletList.push_back(T(Vertices_dihedral[row/3].getIndex()*3+row%3, Vertices_edge_2[col/3].getIndex()*3+col%3, M_12_6(row,col)));
-                            if(isnan(M_12_6(row,col))) std::cout<<" nan flag 7 \n";
+                            // if(isnan(M_12_6(row,col))) std::cout<<" nan flag 7 \n";
                         }
                     }
 
@@ -1225,7 +1231,7 @@ SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants) {
                     for(size_t row = 0; row < 12; row++){
                         for(size_t col = 0; col < 12; col++){
                             tripletList.push_back(T(Vertices_dihedral[row/3].getIndex()*3+row%3,Vertices_dihedral_2[col/3].getIndex()*3+col%3,M_12_12(row,col)));
-                            if(isnan(M_12_12(row,col))) std::cout<<" nan flag 8 \n";
+                            // if(isnan(M_12_12(row,col))) std::cout<<"  8 \n";
                         }
                     }
 
@@ -1311,11 +1317,12 @@ SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants) {
 
 
 SparseMatrix<double> E_Handler::H_Volume(std::vector<double> Constants){
-
+    
     double KV = Constants[0];
 
-    int nVerts = mesh->nVertices();
-    SparseMatrix<double> Hessian(3*nVerts,3*nVerts);
+    int N_verts = mesh->nVertices();
+    int N_beads = Beads.size();
+    SparseMatrix<double> Hessian(3*(N_verts+N_beads),3*(N_verts+N_beads));
     typedef Eigen::Triplet<double> T;
     std::vector<T> tripletList;
 
@@ -1360,9 +1367,10 @@ SparseMatrix<double> E_Handler::H_Volume(std::vector<double> Constants){
 
 SparseMatrix<double> E_Handler::H_Edge_reg(std::vector<double> Constants){
     double KE = Constants[0];
-
-    int nVerts = mesh->nVertices();
-    SparseMatrix<double> Hessian(3*nVerts,3*nVerts);
+    // std::cout<<"Doing edge reg\n";
+    int N_verts = mesh->nVertices();
+    int N_beads = Beads.size();
+    SparseMatrix<double> Hessian(3*(N_verts+N_beads),3*(N_verts+N_beads));
     typedef Eigen::Triplet<double> T;
     std::vector<T> tripletList;
     Eigen::Matrix<double,9,9> Hessian_block_edge;
@@ -1404,6 +1412,7 @@ SparseMatrix<double> E_Handler::H_Edge_reg(std::vector<double> Constants){
         }
     }
 
+    // std::cout<<"Setting balues\n";
     Hessian.setFromTriplets(tripletList.begin(),tripletList.end());
 
 
@@ -1418,8 +1427,9 @@ SparseMatrix<double> E_Handler::H_Edge_reg_2(std::vector<double> Constants){
     // Lets get this hessian
     double KE = Constants[0];
 
-    int nVerts = mesh->nVertices();
-    SparseMatrix<double> Hessian(3*nVerts,3*nVerts);
+    int N_verts = mesh->nVertices();
+    int N_beads = Beads.size();
+    SparseMatrix<double> Hessian(3*(N_verts+N_beads),3*(N_verts+N_beads));
     typedef Eigen::Triplet<double> T;
     std::vector<T> tripletList;
 
@@ -1537,7 +1547,10 @@ void E_Handler::Calculate_energies(double* E){
         }
         if(Energies[i]=="Bead" || Energies[i]=="H1_Bead" || Energies[i]=="H2_Bead")
         {
-            Energy_values[i] = Beads[bead_count]->Energy();
+            // Energy_values[i] = Beads[bead_count]->Energy();
+            Energy_values[i] = Beads[bead_count]->Bead_I->Tot_Energy();
+            // double E_bead = Beads[bead_count]->Energy();
+            // if(Energy_values[i]-E_bead > 1e1) std::cout<<"The oldE is" << E_bead <<" and the new one is" << Energy_values[i] <<" \n";
             *E += Energy_values[i];
             bead_count++;
             // std::cout<<"The energy value is " << Energy_values[i]<<" \n";
@@ -1593,6 +1606,12 @@ void E_Handler::Calculate_Lag_norm(double* Norm){
         val = LambdaJ(3*vi+2)+Force.z;
         *Norm += val*val;
     }
+    for(size_t bi = 0; bi < Beads.size(); bi ++){
+        val = Beads[bi]->Total_force.norm2();
+        *Norm +=val;
+
+    }
+    // I need to add the beads 
     for(int i = 0 ; i < N_constraints; i++){
         if(Constraints[i]=="Volume"){
         val = -1*(geometry->totalVolume()- Trgt_vol);
@@ -1618,6 +1637,7 @@ void E_Handler::Calculate_gradient(){
     Current_grad = VertexData<Vector3>(*mesh, Vector3{0.0, 0.0, 0.0});
     // std::cout<<"3 \n";
     VertexData<Vector3> Force_temp(*mesh, Vector3{0.0, 0.0, 0.0});
+    VertexData<Vector3> Force_tem2(*mesh, Vector3{0.0,0.0,0.0});
     int bead_count = 0;
     double grad_norm = 0;
     // std::cout<<"4 \n";
@@ -1716,9 +1736,12 @@ void E_Handler::Calculate_gradient(){
         if(Energies[i]=="Bead"){
             // std::cout<<"Bead E \n";
             // std::cout<<"The number of beads is " << Beads.size() << "\n";
-            Force_temp = Beads[bead_count]->Gradient();
+            // std::cout<<"This is bead" << Beads[bead_count]->Bead_id << "\n";
+            Force_temp = Beads[bead_count]->Bead_I->Gradient();
+            // Force_tem2 = Beads[bead_count]->Gradient();
+            std::cout<<"The bead feels a force of " << Beads[bead_count]->Total_force.norm2() << "\n";
             // std::cout<<"Interactions \n";
-            Beads[bead_count]->Bead_interactions();
+            // Beads[bead_count]->Bead_interactions();
             // std::cout<<"? \n";
             grad_norm = 0;
             for(size_t j = 0; j < mesh->nVertices(); j++){
@@ -1736,6 +1759,7 @@ void E_Handler::Calculate_gradient(){
             
             Current_grad+=Force_temp;
             bead_count +=1;
+            if(bead_count==2) std::cout<<"\t done for the iteration\n";
 
             continue;
         }
@@ -1796,8 +1820,9 @@ void E_Handler::Calculate_Jacobian(){
 
     int N_verts = mesh->nVertices();
     int N_constraints = 0;
+    int N_beads = Beads.size();
 
-    std::vector<double> Constraint_values(0);
+    // std::vector<double> Constraint_values(0);
     
     VertexData<Vector3> grad_sur(*mesh);
     VertexData<Vector3> grad_vol(*mesh);
@@ -1809,57 +1834,57 @@ void E_Handler::Calculate_Jacobian(){
             grad_vol = F_Volume(std::vector<double>{-1.0});
             
             N_constraints += 1;
-            Constraint_values.push_back(geometry->totalVolume());
+            // Constraint_values.push_back(geometry->totalVolume());
 
         }
         if(constraint == "Area"){
             grad_sur = F_SurfaceTension_2(std::vector<double>{-1.0});
             N_constraints += 1;
-            Constraint_values.push_back(geometry->totalArea());
+            // Constraint_values.push_back(geometry->totalArea());
         }
         if(constraint == "CM"){
             N_constraints += 3;        
         }
         if(constraint == "CMx"){
             N_constraints += 1;        
-            Constraint_values.push_back(0.0);
+            // Constraint_values.push_back(0.0);
         }
 
         if(constraint == "CMy"){
             N_constraints += 1;        
-            Constraint_values.push_back(0.0);
+            // Constraint_values.push_back(0.0);
         }
         if(constraint == "CMz"){
             N_constraints += 1;        
-            Constraint_values.push_back(0.0);
+            // Constraint_values.push_back(0.0);
         }
         if(constraint == "Rx"){
             N_constraints += 1;        
-            Constraint_values.push_back(0.0);
+            // Constraint_values.push_back(0.0);
         }
 
         if(constraint == "Ry"){
             N_constraints += 1;        
-            Constraint_values.push_back(0.0);
+            // Constraint_values.push_back(0.0);
         }
         if(constraint == "Rz"){
             N_constraints += 1;        
-            Constraint_values.push_back(0.0);
+            // Constraint_values.push_back(0.0);
         }
         
 
         
     }
 
-    Jacobian_constraints.resize( N_constraints,3*N_verts);
+    Jacobian_constraints.resize( N_constraints,3*(N_verts+N_beads));
     // std::cout<<"The size of the Jacobian is " << Jacobian_constraints.rows() << " " << Jacobian_constraints.cols() << "\n";
 
     // Now we need to fill the Jacobian matrix with the constraints
 
-    Eigen::VectorXd Column = Eigen::VectorXd::Zero(N_verts*3);
+    Eigen::VectorXd Column = Eigen::VectorXd::Zero((N_beads+N_verts)*3);
     Vector3 Pos;
     for( size_t i =0; i < Constraints.size(); i++){
-        Column = Eigen::VectorXd::Zero(N_verts*3);
+        Column = Eigen::VectorXd::Zero( (N_verts+N_beads)*3);
         if(Constraints[i] == "Volume"){
             // std::cout<<"Volume constraint \n";
             for(size_t vi = 0; vi < mesh->nVertices() ; vi++  ){
@@ -1882,45 +1907,57 @@ void E_Handler::Calculate_Jacobian(){
             Jacobian_constraints.row(i) = Column;
         }
         if(Constraints[i]=="CMx"){
-            // std::cout<<"CMX for the win \n";
-            for(size_t vi = 0; vi < mesh->nVertices(); vi++){
-                Column[3*vi] = 1;
+            // std::cout<<"CMz for the win \n";
+            for(size_t i = 0; i < mesh->nVertices()+N_beads; i++){
+                Column[3*i] = 1;
             }
             Jacobian_constraints.row(i) = Column;
             continue;
         }
         if(Constraints[i]=="CMy"){
-            // std::cout<<"CMy for the win \n";
-            for(size_t vi = 0; vi < mesh->nVertices(); vi++){
-                Column[3*vi+1] = 1;
+            // std::cout<<"CMz for the win \n";
+            for(size_t i = 0; i < mesh->nVertices()+N_beads; i++){
+                Column[3*i+1] = 1;
             }
+            
             Jacobian_constraints.row(i) = Column;
             continue;
         }
         if(Constraints[i]=="CMz"){
             // std::cout<<"CMz for the win \n";
-            for(size_t vi = 0; vi < mesh->nVertices(); vi++){
-                Column[3*vi+2] = 1;
+            for(size_t i = 0; i < mesh->nVertices()+N_beads; i++){
+                Column[3*i+2] = 1;
             }
+            
             Jacobian_constraints.row(i) = Column;
             continue;
         }
         if(Constraints[i]=="Rx"){
             // std::cout<<"RX for the win \n";
-            for(size_t vi = 0; vi < mesh->nVertices(); vi++){
+            for(size_t vi = 0; vi < N_verts; vi++){
                 Pos = geometry->inputVertexPositions[vi];
                 Column[3*vi+1] = Pos.z;
                 Column[3*vi+2] = -Pos.y;
+            }
+            for(size_t bi = 0; bi < N_beads; bi++){
+                Pos = Beads[bi]->Pos;
+                Column[3*(N_verts+bi)+1] = Pos.z;
+                Column[3*(N_verts+bi)+2] = -Pos.y;
             }
             Jacobian_constraints.row(i) = Column;
             continue;
         }
         if(Constraints[i]=="Ry"){
             // std::cout<<"RY for the win \n";
-            for(size_t vi = 0; vi < mesh->nVertices(); vi++){
+            for(size_t vi = 0; vi < N_verts; vi++){
                 Pos = geometry->inputVertexPositions[vi];
                 Column[3*vi] = -Pos.z;
                 Column[3*vi+2] = Pos.x;
+            }
+            for(size_t bi = 0; bi < N_beads; bi++){
+                Pos = Beads[bi]->Pos;
+                Column[3*(N_verts+bi)] = -Pos.z;
+                Column[3*(N_verts+bi)+2] = Pos.x;
             }
             Jacobian_constraints.row(i) = Column;
             continue;
@@ -1931,6 +1968,11 @@ void E_Handler::Calculate_Jacobian(){
                 Pos = geometry->inputVertexPositions[vi];
                 Column[3*vi] = Pos.y;
                 Column[3*vi+1] = -Pos.x;
+            }
+            for(size_t bi = 0; bi < N_beads; bi++){
+                Pos = Beads[bi]->Pos;
+                Column[3*(N_verts+bi)] = Pos.y;
+                Column[3*(N_verts+bi)+1] = -Pos.x;
             }
             Jacobian_constraints.row(i) = Column;
             continue;
@@ -1950,15 +1992,17 @@ SparseMatrix<double> E_Handler::Calculate_Hessian(){
     // I recommend adding them at the bottom. 
 
     int N_verts = mesh->nVertices();
-    
+    int N_beads = Beads.size();
+    // std::cout<<"Calculating energy\n";
     std::vector<double> Energy_constants_val;
-    SparseMatrix<double> Hessian(3*N_verts,3*N_verts);
+    SparseMatrix<double> Hessian(3*(N_verts+N_beads),3*(N_verts+N_beads));
     std::string constraint;
     
 
 
     int bead_counter= 0;
     for(size_t i = 0; i < Energies.size(); i++){
+        // std::cout<<"Energy is " << Energies[i] <<" \n";
         if(Energies[i] == "Bending"){
             Hessian += H_Bending(Energy_constants[i]);
         }
@@ -1966,10 +2010,15 @@ SparseMatrix<double> E_Handler::Calculate_Hessian(){
             Hessian += H_SurfaceTension(Energy_constants[i]);
         }
         if(Energies[i] == "Bead"){
-            std::cout<<"FUNCTION NOT AVAILABLE BUT SHOULD LOOK LIKE this\n";
-            // Beads[bead_counter]->Hessian();
+            std::cout<<"Doing bead energy\n";
+            std::cout<<"The energy constant is "<< Beads[bead_counter]->Bead_I->Energy_constants[0] << " \n";
+            // std::cout<<"FUNCTION NOT AVAILABLE BUT SHOULD LOOK LIKE this\n";
+            Hessian += Beads[bead_counter]->Bead_I->Hessian();
+            bead_counter +=1;
         }
         if(Energies[i] =="Edge_reg"){
+            // std::cout<<"There should be one energy constant\n";
+            // std::cout<<"The energy constants are " << Energy_constants[i][0]<<" \n";
             Hessian += H_Edge_reg(Energy_constants[i]);
         }
 
@@ -1984,15 +2033,16 @@ SparseMatrix<double> E_Handler::Calculate_Hessian(){
     // std::cout<<"The minimum eigenvalue is " << min_eig << "\n";
     
     // SparseMatrix<double> Id_reg = 
-
+    // std::cout<<"Doing the volume const\n";
     // Eigen::SparseMatrix::Ide
     for(size_t i = 0; i < Constraints.size() ; i++){
         constraint = Constraints[i];
-
+        // std::cout<<"The constraint is " << constraint<<"\n";
         if(constraint == "Volume"){
-            // I need to find which are the energy constants       
+            // I need to find which are the energy constants
+            // std::cout<<"Doing the volume constraint\n";       
             Hessian += -1.0*Lagrange_mult(i)*H_Volume(std::vector<double>{1.0});
-
+            // std::cout<<"DONE WITH VOLUME CONSTRAINT\n";
         }
         if(constraint == "Area"){
             Hessian += -1.0*Lagrange_mult(i)*H_SurfaceTension(std::vector<double>{1.0});
@@ -2001,6 +2051,7 @@ SparseMatrix<double> E_Handler::Calculate_Hessian(){
         
     }
 
+    // std::cout<<"DOne with the Hessian\n";
     // I want this t
     
 

@@ -972,21 +972,25 @@ void functionCallback() {
             std::cout<<"Calculating gradient newton\n";
             VertexData<Vector3> Gradient_newton;
             if(first_newton){
-            Eigen::VectorXd Lagrange_mults(7);
+            Eigen::VectorXd Lagrange_mults(1);
             Lagrange_mults(0) = 0.0;
-            Lagrange_mults(1) = 0.0;
-            Lagrange_mults(2) = 0.0;
-            Lagrange_mults(3) = 0.0;
-            Lagrange_mults(4) = 0.0;
-            Lagrange_mults(5) = 0.0;
-            Lagrange_mults(6) = 0.0;
+            // Lagrange_mults(1) = 0.0;
+            // Lagrange_mults(2) = 0.0;
+            // Lagrange_mults(3) = 0.0;
+            // Lagrange_mults(4) = 0.0;
+            // Lagrange_mults(5) = 0.0;
+            // Lagrange_mults(6) = 0.0;
 
             Sim_handler.Lagrange_mult = Lagrange_mults;
             
-            Sim_handler.Constraints = std::vector<std::string>{"Volume","CMx","CMy","CMz","Rx","Ry","Rz"};
+            // Sim_handler.Constraints = std::vector<std::string>{"Volume","CMx","CMy","CMz","Rx","Ry","Rz"};
+            Sim_handler.Constraints = std::vector<std::string>{"Volume"};
+            
             first_newton = false;
             }
-            M3DG.integrate_Newton(Sim_data,0.0,Energies,false,std::vector<std::string>{"Volume","CMx","CMy","CMz","Rx","Ry","Rz"},std::vector<std::string>{"Files"});
+            // M3DG.integrate_Newton(Sim_data,0.0,Energies,false,std::vector<std::string>{"Volume","CMx","CMy","CMz","Rx","Ry","Rz"},std::vector<std::string>{"Files"});
+            M3DG.integrate_Newton(Sim_data,0.0,Energies,false,std::vector<std::string>{"Volume"},std::vector<std::string>{"Files"});
+            
             Gradient_newton = Sim_handler.Current_grad;
 
             psMesh->addVertexVectorQuantity("Gradient Newton", Gradient_newton);

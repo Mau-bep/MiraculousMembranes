@@ -81,9 +81,18 @@ class Frenkel_Normal: public Normal_dot_Interaction{
 
     public:
 
+    Frenkel_Normal(){}
+
     Frenkel_Normal(std::vector<double> params) {
         Energy_constants = params;
     }
+    Frenkel_Normal(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, std::vector<double> params) {
+        Energy_constants = params;
+        mesh = inputMesh;
+        geometry = inputGeo;
+    }
+    
+
     double E_r(double r, std::vector<double> Energy_constants) override {
         // r is the distance between the two beads
         // Energy_constants[0] is the strength of the interaction
@@ -173,14 +182,64 @@ class Constant_Normal: public Normal_dot_Interaction{
     }
 
 };
+class One_over_r_Normal : public Normal_dot_Interaction{
+    public:
+
+        One_over_r_Normal(){}
+
+        One_over_r_Normal(std::vector<double> params){
+            Energy_constants = params;
+        }
+
+        One_over_r_Normal(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, std::vector<double> params) {
+        Energy_constants = params;
+        mesh = inputMesh;
+        geometry = inputGeo;
+        }
+
+        double E_r(double r, std::vector<double> Energy_constants) override{
+            //  1/r = 
+            // Which are the energy constants
+            double epsilon = Energy_constants[0];
+            
+            return epsilon/r;
+
+        }
+
+        double dE_r(double r, std::vector<double> Energy_constants) override{
+            double epsilon = Energy_constants[0];
+
+            return -epsilon/(r*r);
+
+        }
+
+        double ddE_r(double r, std::vector<double> Energy_constants) override{
+            double epsilon = Energy_constants[0];
+            
+            return 2*epsilon/(r*r*r);
+        }
+        
+
+
+
+};
 
 class LJ_Normal: public Normal_dot_Interaction {
 
     public:
 
+        LJ_Normal(){}
+
         LJ_Normal(std::vector<double> params) {
             Energy_constants = params;
         }
+        LJ_Normal(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, std::vector<double> params) {
+            Energy_constants = params;
+            mesh = inputMesh;
+            geometry = inputGeo;
+        }
+
+        
 
         double E_r(double r, std::vector<double> Energy_constants) override {
             // r is the distance between the two beads
@@ -189,10 +248,11 @@ class LJ_Normal: public Normal_dot_Interaction {
             double sigma = Energy_constants[1];
             double epsilon = Energy_constants[0];
             double rc = Energy_constants[2]; // cutoff distance
+            double shift = Energy_constants[3]; // shift value
             if( r >= rc) {
                 return 0.0; // No interaction beyond cutoff
             }
-            return 4 * epsilon * (pow(sigma / r, 12) - pow(sigma / r, 6));
+            return 4 * epsilon * (pow(sigma / r, 12) - pow(sigma / r, 6)) + shift;
         }
         double dE_r(double r, std::vector<double> Energy_constants) override {
 
@@ -228,18 +288,27 @@ class LJ_Normal: public Normal_dot_Interaction {
 
 class LJ : public Integrated_Interaction{
     public: 
+        LJ(){}
+
         LJ(std::vector<double> params) {
             Energy_constants = params;
         }
+        LJ(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, std::vector<double> params) {
+            Energy_constants = params;
+            mesh = inputMesh;
+            geometry = inputGeo;
+        }
+
         double E_r(double r, std::vector<double> Energy_constants) override {
             // r is the distance between the two beads
             double epsilon = Energy_constants[0];
             double sigma = Energy_constants[1];
             double rc = Energy_constants[2]; // cutoff distance
+            double shift = Energy_constants[3]; // shift value
             if (r >= rc && rc > 0.0) {
                 return 0.0; // No interaction beyond cutoff
             }
-            return 4 * epsilon * (pow(sigma / r, 12) - pow(sigma / r, 6));
+            return 4 * epsilon * (pow(sigma / r, 12) - pow(sigma / r, 6))+shift;
         }
         double dE_r(double r, std::vector<double> Energy_constants) override {
 

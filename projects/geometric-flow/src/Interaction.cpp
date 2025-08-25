@@ -18,9 +18,15 @@ double Normal_dot_Interaction::Tot_Energy() {
     // std::cout<<"THe total energy is being calculated\n";
     double Total_E = 0.0;
     double rc = Energy_constants[2];
+    // std::cout<<"THe cutoff is" <<rc <<" \n";
     Vector3 vec_r;
     Vector3 Normal;
     double Q;
+
+    // Is it the same mesh tho?
+    // std::cout<<"The official number of verts are " << Bead_1->mesh->nVertices()<<" \n";
+    // std::cout<<"Interaction says nr of verts are " << mesh->nVertices() <<" \n";
+
     // std::cout<<"The cutoff distance is "<<rc<<"\n";
     for(Face f: mesh->faces()){
         // std::cout<<"Calculating normal\n";
@@ -57,6 +63,9 @@ VertexData<Vector3> Normal_dot_Interaction::Gradient() {
     VertexData<Vector3> Force(*mesh,{0.0,0.0,0.0});
     double rc = Energy_constants[2];
     Halfedge he;
+    Bead_1->Total_force = Vector3{0.0, 0.0, 0.0};
+    // std::cout<<"Force initialied\n";
+    // std::cout<<"THis is bead " << Bead_1->Bead_id << "\n";
 
     Eigen::Vector<double, 13> Positions_triangle;
     Eigen::Vector<double, 6> Positions_r;
@@ -72,7 +81,7 @@ VertexData<Vector3> Normal_dot_Interaction::Gradient() {
     VertexData<double> Energy_contribution(*mesh, 0.0);
     VertexData<double> d_Energy_contribution(*mesh, 0.0);
     Vector3 Bead_pos = Bead_1->Pos;
-
+    // std::cout<<"THe bead position is" << Bead_pos << "\n";
     for(Vertex v: mesh->vertices()){
         vector_bead[v] = Bead_pos - geometry->inputVertexPositions[v];
         distance_bead[v] = vector_bead[v].norm();
@@ -179,7 +188,7 @@ VertexData<Vector3> Normal_dot_Interaction::Gradient() {
     // std::cout<<" \n";
 
     }
-
+    // std::cout<<"The bead total force should be" << Bead_1->Total_force << "\n";
     return Force;
 }
 
@@ -340,7 +349,6 @@ SparseMatrix<double> Normal_dot_Interaction::Hessian(){
 
 
 double Integrated_Interaction::Tot_Energy(){
-    std::cout<<"Here\n";
     double Total_E = 0.0;
     double rc= Energy_constants[2];
     Vector3 vec_r;
@@ -361,6 +369,8 @@ double Integrated_Interaction::Tot_Energy(){
 VertexData<Vector3> Integrated_Interaction::Gradient(){
     VertexData<Vector3> Force(*mesh, {0.0, 0.0, 0.0});
     Bead_1->Total_force = {0.0,0.0,0.0};
+    // std::cout<<"Force initialied\n";
+    // std::cout<<"THis is bead " << Bead_1->Bead_id << "\n";
     double rc = Energy_constants[2];
     Vector3 vec_r;
     double face_area;
@@ -428,14 +438,17 @@ VertexData<Vector3> Integrated_Interaction::Gradient(){
            
         }
     }
+
+    // std::cout<<"The bead total force should be" << Bead_1->Total_force << "\n";
     return Force;
 }
 
 
 SparseMatrix<double> Integrated_Interaction::Hessian(){
 
+    std::cout<<"Getting rc\n";
     double rc = Energy_constants[2];
-
+    std::cout<<"Building hessian\n";
     SparseMatrix<double> Hessian(3*mesh->nVertices()+3*Bead_1->Total_beads, 3*mesh->nVertices()+3*Bead_1->Total_beads);
     typedef Eigen::Triplet<double> T;
     std::vector<T> tripletList;
