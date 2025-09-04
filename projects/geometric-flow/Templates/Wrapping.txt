@@ -7,9 +7,12 @@
     "arcsim": true,
     "first_dir": "../Results/Particle_wrapping_on_plane_phase_space_sept/",
     "boundary": true,
-    "Switch": "Newton",
+    "Switches": ["Newton"],
+    "Switch_times": [10000],
     "recentering": false, 
     "saving_states": false,
+    "finish_sim" : false,
+    "rescale": 2.0,
     "Energies": [ 
         {"Name": "Surface_tension", "constants": [ {{KA}} ] },
         {"Name": "Bending", "constants": [ {{KB}} ]},
@@ -28,7 +31,7 @@
         }
     ],
     "remesher":{
-        "aspect_min": 0.2, "refine_angle": 0.7, "refine_compression": 1e-4, "refine_velocity": 1.0, "size_max": 0.2, "size_min": 0.001
+        "aspect_min": 0.2, "refine_angle": 0.7, "refine_compression": 1e-4, "refine_velocity": 1.0, "size_max": 0.4, "size_min": 0.001
         }
     
 }
