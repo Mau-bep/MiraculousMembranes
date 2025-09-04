@@ -5,20 +5,22 @@
     "continue_sim": false,
     "resize_vol": false,
     "arcsim": true,
-    "first_dir": "../Results/Particle_wrapping_on_plane_phase_space_march/",
+    "first_dir": "../Results/Particle_wrapping_on_plane_phase_space_sept/",
     "boundary": true,
+    "Switch": "Newton",
     "recentering": false, 
     "saving_states": false,
     "Energies": [ 
         {"Name": "Surface_tension", "constants": [ {{KA}} ] },
-        {"Name": "Bending", "constants": [ {{KB}} ]}
+        {"Name": "Bending", "constants": [ {{KB}} ]},
+        {"Name": "Edge_reg", "constants": [ {{KE}} ]}
         ],
     "Beads":[
         {
         "radius": {{radius}}, 
         "state" : "default" ,
         "Pos": [{{xpos}}, 0.0, 0.0], 
-        "mem_inter": "Shifted_LJ_Normal_nopush",
+        "mem_inter": "Frenkel_Normal_nopush",
         "inter_str": {{ interaction }},
         "bonds": [],
         "bonds_constants":[],

@@ -191,7 +191,7 @@ double E_Handler::E_Edge_reg(std::vector<double> Constants) const{
 
     for(Face f: mesh->faces()){
         he = f.halfedge();
-
+        if(he.edge().isBoundary() || he.next().edge().isBoundary() || he.next().next().edge().isBoundary()) continue;
         Positions << geometry->inputVertexPositions[he.vertex()].x, geometry->inputVertexPositions[he.vertex()].y, geometry->inputVertexPositions[he.vertex()].z,
                     geometry->inputVertexPositions[he.next().vertex()].x, geometry->inputVertexPositions[he.next().vertex()].y, geometry->inputVertexPositions[he.next().vertex()].z,
                     geometry->inputVertexPositions[he.next().next().vertex()].x, geometry->inputVertexPositions[he.next().next().vertex()].y, geometry->inputVertexPositions[he.next().next().vertex()].z;
@@ -220,6 +220,7 @@ double E_Handler::E_Edge_reg_2(std::vector<double> Constants) const{
     }
     
     for(Edge e: mesh->edges()) {
+        if(e.isBoundary()) continue;
         // I need to get the edge length
         he = e.halfedge();
         
@@ -394,7 +395,8 @@ VertexData<Vector3> E_Handler::F_SurfaceTension_2(std::vector<double> Constants)
         Grad = geometry->gradient_triangle_area(Positions);
         for( size_t i = 0; i < 3; i++){
             Force_vector = Vector3{Grad[3*i], Grad[3*i+1], Grad[3*i+2]};
-            Force[Vertices[i]] += -1*sigma*Force_vector;
+            if( Vertices[i].isBoundary() ) Force[Vertices[i]] = {0,0,0};
+            else Force[Vertices[i]] += -1*sigma*Force_vector;
         }
 
     }
@@ -565,6 +567,9 @@ VertexData<Vector3> E_Handler::F_Bending_2(std::vector<double> Constants) const{
         Vertices_face[0] = he.vertex();
         Vertices_face[1] = he.next().vertex();
         Vertices_face[2] = he.next().next().vertex();
+
+        if(Vertices_face[0].isBoundary() || Vertices_face[1].isBoundary() || Vertices_face[2].isBoundary() ) continue;
+
         Positions_face << geometry->inputVertexPositions[Vertices_face[0]].x , geometry->inputVertexPositions[Vertices_face[0]].y , geometry->inputVertexPositions[Vertices_face[0]].z,
                         geometry->inputVertexPositions[Vertices_face[1]].x, geometry->inputVertexPositions[Vertices_face[1]].y, geometry->inputVertexPositions[Vertices_face[1]].z,
                         geometry->inputVertexPositions[Vertices_face[2]].x, geometry->inputVertexPositions[Vertices_face[2]].y, geometry->inputVertexPositions[Vertices_face[2]].z;
@@ -578,7 +583,8 @@ VertexData<Vector3> E_Handler::F_Bending_2(std::vector<double> Constants) const{
         Grad_face *= constant;
         for(size_t i = 0; i < 3; i++){
             Force_vector = Vector3{Grad_face[3*i], Grad_face[3*i+1], Grad_face[3*i+2]};
-            Force[Vertices_face[i]] += -1*KB*Force_vector;
+            if( Vertices_face[i].isBoundary() ) Force[Vertices_face[i]] = {0,0,0};
+            else Force[Vertices_face[i]] += -1*KB*Force_vector;
         }
 
     }
@@ -591,9 +597,13 @@ VertexData<Vector3> E_Handler::F_Bending_2(std::vector<double> Constants) const{
     Vector3 Vectorsum2 = {0, 0, 0};
 
     for(Edge e: mesh->edges()){
+        
+        if(e.isBoundary()) continue;
+
         Vertices_edge[0] = e.halfedge().vertex();
         Vertices_edge[1] = e.halfedge().twin().vertex();
         
+
         Positions_edge << geometry->inputVertexPositions[Vertices_edge[0]].x , geometry->inputVertexPositions[Vertices_edge[0]].y , geometry->inputVertexPositions[Vertices_edge[0]].z,
                         geometry->inputVertexPositions[Vertices_edge[1]].x, geometry->inputVertexPositions[Vertices_edge[1]].y, geometry->inputVertexPositions[Vertices_edge[1]].z;
         
@@ -627,11 +637,13 @@ VertexData<Vector3> E_Handler::F_Bending_2(std::vector<double> Constants) const{
         // Vectorsum1={0, 0, 0};
         for(size_t i = 0; i < 2; i++){
             Force_vector = Vector3{Grad_edge[3*i], Grad_edge[3*i+1], Grad_edge[3*i+2]};
-            Force[Vertices_edge[i]] += -1*KB*Force_vector;
+            if( Vertices_edge[i].isBoundary() ) Force[Vertices_edge[i]] = {0,0,0};
+            else Force[Vertices_edge[i]] += -1*KB*Force_vector;
         }
         for(size_t i = 0; i < 4; i++){
             Force_vector = Vector3{Grad_dihedral[3*i], Grad_dihedral[3*i+1], Grad_dihedral[3*i+2]};
-            Force[Vertices_dihedral[i]] += -1*KB*Force_vector;
+            if( Vertices_dihedral[i].isBoundary() ) Force[Vertices_dihedral[i]] = {0,0,0};
+            else Force[Vertices_dihedral[i]] += -1*KB*Force_vector;
         }
 
     }
@@ -798,12 +810,15 @@ VertexData<Vector3> E_Handler::F_Edge_reg(std::vector<double> Constants) const{
     }
     // Till here everything is the same
     for(Face f: mesh->faces()) {
+
+        
         // I need to get the edge length
         he = f.halfedge();
 
         Vertices[0] = he.vertex();
         Vertices[1] = he.next().vertex();
         Vertices[2] = he.next().next().vertex();
+        if(Vertices[0].isBoundary() || Vertices[1].isBoundary() || Vertices[2].isBoundary() ) continue;
         
         Positions << geometry->inputVertexPositions[he.vertex()].x, geometry->inputVertexPositions[he.vertex()].y, geometry->inputVertexPositions[he.vertex()].z,
                     geometry->inputVertexPositions[he.next().vertex()].x, geometry->inputVertexPositions[he.next().vertex()].y, geometry->inputVertexPositions[he.next().vertex()].z,
@@ -818,7 +833,8 @@ VertexData<Vector3> E_Handler::F_Edge_reg(std::vector<double> Constants) const{
         for(size_t i = 0; i < 3; i++){
             Force_vector = Vector3{Grad_E[3*i], Grad_E[3*i+1], Grad_E[3*i+2]};
             Force_vector *= KE;
-            Force[Vertices[i]] -= Force_vector;
+            if( Vertices[i].isBoundary() ) Force[Vertices[i]] = {0,0,0};
+            else Force[Vertices[i]] -= Force_vector;
         }
     
     }
@@ -878,7 +894,9 @@ VertexData<Vector3> E_Handler::F_Edge_reg_2(std::vector<double> Constants) const
         for(size_t i = 0; i < 4; i++){
             Force_vector = Vector3{Grad_E[3*i], Grad_E[3*i+1], Grad_E[3*i+2]};
             Force_vector *= KE;
-            Force[Vertices[i]] -= Force_vector;
+            if( Vertices[i].isBoundary() ) Force[Vertices[i]] = {0,0,0};
+            else Force[Vertices[i]] -= Force_vector;
+          
         }
 
     }
@@ -894,9 +912,10 @@ SparseMatrix<double> E_Handler::H_SurfaceTension(std::vector<double> Constants){
 
     // Ok so this functino will assemble the Hessi an for the surface tension energy 
     int nVerts = mesh->nVertices();
+    int nBeads = Beads.size();
     double KA = Constants[0];
     // Eigen::MatrixXd Hessian = Eigen::MatrixXd::Zero(nVerts,nVerts);
-    SparseMatrix<double> Hessian(3*nVerts,3*nVerts);
+    SparseMatrix<double> Hessian(3*(nVerts+nBeads),3*(nVerts+nBeads) );
     typedef Eigen::Triplet<double> T;
     std::vector<T> tripletList;
     // Eigen::Matrix<double, nVerts, nVerts> Hessian;
@@ -919,7 +938,8 @@ SparseMatrix<double> E_Handler::H_SurfaceTension(std::vector<double> Constants){
         indices[1] = v2.getIndex();
         indices[2] = v3.getIndex();
         
-
+        // So we will add a modification for boundaries then check if it works :p
+        if(v1.isBoundary() || v2.isBoundary() || v3.isBoundary() ) continue;
 
         Eigen::Vector<double,9> Positions;
 
@@ -952,6 +972,7 @@ SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants) {
 
     int N_verts = mesh->nVertices();
     int N_beads = Beads.size();
+    // std::cout<<"The number of beads is "<< N_beads <<"\n";
     SparseMatrix<double> Hessian(3*(N_verts+N_beads),3*(N_verts+N_beads));
     typedef Eigen::Triplet<double> T;
     std::vector<T> tripletList;
@@ -1067,6 +1088,9 @@ SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants) {
         Vertices_face[0] = he.vertex();
         Vertices_face[1] = he.next().vertex();
         Vertices_face[2] = he.next().next().vertex();
+
+        if(Vertices_face[0].isBoundary() || Vertices_face[1].isBoundary() || Vertices_face[2].isBoundary() ) continue;
+
         for(Vertex v: f.adjacentVertices()){
             
             constant = -1*(1.0/6.0)*(Scalar_MC[v.getIndex()]-H0)/(Dual_areas[v.getIndex()]*Dual_areas[v.getIndex()]);
@@ -1183,6 +1207,8 @@ SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants) {
             Vertices_dihedral[1] = he.next().vertex();
             Vertices_dihedral[3] = he.next().next().vertex();
             Vertices_dihedral[2] = he.twin().next().next().vertex();
+
+            if(Vertices_edge[0].isBoundary() || Vertices_edge[1].isBoundary() || Vertices_dihedral[2].isBoundary() || Vertices_dihedral[3].isBoundary() ) continue;
 
             for(Vertex v: e.adjacentVertices()){
                 constant = 1.0/(8.0*Dual_areas[v.getIndex()]);
@@ -1392,6 +1418,8 @@ SparseMatrix<double> E_Handler::H_Edge_reg(std::vector<double> Constants){
         Vertices[0] = he.vertex();
         Vertices[1] = he.next().vertex();
         Vertices[2] = he.next().next().vertex();
+
+        if(Vertices[0].isBoundary() || Vertices[1].isBoundary() || Vertices[2].isBoundary() ) continue;
 
         Positions << geometry->inputVertexPositions[Vertices[0]].x , geometry->inputVertexPositions[Vertices[0]].y , geometry->inputVertexPositions[Vertices[0]].z,
                     geometry->inputVertexPositions[Vertices[1]].x, geometry->inputVertexPositions[Vertices[1]].y, geometry->inputVertexPositions[Vertices[1]].z,
@@ -1648,6 +1676,7 @@ void E_Handler::Calculate_gradient(){
         // std::cout<<"Energy is " << Energies[i]<<" \n";
 // 
         if(Energies[i] == "Volume_constraint"){
+            // std::cout<<"DOing volume constraint\n";
             Force_temp = F_Volume_constraint(Energy_constants[i]);
             grad_norm = 0.0;
             for(Vertex v : mesh->vertices()){
@@ -1739,7 +1768,7 @@ void E_Handler::Calculate_gradient(){
             // std::cout<<"This is bead" << Beads[bead_count]->Bead_id << "\n";
             Force_temp = Beads[bead_count]->Bead_I->Gradient();
             // Force_tem2 = Beads[bead_count]->Gradient();
-            std::cout<<"The bead feels a force of " << Beads[bead_count]->Total_force.norm2() << "\n";
+            // std::cout<<"The bead feels a force of " << Beads[bead_count]->Total_force.norm2() << "\n";
             // std::cout<<"Interactions \n";
             // Beads[bead_count]->Bead_interactions();
             // std::cout<<"? \n";
@@ -1759,7 +1788,7 @@ void E_Handler::Calculate_gradient(){
             
             Current_grad+=Force_temp;
             bead_count +=1;
-            if(bead_count==2) std::cout<<"\t done for the iteration\n";
+            // if(bead_count==2) std::cout<<"\t done for the iteration\n";
 
             continue;
         }
@@ -1829,11 +1858,10 @@ void E_Handler::Calculate_Jacobian(){
     std::vector<double> Energy_constants_val;
     for(std::string constraint : Constraints){
         if(constraint == "Volume"){
-
             // I need to find which are the energy constants
             grad_vol = F_Volume(std::vector<double>{-1.0});
-            
             N_constraints += 1;
+            // std::cout<<"Volume constraint added \n";
             // Constraint_values.push_back(geometry->totalVolume());
 
         }
@@ -1993,6 +2021,7 @@ SparseMatrix<double> E_Handler::Calculate_Hessian(){
 
     int N_verts = mesh->nVertices();
     int N_beads = Beads.size();
+    // std::cout<<"THe number of beads is " << N_beads << "\n";
     // std::cout<<"Calculating energy\n";
     std::vector<double> Energy_constants_val;
     SparseMatrix<double> Hessian(3*(N_verts+N_beads),3*(N_verts+N_beads));
@@ -2001,6 +2030,7 @@ SparseMatrix<double> E_Handler::Calculate_Hessian(){
 
 
     int bead_counter= 0;
+    // std::cout<<"THe size of Energies is "<< Energies.size() << "\n";
     for(size_t i = 0; i < Energies.size(); i++){
         // std::cout<<"Energy is " << Energies[i] <<" \n";
         if(Energies[i] == "Bending"){
@@ -2010,10 +2040,12 @@ SparseMatrix<double> E_Handler::Calculate_Hessian(){
             Hessian += H_SurfaceTension(Energy_constants[i]);
         }
         if(Energies[i] == "Bead"){
-            std::cout<<"Doing bead energy\n";
-            std::cout<<"The energy constant is "<< Beads[bead_counter]->Bead_I->Energy_constants[0] << " \n";
+            // std::cout<<"Doing bead energy\n";
+            // std::cout<<"The og hessian ahs size" << Hessian.rows() << " " << Hessian.cols() << "\n";
+            // std::cout<<"The energy constant is "<< Beads[bead_counter]->Bead_I->Energy_constants[0] << " \n";
             // std::cout<<"FUNCTION NOT AVAILABLE BUT SHOULD LOOK LIKE this\n";
             Hessian += Beads[bead_counter]->Bead_I->Hessian();
+            // std::cout<<"Done with bead hessian\n";
             bead_counter +=1;
         }
         if(Energies[i] =="Edge_reg"){
@@ -2023,6 +2055,7 @@ SparseMatrix<double> E_Handler::Calculate_Hessian(){
         }
 
     }
+    // std::cout<<"DOne calculating hessian\n";
 
     // Eigen::MatrixXd Hessian_E = Hessian.toDense();
     // Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(Hessian_E);

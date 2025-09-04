@@ -28,9 +28,13 @@ class Interaction {
         std::vector<int> E_Features_val;
 
 
+        virtual double Bond_energy();
+        virtual Vector3 Bond_force();
         virtual double Tot_Energy() = 0;
         virtual VertexData<Vector3>  Gradient() = 0;
         virtual SparseMatrix<double> Hessian() = 0;
+
+        virtual std::vector<Eigen::Triplet<double>> Hessian_bonds_triplet();
 
         virtual double E_r(double r, std::vector<double> Energy_constants)  = 0;
         virtual double dE_r(double r, std::vector<double> Energy_constants) = 0;
@@ -40,9 +44,31 @@ class Interaction {
 
 
 
+
 };
 
+class No_mem_Inter: public Interaction{
+    public:
+    
+            No_mem_Inter() {};
+    
+            double Tot_Energy() override {
+                return Bond_energy();
+            }
+            virtual VertexData<Vector3> Gradient();
+            virtual SparseMatrix<double> Hessian();
 
+            virtual double E_r(double r, std::vector<double> Energy_constants) override {
+                return 0.0;
+            }
+            virtual double dE_r(double r, std::vector<double> Energy_constants) override {
+                return 0.0;
+            }
+            virtual double ddE_r(double r, std::vector<double> Energy_constants) override {
+                return 0.0;
+            }
+
+};
 class Integrated_Interaction: public Interaction {
     public:
 

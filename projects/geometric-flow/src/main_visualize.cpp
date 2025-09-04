@@ -62,12 +62,22 @@ using namespace geometrycentral;
 using namespace geometrycentral::surface;
 using namespace std;
 
+
+template<class T, class... Args>
+std::unique_ptr<T> make_unique(Args&&... args)
+{
+    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
+
+
 // == Geometry-central data
 std::unique_ptr<ManifoldSurfaceMesh> mesh_uptr;
 std::unique_ptr<VertexPositionGeometry> geometry_uptr;
 // so we can more easily pass these to different classes
 ManifoldSurfaceMesh* mesh;
 VertexPositionGeometry* geometry;
+
+std::vector<std::unique_ptr<Interaction>> Interaction_container;
 
 
 polyscope::PointCloud* psCloud;
@@ -595,8 +605,10 @@ void Remesh(){
             Cloth_1.remeshing=remeshing_params;
             arcsim::compute_masses(Cloth_1);
             arcsim::compute_ws_data(Cloth_1.mesh);
+
+            std::cout<<"Doing remesh\n";
             arcsim::dynamic_remesh(Cloth_1);
-            
+            std::cout<<"Remeshed\n";
                
             small_Ts = M3DG.small_TS;
             sys_time = M3DG.system_time;
@@ -972,8 +984,8 @@ void functionCallback() {
             std::cout<<"Calculating gradient newton\n";
             VertexData<Vector3> Gradient_newton;
             if(first_newton){
-            Eigen::VectorXd Lagrange_mults(1);
-            Lagrange_mults(0) = 0.0;
+            Eigen::VectorXd Lagrange_mults(0);
+            // Lagrange_mults(0) = 0.0;
             // Lagrange_mults(1) = 0.0;
             // Lagrange_mults(2) = 0.0;
             // Lagrange_mults(3) = 0.0;
@@ -984,12 +996,13 @@ void functionCallback() {
             Sim_handler.Lagrange_mult = Lagrange_mults;
             
             // Sim_handler.Constraints = std::vector<std::string>{"Volume","CMx","CMy","CMz","Rx","Ry","Rz"};
-            Sim_handler.Constraints = std::vector<std::string>{"Volume"};
+            // Sim_handler.Constraints = std::vector<std::string>{"Volume"};
+            Sim_handler.Constraints = std::vector<std::string>{};
             
             first_newton = false;
             }
             // M3DG.integrate_Newton(Sim_data,0.0,Energies,false,std::vector<std::string>{"Volume","CMx","CMy","CMz","Rx","Ry","Rz"},std::vector<std::string>{"Files"});
-            M3DG.integrate_Newton(Sim_data,0.0,Energies,false,std::vector<std::string>{"Volume"},std::vector<std::string>{"Files"});
+            M3DG.integrate_Newton(Sim_data,0.0,Energies,false,std::vector<std::string>{},std::vector<std::string>{"Files"});
             
             Gradient_newton = Sim_handler.Current_grad;
 
@@ -1000,22 +1013,24 @@ void functionCallback() {
             std::cout<<"Calculating gradient newton\n";
             VertexData<Vector3> Gradient_newton;
             if(first_newton){
-            Eigen::VectorXd Lagrange_mults(8);
-            Lagrange_mults(0) = 0.0;
-            Lagrange_mults(1) = 0.0;
-            Lagrange_mults(2) = 0.0;
-            Lagrange_mults(3) = 0.0;
-            Lagrange_mults(4) = 0.0;
-            Lagrange_mults(5) = 0.0;
-            Lagrange_mults(6) = 0.0;
-            Lagrange_mults(7) = 0.0;
+            Eigen::VectorXd Lagrange_mults(0);
+            // Lagrange_mults(0) = 0.0;
+            // Lagrange_mults(1) = 0.0;
+            // Lagrange_mults(2) = 0.0;
+            // Lagrange_mults(3) = 0.0;
+            // Lagrange_mults(4) = 0.0;
+            // Lagrange_mults(5) = 0.0;
+            // Lagrange_mults(6) = 0.0;
+            // Lagrange_mults(7) = 0.0;
             Sim_handler.Lagrange_mult = Lagrange_mults;
-            
-            Sim_handler.Constraints = std::vector<std::string>{"Volume","Area","CMx","CMy","CMz","Rx","Ry","Rz"};
+            Sim_handler.Constraints = std::vector<std::string>{};
+            // Sim_handler.Constraints = std::vector<std::string>{"Volume","Area","CMx","CMy","CMz","Rx","Ry","Rz"};
             first_newton = false;
             }
 
-            M3DG.integrate_Newton(Sim_data,0.0,Energies,false,std::vector<std::string>{"Volume","Area","CMx","CMy","CMz","Rx","Ry","Rz"},std::vector<std::string>{"Files"});
+            // M3DG.integrate_Newton(Sim_data,0.0,Energies,false,std::vector<std::string>{"Volume","Area","CMx","CMy","CMz","Rx","Ry","Rz"},std::vector<std::string>{"Files"});
+            M3DG.integrate_Newton(Sim_data,0.0,Energies,false,std::vector<std::string>{},std::vector<std::string>{"Files"});
+            
             // Gradient_newton = Sim_handler.Current_grad;
             // geometry->inputVertexPositions += Gradient_newton;
             std::cout<<"Redrawing\n";
@@ -1329,6 +1344,9 @@ int main(int argc, char** argv) {
     std::string Constraint;
     std::vector<double> Constraint_constants;
     Bead PBead;
+    Interaction* PInteraction;
+
+    int bead_counter = 0;
     for( auto Bead_data : Data["Beads"]){
         std::cout<<"Adding a bead\n";
         if(Bead_data.contains("gradient_order")){
@@ -1337,6 +1355,8 @@ int main(int argc, char** argv) {
         else{
         Energies.push_back("Bead");
         }
+        // Beads.push_back(Bead());
+
         if(Bead_data.contains("Constraint")){
             Constraint = Bead_data["Constraint"];
             Constraint_constants = Bead_data["Constraint_constants"].get<std::vector<double>>();
@@ -1345,30 +1365,161 @@ int main(int argc, char** argv) {
             Constraint = "None";
             Constraint_constants = {};
         }
-
+        
         Energy_constants.push_back(Constants);
 
         BPos = Vector3({Bead_data["Pos"][0],Bead_data["Pos"][1],Bead_data["Pos"][2] });
+        std::cout<<"The position of the bead is " << BPos <<" \n";
         radius = Bead_data["radius"];
         state = Bead_data["state"];
         interaction_str = Bead_data["inter_str"];
         interaction_mem = Bead_data["mem_inter"];
-        PBead = Bead(mesh, geometry, BPos, radius, interaction_str);
-        PBead.interaction = interaction_mem;
-        PBead.Bond_type = Bead_data["bonds"].get<vector<std::string>>();
-        PBead.Interaction_constants_vector = Bead_data["bonds_constants"].get<std::vector<std::vector<double>>>();
-        PBead.state = state;
-        if(Bead_data["mem_inter"]=="Shifted_LJ"){
-            PBead.rc = radius*pow(2,1.0/6.0);
+        
+        std::vector<double> Bead_params(0);
+        Bead_params.push_back(interaction_str);
+        Bead_params.push_back(radius);
+        // Bead_params.push_back(2.0);
+
+        if(Bead_data.contains("rc")){
+            Bead_params.push_back(Bead_data["rc"]);
         }
         else{
-            PBead.rc = 2.0*radius;
+
+        if(Bead_data["mem_inter"]=="LJ"){
+            Bead_params.push_back(radius*pow(2,1.0/6.0));
         }
-        std::cout<<"The bead has radius" << PBead.sigma <<" cutoff of " << PBead.rc <<" Interaction of " << PBead.interaction << " \n";
-        Beads.push_back(PBead);
+        else if(Bead_data["mem_inter"]=="One_over_r_x"){
+            Bead_params.push_back(-1.0);
+
+        }
+        else{
+            // PBead.rc = 2.0*radius;
+            Bead_params.push_back(radius*2.0);
+        }
+        }
+
+
+        if(interaction_mem == "Frenkel_Normal_nopush"|| interaction_mem =="Shifted_LJ_Normal_nopush"){
+            
+            // Frenkel_uptr = std::move( make_unique<Frenkel_Normal>(mesh, geometry, Bead_params));
+            // fnormal = Frenkel_uptr.get();
+            Interaction_container.push_back(std::move( make_unique<Frenkel_Normal>(mesh, geometry, Bead_params)));
+            std::cout<<"THe frenkel uptr points to"<< Interaction_container[bead_counter].get() <<"\n";
+            // std::cout<<"The Fnormal points to" << fnormal <<" \n";
+            
+            Beads.push_back(Bead());
+            Beads[bead_counter].mesh = mesh;
+            Beads[bead_counter].geometry = geometry;
+            Beads[bead_counter].Pos = BPos;
+            Beads[bead_counter].strength = Bead_params[0];
+            Beads[bead_counter].sigma = Bead_params[1];
+            Beads[bead_counter].rc = Bead_params[2];
+            Beads[bead_counter].interaction = interaction_mem;
+            std::cout<<"Trivial assignments done\n";
+            Beads[bead_counter].Bead_I = Interaction_container[bead_counter].get();
+            std::cout<<"Assigned INter \n";
+            Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
+            std::cout<<"Assined bead of inter\n";
+            Beads[bead_counter].Bead_id = bead_counter;
+
+            std::cout<<"The energy constants are ";
+            for(size_t i = 0; i < Interaction_container[bead_counter].get()->Energy_constants.size(); i ++){
+                std::cout<< Interaction_container[bead_counter].get()->Energy_constants[i] <<" ";
+            }
+            std::cout<<"\n";
+            
+        }
+        if(interaction_mem == "LJ"){
+
+            if(Bead_data.contains("shift")){
+             Bead_params.push_back(Bead_data["shift"]); 
+                }
+            else{
+                Bead_params.push_back(0.0); // default shift
+            }
+
+
+            Interaction_container.push_back( std::move( make_unique<LJ>(mesh, geometry, Bead_params)));
+        
+            std::cout<<"THe frenkel uptr points to"<< Interaction_container[bead_counter].get() <<"\n";
+            
+            Beads.push_back(Bead());
+            Beads[bead_counter].mesh = mesh;
+            Beads[bead_counter].geometry = geometry;
+            Beads[bead_counter].Pos = BPos;
+            Beads[bead_counter].strength = Bead_params[0];
+            Beads[bead_counter].sigma = Bead_params[1];
+            Beads[bead_counter].rc = Bead_params[2];
+            Beads[bead_counter].interaction = interaction_mem;
+            Beads[bead_counter].Bead_I = Interaction_container[bead_counter].get();
+            Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
+            Beads[bead_counter].Bead_id = bead_counter;
+
+            
+        }
+        if(interaction_mem == "One_over_r_x"){
+           
+            Interaction_container.push_back( std::move( make_unique<One_over_r_Normal>(mesh, geometry, Bead_params)));
+        
+            std::cout<<"THe  uptr points to"<< Interaction_container[bead_counter].get() <<"\n";
+            
+            Beads.push_back(Bead());
+            Beads[bead_counter].mesh = mesh;
+            Beads[bead_counter].geometry = geometry;
+            Beads[bead_counter].Pos = BPos;
+            Beads[bead_counter].strength = Bead_params[0];
+            Beads[bead_counter].sigma = Bead_params[1];
+            Beads[bead_counter].rc = Bead_params[2];
+            Beads[bead_counter].interaction = interaction_mem;
+            
+            Beads[bead_counter].Bead_I = Interaction_container[bead_counter].get();
+            Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
+            Beads[bead_counter].Bead_id = bead_counter;
+            
+        }
+
+        if(interaction_mem =="None"){
+            std::cout<<"Adding a no mem interaction\n";
+            Interaction_container.push_back( std::move( make_unique<No_mem_Inter>()));
+            
+            Beads.push_back(Bead());
+            Beads[bead_counter].mesh = mesh;
+            Beads[bead_counter].geometry = geometry;
+            Beads[bead_counter].Pos = BPos;
+            Beads[bead_counter].strength = Bead_params[0];
+            Beads[bead_counter].sigma = Bead_params[1];
+            Beads[bead_counter].rc = Bead_params[2];
+            Beads[bead_counter].interaction = interaction_mem;
+            
+            Beads[bead_counter].Bead_I = Interaction_container[bead_counter].get();
+            Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
+            Beads[bead_counter].Bead_id = bead_counter;
+
+        }
+        // BEA.interaction = interaction_mem;
+        Beads[bead_counter].Bond_type = Bead_data["bonds"].get<vector<std::string>>();
+        Beads[bead_counter].Interaction_constants_vector = Bead_data["bonds_constants"].get<std::vector<std::vector<double>>>();
+        Beads[bead_counter].state = state;
+        
+
+        Beads[bead_counter].Constraint = Constraint;
+        Beads[bead_counter].Constraint_constants = Constraint_constants;
+        std::cout<<"The bead has radius" << Beads[bead_counter].sigma <<" cutoff of " << Beads[bead_counter].rc <<" \n";
+        
+        
+        
+    
+        bead_counter +=1;
 
     }
-    // Once all the beads have been added I need to make them point to each other
+    std::cout<<"The bead counter is " << bead_counter << "\n";
+
+    for(int bi = 0; bi < Beads.size(); bi++){
+        std::cout<<"The bead "<< bi <<" points to "<< Beads[bi].Bead_I->Bead_1 << " and state "<< Beads[bi].state << " \n";
+    }
+
+
+
     std::vector<int> BeadBonds(0);
     size_t counter = 0;
     for(auto Bead_data: Data["Beads"]){
@@ -1388,6 +1539,12 @@ int main(int argc, char** argv) {
 
     // Lets define our integrator and all its values
 
+    int N_beads = Beads.size();
+    for(int i = 0; i < N_beads; i++){
+        Beads[i].Total_beads = N_beads;
+        Beads[i].Bead_id = i;
+    }
+
     M3DG = Mem3DG(mesh,geometry);
     Sim_handler = E_Handler(mesh,geometry,Energies, Energy_constants);
     Sim_handler.Trgt_vol = V_bar;
@@ -1395,6 +1552,7 @@ int main(int argc, char** argv) {
     M3DG.recentering = Data["recentering"];
     M3DG.boundary = Data["boundary"]; 
     Sim_handler.boundary = Data["boundary"];
+    
 
     for( size_t i = 0 ; i< Beads.size() ; i++) {
         M3DG.Add_bead(&Beads[i]);
@@ -1543,7 +1701,7 @@ int main(int argc, char** argv) {
     std::string Directory = "";
     std::stringstream stream;
     std::string s;
-    int bead_counter = 0;
+    bead_counter = 0;
     for(size_t z = 0; z < Energies.size(); z++){
         Directory = Directory + Energies[z]+"_";
         

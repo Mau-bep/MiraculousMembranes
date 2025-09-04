@@ -10,8 +10,61 @@
 
 using namespace geometrycentral;
 using namespace geometrycentral::surface;
+typedef Eigen::Triplet<double> T;
 
 
+double Interaction::Bond_energy() {
+    double E_bond = 0.0;
+    Vector3 vec_r;
+    double r;
+    std::vector<double> params;
+    for(size_t i = 0; i < Bead_1->Beads.size(); i ++){
+        params = Bead_1->Interaction_constants_vector[i];
+        if(Bead_1->Bond_type[i] == "Harmonic"){
+            vec_r = Bead_1->Pos - Bead_1->Beads[i]->Pos;
+            // r = vec_r.norm();
+            E_bond += 0.25*params[0]*dot(vec_r,vec_r);
+        }
+        if(Bead_1->Bond_type[i] == "Lineal"){
+            vec_r = Bead_1->Pos - Bead_1->Beads[i]->Pos;
+            r = vec_r.norm();
+            E_bond += 0.5*params[0]*r;
+        }
+
+    }
+
+    return E_bond;
+
+}
+
+std::vector<T> Interaction::Hessian_bonds_triplet(){
+    int B_1 = Bead_1->Bead_id;
+    int B_2;
+    int N_vert = mesh->nVertices();
+    std::vector<T> tripletList;
+    Eigen::Matrix<double,3,3> H_bond;
+    for(int i = 0; i < Bead_1->Beads.size(); i++){
+        B_2 = Bead_1->Beads[i]->Bead_id;
+
+        if(Bead_1->Bond_type[i] == "Harmonic"){
+            // 
+            H_bond = 0.5*Eigen::Matrix3d::Identity()*Bead_1->Interaction_constants_vector[i][0];
+            for(int diag = 0; diag<3; diag++){
+                // I will be adding this onto the corresponding beads
+                tripletList.push_back(T( 3*(N_vert+ B_1)+diag,3*(N_vert+ B_1)+diag,H_bond(diag,diag) ));
+                tripletList.push_back(T( 3*(N_vert+ B_2)+diag,3*(N_vert+ B_2)+diag,H_bond(diag,diag) ));
+                tripletList.push_back(T( 3*(N_vert+ B_1)+diag,3*(N_vert+ B_2)+diag,-1*H_bond(diag,diag) ));
+                tripletList.push_back(T( 3*(N_vert+ B_2)+diag,3*(N_vert+ B_1)+diag,-1*H_bond(diag,diag) ));
+
+            }
+
+        }
+        
+        if(Bead_1->Bond_type[i]=="Lineal") continue;
+
+    }
+    return tripletList;
+}
 
 
 double Normal_dot_Interaction::Tot_Energy() {
@@ -49,23 +102,50 @@ double Normal_dot_Interaction::Tot_Energy() {
 
     }
 
-
+    Total_E += Bond_energy();
 
     return Total_E;
 }
 
+Vector3 Interaction::Bond_force(){
+
+    Vector3 r_vec;
+    // double r;
+    Vector3 Force{0.0,0.0,0.0};
+    std::vector<double> params;
+
+    for(size_t i = 0; i < Bead_1->Beads.size(); i++){
+        params = Bead_1->Interaction_constants_vector[i];
+        r_vec = Bead_1->Pos - Bead_1->Beads[i]->Pos;
+        // r = r_vec.norm();
+        if(Bead_1->Bond_type[i] == "Harmonic"){
+            Force += -1*params[0]*r_vec;
+        }
+        if(Bead_1->Bond_type[i] == "Lineal"){
+            Force += -1*params[0]*r_vec.unit();
+        }
+
+        }
+
+    return Force;
+
+
+}
 
 VertexData<Vector3> Normal_dot_Interaction::Gradient() {
 
     Vertex v;
-    
 
     VertexData<Vector3> Force(*mesh,{0.0,0.0,0.0});
     double rc = Energy_constants[2];
     Halfedge he;
     Bead_1->Total_force = Vector3{0.0, 0.0, 0.0};
     // std::cout<<"Force initialied\n";
-    // std::cout<<"THis is bead " << Bead_1->Bead_id << "\n";
+
+    Bead_1->Total_force += Bond_force(); //Here this force considers all the bonds
+    // THis should be enough for gradient descent
+
+
 
     Eigen::Vector<double, 13> Positions_triangle;
     Eigen::Vector<double, 6> Positions_r;
@@ -196,11 +276,19 @@ SparseMatrix<double> Normal_dot_Interaction::Hessian(){
     // std::cout<<"Calculating Hessian for Normal dot interaction\n";
     // This matrix should be a (3N+3) by (3N+1) matrix but we really dont need all those number
     double rc = Energy_constants[2];
+    int N_vert = mesh->nVertices();
+
+
+
     // std::cout<<"Declaring the sparsematric\n";
     // std::cout<<"The number of total beads is " << Bead_1->Total_beads << "\n";
-    SparseMatrix<double> Hessian(3*mesh->nVertices()+3*Bead_1->Total_beads, 3*mesh->nVertices()+3*Bead_1->Total_beads);
-    typedef Eigen::Triplet<double> T;
-    std::vector<T> tripletList;
+    SparseMatrix<double> Hessian(3*N_vert+3*Bead_1->Total_beads, 3*N_vert+3*Bead_1->Total_beads);
+    
+    // std::cout<<"The size of the Hessian is " << Hessian.rows() << " by " << Hessian.cols() << "\n";
+
+    std::vector<T> tripletList = Hessian_bonds_triplet();
+
+
     Halfedge he;
     Eigen::Vector<double, 13> Positions_triangle;
     Eigen::Vector<double, 6> Positions_r;
@@ -225,6 +313,14 @@ SparseMatrix<double> Normal_dot_Interaction::Hessian(){
     VertexData<double> dd_Energy_contribution(*mesh, 0.0);
     Vector3 Bead_pos = Bead_1->Pos;
 
+    
+
+
+
+
+
+
+
     // std::cout<<"Finished defining auxiliar variables\n";
     for(Vertex v: mesh->vertices()){
         vector_bead[v] = Bead_pos - geometry->inputVertexPositions[v];
@@ -234,7 +330,14 @@ SparseMatrix<double> Normal_dot_Interaction::Hessian(){
         dd_Energy_contribution[v] = ddE_r(distance_bead[v], Energy_constants);
     }
 
+    
     // std::cout<<"Finished calculating useful quantities\n";
+
+    // I will do the hessian of the Bonds first
+    
+
+
+
 
     Vector3 Normal;
     double Q;
@@ -249,6 +352,8 @@ SparseMatrix<double> Normal_dot_Interaction::Hessian(){
         Vertices_triangle[0] = he.vertex().getIndex();
         Vertices_triangle[1] = he.next().vertex().getIndex();
         Vertices_triangle[2] = he.next().next().vertex().getIndex();
+    
+        if( he.vertex().isBoundary() || he.next().vertex().isBoundary() || he.next().next().vertex().isBoundary() ) continue;
         
         Positions_triangle << 
                             geometry->inputVertexPositions[Vertices_triangle[0]].x, geometry->inputVertexPositions[Vertices_triangle[0]].y, geometry->inputVertexPositions[Vertices_triangle[0]].z,
@@ -339,7 +444,7 @@ SparseMatrix<double> Normal_dot_Interaction::Hessian(){
 
     // std::cout<<"Setting from triplets\n";
     Hessian.setFromTriplets(tripletList.begin(), tripletList.end());
-
+    // std::cout<<"Hessian calculated\n";
     return Hessian;
 
 }
@@ -359,16 +464,29 @@ double Integrated_Interaction::Tot_Energy(){
             vec_r = Bead_1->Pos - geometry->inputVertexPositions[v];
             double r = vec_r.norm();
             if(r < rc || rc < 0.0){
+                // if(geometry->inputVertexPositions[v].x>5.0){
+                    // std::cout<<"THis vertex is far and contributes with "<< E_r(r, Energy_constants)*face_area/3 <<" ? \n";
+                    // std::cout<<"The position of the vertex is "<< geometry->inputVertexPositions[v] << " and the bead is at " << Bead_1->Pos << "\n";
+                    // std::cout<<"tHE distance is "<< r << "\n";
+                    // std::cout<<"The cutoff distance is" << rc << "\n";
+                // }
+
                 Total_E += E_r(r, Energy_constants)*face_area/3;
             }
         }
     }
+
+    // So I need to add the ENergy of the bonds
+    Total_E += Bond_energy();
+
+
     return Total_E;
 }
 
 VertexData<Vector3> Integrated_Interaction::Gradient(){
     VertexData<Vector3> Force(*mesh, {0.0, 0.0, 0.0});
     Bead_1->Total_force = {0.0,0.0,0.0};
+    Bead_1->Total_force += Bond_force();
     // std::cout<<"Force initialied\n";
     // std::cout<<"THis is bead " << Bead_1->Bead_id << "\n";
     double rc = Energy_constants[2];
@@ -406,16 +524,22 @@ VertexData<Vector3> Integrated_Interaction::Gradient(){
         Vertices_triangle[1] = he.next().vertex().getIndex();
         Vertices_triangle[2] = he.next().next().vertex().getIndex();
 
+        // Ineed to check here something
+
         Positions_f << geometry->inputVertexPositions[Vertices_triangle[0]].x, geometry->inputVertexPositions[Vertices_triangle[0]].y, geometry->inputVertexPositions[Vertices_triangle[0]].z,
                        geometry->inputVertexPositions[Vertices_triangle[1]].x, geometry->inputVertexPositions[Vertices_triangle[1]].y, geometry->inputVertexPositions[Vertices_triangle[1]].z,
                        geometry->inputVertexPositions[Vertices_triangle[2]].x, geometry->inputVertexPositions[Vertices_triangle[2]].y, geometry->inputVertexPositions[Vertices_triangle[2]].z;
         Grad_f = geometry->gradient_triangle_area(Positions_f);
-        // Not finished 
-        // 
-
+        //  
         for(int i = 0; i < 3; i++){
             Force_vector = {Grad_f[3*i],Grad_f[3*i+1],Grad_f[3*i+2]};
             Force_vector*= (Energy_contribution[Vertices_triangle[0]]+Energy_contribution[Vertices_triangle[1]]+Energy_contribution[Vertices_triangle[2]])/3.0;
+            // if(geometry->inputVertexPositions[Vertices_triangle[i]].x>5.5){
+            //     std::cout<<"THis vertex is far and contributes with "<< Force_vector <<" ? \n";
+            //     std::cout<<"The position of the vertex is "<< geometry->inputVertexPositions[Vertices_triangle[i]] << " and the bead is at " << Bead_1->Pos << "\n";
+            //         std::cout<<"tHE distance is "<< distance_bead[Vertices_triangle[i]] << "\n";
+            //         std::cout<<"The cutoff distance is" << rc << "\n";
+            // }
             Force[Vertices_triangle[i]] -=Force_vector;
         }
 
@@ -433,7 +557,6 @@ VertexData<Vector3> Integrated_Interaction::Gradient(){
                 Bead_1->Total_force += Force_vector;
             }
 
-            // You still need to add the gradient of the face
 
            
         }
@@ -450,8 +573,9 @@ SparseMatrix<double> Integrated_Interaction::Hessian(){
     double rc = Energy_constants[2];
     std::cout<<"Building hessian\n";
     SparseMatrix<double> Hessian(3*mesh->nVertices()+3*Bead_1->Total_beads, 3*mesh->nVertices()+3*Bead_1->Total_beads);
-    typedef Eigen::Triplet<double> T;
-    std::vector<T> tripletList;
+    // typedef Eigen::Triplet<double> T;
+
+    std::vector<T> tripletList = Hessian_bonds_triplet();
     Halfedge he;
     Eigen::Vector<double,6 > Positions_r;
     Eigen::Vector<double,9> Positions_f;
@@ -577,3 +701,21 @@ SparseMatrix<double> Integrated_Interaction::Hessian(){
     return Hessian;
 
 }
+
+
+VertexData<Vector3> No_mem_Inter::Gradient() 
+    {
+        VertexData<Vector3> Force(*mesh,{0.0,0.0,0.0});
+        Bead_1->Total_force = Bond_force();
+        return Force;
+    }
+
+SparseMatrix<double> No_mem_Inter::Hessian()
+     {
+        SparseMatrix<double> Hessian(3*mesh->nVertices()+3*Bead_1->Total_beads, 3*mesh->nVertices()+3*Bead_1->Total_beads);
+        typedef Eigen::Triplet<double> T;
+
+        std::vector<T> tripletList = Hessian_bonds_triplet();
+        Hessian.setFromTriplets(tripletList.begin(), tripletList.end());
+        return Hessian;
+    }

@@ -63,6 +63,7 @@ class Mem3DG {
 
     Vector3 Total_force;
 
+    // Eigen::SimplicialLDLT<SparseMatrix<double>> solver_H;
 
 
     // double pulling_offset;

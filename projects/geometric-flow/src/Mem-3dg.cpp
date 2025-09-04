@@ -2835,7 +2835,7 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
   for(size_t index = 0; index < mesh->nVertices(); index++) {
     Barycentric_area[index] = geometry->barycentricDualArea(mesh->vertex(index));
     A += Barycentric_area[index];
-    Barycentric_area[index] = 1.0;
+    // Barycentric_area[index] = 1.0;
   }
 
 
@@ -3197,7 +3197,7 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
   size_t bead_count = 0;
   // std::cout<<"Bead data\n";
   if(Bead_data_filenames.size()!=0 && Save_output_data){
-    std::cout<<"\t\t Saving data\n";
+    // std::cout<<"\t\t Saving data\n";
     std::ofstream Bead_data;
     for(size_t i = 0; i < Beads.size(); i++){
       
@@ -3216,6 +3216,7 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
   //   A += Barycentric_area[index];
   //   Barycentric_area[index] = 1.0;
   // }
+  
   A = geometry->totalArea();
 
   // std::cout<<"AREA CALCULATED\n";
@@ -3248,7 +3249,10 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
 
   // SparseMatrix<double> Hessian_beads;
   
-  Eigen::SparseLU<SparseMatrix<double>> solverHess;
+  Eigen::SimplicialLDLT<SparseMatrix<double>> solverHess;
+
+  // std::cout<<"THe number of rows for the solve are" << solverHess.rows() <<" \n";
+  
   // Eigen::SimplicialLLT<SparseMatrix<double>> solverHess;
   // Eigen::SparseLU<SparseMatrix<double>> solverH1;
   // int N_vert = mesh->nVertices();
@@ -3281,11 +3285,13 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
   SparseMatrix<double> LHS(3*(N_vert+N_beads)+ N_constraints,3*(N_vert+N_beads)+ N_constraints);
   Eigen::VectorXd RHS(3*(N_vert+N_beads)+ N_constraints);
   
+  // std::cout<<"THe size of LHS IS" << LHS.cols() << " and " << LHS.rows() << "\n";
   // Ok now we do the fill
   typedef Eigen::Triplet<double> T;
   std::vector<T> tripletList;
   // std::cout<<"Filling matrix\n";
   // But i already have te jacobian I just need to paste it
+  
   for(int row = 0; row < Sim_handler->Jacobian_constraints.rows(); row++ ){
     for(int col = 0; col < Sim_handler->Jacobian_constraints.cols(); col++){
       // Ok so now we need to add this
@@ -3293,6 +3299,9 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
       tripletList.push_back(T(row+3*(N_vert+N_beads),col,Sim_handler->Jacobian_constraints(row,col) ));
     }
   }
+
+
+  // std::cout<<"Im guessing no problem here\n";
   
 
 
@@ -3302,6 +3311,9 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
   int row;
   int col;
   double value;
+
+  int maxrow = 0;
+  int maxcol = 0;
   
   int smol_counter = 0;
   for( long int k = 0; k < Hessian.outerSize(); ++k ) {
@@ -3309,11 +3321,15 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
             value = it.value();
             row = it.row();
             col = it.col();
+            if(row > maxrow) maxrow = row;
+            if(col > maxcol) maxcol = col;
             if(value < 1e-8 && value > -1e-8) smol_counter +=1;
             tripletList.push_back(T(row,col,value));
         }
     }
 
+    // std::cout<<"The max row is " << maxrow << " and the max col is " << maxcol << "\n";
+    // std::cout<<"THe total number of rows is " << 3*(N_vert+N_beads)+N_constraints <<" and the total number of cols is " << 3*(N_vert+N_beads)+N_constraints << "\n";
   // std::cout<<"The number of small values in the Hessian is " << smol_counter <<" \n";
 
   // We regularize the Hessian by adding a diagonal
@@ -3326,6 +3342,7 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
   }
   //  We added a diagonal to the LHS (For now you wont add it to the contraint part)
 
+  // std::cout<<"Added diagonal\n";
 
 
 
@@ -3445,10 +3462,34 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
     // std::cout<<"Solved\n";
     VertexData<Vector3> Force_result(*mesh,Vector3({0.0,0.0,0.0}));
     // Eigen::VectorXd Grad_L = LambdaJ+ ;
+    bool flag = false;
     for(size_t vi = 0; vi < mesh->nVertices(); vi++){
+      if( mesh->vertex(vi).isBoundary() ){
+        Force_result[vi] = Vector3({0.0,0.0,0.0});
+        result(3*vi) = 0.0;
+        result(3*vi+1) = 0.0;
+        result(3*vi+2) = 0.0;
+        // mesh->vertex(vi).adjacentFaces()
+        continue;
+      }
+      for(Vertex vj : mesh->vertex(vi).adjacentVertices()){
+          if( vj.isBoundary() ){
+            Force_result[vi] = Vector3({0.0,0.0,0.0});
+            result(3*vi) = 0.0;
+            result(3*vi+1) = 0.0;
+            result(3*vi+2) = 0.0;
+            flag = true;
+            break;
+          }
+      }
+      if(flag){
+        flag = false;
+        continue;
+      }
       Force_result[vi].x = result(3*vi);
       Force_result[vi].y = result(3*vi+1);
       Force_result[vi].z = result(3*vi+2);
+    
     }
 
     Sim_handler->Previous_grad = Sim_handler->Current_grad;
@@ -3471,7 +3512,7 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
 
     double Projection = 0.5*result.transpose()*LHS*RHS;
     // if(Projection<0.0){ Projection*=-1;
-    // std::cout<<"THe projection is negative ?\n";
+    std::cout<<"THe projection is"<<  Projection <<  "\n";
     // Current grad norm is 
     double Current_grad_norm = 0.5*RHS.dot(RHS);
 
@@ -3484,25 +3525,29 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
     if(result.dot(RHS)<0 || Projection <0.0){
       // 
       std::cout<<"The result is not a descent direction, we will not backtrack\n";
-      backtrackstep = integrate(Sim_data,time,Bead_data_filenames,Save_output_data);
+      small_TS = true;
+      backtrackstep = 0.0;
+      // backtrackstep = integrate(Sim_data,time,Bead_data_filenames,Save_output_data);
     }
     else{
       backtrackstep = Backtracking_grad(result.tail(N_constraints),Projection,Current_grad_norm);
     
 
     // 
-    if(backtrackstep < 1e-9){
-      std::cout<<"Newton is not happy lets try gradient descent here\n";
-      backtrackstep = integrate(Sim_data,time,Bead_data_filenames,Save_output_data);
-      std::cout<<"Gradient took " << backtrackstep <<" as a step\n";
-      double V;
-      V = geometry->totalVolume();
+    if(backtrackstep < 1e-9) small_TS = true;
+    //   std::cout<<"Newton is not happy lets try gradient descent here\n";
+    //   backtrackstep = integrate(Sim_data,time,Bead_data_filenames,Save_output_data);
+    //   std::cout<<"Gradient took " << backtrackstep <<" as a step\n";
+    //   if(!boundary){
+    //   double V;
+    //   // V = geometry->totalVolume();
 
-      double k = pow(Sim_handler->Trgt_vol/V,1.0/3.0);  
-      geometry->rescale(k);
-      geometry->refreshQuantities();
-      // We should rescale here, maybe that helps
-    }
+    //   // double k = pow(Sim_handler->Trgt_vol/V,1.0/3.0);  
+    //   // geometry->rescale(k);
+    //   // geometry->refreshQuantities();
+    //   }
+    //   // We should rescale here, maybe that helps
+    // }
 
     double TotE = 0.0;
     
@@ -3521,6 +3566,7 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
 
     Sim_data << Current_grad_norm <<" " << backtrackstep <<" \n";
     }
+
     // for(long int ci = 0; ci < Sim_handler->Lagrange_mult.size(); ci++){
     //   if(Constraints[ci]=="Volume") Sim_handler->Lagrange_mult(ci) -= backtrackstep*result(3*(N_vert+N_beads)+ci);
     //   if(Constraints[ci]=="Area") Sim_handler->Lagrange_mult(ci) -= backtrackstep*result(3*(N_vert+N_beads)+ci);

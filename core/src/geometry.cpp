@@ -193,6 +193,9 @@ double VertexPositionGeometry::angle(Corner c) const {
  */
 double VertexPositionGeometry::dihedralAngle(Halfedge he) const {
     // Ok we will start with
+    if(he.edge().isBoundary()){
+        return 0.0;
+    }
     Vector3 Normal_1 = faceNormal(he.face());
     Vector3 Normal_2 = faceNormal(he.twin().face());
 

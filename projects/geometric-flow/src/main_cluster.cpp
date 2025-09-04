@@ -446,11 +446,15 @@ int main(int argc, char** argv) {
     // We loaded the json file 
 
     // std::cout << Data.dump(1);
-    
+    std::vector<std::string> Switches(0);
     std::string Switch = "None";
-    size_t Switch_t = 0;
+    int Switch_t = 0;
 
-    bool finish_sim = true;
+
+    std::unordered_map<std::string, int> Switch_times_map;
+
+
+    bool finish_sim = false;
 
     if(Data.contains("finish_sim")){
         finish_sim = Data["finish_sim"];
@@ -476,13 +480,37 @@ int main(int argc, char** argv) {
         std::cout<<"The integration method is not defined, using Gradient descent\n";
     }
 
-    if(Data.contains("Switch")){
-        Switch = Data["Switch"];
-        Switch_t = Data["Switch_t"];
+    if(Data.contains("Switches")){
+        
+        for( auto sw : Data["Switches"]){
+            Switches.push_back(sw);
+        }
+        int switch_counter = 0;
+        for( auto t : Data["Switch_times"]){
+            
+            Switch_times_map[Switches[switch_counter]] = t;
+            switch_counter+=1;
+            // Switch_times.push_back(t);
+        }
+
     }
     else{
-        std::cout<<"No switch in this run";
+        std::cout<<"No switches in this run";
     }
+
+    std::cout<<"THe number of switches is "<< Switches.size() << "\n";
+    for(int i = 0 ; i < Switches.size(); i++){
+        std::cout<<"The switch "<< Switches[i] << " happens at time " << Switch_times_map[Switches[i]] << "\n";
+    }
+
+
+    // if(Data.contains("Switch")){
+    //     Switch = Data["Switch"];
+    //     Switch_t = Data["Switch_t"];
+    // }
+    // else{
+    //     std::cout<<"No switch in this run";
+    // }
 
     int remesh_every = 1;
     if( Data.contains("remesh_every")) remesh_every = Data["remesh_every"];
@@ -606,11 +634,11 @@ int main(int argc, char** argv) {
 
         if(interaction_mem == "Frenkel_Normal_nopush"){
             
-            Frenkel_uptr = std::move( make_unique<Frenkel_Normal>(mesh, geometry, Bead_params));
-            fnormal = Frenkel_uptr.get();
-            Interaction_container.push_back(std::move(Frenkel_uptr));
-            std::cout<<"THe frenkel uptr points to"<< Interaction_container[bead_counter].get() <<"\n";
-            std::cout<<"The Fnormal points to" << fnormal <<" \n";
+            // Frenkel_uptr = std::move( make_unique<Frenkel_Normal>(mesh, geometry, Bead_params));
+            // fnormal = Frenkel_uptr.get();
+            Interaction_container.push_back(std::move( make_unique<Frenkel_Normal>(mesh, geometry, Bead_params)));
+            // std::cout<<"THe frenkel uptr points to"<< Interaction_container[bead_counter].get() <<"\n";
+            // std::cout<<"The Fnormal points to" << fnormal <<" \n";
             
             Beads.push_back(Bead());
             Beads[bead_counter].mesh = mesh;
@@ -642,11 +670,11 @@ int main(int argc, char** argv) {
             else{
                 Bead_params.push_back(0.0); // default shift
             }
-
+            std::cout<<"The bead params are " << Bead_params[0] << " " << Bead_params[1] << " " << Bead_params[2] << " " << Bead_params[3] <<"\n";
 
             Interaction_container.push_back( std::move( make_unique<LJ>(mesh, geometry, Bead_params)));
         
-            std::cout<<"THe frenkel uptr points to"<< Interaction_container[bead_counter].get() <<"\n";
+            // std::cout<<"THe frenkel uptr points to"<< Interaction_container[bead_counter].get() <<"\n";
             
             Beads.push_back(Bead());
             Beads[bead_counter].mesh = mesh;
@@ -660,6 +688,11 @@ int main(int argc, char** argv) {
             Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
             Beads[bead_counter].Bead_id = bead_counter;
 
+            std::cout<<"The energy at the cutfoff is"<< Beads[bead_counter].Bead_I->E_r(Bead_params[2],Bead_params)<< " and at more than the cutoff is " << Beads[bead_counter].Bead_I->E_r(1.5*Bead_params[2],Bead_params) << "\n";
+            
+            std::cout<<"The dE_r at the cutfoff is"<< Beads[bead_counter].Bead_I->dE_r(Bead_params[2],Bead_params)<< " and at more than the cutoff is " << Beads[bead_counter].Bead_I->dE_r(1.5*Bead_params[2],Bead_params) << "\n";
+
+            std::cout<<"The ddE_r at the cutfoff is"<< Beads[bead_counter].Bead_I->ddE_r(Bead_params[2],Bead_params)<< " and at more than the cutoff is " << Beads[bead_counter].Bead_I->ddE_r(1.5*Bead_params[2],Bead_params) << "\n";
             
         }
         if(interaction_mem == "One_over_r_x"){
@@ -683,7 +716,24 @@ int main(int argc, char** argv) {
             
         }
 
+        if(interaction_mem =="None"){
+            std::cout<<"Adding a no mem interaction\n";
+            Interaction_container.push_back( std::move( make_unique<No_mem_Inter>()));
+            
+            Beads.push_back(Bead());
+            Beads[bead_counter].mesh = mesh;
+            Beads[bead_counter].geometry = geometry;
+            Beads[bead_counter].Pos = BPos;
+            Beads[bead_counter].strength = Bead_params[0];
+            Beads[bead_counter].sigma = Bead_params[1];
+            Beads[bead_counter].rc = Bead_params[2];
+            Beads[bead_counter].interaction = interaction_mem;
+            
+            Beads[bead_counter].Bead_I = Interaction_container[bead_counter].get();
+            Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
+            Beads[bead_counter].Bead_id = bead_counter;
 
+        }
         // BEA.interaction = interaction_mem;
         Beads[bead_counter].Bond_type = Bead_data["bonds"].get<vector<std::string>>();
         Beads[bead_counter].Interaction_constants_vector = Bead_data["bonds_constants"].get<std::vector<std::vector<double>>>();
@@ -692,7 +742,7 @@ int main(int argc, char** argv) {
 
         Beads[bead_counter].Constraint = Constraint;
         Beads[bead_counter].Constraint_constants = Constraint_constants;
-        std::cout<<"The bead has radius" << Beads[bead_counter].sigma <<" cutoff of " << Beads[bead_counter].rc <<" Interaction of " << PBead.interaction << " \n";
+        std::cout<<"The bead has radius" << Beads[bead_counter].sigma <<" cutoff of " << Beads[bead_counter].rc <<" \n";
         
         
         
@@ -958,12 +1008,18 @@ int main(int argc, char** argv) {
         }
     }
 
-    if(Switch !="None"){
-        Directory = Directory + "Switch_" + Switch + "_";
-        stream.str(std::string());
-        stream << std::fixed << std::setprecision(1) << Switch_t;
-        Directory = Directory + "Switch_t_" + stream.str() + "_";
+    if(Switches.size()>0){
+        for(size_t i = 0; i < Switches.size(); i++){
+            Directory = Directory + "Switch_" + Switches[i] + "_";
+        }
     }
+
+    // if(Switch !="None"){
+    //     Directory = Directory + "Switch_" + Switch + "_";
+    //     stream.str(std::string());
+    //     stream << std::fixed << std::setprecision(1) << Switch_t;
+    //     Directory = Directory + "Switch_t_" + stream.str() + "_";
+    // }
 
 
     
@@ -977,6 +1033,12 @@ int main(int argc, char** argv) {
 
     std::string basic_name=first_dir+Directory;
     
+    std::cout<<"THe length of the name is" << basic_name.length() << "\n";
+    if(basic_name.length()>200){
+        std::cout<<"The name is too long, please shorten the number of parameters or their precision\n";
+        basic_name = first_dir+"Test_run"+std::to_string(Nsim)+"/";
+        // return 1;
+    }
     
     status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     
@@ -1074,44 +1136,65 @@ int main(int argc, char** argv) {
         // if(current_t>400){
         //     save_interval = 1;
         // }
-        if(Switch =="Newton" && current_t >= Switch_t){
+
+
+        for(int sw = 0; sw < Switches.size(); sw ++){
+        Switch = Switches[sw];
+        Switch_t = Switch_times_map[Switch];
+        if(Switch_t < 0 ) continue;
+
+        if(Switch =="Newton" && current_t == Switch_t){
             Integration = "Newton";
             remesh_every = -1;
             save_interval = 20;
             resize_vol = false;
+            // Switch_times_map[Switch] = -1;
+            // We turn off the switch so we dont enter again
         }
         
-        if(Switch=="Free_beads" && current_t>= Switch_t){
+        if(Switch =="Freze beads" && current_t == Switch_t){
+            std::cout<<"Switching the behavior of the beads\n";
+            
+            for(size_t i = 0; i < Beads.size(); i++){
+                // We change their state to frozen
+                Beads[i].state = "froze";
+            }
+            Switch_times_map[Switch] = -1;
 
-            std::cout<<"Switching the beahaviour of the beads\n";
+        }
+
+        if(Switch=="Free_beads" && current_t == Switch_t){
+
+            std::cout<<"Switching the beahaviour of the beads to Free\n";
             // We activate the switch
             for(size_t i = 0; i < Beads.size(); i++){
                 // We change their state to default
                 Beads[i].state = "default";
 
             }
-
-            std::vector<double> Interaction_const(0);
-            Interaction_const.push_back(1.0);
-            Beads[0].Add_bead( &Beads[1],"Shifted-LJ",Interaction_const);
-            Beads[1].Add_bead( &Beads[0],"Shifted-LJ", Interaction_const);
-
-
-            std::cout <<"The bonds of the first bead are "<<  Beads[0].Bond_type[0] << " with size" << Beads[0].Bond_type.size() <<" \n";
-            
-            // So now they are free to move (this still does not add the interaction with each other)
-
-            Switch = false;
+            Switch_times_map[Switch] = -1;
         }
-        if(Switch=="No_remesh" && current_t>= Switch_t){
-
-            std::cout<<"Switching off the remesher \n";
-            
+        if(Switch=="No_remesh" && current_t== Switch_t){
 
             arcsim = false;
-            // So now they are free to move (this still does not add the interaction with each other)
+            Switch_times_map[Switch] = -1;
+        }
+        if(Switch == "Volume_constraint" && current_t == Switch_t){
+            // 
+            std::cout<<"Adding energy\n";
+            Energies.push_back("Volume_constraint");
+            Constants.resize(0);
+            Constants.push_back(10000);
+            Constants.push_back(V_bar);
+            Energy_constants.push_back(Constants);
+            Sim_handler.Energies = Energies;
+            Sim_handler.Energy_constants = Energy_constants;
+            std::cout<<"Added the volume constraint\n";
+            Switch_times_map[Switch] = -1;
+            if(resize_vol) resize_vol = false;
+        }
 
-            Switch = false;
+
         }
 
         start_time_control=chrono::steady_clock::now();
@@ -1213,7 +1296,7 @@ int main(int argc, char** argv) {
             
             n_vert_new = mesh->nVertices();
 
-
+            // std::cout<<"The size of the beads is "<< Beads.size() << " \n";
             for(size_t i = 0 ; i<Beads.size(); i++){
                 Beads[i].Reasign_mesh(mesh,geometry);
                 // Beads[i].Bead_I->mesh = mesh;
@@ -1231,7 +1314,18 @@ int main(int argc, char** argv) {
             }
 
             // Ok so here we have remeshed, and the idea is that everytime u remesh you have to recompute the lagrange multipliers
-            if(Integration == "Newton" && current_t> Switch_t){
+            if(Integration =="Newton") {
+                try{
+            Switch_t = Switch_times_map.at("Newton");
+            }
+            catch(std::out_of_range e){
+                // std::cout<<"There is no Newton switch \n";
+                Switch_t = -1;
+                // This means that there is no switch
+                // Switch_times_map["Newton"] = -1;
+            }
+            }
+            if(Integration == "Newton" && current_t >  Switch_t && Switch_t >=0){
 
                 std::cout<<"\t \t At this step\n";
             Sim_handler.Calculate_Jacobian();
@@ -1359,7 +1453,7 @@ int main(int argc, char** argv) {
         mesh->compress();
         // std::cout<<"We integrate\n";
         if(Integration == "Gradient_descent"){
-            std::cout<<"Gonna integrate now\n";
+            // std::cout<<"Gonna integrate now\n";
             dt_sim = M3DG.integrate(Sim_data, time, Bead_filenames, Save_output_data);
         }
         else if(Integration == "BFGS"){
@@ -1396,35 +1490,57 @@ int main(int argc, char** argv) {
         
         }
         else if(Integration == "Newton"){
+            try{
+                Switch_t = Switch_times_map.at("Newton");
+                // std::cout<<"The Newton switch time is " << Switch_t << "\n";
+            }
+            catch(std::out_of_range e){
+                std::cout<<"There is no Newton switch? \n";
+                Switch_t = -1;
+            }
+            // std::cout<<"The current t is " << current_t << " and the switch time is " << Switch_t << "\n";
             if(current_t == 0 || current_t == Switch_t){
                 std::cout<<"defining lagrange mults\n";
+
+                if(!M3DG.boundary){
+
                 Eigen::VectorXd Lagrange_mults(1);
                 Lagrange_mults(0) = 0.0;
-                // Lagrange_mults(1) = 0.0;
-                // Lagrange_mults(2) = 0.0;
-                // Lagrange_mults(3) = 0.0;
-                // Lagrange_mults(4) = 0.0;
-                // Lagrange_mults(5) = 0.0;
-                // Lagrange_mults(6) = 0.0;
                 Sim_handler.Lagrange_mult = Lagrange_mults;
                 Sim_handler.Trgt_vol = geometry->totalVolume();
+                std::cout<<"DOne definining\n";
+
+
+                }
+            else{
+                Eigen::VectorXd Lagrange_mults(0);
+                Sim_handler.Lagrange_mult = Lagrange_mults;
+                
+                }
+                Switch_times_map["Newton"] = -1;
             }
 
             std::vector<std::string> Constraints(0);
-            // Constraints = std::vector<std::string>{"Volume","CMx","CMy","CMz","Rx","Ry","Rz"};
-            Constraints = std::vector<std::string>{"Volume"};
             
+            if(!M3DG.boundary) Constraints = std::vector<std::string>{"Volume"};
+
+
             Sim_handler.Constraints = Constraints;
             std::vector<std::string> Data_filenames(0);
-            // if(Integration == "Newton" && ( current_t%remesh_every == remesh_every-1  || current_t%remesh_every == 0) ){
-            // if(Integration == "Newton" && (  current_t%remesh_every == 0) ){
-            
-            //     // This is the integration that happens just before the remeshing
-            //     Save_output_data = true;
-            //     Data_filenames.push_back(basic_name+"RHS_Norm"+std::to_string(current_t)+".txt"); 
-            // }
+
+
             M3DG.integrate_Newton(Sim_data, time, Bead_filenames, Save_output_data, Constraints, Data_filenames);
-            // std::cout<<"INtegrated newton (: \n";
+
+            if(M3DG.small_TS == true){
+                // Then i will do gradient descent for a while
+                std::cout<<"We will do GD for the next 500 steps\n";
+                Integration = "Gradient_descent";
+                Switch_t = current_t + 500;
+                Switch_times_map["Newton"] = Switch_t;
+                remesh_every = 1;
+                save_interval = Data["save_interval"];
+            }
+
         }
         // if(dt_sim==0){
         //     Save_mesh(basic_name,-1);
@@ -1493,7 +1609,7 @@ int main(int argc, char** argv) {
         if(current_t%1000==0){
             std::cout<< "Remeshing has taken a total of "<< remeshing_elapsed_time <<" milliseconds\n" << "Saving the mesh has taken a total of "<< saving_mesh_time<< "milliseconds \n Integrating the forces has taken a total of "<< integrate_elapsed_time <<" milliseconds \n\n"; 
 
-        if(M3DG.small_TS && current_t>Final_t*0.2){ 
+        if(M3DG.small_TS && current_t>Final_t*0.2 && finish_sim){ 
             std::cout<<"Ending sim due to small TS and long enough time \n";
             break;
         }
