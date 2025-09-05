@@ -6,13 +6,13 @@
     "resize_vol": true,
     "arcsim": true,
     "remesh_every": 1,
-    "first_dir": "../Results/Two_beads_with_switch/",
+    "first_dir": "../Results/Two_beads_with_switch_sept_dynamic/",
     "boundary": false,
     "recentering": false,
-    "saving_states": true,
-    "Switch" : "Free_beads",
-    "Switch_t" : 300000,
-    "rescale": 1.5,
+    "saving_states": false,
+    "Switches" : ["Newton","Free_beads"],
+    "Switch_times" : [10000,300000],
+    "rescale": 2.0,
     "Displacement": [
         {{xdisp}},
         0.0,
@@ -30,20 +30,26 @@
             "constants": [
                 {{KA}} 
             ]
+        },
+        {
+            "Name": "Edge_reg",
+            "constants" : [
+                {{KE}}
+            ]
         }
         
     ],
     "Beads": [ 
         {
             "gradient_order": "Bead",
-            "radius" : 0.2,
+            "radius" : 0.3,
             "state": "froze",
             "Pos": [
                 {{xpos1}},
                 {{ypos1}},
                 0.0
             ],
-            "mem_inter": "Shifted_LJ_Normal_nopush",
+            "mem_inter": "Frenkel_Normal_nopush",
             "inter_str": {{interaction}},
             "bonds": [],
             "bonds_constants": [],
@@ -60,7 +66,7 @@
                 {{ypos2}},
                 0.0
             ],
-            "mem_inter": "Shifted_LJ_Normal_nopush",
+            "mem_inter": "Frenkel_Normal_nopush",
             "inter_str": {{interaction}},
             "bonds": [],
             "bonds_constants": [],
@@ -75,7 +81,7 @@
         "refine_angle": 0.7,
         "refine_compression": 0.0001,
         "refine_velocity": 1.0,
-        "size_max": 0.4,
+        "size_max": 0.45,
         "size_min": 0.001
     }
 }

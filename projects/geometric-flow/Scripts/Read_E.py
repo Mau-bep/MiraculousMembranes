@@ -163,8 +163,9 @@ KB=0.01
 def main_shape(Ini_cond):
     
     pre_folder='../Results/Mem3DG_Cell_Shape/'
-    # pre_folder='../Results/Mem3DG_Cell_Shape_KB_evol/'
-    dir='nu_{:.3f}_c0_0.000_KA_{:.3f}_KB_{:.6f}_init_cond_{}_Nsim_{}'.format(nu,KA,KB,Ini_cond,Nsim)
+    pre_folder='../Results/Mem3DG_Cell_Shape_KB_evol/'
+    # dir='nu_{:.3f}_c0_0.000_KA_{:.3f}_KB_{:.6f}_init_cond_{}_Nsim_{}'.format(nu,KA,KB,Ini_cond,Nsim)
+    # dir = 'Particle_wrapping_on_plane_phase_space_sept/Surface_tension_15.0000_Bending_10.0000_Edge_reg_1.0000_Bead_radius_0.5000_Frenkel_Normal_nopush_str_140.0000_Switch_Newton_Nsim_1'
         #   nu_1.000_c0_0.000_KA_10.000_KB_0.005000_init_cond_1_Nsim_2
     # dir_2='nu_{:.3f}_c0_0.000_KA_10.000_KB_{:.6f}_init_cond_{}_Nsim_{}'.format(nu,KB,Ini,Nsim)
     
@@ -213,11 +214,11 @@ def main_shape(Ini_cond):
             continue
         Bar_Areas.append(float(splitted_line[1]))
         time_evol.append(float(splitted_line[2]))
-        Volumes.append(float(splitted_line[3]))
-        Areas.append(float(splitted_line[4]))
+        Volumes.append(float(splitted_line[0]))
+        Areas.append(float(splitted_line[1]))
         E_vol.append(float(splitted_line[5]))
-        E_sur.append(float(splitted_line[6]))
-        E_ben.append(float(splitted_line[7]))
+        E_sur.append(float(splitted_line[3]))
+        E_ben.append(float(splitted_line[4]))
         # E_bead.append(float(splitted_line[8]))
         grad_norm.append(float(splitted_line[8]))
         backtrackstep.append(float(splitted_line[9]))
@@ -719,14 +720,18 @@ def main_bead_energy(Nsim,KB,strength):
     rc = 2.0
     Ini_cond = 1
     pre_folder='../Results/Mem3DG_Bead_Pulling_rc_august_arcsim/'
-    
+    pre_folder = '../Results/Particle_wrapping_on_plane_phase_space_sept/'
     # pre_folder='../Results/Mem3DG_Cell_Shape_KB_evol/'
-    dir='nu_{:.3f}_rc_{:.3f}_KA_{:.3F}_KB_{:.6f}_strength_{:.6f}_Init_cond_{}_Nsim_{}'.format(nu,rc,KA,KB,strength,Ini_cond,Nsim)
+    # dir='nu_{:.3f}_rc_{:.3f}_KA_{:.3F}_KB_{:.6f}_strength_{:.6f}_Init_cond_{}_Nsim_{}'.format(nu,rc,KA,KB,strength,Ini_cond,Nsim)
+    
+    dir = 'Surface_tension_15.0000_Bending_10.0000_Edge_reg_1.0000_Bead_radius_0.5000_Frenkel_Normal_nopush_str_140.0000_Switch_Newton_Nsim_1'
+    # dir = 'Surface_tension_10.0000_Bending_20.0000_Edge_reg_1.0000_Bead_radius_0.3000_Frenkel_Normal_nopush_str_325.0000_Switch_Newton_Nsim_1'
         #   nu_1.000_c0_0.000_KA_10.000_KB_0.005000_init_cond_1_Nsim_2
     # dir_2='nu_{:.3f}_c0_0.000_KA_10.000_KB_{:.6f}_init_cond_{}_Nsim_{}'.format(nu,KB,Ini,Nsim)
-    
+    # folder_path = '../Results/Particle_wrapping_on_plane_Sept/Surface_tension_10.0000_Bending_20.0000_Edge_reg_10.0000_Bead_radius_0.3000_Frenkel_Normal_nopush_str_500.0000_Switch_Newton_Switch_t_10000_Nsim_14/'
     folder_path= pre_folder+dir+'/'
-
+    folder_path = '../Results/Particle_wrapping_on_plane_Sept/Surface_tension_10.0000_Bending_20.0000_Edge_reg_10.0000_Bead_radius_0.3000_Frenkel_Normal_nopush_str_500.0000_Switch_Newton_Switch_t_10000_Nsim_14/'
+    
     # Bead_path=folder_path+"Bead_data.txt"
     Output_path=folder_path+"Output_data.txt"
 
@@ -738,19 +743,25 @@ def main_bead_energy(Nsim,KB,strength):
     line = Output_file.readline()
     E_bead = []
     times = []
+    E_tot = []
     while(line):
 
 
 
         data = line.split(' ')
         times.append(float(data[2]))
-        E_bead.append(float(data[8]))
-
+        E_bead.append(float(data[6]))
+        E_tot.append(float(data[7]))
         line = Output_file.readline()
 
 
 
 
+    # plt.yscale('log')
+    plt.plot(E_tot,color='black')
+    # plt.xlabel("Time")
+    plt.ylabel("Total energy")
+    plt.show()
 
 
     Bead_data_path = folder_path+ "Bead_data_SS.txt"

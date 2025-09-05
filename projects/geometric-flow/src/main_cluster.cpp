@@ -1034,11 +1034,11 @@ int main(int argc, char** argv) {
     std::string basic_name=first_dir+Directory;
     
     std::cout<<"THe length of the name is" << basic_name.length() << "\n";
-    if(basic_name.length()>200){
-        std::cout<<"The name is too long, please shorten the number of parameters or their precision\n";
-        basic_name = first_dir+"Test_run"+std::to_string(Nsim)+"/";
-        // return 1;
-    }
+    // if(basic_name.length()>200){
+    //     std::cout<<"The name is too long, please shorten the number of parameters or their precision\n";
+    //     basic_name = first_dir+"Test_run"+std::to_string(Nsim)+"/";
+    //     // return 1;
+    // }
     
     status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     

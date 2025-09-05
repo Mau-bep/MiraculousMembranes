@@ -29,7 +29,7 @@ radius = float(sys.argv[3])
 
 KA = sys.argv[4]
 KB = sys.argv[5]
-
+KE = 1
 # Init_cond=sys.argv[3]
 Nsim=sys.argv[6]
 
@@ -45,15 +45,28 @@ def Create_json_wrapping_two(ka,kb,r,inter_str,angle):
     template = env.get_template('Two_beads.txt')
     
     # Radius of the position of the beads is R_v-2*r_b
-    Rpos_beads = 1.5-0.2*2
+    Rpos_beads = 2.0-0.3*2
     xpos  = Rpos_beads*np.cos(theta)
     ypos1 = Rpos_beads*np.sin(theta)
     ypos2 = -Rpos_beads*np.sin(theta)
 
 
-    disp = -1*Rpos_beads*np.cos(theta)+ 0.5*(np.sqrt(1.6*1.6-Rpos_beads*Rpos_beads*np.sin(theta)**2 ) + np.sqrt(1.5*1.5-Rpos_beads*Rpos_beads*np.sin(theta)**2)) 
+    disp = -1*Rpos_beads*np.cos(theta)+ 0.5*(np.sqrt(2.3*2.3-Rpos_beads*Rpos_beads*np.sin(theta)*np.sin(theta) ) + np.sqrt(2.0*2.0-Rpos_beads*Rpos_beads*np.sin(theta)*np.sin(theta))) 
+    d1 = -1*Rpos_beads*np.cos(theta)+ np.sqrt(2.3*2.3-Rpos_beads*Rpos_beads*np.sin(theta)*np.sin(theta) )
+    d2 = -1*Rpos_beads*np.cos(theta)+ np.sqrt(2.0*2.0-Rpos_beads*Rpos_beads*np.sin(theta)*np.sin(theta))
+    disp = -1*0.5*(d1+d2)
+    print("d1 is {}, d2 is {}".format(d1,d2))
+    
+    print("We should have then that this is  0 ? {}".format( Rpos_beads*Rpos_beads+d1*d1+2*d1*Rpos_beads*np.cos(theta) - 2.3*2.3  ))
+    print("We should have then that this is  0 ? {}".format( Rpos_beads*Rpos_beads+d2*d2+2*d2*Rpos_beads*np.cos(theta) - 2.0*2.0  ))
 
-    output_from_parsed_template = template.render(KA = ka, KB = kb,radius = r,xdisp = disp,xpos1 = xpos,xpos2 =xpos, ypos1= ypos1, ypos2 = ypos2 ,interaction=inter_str, theta = theta)
+    print("disp is {}".format(disp))
+    
+    print("D1 gets me a distance of {}".format( np.sqrt( (d1+Rpos_beads*np.cos(theta) )*(d1+Rpos_beads*np.cos(theta) )+ Rpos_beads*np.sin(theta)*Rpos_beads*np.sin(theta)  ) ))
+    print("D2 gets me a distance of {}".format( np.sqrt( (d2+Rpos_beads*np.cos(theta) )*(d2+Rpos_beads*np.cos(theta) )+ Rpos_beads*np.sin(theta)*Rpos_beads*np.sin(theta)  ) ))
+    print("disp gets me a distance of {}".format( np.sqrt( (disp+Rpos_beads*np.cos(theta) )*(disp+Rpos_beads*np.cos(theta) )+ Rpos_beads*np.sin(theta)*Rpos_beads*np.sin(theta)  ) ))
+
+    output_from_parsed_template = template.render(KA = ka, KB = kb,radius = r,xdisp = disp,xpos1 = xpos,xpos2 =xpos, ypos1= ypos1, ypos2 = ypos2 ,interaction=inter_str, theta = theta,KE  = KE)
     data = json.loads(output_from_parsed_template)
     Config_path = '../Config_files/Wrapping_two_{}_strg_{}_radius_{}_KA_{}_KB_{}.json'.format(angle,inter_str,r,ka,kb) 
     with open(Config_path, 'w') as file:
@@ -75,7 +88,7 @@ f.write('#!/bin/bash \n')
 f.write('# \n')
 
 f.write('#SBATCH --job-name=Mem3DGpa\n')
-f.write('#SBATCH --output=../Outputs/output_serial_two_beads_theta_{}_Strg_{}_radius_{}_KA_{}_KB_{}_Nsim_{}'.format(angle,Strength,radius,KA,KB,Nsim))
+f.write('#SBATCH --output=../Outputs/output_serial_two_beads_theta_{}_Strg_{}_radius_{}_KA_{}_KB_{}_KE_{}_Nsim_{}'.format(angle,Strength,radius,KA,KB,KE,Nsim))
 f.write('#\n')
 f.write('#number of CPUs to be used\n')
 f.write('#SBATCH --ntasks=1\n')
