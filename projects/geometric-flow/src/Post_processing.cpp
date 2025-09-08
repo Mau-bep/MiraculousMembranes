@@ -525,7 +525,7 @@ int main(int argc, char** argv) {
                     if(check_coverage){
                     // Now i need to do my part
 
-                    if( (dot(rij,Normal)>0.0 && r_dist<rad*1.5 ) ){
+                    if( (dot(rij,Normal)>0.0 && r_dist<rad*1.3 ) ){
                         
                         Touching_data<<Vert_pos.x <<" "<< Vert_pos.y <<" "<<Vert_pos.z<<"\n";
                         touching_count+=1;
@@ -545,7 +545,7 @@ int main(int argc, char** argv) {
                 Touching_data.close();
                 // std::cout<<"The amount touching is"<< touching_count<<" \n";
                 
-                relative_coverage=covered_area/(4*PI*(rad*1.155)*(rad*1.155));
+                relative_coverage=covered_area/(4*PI*(rad*1.1)*(rad*1.1));
                 avg_rmin += rmin;
                 avg_rmin_counter+=1;
                 // Coverage<<relative_coverage<<"\n";

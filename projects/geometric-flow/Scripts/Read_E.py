@@ -721,6 +721,7 @@ def main_bead_energy(Nsim,KB,strength):
     Ini_cond = 1
     pre_folder='../Results/Mem3DG_Bead_Pulling_rc_august_arcsim/'
     pre_folder = '../Results/Particle_wrapping_on_plane_phase_space_sept/'
+    pre_folder = '../Results/Wrapping_single_TEST_meet/'
     # pre_folder='../Results/Mem3DG_Cell_Shape_KB_evol/'
     # dir='nu_{:.3f}_rc_{:.3f}_KA_{:.3F}_KB_{:.6f}_strength_{:.6f}_Init_cond_{}_Nsim_{}'.format(nu,rc,KA,KB,strength,Ini_cond,Nsim)
     
@@ -729,22 +730,35 @@ def main_bead_energy(Nsim,KB,strength):
         #   nu_1.000_c0_0.000_KA_10.000_KB_0.005000_init_cond_1_Nsim_2
     # dir_2='nu_{:.3f}_c0_0.000_KA_10.000_KB_{:.6f}_init_cond_{}_Nsim_{}'.format(nu,KB,Ini,Nsim)
     # folder_path = '../Results/Particle_wrapping_on_plane_Sept/Surface_tension_10.0000_Bending_20.0000_Edge_reg_10.0000_Bead_radius_0.3000_Frenkel_Normal_nopush_str_500.0000_Switch_Newton_Switch_t_10000_Nsim_14/'
+    
+    dir = 'Bending_10.0000_Surface_tension_15.0000_Edge_reg_1.0000_Bead_radius_0.3000_Frenkel_Normal_nopush_str_300.0000_Switch_Newton_Nsim_1'
+    dir2 = 'Bending_10.0000_Surface_tension_15.0000_Edge_reg_1.0000_Bead_radius_0.3000_Frenkel_Normal_nopush_str_300.0000_Nsim_1'
+
     folder_path= pre_folder+dir+'/'
-    folder_path = '../Results/Particle_wrapping_on_plane_Sept/Surface_tension_10.0000_Bending_20.0000_Edge_reg_10.0000_Bead_radius_0.3000_Frenkel_Normal_nopush_str_500.0000_Switch_Newton_Switch_t_10000_Nsim_14/'
+    # folder_path = '../Results/Particle_wrapping_on_plane_Sept/Surface_tension_10.0000_Bending_20.0000_Edge_reg_10.0000_Bead_radius_0.3000_Frenkel_Normal_nopush_str_500.0000_Switch_Newton_Switch_t_10000_Nsim_14/'
     
     # Bead_path=folder_path+"Bead_data.txt"
     Output_path=folder_path+"Output_data.txt"
-
+    Output_path2 = pre_folder + dir2 + '/Output_data.txt'
 
     Output_file= open(Output_path)
+    Output_file2 = open(Output_path2)
 
     line = Output_file.readline()
+    line2 = Output_file2.readline()
 
     line = Output_file.readline()
+    line2 = Output_file2.readline()
+
     E_bead = []
     times = []
     E_tot = []
-    while(line):
+    
+    E_bead2 = []
+    times2 = []
+    E_tot2 = []
+
+    while(line and line2):
 
 
 
@@ -754,12 +768,20 @@ def main_bead_energy(Nsim,KB,strength):
         E_tot.append(float(data[7]))
         line = Output_file.readline()
 
+        data = line2.split(' ')
+        times2.append(float(data[2]))
+        E_bead2.append(float(data[6]))
+        E_tot2.append(float(data[7]))
+        line2 = Output_file2.readline()
 
 
 
     # plt.yscale('log')
-    plt.plot(E_tot,color='black')
+    plt.plot(E_tot,color='black',label = 'With Newton')
+    plt.plot(E_tot2,color='purple',label = 'No Newton')
+    plt.axvline(40,color='black',ls = 'dashed')
     # plt.xlabel("Time")
+    plt.legend()
     plt.ylabel("Total energy")
     plt.show()
 

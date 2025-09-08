@@ -934,7 +934,7 @@ def Plotting_phase_space(dir):
         # print(" {} and {}".format(i,j))
 
         w = float(splitted1[4])
-        a = float(splitted1[0])*1.1
+        a = float(splitted1[0])
         KB = float(splitted1[1])/2.0
 
         KA = float(splitted1[5])
@@ -942,7 +942,7 @@ def Plotting_phase_space(dir):
         # cov = np.clip(float(splitted1[3]),0.0,1.0) 
         cov = -1*float(splitted1[2])/(float(splitted1[4])*np.pi*4* a*a)
         cov = np.clip(cov,0.0,1.0)
-        cov = np.clip(float(splitted1[3]),0.0,1.0)
+        # cov = np.clip(float(splitted1[3]),0.0,1.0)
         wc = 2*KB/(a*a)
         
         # They are the same except for the energy
@@ -964,6 +964,12 @@ def Plotting_phase_space(dir):
         print("w is {} and wc is {}".format(w,wc))
         x_plot.append(w/wc)
         y_plot.append(KA*a*a/(KB))
+        # if(cov>0.6):
+        #     cov = 1.0
+        # elif(cov > 0.3):
+        #     cov = 0.5
+        # else:
+        #     cov = 0.0
         c_plot.append(cov)
 
 
@@ -978,9 +984,15 @@ def Plotting_phase_space(dir):
     # file3.close()
     ws = np.linspace(0,10.0,10)
     # plt.plot(ws,2*ws-2,color= "magenta")
-    # plt.plot(ws,3*ws/5-3/5)
-    # plt.xlim(0,35)
-    # plt.ylim(0,1.0)
+    # plt.plot(ws,ws/wc-1/wc,color= "black",ls='dashed')
+    # print(ws-1/wc)
+    print("wc is {}".format(wc))
+    print(ws)
+    plt.plot(ws,2*ws-2,color='black')
+    plt.plot(ws,1.1*ws-1.1,ls= 'dashed',color='grey')
+    plt.plot(ws,-2.8*ws+2.8,ls= 'dashed',color='grey')
+    plt.xlim(0.75,1.5)
+    plt.ylim(0,1.0)
     plt.axvline(1.0,ls = 'dashed',color='black')
     plt.scatter(x_plot,y_plot,c=c_plot)
     # plt.xlabel(r"$\frac{\omega}{\omega_c}$", usetex=True, fontsize = 30)
