@@ -5,11 +5,11 @@
 
 # #   SARIConGPT143!
 # set v=1.0
-set Nsim=3
+set Nsim=5
 # set Init_cond=1
 # foreach v ( 1.0 )
 # foreach Init_cond ( 2 )
-foreach Strg ( `seq 0 11 165`)
+foreach Strg ( `seq 33 11 165`)
 # foreach Strg ( 400.0  )
 foreach KA ( 0 5 10 15 20 25 30 35 40 45 50 55 )
 # foreach KA ( 0..045 50 )
