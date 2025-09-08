@@ -1,0 +1,37 @@
+{
+    "init_file": "../Results/Particle_wrapping_on_plane_phase_space_Conf/Surface_tension_0.0000_Bending_10.0000_Edge_reg_1.0000_Bead_radius_0.3000_Frenkel_Normal_nopush_str_154.0000_Switch_Newton_Nsim_3/Final_state.obj",
+    "save_interval": 1000,
+    "timesteps": 1000000,
+    "continue_sim": false,
+    "resize_vol": false,
+    "arcsim": true,
+    "first_dir": "../Results/Particle_wrapping_on_plane_phase_space_Conf/",
+    "boundary": true,
+    "Switches": ["Newton"],
+    "Switch_times": [50000],
+    "recentering": false, 
+    "saving_states": false,
+    "finish_sim" : false,
+    "rescale": 2.0,
+    "Energies": [ 
+        {"Name": "Surface_tension", "constants": [ {{KA}} ] },
+        {"Name": "Bending", "constants": [ {{KB}} ]},
+        {"Name": "Edge_reg", "constants": [ {{KE}} ]}
+        ],
+    "Beads":[
+        {
+        "radius": {{radius}}, 
+        "state" : "default" ,
+        "Pos": [{{xpos}}, 0.0, 0.0], 
+        "mem_inter": "Frenkel_Normal_nopush",
+        "inter_str": {{ interaction }},
+        "bonds": [],
+        "bonds_constants":[],
+        "Beads": []
+        }
+    ],
+    "remesher":{
+        "aspect_min": 0.2, "refine_angle": 0.7, "refine_compression": 1e-4, "refine_velocity": 1.0, "size_max": 0.4, "size_min": 0.001
+        }
+    
+}

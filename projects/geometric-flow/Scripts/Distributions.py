@@ -934,7 +934,7 @@ def Plotting_phase_space(dir):
         # print(" {} and {}".format(i,j))
 
         w = float(splitted1[4])
-        a = float(splitted1[0])*1.155
+        a = float(splitted1[0])*1.1
         KB = float(splitted1[1])/2.0
 
         KA = float(splitted1[5])

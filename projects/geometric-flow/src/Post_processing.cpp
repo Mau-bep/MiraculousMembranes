@@ -278,7 +278,7 @@ int main(int argc, char** argv) {
     //
 
     // double arr[] = { 1.0, 2.0, 3.0 };
-    double arr[] = { 0.5}; 
+    double arr[] = { 0.3}; 
     int n = sizeof(arr) / sizeof(arr[0]); 
   
     vector<double> radius(arr,arr+n);
@@ -287,14 +287,14 @@ int main(int argc, char** argv) {
 
     // double arr_2[] = {100.0};
 
-    double arr_2[] = {45,50};
+    double arr_2[] = {0, 5, 10, 15, 20, 25, 30, 35, 40, 45,50, 55};
     n=sizeof(arr_2) / sizeof(arr_2[0]);
     vector<double> KAs(arr_2,arr_2+n);
     
     
     
-    // double arr_3[] = {10.0, 50.0, 100.0, 200.0, 300.0, 400.0, 500.0, 600.0, 700.0, 800.0, 900.0, 1000.0, 1100.0, 1200.0, 1300.0, 1400.0, 1500.0, 1600.0, 1700.0, 1800.0, 1900.0, 2000.0 };
-    double arr_3[] = {20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 80.0,90.0, 95.0, 100.0, 105.0, 110.0, 115.0, 120.0, 125.0, 130.0, 135.0, 140.0};
+    double arr_3[] = {0.0, 11.0, 22.0, 33.0, 44.0, 55.0, 66.0, 77.0, 88.0, 99.0, 110.0, 121.0, 132.0, 143.0, 154.0, 165.0};
+    // double arr_3[] = {20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 80.0,90.0, 95.0, 100.0, 105.0, 110.0, 115.0, 120.0, 125.0, 130.0, 135.0, 140.0};
     
     n=sizeof(arr_3) / sizeof(arr_3[0]);
     
@@ -315,7 +315,7 @@ int main(int argc, char** argv) {
 
 
     int Init_cond=2;
-    int Nsim=2;
+    int Nsim=3;
 
     auto start = chrono::steady_clock::now();
     auto end = chrono::steady_clock::now();
@@ -354,7 +354,7 @@ int main(int argc, char** argv) {
    
     KBstream << std::fixed << std::setprecision(4) << KB;
 
-    first_dir="../Results/Particle_wrapping_on_plane_phase_space_sept/";
+    first_dir="../Results/Particle_wrapping_on_plane_phase_space_Conf/";
     
     filename = first_dir + "Coverage_final.txt" ;
     std::ofstream Coverage_final(filename,std::ios_base::app);
@@ -499,15 +499,20 @@ int main(int argc, char** argv) {
                 // x_max_mem+=1.0;
                 // Vector3 Second_bead({x_max_mem,0.0,0.0});
                 // double second_dist=0.0;
-                for(int v =0; v<mesh->nVertices(); v++){
-                    // So i have the radius and the 
+
+                // i THINK IT WILL BE BETTER TO DO THE ITERATION ON THE FACES 
+                int v;
+                double facearea;
+                for(Face f: mesh->faces()){
+                    Normal = geometry->faceNormal(f);
+                    facearea = geometry->faceArea(f);
+
+                    for(Vertex vi : f.adjacentVertices()){
+                    v = vi.getIndex();
                     Vert_pos=geometry->inputVertexPositions[v];
                     rij = (Bead_current-Vert_pos);
                     r_dist = rij.norm();
-                    // second_dist = (Vert_pos-Second_bead).norm();
-
-                    Normal = geometry->vertexNormalAreaWeighted(mesh->vertex(v));
-                    Normal = Normal.unit();
+                    
                     Vector3 x_dir;
                     
                     if(first) {
@@ -516,47 +521,25 @@ int main(int argc, char** argv) {
                         }
                     else R_dist<<" "<<r_dist;
                     rij = rij.unit();
-                    // I want the distribution saved so 
-                    
                 
                     if(check_coverage){
                     // Now i need to do my part
 
-                    if( (dot(rij,Normal)>0.0 && r_dist<rad*1.2 ) ){
+                    if( (dot(rij,Normal)>0.0 && r_dist<rad*1.5 ) ){
                         
-
-                        
-                        // if(r_dist<rmin) rmin = r_dist;
                         Touching_data<<Vert_pos.x <<" "<< Vert_pos.y <<" "<<Vert_pos.z<<"\n";
                         touching_count+=1;
-                        covered_area+=geometry->barycentricDualArea(mesh->vertex(v));
+                        covered_area+=facearea/3.0;
                         // std::cout<<"Dot"<< dot(rij,Normal)<<"\t";
 
                     }
-                    
-
-                    
-
+                    }
 
                     }
-                    // if(check_forces){
-                    //     if(r_dist<rad*1.1 && dot(rij,Normal)>0){
-                    //         // This are the vertices interacting with the bead
-                            
-
-                    //     }
-                    // // There are multiple ways to go about this
-                    // // I will check 
-
-
-
-
-                    // }
-                
-                    // 
-                
-                
                 }
+
+
+
                 std::cout<<"\n";
                 R_dist.close();
                 Touching_data.close();
