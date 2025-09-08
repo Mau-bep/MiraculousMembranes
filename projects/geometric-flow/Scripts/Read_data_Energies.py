@@ -17,7 +17,7 @@ def Create_data_file(folder_dir,KA,KB,KI, theta):
 
     # Gorgeous i have the precise ffolder
 
-    file_E = open(dir+  "Energy_output.txt","w+")
+    file_E = open(folder_dir+  "Energy_output_KA_{:.4f}_KB_{:.4f}_KI_{:.4f}_theta_{:.4f}.txt".format(KA,KB,KI,theta),"w+")
     output_data = open(dir+ "Output_data.txt","r")
     line = output_data.readline()
     # The first line doesnt contain anything
@@ -37,7 +37,7 @@ def Create_data_file(folder_dir,KA,KB,KI, theta):
                 # Now we have everything we need
             file_E.write("{0:.6f} {1:.6f} {2:.6f} {3:.6f} {4:.6f} {5:.6f} {6:.6f}\n".format(time,Ebend,Esurf,Eedge,Ebead1,Ebead2, Etot))
         line = output_data.readline()
-    
+    file_E.close()
     # That is all girl
 
 
