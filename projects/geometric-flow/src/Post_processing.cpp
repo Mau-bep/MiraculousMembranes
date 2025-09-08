@@ -249,12 +249,13 @@ double Interaction_E_from_Output(std::string  filename){
 
     while (std::getline(Output_data,line)){
         std::vector<std::string> splitted = split(line," ");
-        if(line[0]=='#') {
+        if(line[0]=='#'|| line[0] =='V') {
             std::cout<<"First line\n";
             continue;
         }
         if(splitted.size()>10){
-        E_I  = std::stod(splitted[7]);    
+            // std::cout<<splitted[6] <<" \n";
+        E_I  = std::stod(splitted[6]);    
 
         }
         
@@ -286,14 +287,14 @@ int main(int argc, char** argv) {
 
     // double arr_2[] = {100.0};
 
-    double arr_2[] = {0.0, 0.003, 0.004, 0.009, 0.012};
+    double arr_2[] = {45,50};
     n=sizeof(arr_2) / sizeof(arr_2[0]);
     vector<double> KAs(arr_2,arr_2+n);
     
     
     
     // double arr_3[] = {10.0, 50.0, 100.0, 200.0, 300.0, 400.0, 500.0, 600.0, 700.0, 800.0, 900.0, 1000.0, 1100.0, 1200.0, 1300.0, 1400.0, 1500.0, 1600.0, 1700.0, 1800.0, 1900.0, 2000.0 };
-    double arr_3[] = {90.0, 100.0, 110.0, 120.0, 130.0, 140.0, 150.0, 160.0, 170.0, 180.0, 190.0, 200.0};
+    double arr_3[] = {20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 80.0,90.0, 95.0, 100.0, 105.0, 110.0, 115.0, 120.0, 125.0, 130.0, 135.0, 140.0};
     
     n=sizeof(arr_3) / sizeof(arr_3[0]);
     
@@ -301,7 +302,7 @@ int main(int argc, char** argv) {
     
     KB=1.0;
     
-    double arr_4[] = { 30.0};
+    double arr_4[] = { 10.0};
     n = sizeof(arr_4) / sizeof(arr_4[0]);
 
     vector<double> KBs(arr_4,arr_4+n);
@@ -314,7 +315,7 @@ int main(int argc, char** argv) {
 
 
     int Init_cond=2;
-    int Nsim=1;
+    int Nsim=2;
 
     auto start = chrono::steady_clock::now();
     auto end = chrono::steady_clock::now();
@@ -326,7 +327,7 @@ int main(int argc, char** argv) {
     double Interaction_str;
     int Last_ts;
     int num_steps;
-    int delta_steps=500;
+    int delta_steps=1000;
     Vector3 Bead_pos;
     std::cout<< "Current path is " << argv[0]<<"\n";
     bool check_coverage = true;
@@ -353,7 +354,7 @@ int main(int argc, char** argv) {
    
     KBstream << std::fixed << std::setprecision(4) << KB;
 
-    first_dir="../Results/Particle_wrapping_on_plane_phase_space/";
+    first_dir="../Results/Particle_wrapping_on_plane_phase_space_sept/";
     
     filename = first_dir + "Coverage_final.txt" ;
     std::ofstream Coverage_final(filename,std::ios_base::app);
@@ -387,9 +388,8 @@ int main(int argc, char** argv) {
                 // Those are all the manual parameters
                 
                 // We now load the directory
-                basic_name = first_dir +"Surface_tension_"+KAstream.str() + "_Bending_"+KBstream.str()+"_Bead_radius_" + radiusstream.str() + "_str_" + Interactionstrstream.str()+ "_Nsim_" + std::to_string(Nsim) + "/";
-    
-
+                basic_name = first_dir +"Surface_tension_"+KAstream.str() + "_Bending_"+KBstream.str()+"_Edge_reg_1.0000_"+"Bead_radius_" + radiusstream.str() + "_Frenkel_Normal_nopush_str_" + Interactionstrstream.str()+ "_Switch_Newton_Nsim_" + std::to_string(Nsim) + "/";
+            
                 // 
                 // This is the last step to consider
 
@@ -430,7 +430,7 @@ int main(int argc, char** argv) {
 
                 std::cout<<"Bead data read\n";
                 std::cout<<"Counter is"<< counter <<"\n";
-
+                if(counter == 1) continue;
                 // filename = basic_name + "Coverage_evol.txt";
                 // std::ofstream Coverage(filename); 
                 double covered_area=0;
