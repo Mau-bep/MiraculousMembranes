@@ -745,7 +745,11 @@ int main(int argc, char** argv) {
         std::cout<<"The bead has radius" << Beads[bead_counter].sigma <<" cutoff of " << Beads[bead_counter].rc <<" \n";
         
         
-        
+        // Lets add the manual movement here
+        if(Beads[bead_counter].state == "manual"){
+            // We need to set the velocity of the bead
+            Beads[bead_counter].Velocity = Vector3({Bead_data["Velocity"][0],Bead_data["Velocity"][1],Bead_data["Velocity"][2]});
+        }
     
         bead_counter +=1;
 
@@ -1538,6 +1542,7 @@ int main(int argc, char** argv) {
                 Switch_t = current_t + 500;
                 Switch_times_map["Newton"] = Switch_t;
                 remesh_every = 1;
+                resize_vol = true;
                 save_interval = Data["save_interval"];
             }
 

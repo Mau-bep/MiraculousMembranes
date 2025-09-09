@@ -1,7 +1,7 @@
 {
     "init_file": "../../../input/Simplesphere.obj",
-    "save_interval": 2000,
-    "timesteps": 800000,
+    "save_interval": 500,
+    "timesteps": 100000,
     "continue_sim": false,
     "resize_vol": true,
     "arcsim": true,
@@ -11,7 +11,7 @@
     "recentering": false,
     "saving_states": false,
     "Switches" : ["Newton","Free_beads"],
-    "Switch_times" : [10000,300000],
+    "Switch_times" : [10000,50000],
     "rescale": 2.0,
     "Displacement": [
         {{xdisp}},
@@ -59,7 +59,7 @@
         },
         {
             "gradient_order": "Bead",
-            "radius" : 0.2,
+            "radius" : 0.3,
             "state": "froze",
             "Pos": [
                 {{xpos2}},
