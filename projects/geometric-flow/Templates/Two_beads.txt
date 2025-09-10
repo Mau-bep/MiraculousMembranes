@@ -10,8 +10,8 @@
     "boundary": false,
     "recentering": false,
     "saving_states": false,
-    "Switches" : ["Newton","Free_beads"],
-    "Switch_times" : [10000,50000],
+    "Switches" : ["Newton","Freze_beads","Free_beads"],
+    "Switch_times" : [10000,10000,50000],
     "rescale": 2.0,
     "Displacement": [
         {{xdisp}},
@@ -43,36 +43,42 @@
         {
             "gradient_order": "Bead",
             "radius" : 0.3,
-            "state": "froze",
+            "state": "manual",
             "Pos": [
                 {{xpos1}},
                 {{ypos1}},
                 0.0
             ],
-            "mem_inter": "Frenkel_Normal_nopush",
-            "inter_str": {{interaction}},
-            "bonds": [],
-            "bonds_constants": [],
-            "Beads": [],
-            "Constraint": "Radial",
-            "Constraint_constants":[{{theta}}]
-        },
-        {
-            "gradient_order": "Bead",
-            "radius" : 0.3,
-            "state": "froze",
-            "Pos": [
-                {{xpos2}},
-                {{ypos2}},
+            "Velocity": [
+                {{vx1}},
+                {{vy1}},
                 0.0
             ],
             "mem_inter": "Frenkel_Normal_nopush",
             "inter_str": {{interaction}},
             "bonds": [],
             "bonds_constants": [],
-            "Beads": [],
-            "Constraint": "Radial",
-            "Constraint_constants":[{{theta}}]
+            "Beads": []
+        },
+        {
+            "gradient_order": "Bead",
+            "radius" : 0.3,
+            "state": "manual",
+            "Pos": [
+                {{xpos2}},
+                {{ypos2}},
+                0.0
+            ],
+            "Velocity": [
+                {{vx2}},
+                {{vy2}},
+                0.0
+            ],
+            "mem_inter": "Frenkel_Normal_nopush",
+            "inter_str": {{interaction}},
+            "bonds": [],
+            "bonds_constants": [],
+            "Beads": []
         }
     ]
     ,

@@ -2894,11 +2894,11 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
   }
   // Ok so we added the force field
   // std::cout<<"Is it the saving things?\n";
-  if(Bead_data_filenames.size()>Beads.size()){
-  std::ofstream Timings = std::ofstream(Bead_data_filenames[Beads.size()],std::ios_base::app);
-  Timings << time_gradients <<" "<< time_backtracking <<" "<< time_construct <<" "<< time_compute <<" "<< time_solve <<" \n";
-  Timings.close();
-  }
+  // if(Bead_data_filenames.size()>Beads.size()){
+  // std::ofstream Timings = std::ofstream(Bead_data_filenames[Beads.size()],std::ios_base::app);
+  // Timings << time_gradients <<" "<< time_backtracking <<" "<< time_construct <<" "<< time_compute <<" "<< time_solve <<" \n";
+  // Timings.close();
+  // }
   // std::cout<<"The backtrackstep is " << backtrackstep << " \n";
   // After backtracking i have to save.
   A = geometry->totalArea();
@@ -2921,6 +2921,25 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
   // Sim_data << Grad_tot_norm << " ";
   Sim_data<< backtrackstep<<" \n";
   
+    }
+
+
+    // Ok so here there will be a special thing? 
+    // In the next update i should change the switch times to actually be switch parameters and then 
+    // check that a bead in the manual state reached the position that it should have taken before the turning off time
+    // This has to be done after we are done with the backtracking or it could lead to some problems.
+    for(size_t bi = 0; bi < Beads.size(); bi++){
+      if(Beads[bi]->state == "manual"){
+        Vector3 Bpos = Beads[bi]->Pos;
+        if( Bpos.norm2()< 2.0-Beads[bi]->sigma*Beads[bi]->sigma) //The 2.0 here is hardcoded and it means the radius of the vesicle
+        
+        {
+          std::cout<<"\t\t Freezing a bead because it moved too much\n";
+          Beads[bi]->state = "froze";
+        
+        }
+      }
+
     }
 
   

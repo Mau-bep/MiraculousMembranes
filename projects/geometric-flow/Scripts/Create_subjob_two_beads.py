@@ -67,7 +67,12 @@ def Create_json_wrapping_two(ka,kb,r,inter_str,angle):
     print("D2 gets me a distance of {}".format( np.sqrt( (d2+Rpos_beads*np.cos(theta) )*(d2+Rpos_beads*np.cos(theta) )+ Rpos_beads*np.sin(theta)*Rpos_beads*np.sin(theta)  ) ))
     print("disp gets me a distance of {}".format( np.sqrt( (disp+Rpos_beads*np.cos(theta) )*(disp+Rpos_beads*np.cos(theta) )+ Rpos_beads*np.sin(theta)*Rpos_beads*np.sin(theta)  ) ))
 
-    output_from_parsed_template = template.render(KA = ka, KB = kb,radius = r,xdisp = disp,xpos1 = xpos,xpos2 =xpos, ypos1= ypos1, ypos2 = ypos2 ,interaction=inter_str, theta = theta,KE  = KE)
+
+    disp= 0.0
+    xpos = 2.3*np.cos(theta)
+    ypos1 = 2.3*np.sin(theta)
+    ypos2 = -2.3*np.sin(theta)
+    output_from_parsed_template = template.render(KA = ka, KB = kb,radius = r,xdisp = disp,xpos1 = xpos,xpos2 =xpos, ypos1= ypos1, ypos2 = ypos2, vx1= -5*xpos, vy1 = -5*ypos1, vx2 = -5*xpos, vy2 = -5*ypos2 ,interaction=inter_str, theta = theta,KE  = KE)
     data = json.loads(output_from_parsed_template)
     Config_path = '../Config_files/Wrapping_two_{}_strg_{}_radius_{}_KA_{}_KB_{}.json'.format(angle,inter_str,r,ka,kb) 
     
