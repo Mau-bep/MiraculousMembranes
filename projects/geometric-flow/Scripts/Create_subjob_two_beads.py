@@ -37,6 +37,7 @@ Nsim=sys.argv[6]
 
 
 
+
 def Create_json_wrapping_two(ka,kb,r,inter_str,angle):
     theta = float(angle)
     os.makedirs("../Config_files/",exist_ok = True)
@@ -69,18 +70,24 @@ def Create_json_wrapping_two(ka,kb,r,inter_str,angle):
     output_from_parsed_template = template.render(KA = ka, KB = kb,radius = r,xdisp = disp,xpos1 = xpos,xpos2 =xpos, ypos1= ypos1, ypos2 = ypos2 ,interaction=inter_str, theta = theta,KE  = KE)
     data = json.loads(output_from_parsed_template)
     Config_path = '../Config_files/Wrapping_two_{}_strg_{}_radius_{}_KA_{}_KB_{}.json'.format(angle,inter_str,r,ka,kb) 
+    
+    sim_path = data['first_dir']
+    
     with open(Config_path, 'w') as file:
         json.dump(data, file, indent=4)
 
-    return Config_path
+    return Config_path , sim_path
 
 
 
 os.makedirs('../Subjobs/',exist_ok=True)
 os.makedirs('../Outputs/',exist_ok=True)
 
-Config_path = Create_json_wrapping_two(KA,KB,radius,Strength,angle)
 
+
+Config_path, sim_path = Create_json_wrapping_two(KA,KB,radius,Strength,angle)
+# Hopefully this works
+Output_path = '../Outputs/output_serial_two_beads_theta_{}_Strg_{}_radius_{}_KA_{}_KB_{}_KE_{}_Nsim_{}'.format(angle,Strength,radius,KA,KB,KE,Nsim)
 
 f=open('../Subjobs/subjob_serial_two_beads_theta_{}_Strg_{}_radius_{}_KA_{}_KB_{}_Nsim_{}'.format(angle,Strength,radius,KA,KB,Nsim),'w')
 
@@ -88,7 +95,7 @@ f.write('#!/bin/bash \n')
 f.write('# \n')
 
 f.write('#SBATCH --job-name=Mem3DGpa\n')
-f.write('#SBATCH --output=../Outputs/output_serial_two_beads_theta_{}_Strg_{}_radius_{}_KA_{}_KB_{}_KE_{}_Nsim_{}'.format(angle,Strength,radius,KA,KB,KE,Nsim))
+f.write('#SBATCH --output={}'.format(Output_path))
 f.write('#\n')
 f.write('#number of CPUs to be used\n')
 f.write('#SBATCH --ntasks=1\n')
@@ -134,7 +141,10 @@ f.write('pwd\n')
 
 f.write('srun time -v ../build/bin/main_cluster {} {}\n'.format(Config_path,Nsim))
 
+#  Here we can tell the script to move the output file
 
+f.write('cp {} {}/Console_output.txt \n'.format(Output_path,sim_path ))
+# I need to acces the data in the config file.
 
 f.write('\n')
 f.write('#sacct --format="JobID, State, AllocGRES, AllocNodes, CPUTime, ReqMem, MaxRSS, AveRSS, Elapsed" --units=G | head -n 1\n')

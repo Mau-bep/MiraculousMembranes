@@ -6,7 +6,6 @@
 
 // #include <omp.h>
 
-
 #include <sys/stat.h>
 #include <iostream>
 #include <fstream>
@@ -55,6 +54,7 @@
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
+
 
 
 
@@ -444,6 +444,9 @@ int main(int argc, char** argv) {
     json Data = json::parse(JsonFile);
 
     // We loaded the json file 
+    // Now i also want to move the json file to my directory
+
+
 
     // std::cout << Data.dump(1);
     std::vector<std::string> Switches(0);
@@ -1034,9 +1037,31 @@ int main(int argc, char** argv) {
 
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     
+    // Ok here
+    int dir_counter = 1;
+
+    while(true){
+    std::string test_name = first_dir+std::to_string(dir_counter)+"/";
+    const char* dir = test_name.c_str();
+
+    struct stat sb;
+
+    if( stat(dir, &sb) == 0){
+        std::cout<<"Path already exists\n";
+        dir_counter +=1;
+    }
+    else{
+        Directory = std::to_string(dir_counter)+"/";
+        break;
+    }
+    
+
+    }
+
+
 
     std::string basic_name=first_dir+Directory;
-    
+    std::cout<<"The length of Directory is" << Directory.length() << "\n";
     std::cout<<"THe length of the name is" << basic_name.length() << "\n";
     // if(basic_name.length()>200){
     //     std::cout<<"The name is too long, please shorten the number of parameters or their precision\n";
@@ -1047,6 +1072,22 @@ int main(int argc, char** argv) {
     status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     
     std::cout<<"\nIf this number is 0 the directory was created succesfully "<< status<<"\n" ;
+    if(status == -1)
+    {
+         basic_name = first_dir+"Long_directory_run"+std::to_string(Nsim)+"/";
+        // return 1;
+        status  = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    }
+
+    // Here we will move the Input file to where we want it
+    std::string command = "cp "+ std::string(argv[1]) + " " + basic_name + "Input_file.json";
+    const int dir_err = system(command.c_str());
+    if (-1 == dir_err)
+    {
+        std::cout<<"Error moving the input file\n";
+        // return 1;
+    }
+
 
     std::string filename = basic_name+"Output_data.txt";
 
