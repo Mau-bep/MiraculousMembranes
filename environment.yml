@@ -1,0 +1,9 @@
+name: mir_membranes
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - numpy
+  - pandas
+  - ipykernel
+prefix: /nfs/scistore16/wojtgrp/mrojasve/.conda/envs/mir_membranes

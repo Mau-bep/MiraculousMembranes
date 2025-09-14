@@ -250,6 +250,48 @@ class One_over_r_Normal : public Normal_dot_Interaction{
 
 };
 
+class One_over_r : public Integrated_Interaction{
+    public:
+
+        One_over_r(){}
+
+        One_over_r(std::vector<double> params){
+            Energy_constants = params;
+        }
+
+        One_over_r(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, std::vector<double> params) {
+        Energy_constants = params;
+        mesh = inputMesh;
+        geometry = inputGeo;
+        }
+
+        double E_r(double r, std::vector<double> Energy_constants) override{
+            //  1/r = 
+            // Which are the energy constants
+            double epsilon = Energy_constants[0];
+            
+            return epsilon/r;
+
+        }
+
+        double dE_r(double r, std::vector<double> Energy_constants) override{
+            double epsilon = Energy_constants[0];
+
+            return -epsilon/(r*r);
+
+        }
+
+        double ddE_r(double r, std::vector<double> Energy_constants) override{
+            double epsilon = Energy_constants[0];
+            
+            return 2*epsilon/(r*r*r);
+        }
+        
+
+
+
+};
+
 class LJ_Normal: public Normal_dot_Interaction {
 
     public:

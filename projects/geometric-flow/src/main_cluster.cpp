@@ -719,6 +719,27 @@ int main(int argc, char** argv) {
             
         }
 
+        if(interaction_mem == "One_over_r"){
+           
+            Interaction_container.push_back( std::move( make_unique<One_over_r>(mesh, geometry, Bead_params)));
+        
+            std::cout<<"THe  uptr points to"<< Interaction_container[bead_counter].get() <<"\n";
+            
+            Beads.push_back(Bead());
+            Beads[bead_counter].mesh = mesh;
+            Beads[bead_counter].geometry = geometry;
+            Beads[bead_counter].Pos = BPos;
+            Beads[bead_counter].strength = Bead_params[0];
+            Beads[bead_counter].sigma = Bead_params[1];
+            Beads[bead_counter].rc = Bead_params[2];
+            Beads[bead_counter].interaction = interaction_mem;
+            
+            Beads[bead_counter].Bead_I = Interaction_container[bead_counter].get();
+            Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
+            Beads[bead_counter].Bead_id = bead_counter;
+            
+        }
+
         if(interaction_mem =="None"){
             std::cout<<"Adding a no mem interaction\n";
             Interaction_container.push_back( std::move( make_unique<No_mem_Inter>()));
