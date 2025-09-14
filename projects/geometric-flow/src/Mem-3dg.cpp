@@ -2931,10 +2931,11 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
     for(size_t bi = 0; bi < Beads.size(); bi++){
       if(Beads[bi]->state == "manual"){
         Vector3 Bpos = Beads[bi]->Pos;
-        if( Bpos.norm2()< 2.0-Beads[bi]->sigma*Beads[bi]->sigma) //The 2.0 here is hardcoded and it means the radius of the vesicle
+        if( Bpos.norm2()< (2.0-Beads[bi]->sigma)*(2.0-Beads[bi]->sigma)) //The 2.0 here is hardcoded and it means the radius of the vesicle
         
         {
           std::cout<<"\t\t Freezing a bead because it moved too much\n";
+          std::cout<<"The bead positions 2 is"<< Bpos.norm2() <<" \n";
           Beads[bi]->state = "froze";
         
         }

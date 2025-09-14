@@ -92,7 +92,8 @@ os.makedirs('../Outputs/',exist_ok=True)
 
 Config_path, sim_path = Create_json_wrapping_two(KA,KB,radius,Strength,angle)
 # Hopefully this works
-Output_path = '../Outputs/output_serial_two_beads_theta_{}_Strg_{}_radius_{}_KA_{}_KB_{}_KE_{}_Nsim_{}'.format(angle,Strength,radius,KA,KB,KE,Nsim)
+Output_name = 'output_serial_two_beads_theta_{}_Strg_{}_radius_{}_KA_{}_KB_{}_KE_{}_Nsim_{}'.format(angle,Strength,radius,KA,KB,KE,Nsim)
+Output_path = '../Outputs/'+Output_name
 
 f=open('../Subjobs/subjob_serial_two_beads_theta_{}_Strg_{}_radius_{}_KA_{}_KB_{}_Nsim_{}'.format(angle,Strength,radius,KA,KB,Nsim),'w')
 
@@ -148,7 +149,7 @@ f.write('srun time -v ../build/bin/main_cluster {} {}\n'.format(Config_path,Nsim
 
 #  Here we can tell the script to move the output file
 
-f.write('cp {} {}/Console_output.txt \n'.format(Output_path,sim_path ))
+f.write('cp {} {}/{}.txt \n'.format(Output_path,sim_path,Output_name) )
 # I need to acces the data in the config file.
 
 f.write('\n')
