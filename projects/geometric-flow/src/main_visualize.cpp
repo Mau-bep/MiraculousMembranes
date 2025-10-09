@@ -1519,6 +1519,9 @@ int main(int argc, char** argv) {
     }
 
 
+   
+    // M3DG.Sim_handler->Calculate_ener
+    
 
     std::vector<int> BeadBonds(0);
     size_t counter = 0;
@@ -1593,8 +1596,14 @@ int main(int argc, char** argv) {
 
     
     // return 1;
+    // Its easy, we define a a mesh with 2 triangles
+
 
     
+    
+
+
+
     int saved_mesh_idx = 0;
     std::vector<Vector3> Bead_pos_saved(6);
 
@@ -1828,6 +1837,180 @@ int main(int argc, char** argv) {
 
 
     std::cout<<"Here4\n";
+
+
+    // COmo por aca hay de todo
+    // Ok what 
+    Eigen::Vector<double, 12> Positions_flap;
+    // Now  need to set the thingys i can use angles too but whatever
+    Eigen::Vector<double, 3> P3{11.309800, -0.225893, 0.745853 };
+    Eigen::Vector<double, 3> P2{10.827291, 0.383619, 0.261750};
+    Eigen::Vector<double, 3> P1{11.822630, 0.413617, -0.222668 };
+    Eigen::Vector<double, 3> P4{11.324419, -0.007852, -0.808003};
+
+    
+
+    Positions_flap << P1, P2,P3, P4;
+    std::cout<< "THe Positioms are " << Positions_flap.transpose()<<"\n";
+    Eigen::Vector<double,12> grad_dih = geometry->gradient_dihedral_angle(Positions_flap);
+
+    std::cout<<"THe grad is "<< grad_dih <<" \n";
+
+    // OK oK now guat
+
+    // NOW WE MOVE THE VERTICES ACCORDING TO GRADIENT
+    bool save = true;
+    
+
+    // Nw we do our iteration
+    Eigen::Vector<double,6> Grad_edge;
+    Eigen::Vector<double,6> Positions_edge;
+
+    for(int i = 0; i < 2; i++){
+        Positions_edge[3*i] = Positions_flap[3*i];
+        Positions_edge[3*i+1] = Positions_flap[3*i+1];
+        Positions_edge[3*i+2] = Positions_flap[3*i+2];
+    }
+
+    Grad_edge = geometry->gradient_edge_length(Positions_edge);
+
+    for( int step = 0 ; step < 30; step++){
+
+
+    if(save){
+    SimplePolygonMesh simpleMesh;
+    Vector3 v_pos;
+
+    for(int i  = 0; i < 4; i++){
+        // We will asign the vertices
+        v_pos.x = Positions_flap[3*i];
+        v_pos.y = Positions_flap[3*i+1];
+        v_pos.z = Positions_flap[3*i+2];
+        simpleMesh.vertexCoordinates.push_back(v_pos);
+    
+    }
+
+    // We have two faces
+    std::vector<size_t> polygon(3);
+    polygon[0] = 0;
+    polygon[1] = 1;
+    polygon[2] = 2;
+
+    // I am sorry for this
+
+    simpleMesh.polygons.push_back(polygon);
+    polygon[0] = 1;
+    polygon[1] = 0;
+    polygon[2] = 3;
+    simpleMesh.polygons.push_back(polygon);
+ 
+    auto lvals = makeManifoldSurfaceMeshAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
+ 
+   std::tie(mesh_uptr, geometry_uptr) = std::tuple<std::unique_ptr<ManifoldSurfaceMesh>,
+                    std::unique_ptr<VertexPositionGeometry>>(std::move(std::get<0>(lvals)),  // mesh
+                                                             std::move(std::get<1>(lvals))); // geometry
+    mesh = mesh_uptr.release();
+    geometry = geometry_uptr.release();
+
+    Save_mesh("../Results/",step);
+    // 
+
+    }
+
+    // At the end of the step i move the vertices in grad direction
+    // Positions_flap += grad_dih;
+    int factor = -1;
+    if(step>15) factor = 1;
+    // You know whats better, we just add it in p1 and p2
+    for(int i = 2; i < 4; i++){
+        // std::cout<<"i is equal to" << i <<" \n";
+        Positions_flap[3*i] += factor*grad_dih[3*i]/30;
+        Positions_flap[3*i+1] += factor*grad_dih[3*i+1]/30;
+        Positions_flap[3*i+2] += factor*grad_dih[3*i+2]/30;
+    }
+
+    grad_dih = geometry->gradient_dihedral_angle(Positions_flap);
+
+
+    }
+
+    // Now i go here and do the edge length thingy
+
+    for(int step = 30; step<60; step++){
+
+        if(save){
+    SimplePolygonMesh simpleMesh;
+    Vector3 v_pos;
+
+    for(int i  = 0; i < 4; i++){
+        // We will asign the vertices
+        v_pos.x = Positions_flap[3*i];
+        v_pos.y = Positions_flap[3*i+1];
+        v_pos.z = Positions_flap[3*i+2];
+        simpleMesh.vertexCoordinates.push_back(v_pos);
+    
+    }
+
+    // We have two faces
+    std::vector<size_t> polygon(3);
+    polygon[0] = 0;
+    polygon[1] = 1;
+    polygon[2] = 2;
+
+    // I am sorry for this
+
+    simpleMesh.polygons.push_back(polygon);
+    polygon[0] = 1;
+    polygon[1] = 0;
+    polygon[2] = 3;
+    simpleMesh.polygons.push_back(polygon);
+ 
+    auto lvals = makeManifoldSurfaceMeshAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
+ 
+   std::tie(mesh_uptr, geometry_uptr) = std::tuple<std::unique_ptr<ManifoldSurfaceMesh>,
+                    std::unique_ptr<VertexPositionGeometry>>(std::move(std::get<0>(lvals)),  // mesh
+                                                             std::move(std::get<1>(lvals))); // geometry
+    mesh = mesh_uptr.release();
+    geometry = geometry_uptr.release();
+
+    Save_mesh("../Results/",step);
+    // 
+
+    }
+
+    // At the end of the step i move the vertices in grad direction
+    // Positions_flap += grad_dih;
+    int factor = 1;
+    if(step>45) factor = -1;
+    // You know whats better, we just add it in p1 and p2
+    for(int i = 0; i < 2; i++){
+        // std::cout<<"i is equal to" << i <<" \n";
+        Positions_flap[3*i] += factor*Grad_edge[3*i]/40;
+        Positions_flap[3*i+1] += factor*Grad_edge[3*i+1]/40;
+        Positions_flap[3*i+2] += factor*Grad_edge[3*i+2]/40;
+    }
+
+    
+    for(int i = 0; i < 2; i++){
+        Positions_edge[3*i] = Positions_flap[3*i];
+        Positions_edge[3*i+1] = Positions_flap[3*i+1];
+        Positions_edge[3*i+2] = Positions_flap[3*i+2];
+    }
+    Grad_edge = geometry->gradient_edge_length(Positions_edge);
+    std::cout<<"The grad edge is" << Grad_edge.transpose()<< "\n";
+
+    }
+
+
+
+    
+    return 0;
+
+
+    // Now i want o save it like an obj?
+    // 
+
+
 
 
     std::string filename2 = basic_name + "Bead_data.txt";

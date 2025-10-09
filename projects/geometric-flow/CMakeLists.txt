@@ -244,6 +244,9 @@ target_include_directories(main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps")
 # add the args.hxx project which we use for command line args
 target_include_directories(main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
 target_include_directories(main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
+
+# find_package(EigenRand REQUIRED)
+
 target_link_libraries(main PUBLIC geometry-central polyscope arcsim)
 # # find_package(OpenMP)
 # # if(OPENMP_CXX_FOUND)
@@ -258,12 +261,18 @@ target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src_
 target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
 target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps")
 
+target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/EigenRand/")
 # add the args.hxx project which we use for command line args
 target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
-
 target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
 
-target_link_libraries(main_cluster PUBLIC geometry-central polyscope arcsim)
+add_library(EigenRand INTERFACE)
+target_include_directories(EigenRand INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/EigenRand-0.5.1/")
+
+# target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/EigenRand-0.5.1/")
+
+
+target_link_libraries(main_cluster PUBLIC geometry-central polyscope arcsim EigenRand)
 
 
 add_executable(main_visualize "${SRCSvisualize}")

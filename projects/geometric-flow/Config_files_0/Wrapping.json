@@ -18,7 +18,7 @@
         "radius": 0.2, 
         "state" : "default" ,
         "Pos": [0.36, 0.0, 0.0], 
-        "mem_inter": "Shifted_LJ_Normal_nopush",
+        "mem_inter": "Frenkel_Normal_nopush",
         "inter_str": 200.0,
         "bonds": [],
         "bonds_constants":[],

@@ -467,7 +467,7 @@ def Tube_growth_radius_2(folder):
     return [y,z]
 
 
-def Tube_growth_radius_3(folder):
+def Tube_growth_radius_3(folder): 
     Data = np.loadtxt(folder+"Tube_radius_2.txt", skiprows= 1)
 
     y = Data[:,1]
@@ -510,10 +510,10 @@ def Tube_growth_radius_4(folder):
         KB = Data[i,1]
         if(abs(KB - 5.0) < 1e-4):
             
-            y1.append(y[i])
+            y1.append(y[i]/100)
             z1.append(z[i])
         if( abs(KB - 10.0) < 1e-4):
-            y2.append(y[i])
+            y2.append(y[i]/100)
             z2.append(z[i])
     
     return [y1,z1,y2,z2]
@@ -573,9 +573,9 @@ def fit2():
 
     # plt.plot(x_fit,y_fit,ls='dashed',color='magenta',label=" {}".format(p[0]))
     
-    plt.plot(x_fit,y_fit4,ls='dashed',color='pink', label = r"""$\sigma = 250$""")
-    plt.plot(x_fit,y_fit2,ls='dashed',color='black', label = r'$\sigma = 500$')
-    plt.plot(x_fit,y_fit3,ls='dashed',color='magenta', label = r'$\sigma = 1000$')
+    plt.plot(x_fit,y_fit4,ls='dashed',color='pink', label = r"""$\sigma = 2.5$""")
+    plt.plot(x_fit,y_fit2,ls='dashed',color='black', label = r'$\sigma = 5.0$')
+    plt.plot(x_fit,y_fit3,ls='dashed',color='magenta', label = r'$\sigma = 10.0$')
     
     plt.scatter(Strengths,radius,color='black')
     print(Strengths1)
@@ -583,7 +583,7 @@ def fit2():
     plt.scatter(Strengths1,radius1,color="pink")
     plt.scatter(Strengths2[1:],radius2[1:],color="magenta")
     
-    plt.xlabel(r'$K_{B}$',usetex =True,fontsize=20.0)
+    plt.xlabel(r'$\kappa$',usetex =True,fontsize=20.0)
     plt.ylabel(r'$r$', usetex = True,fontsize=20.0)
 
     plt.legend(fontsize=12)
@@ -627,8 +627,8 @@ def fit3():
 
     p = np.polyfit(x,y,1)
 
-    x_fit = np.linspace(np.log(40),np.log(800.0))
-    y_fit = p[1]+x_fit*p[0]
+    x_fit = np.linspace(np.log(0.4),np.log(8.0))
+    y_fit = (p[1]+x_fit*p[0])/10
 
 
     
@@ -641,15 +641,15 @@ def fit3():
     y_fit = np.exp(y_fit)
     x_fit = np.exp(x_fit)
 
-    y_fit2 = np.sqrt(  10/(4*x_fit))
+    y_fit2 = np.sqrt(  10/(4*x_fit))/10
     # y_fit3 = np.sqrt( x_fit/(4*0.1))/100.0
-    y_fit4 = np.sqrt( 5/(4*x_fit))
+    y_fit4 = np.sqrt( 5/(4*x_fit))/10
 
 
     # plt.plot(x_fit,y_fit,ls='dashed',color='magenta',label=" {}".format(p[0]))
     
-    plt.plot(x_fit,y_fit4,ls='dashed',color='pink', label = r"""$K_b = 5$""")
-    plt.plot(x_fit,y_fit2,ls='dashed',color='magenta', label = r'$K_b = 10$')
+    plt.plot(x_fit,y_fit4,ls='dashed',color='pink', label = r"""$\kappa = 5$""")
+    plt.plot(x_fit,y_fit2,ls='dashed',color='magenta', label = r'$\kappa = 10$')
     # plt.plot(x_fit,y_fit3,ls='dashed',color='magenta', label = r'$\sigma = 0.1$')
     
     # plt.scatter(Strengths,radius,color='black')

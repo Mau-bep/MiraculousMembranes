@@ -999,15 +999,20 @@ def Plotting_phase_space(dir):
 
     # plt.ylabel(r"$(\omega - \omega_c)\frac{a^2}{\kappa}",usetex=True, fontsize = 30)
     plt.legend()
-    plt.ylabel(r'$\sigma a^2/\kappa$',usetex = True, fontsize = 20)
-    plt.xlabel(r'$w/w_c$',usetex = True, fontsize = 20)
+    plt.ylabel(r'$\propto$ Surface Tension',usetex = True, fontsize = 20)
+    plt.xlabel(r'$\propto$ Interaction Strength',usetex = True, fontsize = 20)
     # plt.xlim(0.2,1.5)
     plt.colorbar(ticks=[0.1*i for i in range(11)])
     # plt.colorbar(vmin=0, vmax=1)
+
+    plt.scatter(  88/wc,35*a*a/5, marker='*', s=200, c='black')
+    plt.scatter(  121/wc,35*a*a/5, marker='o', s=200, c='black')
+    plt.scatter(  154/wc,35*a*a/5, marker='^', s=200, c='black')
+    plt.scatter(  154/wc,10*a*a/5, marker='s', s=200, c='black')
     # plt.colorbar()
 
     # plt.savefig("../Results/Some_pa")
-    plt.savefig("../Results/"+dir+"Wrapping_phasespace_newww.png", bbox_inches = 'tight')
+    plt.savefig("../Results/"+dir+"Wrapping_phasespace_newwwww.png", bbox_inches = 'tight')
 
 
     plt.show()
@@ -1019,4 +1024,6 @@ def Plotting_phase_space(dir):
 
 dir = '../Results/Particle_wrapping_on_plane_phase_space_sept/'
 
+
+dir = '../Results/Particle_wrapping_on_plane_big/'
 Plotting_phase_space(dir)   

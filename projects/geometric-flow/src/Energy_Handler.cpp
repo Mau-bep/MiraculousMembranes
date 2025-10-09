@@ -337,9 +337,11 @@ VertexData<Vector3> E_Handler::F_Volume(std::vector<double> Constants) const{
                     geometry->inputVertexPositions[Vertices[2]].x, geometry->inputVertexPositions[Vertices[2]].y, geometry->inputVertexPositions[Vertices[2]].z;
 
         Grad = geometry->gradient_volume(Positions);
+        // std::cout<<"Grad is "<< Grad.transpose() << "\n";
         for( size_t i = 0; i < 3; i++){
             Force_vector = Vector3{Grad[3*i], Grad[3*i+1], Grad[3*i+2]};
             Force[Vertices[i]] += Force_vector;
+            // std::cout<<"The force vector is" << Force_vector << "\n";
         }
     }
 

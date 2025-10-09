@@ -57,6 +57,8 @@ using json = nlohmann::json;
 
 
 
+#include <EigenRand/EigenRand>
+
 
 
 using namespace geometrycentral;
@@ -563,6 +565,15 @@ int main(int argc, char** argv) {
         for(size_t z = 0; z < Constants.size(); z++) std::cout<<Constants[z] << " ";
         std::cout<<" \n";
 
+        // I want to add here something
+        if(Energy["Name"]=="Volume_constraint" && Constants[1] < 0){
+            // THe volume constraint wants the default volume
+            Constants[1] = geometry->totalVolume();
+            std::cout<<"Setting the target volume\n";
+
+        }
+
+
         Energy_constants.push_back(Constants);
         Constants.resize(0);
     }
@@ -915,13 +926,25 @@ int main(int argc, char** argv) {
     double min_sizing = 1e4;
     double sizing;
     
-    for(Vertex v : mesh->vertices()){
-        // 
-        sizing = Sizings[v];
-        if(sizing > max_sizing ) max_sizing = sizing;
-        if(sizing < min_sizing ) min_sizing = sizing;
+    double min_edge_l = 1e4;
+    double max_edge_l = -1;
+    double avg_edge_l = 0.0;
+    double edge_l;
+    for(Edge e : mesh->edges()){
+        // Iwant the min the max and the avg
+        edge_l = geometry->edgeLength(e);
+        if(edge_l > max_edge_l) max_edge_l = edge_l;
+        if(edge_l < min_edge_l) min_edge_l = edge_l;
+
+        avg_edge_l +=edge_l;
 
     }
+
+    std::cout<<"The min edge l is" << min_edge_l <<" the max is "<< max_edge_l <<" and the avg is "<< avg_edge_l/mesh->nEdges()<< "\n";
+
+
+   
+    
     std::cout<<"My algorithm says\n";
     std::cout<<"The max sizing is " << max_sizing << " and the min sizing is " << min_sizing <<" \n";
     arcsim::Mesh remesher_mesh = translate_to_arcsim(mesh,geometry);
@@ -930,30 +953,6 @@ int main(int argc, char** argv) {
     arcsim::compute_masses(Cloth_1);
     arcsim::compute_ws_data(Cloth_1.mesh);
 
-    std::cout<<"ARCSIM says \n";
-    arcsim::dynamic_remesh(Cloth_1);
-    // arcsim::static_remesh2(Cloth_1,true);
-
-    std::cout<<"Done first remeshing\n";
-
-    std::cout<<" \n\n";
-
-
-    // return 1;
-
-    delete mesh;
-    delete geometry;
-    
-    std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
-    arcsim::delete_mesh(Cloth_1.mesh);
-    mesh = mesh_uptr.release();
-    geometry = geometry_uptr.release();
-
-    M3DG.mesh = mesh;
-    M3DG.geometry = geometry;
-    Sim_handler.mesh = mesh;
-    Sim_handler.geometry = geometry;
-    // How do beads know?
 
   
 
@@ -1081,6 +1080,7 @@ int main(int argc, char** argv) {
 
 
 
+
     std::string basic_name=first_dir+Directory;
     std::cout<<"The length of Directory is" << Directory.length() << "\n";
     std::cout<<"THe length of the name is" << basic_name.length() << "\n";
@@ -1109,6 +1109,43 @@ int main(int argc, char** argv) {
         // return 1;
     }
 
+
+
+     // Lets add noise here
+    const int N_vert = mesh->nVertices();
+    if(Data.contains("Initial_noise")){
+        double noise_amp = Data["Initial_noise"];
+        // M3DG.Add_noise(noise_amp);
+        Eigen::Rand::P8_mt19937_64 urng{ 42 };
+        // Now i need to find a way to add the noise;
+        Eigen::MatrixXf mat = Eigen::Rand::balanced<Eigen::MatrixXf>(4, 4, urng);
+       
+        Eigen::VectorXd noise = Eigen::Rand::normal<Eigen::VectorXd>(N_vert,0,urng,noise_amp,noise_amp);
+
+        std::cout<<"Noise\n";
+        std::cout<< noise.transpose() <<" \n";
+
+        // lets see then
+
+        VertexData<Vector3> V_Normals = M3DG.Sim_handler->F_Volume(std::vector<double>{1.0});
+
+        for( Vertex v : mesh->vertices()){
+            
+            // std::cout<<"The normal is " << V_Normals[v] << "\n";
+            geometry->inputVertexPositions[v] = geometry->inputVertexPositions[v] + noise(v.getIndex())*V_Normals[v];
+            // std::cout<<"The new pos is " << geometry->inputVertexPositions[v] << "\n";
+            // std::cout<<"The noise is " << noise(v.getIndex())   << "\n";    
+            // std::cout<<"The normal is" << V_Normals[v] << "\n";
+
+        }
+        geometry->refreshQuantities();
+        Save_mesh(basic_name,1);
+        // std::cout<<"Adding noise of amplitude " << noise_amp << "\n";
+    }
+    else{
+        std::cout<<"No initial noise added\n";
+    }
+    
 
     std::string filename = basic_name+"Output_data.txt";
 
@@ -1193,10 +1230,40 @@ int main(int argc, char** argv) {
     // EdgeLengths << "## THE EVOLUTION OF THE EDGE LENGTHS\n";
     // EdgeLengths.close();
 
+    
+    Save_mesh(basic_name,0);
+
     std::cout<<"Starting sim\n";
 
+
+
+    if(arcsim) arcsim::dynamic_remesh(Cloth_1);
+
+    std::cout<<"Done first remeshing\n";
+
+    std::cout<<" \n\n";
+
+
+    // return 1;
+
+    delete mesh;
+    delete geometry;
+    
+    std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
+    arcsim::delete_mesh(Cloth_1.mesh);
+    mesh = mesh_uptr.release();
+    geometry = geometry_uptr.release();
+
+    M3DG.mesh = mesh;
+    M3DG.geometry = geometry;
+    Sim_handler.mesh = mesh;
+    Sim_handler.geometry = geometry;
+
+    
+
+
     start_full = chrono::steady_clock::now();
-    for(size_t current_t=0; current_t <= Final_t ;current_t++ ){
+    for(size_t current_t=1; current_t <= Final_t ;current_t++ ){
 
         // std::cout<<"Curren t t is " << current_t <<" \n";
         // if(current_t>400){
@@ -1212,7 +1279,7 @@ int main(int argc, char** argv) {
         if(Switch =="Newton" && current_t == Switch_t){
             Integration = "Newton";
             remesh_every = -1;
-            save_interval = 20;
+            // save_interval = 0;
             resize_vol = false;
             // Switch_times_map[Switch] = -1;
             // We turn off the switch so we dont enter again
@@ -1373,11 +1440,11 @@ int main(int argc, char** argv) {
                 // std::cout<<"THis random E is "<< Beads[i].Bead_I->E_r(0.2,std::vector<double>{1.0,1.0,3.0}) <<"\n";
             }
 
-            if( abs(n_vert_new-n_vert_old)>= 300){
-                std::cout<<"The change in the number of vertices is "<< n_vert_new-n_vert_old <<" \n";
-                std::cout<<"Which is clearly too big :P \n";    
-                break;
-            }
+            // if( abs(n_vert_new-n_vert_old)>= 300){
+            //     std::cout<<"The change in the number of vertices is "<< n_vert_new-n_vert_old <<" \n";
+            //     std::cout<<"Which is clearly too big :P \n";    
+            //     break;
+            // }
 
             // Ok so here we have remeshed, and the idea is that everytime u remesh you have to recompute the lagrange multipliers
             if(Integration =="Newton") {
