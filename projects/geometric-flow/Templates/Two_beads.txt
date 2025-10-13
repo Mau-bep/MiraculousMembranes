@@ -1,7 +1,7 @@
 {
     "init_file": "../../../input/Simplesphere.obj",
     "save_interval": 500,
-    "timesteps": 200000,
+    "timesteps": 400000,
     "continue_sim": false,
     "resize_vol": false,
     "arcsim": true,
@@ -10,8 +10,8 @@
     "boundary": false,
     "recentering": false,
     "saving_states": false,
-    "Switches" : ["Newton","Freze_beads"],
-    "Switch_times" : [20000,10000],
+    "Switches" : ["Newton"],
+    "Switch_times" : [30000],
     "rescale": 3.0,
     "Displacement": [
         {{xdisp}},
