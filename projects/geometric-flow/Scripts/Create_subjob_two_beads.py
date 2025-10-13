@@ -46,7 +46,7 @@ def Create_json_wrapping_two(ka,kb,r,inter_str,angle):
     template = env.get_template('Two_beads.txt')
     
     # Radius of the position of the beads is R_v-2*r_b
-    R_vesicle = 2.0
+    R_vesicle = 3.0
     r_bead = 0.3
     Rpos_beads = R_vesicle-r_bead*2
     xpos  = Rpos_beads*np.cos(theta)

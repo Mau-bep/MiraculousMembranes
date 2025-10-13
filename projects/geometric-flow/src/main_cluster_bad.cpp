@@ -57,8 +57,6 @@ using json = nlohmann::json;
 
 
 
-#include <EigenRand/EigenRand>
-
 
 
 using namespace geometrycentral;
@@ -565,15 +563,6 @@ int main(int argc, char** argv) {
         for(size_t z = 0; z < Constants.size(); z++) std::cout<<Constants[z] << " ";
         std::cout<<" \n";
 
-        // I want to add here something
-        if(Energy["Name"]=="Volume_constraint" && Constants[1] < 0){
-            // THe volume constraint wants the default volume
-            Constants[1] = geometry->totalVolume();
-            std::cout<<"Setting the target volume\n";
-
-        }
-
-
         Energy_constants.push_back(Constants);
         Constants.resize(0);
     }
@@ -849,22 +838,7 @@ int main(int argc, char** argv) {
         M3DG.Field = "None";
     }
     
-    // Ok so we will decide to stop or not backtracking here. Insane that we dont have this feature yet
-    if(Data.contains("backtrack")){
-        M3DG.backtrack = Data["backtrack"];
-        if(Data.contains("Timestep"))
-        {
-            M3DG.timestep = Data["Timestep"];
-        }
-        else{
-            M3DG.timestep = 1e-4;
-        }
-    }
-    else{
-        M3DG.backtrack = true;
-    }
-
-
+ 
 
     arcsim::Cloth Cloth_1;
     arcsim::Cloth::Remeshing remeshing_params;
@@ -941,25 +915,13 @@ int main(int argc, char** argv) {
     double min_sizing = 1e4;
     double sizing;
     
-    double min_edge_l = 1e4;
-    double max_edge_l = -1;
-    double avg_edge_l = 0.0;
-    double edge_l;
-    for(Edge e : mesh->edges()){
-        // Iwant the min the max and the avg
-        edge_l = geometry->edgeLength(e);
-        if(edge_l > max_edge_l) max_edge_l = edge_l;
-        if(edge_l < min_edge_l) min_edge_l = edge_l;
-
-        avg_edge_l +=edge_l;
+    for(Vertex v : mesh->vertices()){
+        // 
+        sizing = Sizings[v];
+        if(sizing > max_sizing ) max_sizing = sizing;
+        if(sizing < min_sizing ) min_sizing = sizing;
 
     }
-
-    std::cout<<"The min edge l is" << min_edge_l <<" the max is "<< max_edge_l <<" and the avg is "<< avg_edge_l/mesh->nEdges()<< "\n";
-
-
-   
-    
     std::cout<<"My algorithm says\n";
     std::cout<<"The max sizing is " << max_sizing << " and the min sizing is " << min_sizing <<" \n";
     arcsim::Mesh remesher_mesh = translate_to_arcsim(mesh,geometry);
@@ -968,6 +930,30 @@ int main(int argc, char** argv) {
     arcsim::compute_masses(Cloth_1);
     arcsim::compute_ws_data(Cloth_1.mesh);
 
+    std::cout<<"ARCSIM says \n";
+    arcsim::dynamic_remesh(Cloth_1);
+    // arcsim::static_remesh2(Cloth_1,true);
+
+    std::cout<<"Done first remeshing\n";
+
+    std::cout<<" \n\n";
+
+
+    // return 1;
+
+    delete mesh;
+    delete geometry;
+    
+    std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
+    arcsim::delete_mesh(Cloth_1.mesh);
+    mesh = mesh_uptr.release();
+    geometry = geometry_uptr.release();
+
+    M3DG.mesh = mesh;
+    M3DG.geometry = geometry;
+    Sim_handler.mesh = mesh;
+    Sim_handler.geometry = geometry;
+    // How do beads know?
 
   
 
@@ -1077,6 +1063,8 @@ int main(int argc, char** argv) {
     status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
     // Ok here
+    int dir_counter = 1;
+    // I can just do it here
     while(status <0){
         
     std::string test_name = first_dir+std::to_string(dir_counter)+"/";
@@ -1098,10 +1086,10 @@ int main(int argc, char** argv) {
     
 
     }
-
     
-
-    std::string basic_name=first_dir+Directory;
+     
+    
+    std::cout<<"THe actual directory is "<< basic_name<<"\n";
     std::cout<<"The length of Directory is" << Directory.length() << "\n";
     std::cout<<"THe length of the name is" << basic_name.length() << "\n";
     // if(basic_name.length()>200){
@@ -1110,7 +1098,12 @@ int main(int argc, char** argv) {
     //     // return 1;
     // }
     
-  
+    // status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    
+    
+
+
+
 
     // Here we will move the Input file to where we want it
     std::string command = "cp "+ std::string(argv[1]) + " " + basic_name + "Input_file.json";
@@ -1121,10 +1114,6 @@ int main(int argc, char** argv) {
         // return 1;
     }
 
-
-
-    
-    
 
     std::string filename = basic_name+"Output_data.txt";
 
@@ -1209,82 +1198,10 @@ int main(int argc, char** argv) {
     // EdgeLengths << "## THE EVOLUTION OF THE EDGE LENGTHS\n";
     // EdgeLengths.close();
 
-    
-    Save_mesh(basic_name,0);
-
     std::cout<<"Starting sim\n";
 
-
-
-    if(arcsim) arcsim::dynamic_remesh(Cloth_1);
-
-    std::cout<<"Done first remeshing\n";
-
-    std::cout<<" \n\n";
-
-
-    // return 1;
-
-    delete mesh;
-    delete geometry;
-    
-    std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
-    arcsim::delete_mesh(Cloth_1.mesh);
-    mesh = mesh_uptr.release();
-    geometry = geometry_uptr.release();
-
-    M3DG.mesh = mesh;
-    M3DG.geometry = geometry;
-    Sim_handler.mesh = mesh;
-    Sim_handler.geometry = geometry;
-
-     // Lets add noise here
-    const int N_vert = mesh->nVertices();
-    if(Data.contains("Initial_noise")){
-        double noise_amp = Data["Initial_noise"];
-        // M3DG.Add_noise(noise_amp);
-        Eigen::Rand::P8_mt19937_64 urng{ 42 };
-        // Now i need to find a way to add the noise;
-       
-        Eigen::VectorXd noise = Eigen::Rand::normal<Eigen::VectorXd>(N_vert,0,urng,noise_amp,noise_amp);
-
-        VertexData<Vector3> V_Normals = M3DG.Sim_handler->F_Volume(std::vector<double>{1.0});
-
-        for( Vertex v : mesh->vertices()){
-            
-            geometry->inputVertexPositions[v] = geometry->inputVertexPositions[v] + noise(v.getIndex())*V_Normals[v];
-
-        }
-        geometry->refreshQuantities();
-        Save_mesh(basic_name,1);
-        // std::cout<<"Adding noise of amplitude " << noise_amp << "\n";
-    }
-    else{
-        std::cout<<"No initial noise added\n";
-    }
-
-
-    if(Data.contains("Harmonic")){
-        std::cout<<"Harmonic representation!\n";
-        // We will have some fun
-        double radius = 2.0;
-        double constant = 0.5*sqrt(3/3.1415926535);
-        double z = 0.0;
-        double displacement;
-      
-        for(Vertex v: mesh->vertices()){
-            displacement = fabs(geometry->inputVertexPositions[v].z)/(radius);
-            geometry->inputVertexPositions[v] = geometry->inputVertexPositions[v] + displacement*geometry->inputVertexPositions[v]*constant;
-        }
-
-        Save_mesh(basic_name,132);
-        geometry->refreshQuantities();
-    }
-
-
-    std::cout<<"Lets start the sim\n";
     start_full = chrono::steady_clock::now();
-    for(size_t current_t=1; current_t <= Final_t ;current_t++ ){
+    for(size_t current_t=0; current_t <= Final_t ;current_t++ ){
 
         // std::cout<<"Curren t t is " << current_t <<" \n";
         // if(current_t>400){
@@ -1300,7 +1217,7 @@ int main(int argc, char** argv) {
         if(Switch =="Newton" && current_t == Switch_t){
             Integration = "Newton";
             remesh_every = -1;
-            // save_interval = 0;
+            save_interval = 20;
             resize_vol = false;
             // Switch_times_map[Switch] = -1;
             // We turn off the switch so we dont enter again
@@ -1401,7 +1318,7 @@ int main(int argc, char** argv) {
 
             }
 
-            // std::cout<<"Remesghing\n";
+            
             Cloth_1.remeshing=remeshing_params;
             arcsim::compute_masses(Cloth_1);
             arcsim::compute_ws_data(Cloth_1.mesh);
@@ -1461,11 +1378,11 @@ int main(int argc, char** argv) {
                 // std::cout<<"THis random E is "<< Beads[i].Bead_I->E_r(0.2,std::vector<double>{1.0,1.0,3.0}) <<"\n";
             }
 
-            // if( abs(n_vert_new-n_vert_old)>= 300){
-            //     std::cout<<"The change in the number of vertices is "<< n_vert_new-n_vert_old <<" \n";
-            //     std::cout<<"Which is clearly too big :P \n";    
-            //     break;
-            // }
+            if( abs(n_vert_new-n_vert_old)>= 300){
+                std::cout<<"The change in the number of vertices is "<< n_vert_new-n_vert_old <<" \n";
+                std::cout<<"Which is clearly too big :P \n";    
+                break;
+            }
 
             // Ok so here we have remeshed, and the idea is that everytime u remesh you have to recompute the lagrange multipliers
             if(Integration =="Newton") {
@@ -1481,11 +1398,11 @@ int main(int argc, char** argv) {
             }
             if(Integration == "Newton" && current_t >  Switch_t && Switch_t >=0){
 
-                // std::cout<<"\t \t At this step\n";
+                std::cout<<"\t \t At this step\n";
             Sim_handler.Calculate_Jacobian();
-            // std::cout<<"\t \t The Jacobian is calculated\n";
+            std::cout<<"\t \t The Jacobian is calculated\n";
             Sim_handler.Calculate_gradient();
-            // std::cout<<"\t \t The gradient is calculated\n";
+            std::cout<<"\t \t The gradient is calculated\n";
 
             // std::vector<double> RHS(0);
             Eigen::VectorXd RHS(3* mesh->nVertices());
@@ -1498,10 +1415,10 @@ int main(int argc, char** argv) {
                 RHS(3*index+2) = Sim_handler.Current_grad[v].z;
                 
             }
-            // std::cout<<"Doing the solve now\n";
+            std::cout<<"Doing the solve now\n";
 
-            // std::cout<<"The dimension of the jacobian is " << Sim_handler.Jacobian_constraints.rows() << " x " << Sim_handler.Jacobian_constraints.cols() << "\n";
-            // std::cout<<"The dimension of the RHS is " << RHS.size() << "\n";
+            std::cout<<"The dimension of the jacobian is " << Sim_handler.Jacobian_constraints.rows() << " x " << Sim_handler.Jacobian_constraints.cols() << "\n";
+            std::cout<<"The dimension of the RHS is " << RHS.size() << "\n";
             // std::cout<<"The Jacobian is \n" << Sim_handler.Jacobian_constraints.transpose() << "\n";
 
             // std::cout<<"THe RHS is \n" << RHS.transpose() << "\n";
@@ -1509,7 +1426,7 @@ int main(int argc, char** argv) {
             Eigen::VectorXd  Lagrange_mul = J_transpose.colPivHouseholderQr().solve(RHS);
             // Eigen::VectorXd  Lagrange_mul = (J_transpose.transpose() * J_transpose).ldlt().solve(J_transpose.transpose()*RHS);
             // Sim_handler.Lagrange_multipliers = Lagrange_mul;
-            // std::cout<<"SOlve done\n";
+            std::cout<<"SOlve done\n";
             std::cout<<"THe previous Lagrange multipliers were " << Sim_handler.Lagrange_mult.transpose() <<" \n";
             Sim_handler.Lagrange_mult = Lagrange_mul;
             std::cout<<"THe new  Lagrange multipliers were " << Sim_handler.Lagrange_mult.transpose() <<" \n";
