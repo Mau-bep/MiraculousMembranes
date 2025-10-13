@@ -1076,6 +1076,7 @@ int main(int argc, char** argv) {
     basic_name = first_dir+Directory;
     status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
+    int dir_counter = 1;
     // Ok here
     while(status <0){
         
