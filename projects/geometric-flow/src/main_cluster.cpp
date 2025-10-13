@@ -1102,7 +1102,9 @@ int main(int argc, char** argv) {
 
     
 
-    std::string basic_name=first_dir+Directory;
+    // std::string basic_name=first_dir+Directory;
+    std::cout<<"THe actual directory is "<< basic_name<<"\n";
+    
     std::cout<<"The length of Directory is" << Directory.length() << "\n";
     std::cout<<"THe length of the name is" << basic_name.length() << "\n";
     // if(basic_name.length()>200){
