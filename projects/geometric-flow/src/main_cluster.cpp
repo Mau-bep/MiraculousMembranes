@@ -849,7 +849,22 @@ int main(int argc, char** argv) {
         M3DG.Field = "None";
     }
     
- 
+    // Ok so we will decide to stop or not backtracking here. Insane that we dont have this feature yet
+    if(Data.contains("backtrack")){
+        M3DG.backtrack = Data["backtrack"];
+        if(Data.contains("Timestep"))
+        {
+            M3DG.timestep = Data["Timestep"];
+        }
+        else{
+            M3DG.timestep = 1e-4;
+        }
+    }
+    else{
+        M3DG.backtrack = true;
+    }
+
+
 
     arcsim::Cloth Cloth_1;
     arcsim::Cloth::Remeshing remeshing_params;
@@ -1111,40 +1126,7 @@ int main(int argc, char** argv) {
 
 
 
-     // Lets add noise here
-    const int N_vert = mesh->nVertices();
-    if(Data.contains("Initial_noise")){
-        double noise_amp = Data["Initial_noise"];
-        // M3DG.Add_noise(noise_amp);
-        Eigen::Rand::P8_mt19937_64 urng{ 42 };
-        // Now i need to find a way to add the noise;
-        Eigen::MatrixXf mat = Eigen::Rand::balanced<Eigen::MatrixXf>(4, 4, urng);
-       
-        Eigen::VectorXd noise = Eigen::Rand::normal<Eigen::VectorXd>(N_vert,0,urng,noise_amp,noise_amp);
-
-        std::cout<<"Noise\n";
-        std::cout<< noise.transpose() <<" \n";
-
-        // lets see then
-
-        VertexData<Vector3> V_Normals = M3DG.Sim_handler->F_Volume(std::vector<double>{1.0});
-
-        for( Vertex v : mesh->vertices()){
-            
-            // std::cout<<"The normal is " << V_Normals[v] << "\n";
-            geometry->inputVertexPositions[v] = geometry->inputVertexPositions[v] + noise(v.getIndex())*V_Normals[v];
-            // std::cout<<"The new pos is " << geometry->inputVertexPositions[v] << "\n";
-            // std::cout<<"The noise is " << noise(v.getIndex())   << "\n";    
-            // std::cout<<"The normal is" << V_Normals[v] << "\n";
-
-        }
-        geometry->refreshQuantities();
-        Save_mesh(basic_name,1);
-        // std::cout<<"Adding noise of amplitude " << noise_amp << "\n";
-    }
-    else{
-        std::cout<<"No initial noise added\n";
-    }
+    
     
 
     std::string filename = basic_name+"Output_data.txt";
@@ -1259,9 +1241,51 @@ int main(int argc, char** argv) {
     Sim_handler.mesh = mesh;
     Sim_handler.geometry = geometry;
 
-    
+     // Lets add noise here
+    const int N_vert = mesh->nVertices();
+    if(Data.contains("Initial_noise")){
+        double noise_amp = Data["Initial_noise"];
+        // M3DG.Add_noise(noise_amp);
+        Eigen::Rand::P8_mt19937_64 urng{ 42 };
+        // Now i need to find a way to add the noise;
+       
+        Eigen::VectorXd noise = Eigen::Rand::normal<Eigen::VectorXd>(N_vert,0,urng,noise_amp,noise_amp);
+
+        VertexData<Vector3> V_Normals = M3DG.Sim_handler->F_Volume(std::vector<double>{1.0});
+
+        for( Vertex v : mesh->vertices()){
+            
+            geometry->inputVertexPositions[v] = geometry->inputVertexPositions[v] + noise(v.getIndex())*V_Normals[v];
+
+        }
+        geometry->refreshQuantities();
+        Save_mesh(basic_name,1);
+        // std::cout<<"Adding noise of amplitude " << noise_amp << "\n";
+    }
+    else{
+        std::cout<<"No initial noise added\n";
+    }
 
 
+    if(Data.contains("Harmonic")){
+        std::cout<<"Harmonic representation!\n";
+        // We will have some fun
+        double radius = 2.0;
+        double constant = 0.5*sqrt(3/3.1415926535);
+        double z = 0.0;
+        double displacement;
+      
+        for(Vertex v: mesh->vertices()){
+            displacement = fabs(geometry->inputVertexPositions[v].z)/(radius);
+            geometry->inputVertexPositions[v] = geometry->inputVertexPositions[v] + displacement*geometry->inputVertexPositions[v]*constant;
+        }
+
+        Save_mesh(basic_name,132);
+        geometry->refreshQuantities();
+    }
+
+
+    std::cout<<"Lets start the sim\n";
     start_full = chrono::steady_clock::now();
     for(size_t current_t=1; current_t <= Final_t ;current_t++ ){
 
@@ -1380,7 +1404,7 @@ int main(int argc, char** argv) {
 
             }
 
-            
+            // std::cout<<"Remesghing\n";
             Cloth_1.remeshing=remeshing_params;
             arcsim::compute_masses(Cloth_1);
             arcsim::compute_ws_data(Cloth_1.mesh);

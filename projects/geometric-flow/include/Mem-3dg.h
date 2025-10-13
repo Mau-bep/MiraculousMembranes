@@ -54,6 +54,9 @@ class Mem3DG {
     double E_Ben;
     double E_Bead;
 
+    bool backtrack;
+    double timestep;
+
     std::string Field;
     std::vector<double> Field_vals;
 

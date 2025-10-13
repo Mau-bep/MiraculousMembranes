@@ -2854,6 +2854,7 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
   // std::cout<<"Calling simulation handler for gradiebts\n";
   // std::cout<<"Calling sim handler for gradient\n";
   Sim_handler->Calculate_gradient();
+  
 
   // std::cout<<"Got the gradient\n";
   // std::cout<<"Sucesfully calculated\n";
@@ -2879,30 +2880,41 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
 
   start = chrono::steady_clock::now();
   // std::cout<<"Backtracking?\n";
-  backtrackstep = Backtracking();
+  if(backtrack){ 
+    backtrackstep = Backtracking();
+  }
+  else {
+    double some_E;
+    Sim_handler->Calculate_energies(&some_E);
+     backtrackstep = timestep;
+
+     geometry->inputVertexPositions += backtrackstep*Sim_handler->Current_grad;
+    
+      for(size_t i = 0; i<Beads.size(); i++){
+        Beads[i]->Move_bead(backtrackstep, Vector3({0,0,0}));
+      }
+    // geometry->inputVertexPositions+= timestep*Sim_handler->Total_Force;
+
+
+  }
+
+
   // std::cout<<"The backtrackstep is" << backtrackstep << " \n";
+  
   end = chrono::steady_clock::now();
   time_backtracking = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
 
-  // OK NOW I HAVE TO save the timings
-  // std::cout<<"Field check\n";
   if(Field !="None" && false){
     // std::cout<<"We doing field\n";
     VertexData<Vector3> Field(*mesh,Vector3({0.0,0.0,0.0}));
     Field = Linear_force_field(Field_vals[0],Field_vals[1]);
     geometry->inputVertexPositions+=backtrackstep*Field;
   }
-  // Ok so we added the force field
-  // std::cout<<"Is it the saving things?\n";
-  // if(Bead_data_filenames.size()>Beads.size()){
-  // std::ofstream Timings = std::ofstream(Bead_data_filenames[Beads.size()],std::ios_base::app);
-  // Timings << time_gradients <<" "<< time_backtracking <<" "<< time_construct <<" "<< time_compute <<" "<< time_solve <<" \n";
-  // Timings.close();
-  // }
-  // std::cout<<"The backtrackstep is " << backtrackstep << " \n";
-  // After backtracking i have to save.
+
   A = geometry->totalArea();
-  // 
+
+  // Maybe the handler hasnt calcualted much??
+  // std::cout<<"Is it related to saving?\n";
   if(Save_output_data || backtrackstep <0 ){
   double tot_E=0;
   Sim_data << time <<" "<< V<<" " << A<<" ";
@@ -2923,7 +2935,7 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
   
     }
 
-
+  // std::cout<<"IS is related to beads?\n";
     // Ok so here there will be a special thing? 
     // In the next update i should change the switch times to actually be switch parameters and then 
     // check that a bead in the manual state reached the position that it should have taken before the turning off time
@@ -2931,7 +2943,7 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
     for(size_t bi = 0; bi < Beads.size(); bi++){
       if(Beads[bi]->state == "manual"){
         Vector3 Bpos = Beads[bi]->Pos;
-        if( Bpos.norm2()< (2.0-2*Beads[bi]->sigma-0.1)*(2.0-2*Beads[bi]->sigma-0.1)) //The 2.0 here is hardcoded and it means the radius of the vesicle
+        if( Bpos.norm2()< (3.0-2*Beads[bi]->sigma-0.1)*(3.0-2*Beads[bi]->sigma-0.1)) //The 2.0 here is hardcoded and it means the radius of the vesicle
         
         {
           std::cout<<"\t\t Freezing a bead because it moved too much\n";
@@ -2943,7 +2955,7 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
 
     }
 
-  
+  // std::cout<<"Done integrating\n";
   return backtrackstep;
 }
 
@@ -3550,8 +3562,9 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
       // backtrackstep = integrate(Sim_data,time,Bead_data_filenames,Save_output_data);
     }
     else{
-      backtrackstep = Backtracking_grad(result.tail(N_constraints),Projection,Current_grad_norm);
-    
+
+      if(backtrack) backtrackstep = Backtracking_grad(result.tail(N_constraints),Projection,Current_grad_norm);
+      else backtrackstep = timestep;
 
     // 
     if(backtrackstep < 1e-9) small_TS = true;

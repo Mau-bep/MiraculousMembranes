@@ -46,20 +46,22 @@ def Create_json_wrapping_two(ka,kb,r,inter_str,angle):
     template = env.get_template('Two_beads.txt')
     
     # Radius of the position of the beads is R_v-2*r_b
-    Rpos_beads = 2.0-0.3*2
+    R_vesicle = 2.0
+    r_bead = 0.3
+    Rpos_beads = R_vesicle-r_bead*2
     xpos  = Rpos_beads*np.cos(theta)
     ypos1 = Rpos_beads*np.sin(theta)
     ypos2 = -Rpos_beads*np.sin(theta)
 
 
-    disp = -1*Rpos_beads*np.cos(theta)+ 0.5*(np.sqrt(2.3*2.3-Rpos_beads*Rpos_beads*np.sin(theta)*np.sin(theta) ) + np.sqrt(2.0*2.0-Rpos_beads*Rpos_beads*np.sin(theta)*np.sin(theta))) 
-    d1 = -1*Rpos_beads*np.cos(theta)+ np.sqrt(2.3*2.3-Rpos_beads*Rpos_beads*np.sin(theta)*np.sin(theta) )
-    d2 = -1*Rpos_beads*np.cos(theta)+ np.sqrt(2.0*2.0-Rpos_beads*Rpos_beads*np.sin(theta)*np.sin(theta))
+    disp = -1*Rpos_beads*np.cos(theta)+ 0.5*(np.sqrt((R_vesicle+r_bead)*(R_vesicle+r_bead)-Rpos_beads*Rpos_beads*np.sin(theta)*np.sin(theta) ) + np.sqrt(R_vesicle*R_vesicle-Rpos_beads*Rpos_beads*np.sin(theta)*np.sin(theta))) 
+    d1 = -1*Rpos_beads*np.cos(theta)+ np.sqrt((R_vesicle+r_bead)*(R_vesicle+r_bead)-Rpos_beads*Rpos_beads*np.sin(theta)*np.sin(theta) )
+    d2 = -1*Rpos_beads*np.cos(theta)+ np.sqrt(R_vesicle*R_vesicle-Rpos_beads*Rpos_beads*np.sin(theta)*np.sin(theta))
     disp = -1*0.5*(d1+d2)
     print("d1 is {}, d2 is {}".format(d1,d2))
     
-    print("We should have then that this is  0 ? {}".format( Rpos_beads*Rpos_beads+d1*d1+2*d1*Rpos_beads*np.cos(theta) - 2.3*2.3  ))
-    print("We should have then that this is  0 ? {}".format( Rpos_beads*Rpos_beads+d2*d2+2*d2*Rpos_beads*np.cos(theta) - 2.0*2.0  ))
+    print("We should have then that this is  0 ? {}".format( Rpos_beads*Rpos_beads+d1*d1+2*d1*Rpos_beads*np.cos(theta) - (R_vesicle+r_bead)*(R_vesicle+r_bead)  ))
+    print("We should have then that this is  0 ? {}".format( Rpos_beads*Rpos_beads+d2*d2+2*d2*Rpos_beads*np.cos(theta) - R_vesicle*R_vesicle  ))
 
     print("disp is {}".format(disp))
     
@@ -69,9 +71,9 @@ def Create_json_wrapping_two(ka,kb,r,inter_str,angle):
 
 
     disp= 0.0
-    xpos = 2.3*np.cos(theta)
-    ypos1 = 2.3*np.sin(theta)
-    ypos2 = -2.3*np.sin(theta)
+    xpos = (R_vesicle+r_bead)*np.cos(theta)
+    ypos1 = (R_vesicle+r_bead)*np.sin(theta)
+    ypos2 = -(R_vesicle+r_bead)*np.sin(theta)
     output_from_parsed_template = template.render(KA = ka, KB = kb,radius = r,xdisp = disp,xpos1 = xpos,xpos2 =xpos, ypos1= ypos1, ypos2 = ypos2, vx1= -5*xpos, vy1 = -5*ypos1, vx2 = -5*xpos, vy2 = -5*ypos2 ,interaction=inter_str, theta = theta,KE  = KE)
     data = json.loads(output_from_parsed_template)
     Config_path = '../Config_files/Wrapping_two_{}_strg_{}_radius_{}_KA_{}_KB_{}.json'.format(angle,inter_str,r,ka,kb) 
