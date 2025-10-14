@@ -8,7 +8,7 @@
     "remesh_every": 1,
     "first_dir": "../Results/Two_beads_big_mem/",
     "boundary": false,
-    "recentering": false,
+    "recentering": true,
     "saving_states": false,
     "Switches" : ["Newton"],
     "Switch_times" : [30000],
