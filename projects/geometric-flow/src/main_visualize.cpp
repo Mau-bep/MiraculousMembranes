@@ -735,7 +735,7 @@ void functionCallback() {
             psMesh->addVertexVectorQuantity("Laplace", Gradient_vertex);
         }
         if(ImGui::Button("Edge_reg")){
-            Gradient_vertex = Sim_handler.F_Edge_reg(Energy_constants[0]);
+            Gradient_vertex = Sim_handler.F_Edge_reg(Energy_constants[2]);
             
             std::cout<<"Calculating Edge reg energy\n";
             psMesh->addVertexVectorQuantity("Edge reg", Gradient_vertex);
@@ -744,6 +744,30 @@ void functionCallback() {
             Gradient_vertex = Sim_handler.F_Edge_reg_2(Energy_constants[0]);
             std::cout<<"Calculating Edge reg energy 2\n";
             psMesh->addVertexVectorQuantity("Edge reg 2", Gradient_vertex);
+
+        }
+        if(ImGui::Button("Bending")){
+            Gradient_vertex = Sim_handler.F_Bending_2(Energy_constants[0]);
+            std::cout<<"Calculating Bending\n";
+            psMesh->addVertexVectorQuantity("Bending", Gradient_vertex);
+
+        }
+        if(ImGui::Button("Surface tension")){
+            Gradient_vertex = Sim_handler.F_SurfaceTension_2(Energy_constants[1]);
+            std::cout<<"Calculating Surface tension\n";
+            psMesh->addVertexVectorQuantity("Surface tension", Gradient_vertex);
+
+        }
+        if(ImGui::Button("Bead")){
+            Gradient_vertex = Sim_handler.Beads[0]->Bead_I->Gradient();
+            std::cout<<"Calculating Bead\n";
+            psMesh->addVertexVectorQuantity("Bead", Gradient_vertex);
+
+        }
+        if(ImGui::Button("Volume")){
+            Gradient_vertex = Sim_handler.F_Volume_constraint_2(Energy_constants[3]);
+            std::cout<<"Calculating Volume constraint\n";
+            psMesh->addVertexVectorQuantity("Volume constraint", Gradient_vertex);
 
         }
     // }
@@ -1205,8 +1229,9 @@ void functionCallback() {
     if(ImGui::Button("Step flow")){
         for(size_t i = 0; i < integration_steps; i++){
 
-        M3DG.integrate(Sim_data, 0.0, Bead_filenames, false);
+        double dt = M3DG.integrate(Sim_data, 0.0, Bead_filenames, false);
         std::cout<<"Integrating\n";
+        std::cout<<"TImestep is " << dt << "\n";
         redraw();
         double min_l = 1e5;
         double max_l = 0.0;
@@ -1258,8 +1283,22 @@ int main(int argc, char** argv) {
 
     // We loaded the json file 
 
-    // std::cout << Data.dump(1);
     
+    std::vector<std::string> Switches(0);
+    std::string Switch = "None";
+    int Switch_t = 0;
+    std::unordered_map<std::string, int> Switch_times_map;
+
+
+    bool finish_sim = false;
+    if(Data.contains("finish_sim")){
+        finish_sim = Data["finish_sim"];
+    }
+    else{
+        std::cout<<"The simulation will finish when the timestep decreases\n";
+    }
+
+
     std::string filepath = Data["init_file"];
     int save_interval = Data["save_interval"];
     bool resize_vol = Data["resize_vol"];
@@ -1275,13 +1314,26 @@ int main(int argc, char** argv) {
     else{
         std::cout<<"The integration method is not defined, using Gradient descent\n";
     }
-    if(Data.contains("Switch")){
-        Switch = Data["Switch"];
-        Switch_t = Data["Switch_t"];
+
+
+    if(Data.contains("Switches")){
+        
+        for( auto sw : Data["Switches"]){
+            Switches.push_back(sw);
+        }
+        int switch_counter = 0;
+        for( auto t : Data["Switch_times"]){
+            
+            Switch_times_map[Switches[switch_counter]] = t;
+            switch_counter+=1;
+            // Switch_times.push_back(t);
+        }
+
     }
     else{
-        std::cout<<"No switch in this run";
+        std::cout<<"No switches in this run";
     }
+
 
     int remesh_every = 1;
     if( Data.contains("remesh_every")) remesh_every = Data["remesh_every"];
@@ -1318,9 +1370,7 @@ int main(int argc, char** argv) {
     // We will deal with the energies now
     
 
-    // std::vector<std::string> Energies(0);
-    // std::vector<std::vector<double>> Energy_constants(0);
-    // std::vector<double> Constants(0);
+
 
     for( auto Energy : Data["Energies"]){
         Energies.push_back(Energy["Name"]);
@@ -1329,12 +1379,25 @@ int main(int argc, char** argv) {
         for(size_t z = 0; z < Constants.size(); z++) std::cout<<Constants[z] << " ";
         std::cout<<" \n";
 
+        // I want to add here something
+        if(Energy["Name"]=="Volume_constraint" && Constants[1] < 0){
+            // THe volume constraint wants the default volume
+            Constants[1] = geometry->totalVolume();
+            std::cout<<"Setting the target volume\n";
+
+        }
+
+
         Energy_constants.push_back(Constants);
         Constants.resize(0);
     }
     
    
     
+    std::vector<Bead> Beads;
+    std::vector<Interaction*> Bead_Interactions(0);
+    std::vector<std::string> bonds;
+    std::vector<std::vector<double>> constants;
 
     Vector3 BPos;
     double radius;
@@ -1369,7 +1432,6 @@ int main(int argc, char** argv) {
         Energy_constants.push_back(Constants);
 
         BPos = Vector3({Bead_data["Pos"][0],Bead_data["Pos"][1],Bead_data["Pos"][2] });
-        std::cout<<"The position of the bead is " << BPos <<" \n";
         radius = Bead_data["radius"];
         state = Bead_data["state"];
         interaction_str = Bead_data["inter_str"];
@@ -1399,12 +1461,12 @@ int main(int argc, char** argv) {
         }
 
 
-        if(interaction_mem == "Frenkel_Normal_nopush"|| interaction_mem =="Shifted_LJ_Normal_nopush"){
+        if(interaction_mem == "Frenkel_Normal_nopush"){
             
             // Frenkel_uptr = std::move( make_unique<Frenkel_Normal>(mesh, geometry, Bead_params));
             // fnormal = Frenkel_uptr.get();
             Interaction_container.push_back(std::move( make_unique<Frenkel_Normal>(mesh, geometry, Bead_params)));
-            std::cout<<"THe frenkel uptr points to"<< Interaction_container[bead_counter].get() <<"\n";
+            // std::cout<<"THe frenkel uptr points to"<< Interaction_container[bead_counter].get() <<"\n";
             // std::cout<<"The Fnormal points to" << fnormal <<" \n";
             
             Beads.push_back(Bead());
@@ -1437,11 +1499,11 @@ int main(int argc, char** argv) {
             else{
                 Bead_params.push_back(0.0); // default shift
             }
-
+            std::cout<<"The bead params are " << Bead_params[0] << " " << Bead_params[1] << " " << Bead_params[2] << " " << Bead_params[3] <<"\n";
 
             Interaction_container.push_back( std::move( make_unique<LJ>(mesh, geometry, Bead_params)));
         
-            std::cout<<"THe frenkel uptr points to"<< Interaction_container[bead_counter].get() <<"\n";
+            // std::cout<<"THe frenkel uptr points to"<< Interaction_container[bead_counter].get() <<"\n";
             
             Beads.push_back(Bead());
             Beads[bead_counter].mesh = mesh;
@@ -1455,11 +1517,37 @@ int main(int argc, char** argv) {
             Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
             Beads[bead_counter].Bead_id = bead_counter;
 
+            std::cout<<"The energy at the cutfoff is"<< Beads[bead_counter].Bead_I->E_r(Bead_params[2],Bead_params)<< " and at more than the cutoff is " << Beads[bead_counter].Bead_I->E_r(1.5*Bead_params[2],Bead_params) << "\n";
+            
+            std::cout<<"The dE_r at the cutfoff is"<< Beads[bead_counter].Bead_I->dE_r(Bead_params[2],Bead_params)<< " and at more than the cutoff is " << Beads[bead_counter].Bead_I->dE_r(1.5*Bead_params[2],Bead_params) << "\n";
+
+            std::cout<<"The ddE_r at the cutfoff is"<< Beads[bead_counter].Bead_I->ddE_r(Bead_params[2],Bead_params)<< " and at more than the cutoff is " << Beads[bead_counter].Bead_I->ddE_r(1.5*Bead_params[2],Bead_params) << "\n";
             
         }
         if(interaction_mem == "One_over_r_x"){
            
             Interaction_container.push_back( std::move( make_unique<One_over_r_Normal>(mesh, geometry, Bead_params)));
+        
+            std::cout<<"THe  uptr points to"<< Interaction_container[bead_counter].get() <<"\n";
+            
+            Beads.push_back(Bead());
+            Beads[bead_counter].mesh = mesh;
+            Beads[bead_counter].geometry = geometry;
+            Beads[bead_counter].Pos = BPos;
+            Beads[bead_counter].strength = Bead_params[0];
+            Beads[bead_counter].sigma = Bead_params[1];
+            Beads[bead_counter].rc = Bead_params[2];
+            Beads[bead_counter].interaction = interaction_mem;
+            
+            Beads[bead_counter].Bead_I = Interaction_container[bead_counter].get();
+            Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
+            Beads[bead_counter].Bead_id = bead_counter;
+            
+        }
+
+        if(interaction_mem == "One_over_r"){
+           
+            Interaction_container.push_back( std::move( make_unique<One_over_r>(mesh, geometry, Bead_params)));
         
             std::cout<<"THe  uptr points to"<< Interaction_container[bead_counter].get() <<"\n";
             
@@ -1507,7 +1595,11 @@ int main(int argc, char** argv) {
         std::cout<<"The bead has radius" << Beads[bead_counter].sigma <<" cutoff of " << Beads[bead_counter].rc <<" \n";
         
         
-        
+        // Lets add the manual movement here
+        if(Beads[bead_counter].state == "manual"){
+            // We need to set the velocity of the bead
+            Beads[bead_counter].Velocity = Vector3({Bead_data["Velocity"][0],Bead_data["Velocity"][1],Bead_data["Velocity"][2]});
+        }
     
         bead_counter +=1;
 
@@ -1537,7 +1629,10 @@ int main(int argc, char** argv) {
 
     if(counter>0) std::cout<< "The bead with radius " << Beads[0].sigma <<" is connected to the bead with radius " << Beads[0].Beads[0]->sigma << " \n";
 
-    for(size_t i = 0; i < Beads.size(); i++) std::cout<<"The bead has " << Beads[i].Bond_type.size() << " bonds and interaction "<< Beads[i].interaction << " \n"; 
+    for(size_t i = 0; i < Beads.size(); i++) {
+        std::cout<<"The bead has " << Beads[i].Bond_type.size() << " bonds and interaction "<< Beads[i].interaction << " \n"; 
+        std::cout<<"The bead is at position " << Beads[i].Pos << "\n";
+    }
     // Now the beads point to each other ()
 
     // Lets define our integrator and all its values
@@ -1574,6 +1669,20 @@ int main(int argc, char** argv) {
     }
     else{
         M3DG.Field = "None";
+    }
+
+    if(Data.contains("backtrack")){
+        M3DG.backtrack = Data["backtrack"];
+        if(Data.contains("Timestep"))
+        {
+            M3DG.timestep = Data["Timestep"];
+        }
+        else{
+            M3DG.timestep = 1e-4;
+        }
+    }
+    else{
+        M3DG.backtrack = true;
     }
     
 
@@ -1668,29 +1777,7 @@ int main(int argc, char** argv) {
     std::cout<<"My algorithm says\n";
     std::cout<<"The max sizing is " << max_sizing << " and the min sizing is " << min_sizing <<" \n";
     
-    
-    // arcsim::Mesh remesher_mesh = translate_to_arcsim(mesh,geometry);
-    // Cloth_1.mesh = remesher_mesh;
-    // Cloth_1.remeshing = remeshing_params; 
-    // arcsim::compute_masses(Cloth_1);
-    // arcsim::compute_ws_data(Cloth_1.mesh);
 
-    // std::cout<<"ARCSIM says \n";
-    // arcsim::dynamic_remesh(Cloth_1);
-
-
-    // std::cout<<" \n\n";
-
-
-    // return 1;
-
-    // delete mesh;
-    // delete geometry;
-    
-    // std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
-    // arcsim::delete_mesh(Cloth_1.mesh);
-    // mesh = mesh_uptr.release();
-    // geometry = geometry_uptr.release();
 
     M3DG.mesh = mesh;
     M3DG.geometry = geometry;
@@ -1815,6 +1902,15 @@ int main(int argc, char** argv) {
 
     std::cout<<"Here2\n";
 
+
+    // Lets just start from here 
+
+
+
+
+
+
+
     
 
     for(size_t i = 0 ; i < Beads.size(); i++){
@@ -1839,8 +1935,62 @@ int main(int argc, char** argv) {
     std::cout<<"Here4\n";
 
 
+
+
+
+
+
+
+
     // COmo por aca hay de todo
+
+    // Ok so here is where we register the surface mesh with polyscope
+
+
+    polyscope::init();
+    TOTAL_ANGLE_DEFECT = geometry->totalAngleDefect();
+    EULER_CHARACTERISTIC = geometry->eulerCharacteristic();
+
+    polyscope::state::userCallback = functionCallback;
+    geometry->requireVertexPositions();
+
+
+    psMesh = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions,mesh->getFaceVertexList());
+    
+    std::vector<glm::vec3> points;
+    for(size_t i = 0; i<Beads.size(); i++){
+        points.push_back(glm::vec3(Beads[i].Pos.x,Beads[i].Pos.y,Beads[i].Pos.z));
+    }
+    std::cout<<"Points is "<< points[0][0]<<" "<< points[0][1] <<" "<< points[0][2] << "\n";
+    if(Beads.size()>0){ 
+        psCloud = polyscope::registerPointCloud("really great points", points);
+    
+    std::cout<<"The radius would be " <<Beads[0].sigma*1.0 <<"\n";  
+    psCloud->setPointRadius(Beads[0].sigma);
+    }
+
+    std::cout<<"Here7\n";
+
+    psMesh->setSmoothShade(true);
+    psMesh->setSurfaceColor({1.0, 0.45, 0.0});
+    
+
+
+
+
+    // i JUST WANT SOMETHING ELSE HERE
+
+    polyscope::show();
+
+
+    return 0;
+
+
+
+
     // Ok what 
+
+
     Eigen::Vector<double, 12> Positions_flap;
     // Now  need to set the thingys i can use angles too but whatever
     Eigen::Vector<double, 3> P3{11.309800, -0.225893, 0.745853 };
@@ -2003,8 +2153,12 @@ int main(int argc, char** argv) {
 
 
 
+    // Ok 
+
+
+
     
-    return 0;
+    // return 0;
 
 
     // Now i want o save it like an obj?
@@ -2127,9 +2281,10 @@ int main(int argc, char** argv) {
     polyscope::state::userCallback = functionCallback;
     geometry->requireVertexPositions();
 
+
     psMesh = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions,mesh->getFaceVertexList());
     
-    std::vector<glm::vec3> points;
+    // std::vector<glm::vec3> points;
     for(size_t i = 0; i<Beads.size(); i++){
         points.push_back(glm::vec3(Beads[i].Pos.x,Beads[i].Pos.y,Beads[i].Pos.z));
     }
@@ -2145,8 +2300,17 @@ int main(int argc, char** argv) {
     psMesh->setSmoothShade(true);
     psMesh->setSurfaceColor({1.0, 0.45, 0.0});
     
+
+
+
+
+    // i JUST WANT SOMETHING ELSE HERE
+
     polyscope::show();
 
+
+
+    //
 
 
 

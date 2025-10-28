@@ -2886,6 +2886,7 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
   else {
     double some_E;
     Sim_handler->Calculate_energies(&some_E);
+    std::cout<<"The energy is "<< some_E << "\n"; 
      backtrackstep = timestep;
 
      geometry->inputVertexPositions += backtrackstep*Sim_handler->Current_grad;
