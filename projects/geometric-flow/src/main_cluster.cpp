@@ -103,8 +103,9 @@ float kappa = 1.0;
 
 float H0 = 1.0;
 float V_bar= (4/3)*PI*10; 
-
-
+double A_bar;
+double dA = 0.0;
+double Area;
 
 float nu;
 float Interaction_str;
@@ -572,6 +573,37 @@ int main(int argc, char** argv) {
             std::cout<<"Setting the target volume\n";
 
         }
+        if(Energy["Name"]=="Area_constraint")
+        {
+            // In this case we have a nu.Area_constraintArea_constraintArea_constraint
+            // The format for the area constraint is
+            // KA A_bar nu dA
+            if(Constants[2]>0){
+            double nu = Constants[2];
+            A_bar = pow(36*PI*V_bar*V_bar/(nu*nu),1.0/3.0);
+            // I will assume that if there is a nu
+            // Then there is a dA to explore the evolution.
+            std::cout<<"The target Area is "<< A_bar << " from nu "<< nu << "\n";
+            std::cout<<"The current Area is "<< geometry->totalArea() << "\n";
+
+            dA = Constants[3];
+            Constants[1] = geometry->totalArea()+dA;
+            }
+            else{
+                if(Constants[1]>0){
+                    A_bar = Constants[1];
+                }
+                else{
+                    A_bar = geometry->totalArea();
+                }
+            }
+            //
+
+            std::cout<<"The target area is " << A_bar<< "\n";
+            std::cout<<"The current reduced volume is "<< 3*V_bar/(4*PI*pow((geometry->totalArea()/(4*PI)),1.5)) << "\n";
+            // Ok but the thing is that we cannot do A_bar, because A_bar can be too different, so we need a A_bar_current
+
+        }
 
 
         Energy_constants.push_back(Constants);
@@ -648,6 +680,13 @@ int main(int argc, char** argv) {
 
         if(interaction_mem == "Frenkel_Normal_nopush"){
             
+
+            if(Bead_data.contains("outside")){
+             Bead_params.push_back(Bead_data["outside"]); 
+                }
+            else{
+                Bead_params.push_back(1.0); // default outside
+            }
             // Frenkel_uptr = std::move( make_unique<Frenkel_Normal>(mesh, geometry, Bead_params));
             // fnormal = Frenkel_uptr.get();
             Interaction_container.push_back(std::move( make_unique<Frenkel_Normal>(mesh, geometry, Bead_params)));
@@ -676,6 +715,7 @@ int main(int argc, char** argv) {
             std::cout<<"\n";
             
         }
+
         if(interaction_mem == "LJ"){
 
             if(Bead_data.contains("shift")){
@@ -710,7 +750,13 @@ int main(int argc, char** argv) {
             
         }
         if(interaction_mem == "One_over_r_x"){
-           
+            
+            if(Bead_data.contains("outside")){
+             Bead_params.push_back(Bead_data["outside"]); 
+                }
+            else{
+                Bead_params.push_back(1.0); // default outside
+            }
             Interaction_container.push_back( std::move( make_unique<One_over_r_Normal>(mesh, geometry, Bead_params)));
         
             std::cout<<"THe  uptr points to"<< Interaction_container[bead_counter].get() <<"\n";
@@ -1107,15 +1153,7 @@ int main(int argc, char** argv) {
     
     std::cout<<"The length of Directory is" << Directory.length() << "\n";
     std::cout<<"THe length of the name is" << basic_name.length() << "\n";
-    // if(basic_name.length()>200){
-    //     std::cout<<"The name is too long, please shorten the number of parameters or their precision\n";
-    //     basic_name = first_dir+"Test_run"+std::to_string(Nsim)+"/";
-    //     // return 1;
-    // }
-    
-  
 
-    // Here we will move the Input file to where we want it
     std::string command = "cp "+ std::string(argv[1]) + " " + basic_name + "Input_file.json";
     const int dir_err = system(command.c_str());
     if (-1 == dir_err)
@@ -1123,11 +1161,7 @@ int main(int argc, char** argv) {
         std::cout<<"Error moving the input file\n";
         // return 1;
     }
-
-
-
-    
-    
+  
 
     std::string filename = basic_name+"Output_data.txt";
 
@@ -1172,7 +1206,7 @@ int main(int argc, char** argv) {
     bool small_Ts;
     Bead_data<<"####### This data is taken every"<< save_interval <<" steps just like the mesh dump, radius is " << radius<<" \n";
     Bead_data.close();
-    // Here i want to run my video
+
     size_t n_vert;
     size_t n_vert_old;
     size_t n_vert_new;
@@ -1187,47 +1221,22 @@ int main(int argc, char** argv) {
     double dt_sim=0.0;
     int sys_time = 0;
 
-
-
-
-
     bool seam = false;
     Cloth_1.dump_info = false;
     start = chrono::steady_clock::now();
-
-    // Save_mesh(basic_name,-1);
-
-
-
-    // Save_mesh(basic_name,111);
-    // M3DG.Smooth_vertices();
-    // geometry->refreshQuantities()
-    // Save_mesh(basic_name,112);
-
-    
-    // std::ofstream Dihedrals(basic_name+"dihedrals_evol.txt");
-    // Dihedrals << "## THE EVOLUTION OF THE DIHEDRAL DISTRIBUTION\n";
-    // Dihedrals.close();
-    // std::ofstream EdgeLengths(basic_name+"edgelengths.txt");
-    // EdgeLengths << "## THE EVOLUTION OF THE EDGE LENGTHS\n";
-    // EdgeLengths.close();
 
     
     Save_mesh(basic_name,0);
 
     std::cout<<"Starting sim\n";
 
+    if(arcsim) {
+        arcsim::dynamic_remesh(Cloth_1);
+        std::cout<<"Done first remeshing\n";
+        std::cout<<" \n\n";
+    }
 
-
-    if(arcsim) arcsim::dynamic_remesh(Cloth_1);
-
-    std::cout<<"Done first remeshing\n";
-
-    std::cout<<" \n\n";
-
-
-    // return 1;
-
+    
     delete mesh;
     delete geometry;
     
@@ -1289,11 +1298,6 @@ int main(int argc, char** argv) {
     start_full = chrono::steady_clock::now();
     for(size_t current_t=1; current_t <= Final_t ;current_t++ ){
 
-        // std::cout<<"Curren t t is " << current_t <<" \n";
-        // if(current_t>400){
-        //     save_interval = 1;
-        // }
-
 
         for(int sw = 0; sw < Switches.size(); sw ++){
         Switch = Switches[sw];
@@ -1305,8 +1309,14 @@ int main(int argc, char** argv) {
             remesh_every = -1;
             // save_interval = 0;
             resize_vol = false;
-            // Switch_times_map[Switch] = -1;
-            // We turn off the switch so we dont enter again
+            for(size_t i = 0; i < Energies.size(); i++){
+                if(Energies[i] == "Edge_reg"){
+                 
+                Energy_constants[i][0] = 1.0;
+                Sim_handler.Energy_constants = Energy_constants;
+                std::cout<<"Setting edge reg constant to 1.0\n";
+                }
+            }
         }
         
         if(Switch =="Freze beads" && current_t == Switch_t){
@@ -1323,11 +1333,8 @@ int main(int argc, char** argv) {
         if(Switch=="Free_beads" && current_t == Switch_t){
 
             std::cout<<"Switching the beahaviour of the beads to Free\n";
-            // We activate the switch
             for(size_t i = 0; i < Beads.size(); i++){
-                // We change their state to default
                 Beads[i].state = "default";
-
             }
             Switch_times_map[Switch] = -1;
         }
@@ -1335,6 +1342,15 @@ int main(int argc, char** argv) {
 
             arcsim = false;
             Switch_times_map[Switch] = -1;
+            for(size_t i = 0; i < Energies.size(); i++){
+                if(Energies[i] == "Edge_reg"){
+                 
+                Energy_constants[i][0] = 10.0;
+                Sim_handler.Energy_constants = Energy_constants;
+                std::cout<<"Setting edge reg constant to 1.0\n";
+                }
+            }
+
         }
         if(Switch == "Volume_constraint" && current_t == Switch_t){
             // 
@@ -1351,8 +1367,31 @@ int main(int argc, char** argv) {
             if(resize_vol) resize_vol = false;
         }
 
-
         }
+
+
+        // 
+        if(fabs(dA) > 1e-15){
+            // I need to add area to the target area
+            for(size_t i = 0; i < Energies.size(); i++){
+                if(Energies[i] == "Area_constraint"){
+                    // I need to add the dA but also not add too much
+                    Area = geometry->totalArea();
+                    // Now i need to pick between  dA and A_bar-A
+                    double dA_effective = (dA/(fabs(dA)))*std::min(fabs(dA), fabs(A_bar - Energy_constants[i][1]));
+                    Energy_constants[i][1] += dA_effective;
+                    Sim_handler.Energy_constants[i][1] += dA_effective;
+                    // std::cout<<"New target area is "<< Energy_constants[i][1] << "\n";
+                    // std::cout<<"The final target area is " << A_bar << "\n";
+                    if( fabs(A_bar-Energy_constants[i][1]) < fabs(dA)){
+                        std::cout<<"\t\t\tReached target area\n";
+                        dA = 0.0;
+                    }
+                }
+            }
+        }
+
+
 
         start_time_control=chrono::steady_clock::now();
 
@@ -1660,11 +1699,27 @@ int main(int argc, char** argv) {
                 std::cout<<"defining lagrange mults\n";
 
                 if(!M3DG.boundary){
-
-                Eigen::VectorXd Lagrange_mults(1);
+                
+                Eigen::VectorXd Lagrange_mults;
+                
+                Lagrange_mults.resize(1);
                 Lagrange_mults(0) = 0.0;
+                
+                double A_target;
+                // Now i need to do the area constraint
+                for(size_t i = 0; i < Energies.size(); i++){
+                    if(Energies[i] == "Area_constraint"){
+                        A_target = Energy_constants[i][1];
+                        Lagrange_mults.resize(2);
+                        Lagrange_mults(0) = 0.0;
+                        Lagrange_mults(1) = 0.0;
+                        break;
+                    }
+                }
+
                 Sim_handler.Lagrange_mult = Lagrange_mults;
-                Sim_handler.Trgt_vol = geometry->totalVolume();
+                Sim_handler.Trgt_vol = V_bar;
+                Sim_handler.Trgt_area = A_target;
                 std::cout<<"DOne definining\n";
 
 
@@ -1680,6 +1735,16 @@ int main(int argc, char** argv) {
             std::vector<std::string> Constraints(0);
             
             if(!M3DG.boundary) Constraints = std::vector<std::string>{"Volume"};
+
+            // I need to check if ther eis Area_constraint. (How?)
+            for(size_t i = 0; i < Energies.size(); i++){
+                if(Energies[i] == "Area_constraint"){
+                    Constraints.push_back("Area");
+                    Sim_handler.Trgt_area = Energy_constants[i][1];
+                    break;
+                }
+            }
+
 
 
             Sim_handler.Constraints = Constraints;

@@ -3449,38 +3449,6 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
 
 
 
-    // std::cout<< solverHess.info() <<" \n";
-
-    // std::cout<<"The size of LHS is" << LHS.rows() << " and " << LHS.cols() << "\n";
-    // std::cout<<"The size of RHS is" << RHS.rows() << " and " << RHS.cols() << "\n";
-
-
-    // hERE I WANT THIS RHS !! 
-
-    // if(Data_filenames.size()!= 0){
-    //   std::cout<<"We are saving the RHS to be used later, with norm " << 0.5*RHS.dot(RHS)  << "\n";
-
-    //   std::ofstream RHS_data = std::ofstream(Data_filenames[0],std::ios_base::app);
-    //   for(long int i = 0; i < RHS.size(); i++){
-    //     RHS_data << RHS(i) <<" ";
-    //   }
-    //   RHS_data << "\n";
-
-    //   for(long int i = 0; i < RHS.size(); i++){
-    //     RHS_data<< LambdaJ(i) <<" ";
-    //   }
-    //   RHS_data << "\n";
-    //   for(size_t i = 0; i < Sim_handler->Current_grad.size(); i++){
-    //     Force = Sim_handler->Current_grad[i];
-    //     RHS_data << Force.x <<" "<< Force.y <<" "<< Force.z <<" ";
-    //   }
-    //   RHS_data << "\n";
-      
-    //   RHS_data.close();
-    // }
-
-
-
     Eigen::VectorXd result = solverHess.solve(RHS);
 
 

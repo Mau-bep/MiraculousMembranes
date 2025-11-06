@@ -126,6 +126,7 @@ class Frenkel_Normal: public Normal_dot_Interaction{
         double sigma = Energy_constants[1];
         double epsilon = Energy_constants[0];
         double rc = Energy_constants[2]; // cutoff distance
+    
         if( r >= rc) {
             return 0.0; // No interaction beyond cutoff
         }

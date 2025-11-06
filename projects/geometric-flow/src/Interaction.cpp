@@ -22,8 +22,8 @@ double Interaction::Bond_energy() {
         params = Bead_1->Interaction_constants_vector[i];
         if(Bead_1->Bond_type[i] == "Harmonic"){
             vec_r = Bead_1->Pos - Bead_1->Beads[i]->Pos;
-            // r = vec_r.norm();
-            E_bond += 0.25*params[0]*dot(vec_r,vec_r);
+            r = vec_r.norm();
+            E_bond += 0.25*params[0]*(r-params[1])*(r-params[1]);
         }
         if(Bead_1->Bond_type[i] == "Lineal"){
             vec_r = Bead_1->Pos - Bead_1->Beads[i]->Pos;
@@ -75,51 +75,45 @@ double Normal_dot_Interaction::Tot_Energy() {
     Vector3 vec_r;
     Vector3 Normal;
     double Q;
+    int outside = 1;
+    if(Energy_constants.size()>3) outside = static_cast<int>(Energy_constants[3]);
 
-    // Is it the same mesh tho?
-    // std::cout<<"The official number of verts are " << Bead_1->mesh->nVertices()<<" \n";
-    // std::cout<<"Interaction says nr of verts are " << mesh->nVertices() <<" \n";
 
-    // std::cout<<"The cutoff distance is "<<rc<<"\n";
     for(Face f: mesh->faces()){
-        // std::cout<<"Calculating normal\n";
-        Normal = geometry->faceNormal_vec(f);
-        vec_r = Bead_1->Pos - geometry->inputVertexPositions[f.halfedge().vertex()];
-        Q = dot(Normal, vec_r);
-        if(Q<0 ) continue;
-        for(Vertex v: f.adjacentVertices()){
-            // std::cout<<"Lets see if it is here\n";
-            vec_r =  Bead_1->Pos - geometry->inputVertexPositions[v];
-            // std::cout<<"Not here\n";
-            double r = vec_r.norm();
-           
-            if(r < rc || rc<0.0 ){ // Energy_constants[1] is the cutoff distance
-                // Compute the energy contribution
-                // std::cout<<"Vertex "  << v.getIndex() << " gets energy from face "<< f.getIndex()<< "\n";
-                Total_E += (1.0/6.0) *E_r(r, Energy_constants) * Q/r;
-            }
+
+    Normal = geometry->faceNormal_vec(f);
+    vec_r = Bead_1->Pos - geometry->inputVertexPositions[f.halfedge().vertex()];
+    Q = outside*dot(Normal, vec_r);
+    if(Q<0 ) continue;
+    for(Vertex v: f.adjacentVertices()){
+        vec_r =  Bead_1->Pos - geometry->inputVertexPositions[v];
+        double r = vec_r.norm();
+        
+        if(r < rc || rc<0.0 ){
+            Total_E += (1.0/6.0) *E_r(r, Energy_constants) * Q/r;
         }
+    }
 
     }
 
     Total_E += Bond_energy();
-
     return Total_E;
 }
 
 Vector3 Interaction::Bond_force(){
 
     Vector3 r_vec;
-    // double r;
     Vector3 Force{0.0,0.0,0.0};
     std::vector<double> params;
+    double r;
 
     for(size_t i = 0; i < Bead_1->Beads.size(); i++){
         params = Bead_1->Interaction_constants_vector[i];
         r_vec = Bead_1->Pos - Bead_1->Beads[i]->Pos;
-        // r = r_vec.norm();
+        r = r_vec.norm();
+        
         if(Bead_1->Bond_type[i] == "Harmonic"){
-            Force += -1*params[0]*r_vec;
+            Force += -1*params[0]*(r-params[1])*r_vec/r;
         }
         if(Bead_1->Bond_type[i] == "Lineal"){
             Force += -1*params[0]*r_vec.unit();
@@ -138,21 +132,21 @@ VertexData<Vector3> Normal_dot_Interaction::Gradient() {
 
     VertexData<Vector3> Force(*mesh,{0.0,0.0,0.0});
     double rc = Energy_constants[2];
+    int outside = 1;
+    if(Energy_constants.size()>3) outside = static_cast<int>(Energy_constants[3]);
+
+
     Halfedge he;
+
     Bead_1->Total_force = Vector3{0.0, 0.0, 0.0};
-    // std::cout<<"Force initialied\n";
-
-    Bead_1->Total_force += Bond_force(); //Here this force considers all the bonds
-    // THis should be enough for gradient descent
-
-
+    Bead_1->Total_force += Bond_force(); 
 
     Eigen::Vector<double, 13> Positions_triangle;
     Eigen::Vector<double, 6> Positions_r;
     Eigen::Vector<double, 12> Grad_Q;
     Eigen::Vector<double, 6> Grad_r;
     std::array<int, 4> Vertices_triangle;
-    // std::array<Vertex, 1> Vertices_r;
+    
     Vector3 Force_vector;
     Vector3 Positions_r_vec;
 
@@ -161,14 +155,13 @@ VertexData<Vector3> Normal_dot_Interaction::Gradient() {
     VertexData<double> Energy_contribution(*mesh, 0.0);
     VertexData<double> d_Energy_contribution(*mesh, 0.0);
     Vector3 Bead_pos = Bead_1->Pos;
-    // std::cout<<"THe bead position is" << Bead_pos << "\n";
+    
     for(Vertex v: mesh->vertices()){
         vector_bead[v] = Bead_pos - geometry->inputVertexPositions[v];
         distance_bead[v] = vector_bead[v].norm();
         Energy_contribution[v] = E_r(distance_bead[v], Energy_constants);
         d_Energy_contribution[v] = dE_r(distance_bead[v], Energy_constants);
-        // std::cout<<"The distance for vertex "<< v.getIndex() << " is " << distance_bead[v] << " and the energy contribution is " << Energy_contribution[v] << "\n";
-
+    
     }
     
 
@@ -177,10 +170,8 @@ VertexData<Vector3> Normal_dot_Interaction::Gradient() {
     double C1;
     double C2;
 
-    // I need more things here
-
     for(Face f: mesh->faces()){
-        // std::cout<<"\n";
+    
         he = f.halfedge();
         Vertices_triangle[0] = he.vertex().getIndex();
         Vertices_triangle[1] = he.next().vertex().getIndex();
@@ -193,28 +184,16 @@ VertexData<Vector3> Normal_dot_Interaction::Gradient() {
                             Bead_pos.x, Bead_pos.y, Bead_pos.z , 1;
         Normal = geometry->faceNormal_vec(f);
 
-        Q = dot( vector_bead[Vertices_triangle[0]], Normal ); 
+        Q = outside*dot( vector_bead[Vertices_triangle[0]], Normal ); 
 
-        // double Q2 = dot( vector_bead[Vertices_triangle[1]], Normal );
-        // double Q3 = dot( vector_bead[Vertices_triangle[2]], Normal );
-
-        // std::cout<<"The Qs are " << Q << " " << Q2 << " " << Q3 << "\n";
 
         if( ( Q < 0 ))
         {
-            // std::cout<<"Skipping the face with dot product negative or bead outside cutoff distance\n";
-            // std::cout<<"The dot product is " << dot(Normal, vector_bead[Vertices_triangle[0]])   <<" and the distances are " << distance_bead[Vertices_triangle[0]] << " " << distance_bead[Vertices_triangle[1]] << " " << distance_bead[Vertices_triangle[2]] << "\n";
-            // std::cout<<"The vertices are " << Vertices_triangle[0].getIndex() << " " << Vertices_triangle[1].getIndex() << " " << Vertices_triangle[2].getIndex() << "\n";
-            // std::cout<<"Which are on face" << f.getIndex() << "\n";
-            continue; // Skip this face if the bead is outside the cutoff distance or the normal is not pointing towards the bead
+            continue; 
         }
-        // std::cout<<"Working thisface with dot product positive and bead inside cutoff distance\n";
-        //     std::cout<<"The dot product is " << dot(Normal, vector_bead[Vertices_triangle[0]])   <<" and the distances are " << distance_bead[Vertices_triangle[0]] << " " << distance_bead[Vertices_triangle[1]] << " " << distance_bead[Vertices_triangle[2]] << "\n";
-        //     std::cout<<"The vertices are " << Vertices_triangle[0].getIndex() << " " << Vertices_triangle[1].getIndex() << " " << Vertices_triangle[2].getIndex() << "\n";
-        //     std::cout<<"Which are on face" << f.getIndex() << "\n";
 
 
-        Grad_Q = geometry->gradient_triple_product(Positions_triangle);
+        Grad_Q = outside*geometry->gradient_triple_product(Positions_triangle);
         C2 = 0;
         if(  distance_bead[Vertices_triangle[0]] < rc || rc < 0.0 ){
             C2 = C2 + Energy_contribution[Vertices_triangle[0]]/distance_bead[Vertices_triangle[0]];
@@ -278,6 +257,9 @@ SparseMatrix<double> Normal_dot_Interaction::Hessian(){
     double rc = Energy_constants[2];
     int N_vert = mesh->nVertices();
 
+    int outside = 1;
+    if(Energy_constants.size()>3) outside = static_cast<int>(Energy_constants[3]);
+
 
 
     // std::cout<<"Declaring the sparsematric\n";
@@ -313,15 +295,7 @@ SparseMatrix<double> Normal_dot_Interaction::Hessian(){
     VertexData<double> dd_Energy_contribution(*mesh, 0.0);
     Vector3 Bead_pos = Bead_1->Pos;
 
-    
 
-
-
-
-
-
-
-    // std::cout<<"Finished defining auxiliar variables\n";
     for(Vertex v: mesh->vertices()){
         vector_bead[v] = Bead_pos - geometry->inputVertexPositions[v];
         distance_bead[v] = vector_bead[v].norm();
@@ -329,14 +303,6 @@ SparseMatrix<double> Normal_dot_Interaction::Hessian(){
         d_Energy_contribution[v] = dE_r(distance_bead[v], Energy_constants);
         dd_Energy_contribution[v] = ddE_r(distance_bead[v], Energy_constants);
     }
-
-    
-    // std::cout<<"Finished calculating useful quantities\n";
-
-    // I will do the hessian of the Bonds first
-    
-
-
 
 
     Vector3 Normal;
@@ -362,18 +328,18 @@ SparseMatrix<double> Normal_dot_Interaction::Hessian(){
                             Bead_pos.x, Bead_pos.y, Bead_pos.z , 1;
         Normal = geometry->faceNormal_vec(f);
 
-        Q = dot( vector_bead[Vertices_triangle[0]], Normal );
+        Q = outside*dot( vector_bead[Vertices_triangle[0]], Normal );
         // double Q2 = dot( vector_bead[Vertices_triangle[1]], Normal );
         // double Q3 = dot( vector_bead[Vertices_triangle[2]], Normal );
 
         if( Q < 0){
             continue;
         }
-        Grad_Q = geometry->gradient_triple_product(Positions_triangle);
+        Grad_Q = outside*geometry->gradient_triple_product(Positions_triangle);
         
         C = (Energy_contribution[Vertices_triangle[0]]/distance_bead[Vertices_triangle[0]] + Energy_contribution[Vertices_triangle[1]]/distance_bead[Vertices_triangle[1]] + Energy_contribution[Vertices_triangle[2]]/distance_bead[Vertices_triangle[2]])/6.0;
         
-        Hessian_block_Q = C*geometry->hessian_triple_product(Positions_triangle);
+        Hessian_block_Q = outside*C*geometry->hessian_triple_product(Positions_triangle);
         // I have the first term
 
         
