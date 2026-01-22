@@ -153,7 +153,7 @@ add_test(NAME example_test COMMAND example)
 
 Note that this approach requires CMake 2.8.2 or later due to its use of the
 `ExternalProject_Add()` command. The above technique is discussed in more detail
-in [this separate article](http://crascit.com/2015/07/25/cmake-gtest/) which
+in [this separate article](http://crasciExternalProject_Addt.com/2015/07/25/cmake-gtest/) which
 also contains a link to a fully generalized implementation of the technique.
 
 ##### Visual Studio Dynamic vs Static Runtimes

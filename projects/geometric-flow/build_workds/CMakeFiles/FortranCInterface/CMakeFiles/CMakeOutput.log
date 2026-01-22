@@ -1,0 +1,18 @@
+Performing C SOURCE FILE Test C_SUPPORTS_DOLLAR succeeded with the following output:
+Change Dir: /home/mrojasve/Documents/DDG/MiraculousMembranes/projects/geometric-flow/build/CMakeFiles/FortranCInterface/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/gmake -f Makefile cmTC_20bdf/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_20bdf.dir/build.make CMakeFiles/cmTC_20bdf.dir/build
+gmake[1]: Entering directory '/home/mrojasve/Documents/DDG/MiraculousMembranes/projects/geometric-flow/build/CMakeFiles/FortranCInterface/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_20bdf.dir/src.c.o
+/usr/bin/cc -DC_SUPPORTS_DOLLAR  -Wno-deprecated   -fPIC  -o CMakeFiles/cmTC_20bdf.dir/src.c.o -c /home/mrojasve/Documents/DDG/MiraculousMembranes/projects/geometric-flow/build/CMakeFiles/FortranCInterface/CMakeFiles/CMakeTmp/src.c
+Linking C executable cmTC_20bdf
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_20bdf.dir/link.txt --verbose=1
+/usr/bin/cc    -Wno-deprecated   -fPIC  CMakeFiles/cmTC_20bdf.dir/src.c.o -o cmTC_20bdf 
+gmake[1]: Leaving directory '/home/mrojasve/Documents/DDG/MiraculousMembranes/projects/geometric-flow/build/CMakeFiles/FortranCInterface/CMakeFiles/CMakeTmp'
+
+
+Source file was:
+
+extern int dollar$(void);
+int main() { return 0; }
+

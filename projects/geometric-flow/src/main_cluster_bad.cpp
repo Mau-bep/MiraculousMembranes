@@ -1568,8 +1568,9 @@ int main(int argc, char** argv) {
             catch(std::out_of_range e){
                 std::cout<<"There is no Newton switch? \n";
                 Switch_t = -1;
+
             }
-            // std::cout<<"The current t is " << current_t << " and the switch time is " << Switch_t << "\n";
+            std::cout<<"The current t is " << current_t << " and the switch time is " << Switch_t << "\n";
             if(current_t == 0 || current_t == Switch_t){
                 std::cout<<"defining lagrange mults\n";
 

@@ -51,15 +51,21 @@
 #include "conf.hpp"
 #include "log.hpp"
 
+#include "coin-or/IpIpoptApplication.hpp"
+#include "coin-or/IpSolveStatistics.hpp"
+#include "coin-or/IpTNLP.hpp"
+
+#include "ShapeNLP.hpp"
+
+// #include "hs071_nlp.hpp"
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 
-
 #include <EigenRand/EigenRand>
 
-
+// #include "Ipopt/IpIpoptApplication.hpp"
 
 using namespace geometrycentral;
 using namespace geometrycentral::surface;
@@ -431,11 +437,14 @@ Vector3 Get_bead_pos(std::string filename, int step){
     return Bead_pos;
 }
 
-
+using namespace Ipopt;
 
 int main(int argc, char** argv) {
 
-    
+ 
+
+
+
 
     // Here is where we start changing stufff
     // The parsing has to do many stuff before its completely functional
@@ -448,16 +457,6 @@ int main(int argc, char** argv) {
 
     // We loaded the json file 
     // Now i also want to move the json file to my directory
-
-
-
-    // std::cout << Data.dump(1);
-    std::vector<std::string> Switches(0);
-    std::string Switch = "None";
-    int Switch_t = 0;
-
-
-    std::unordered_map<std::string, int> Switch_times_map;
 
 
     bool finish_sim = false;
@@ -474,8 +473,6 @@ int main(int argc, char** argv) {
     bool resize_vol = Data["resize_vol"];
     bool arcsim = Data["arcsim"];
     
-    // Ok here 
-    
 
     std::string Integration = "Gradient_descent";
     
@@ -485,6 +482,13 @@ int main(int argc, char** argv) {
     else{
         std::cout<<"The integration method is not defined, using Gradient descent\n";
     }
+
+    // Switches handling
+
+    std::vector<std::string> Switches(0);
+    std::string Switch = "None";
+    int Switch_t = 0;
+    std::unordered_map<std::string, int> Switch_times_map;
 
     if(Data.contains("Switches")){
         
@@ -496,7 +500,6 @@ int main(int argc, char** argv) {
             
             Switch_times_map[Switches[switch_counter]] = t;
             switch_counter+=1;
-            // Switch_times.push_back(t);
         }
 
     }
@@ -510,17 +513,9 @@ int main(int argc, char** argv) {
     }
 
 
-    // if(Data.contains("Switch")){
-    //     Switch = Data["Switch"];
-    //     Switch_t = Data["Switch_t"];
-    // }
-    // else{
-    //     std::cout<<"No switch in this run";
-    // }
-
     int remesh_every = 1;
     if( Data.contains("remesh_every")) remesh_every = Data["remesh_every"];
-    std::cout<<"Remesh every is " << remesh_every << std::endl;
+    std::cout<<"Remeshing every " << remesh_every << " steps "<< std::endl;
 
     Vector3 Recenter{0.0,0.0,0.0};
     if(Data.contains("Displacement")){
@@ -535,23 +530,23 @@ int main(int argc, char** argv) {
         scale_factor = Data["rescale"];
     }
 
-    
     bool Saving_last_states = Data["saving_states"];
     size_t Final_t = Data["timesteps"];
 
-    // Here i will load the geometry 
+    // Load the geometry 
+
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
     mesh = mesh_uptr.release();
     geometry = geometry_uptr.release();
     
-    // Here i want to recenter and rescale.
+    // Recenter and rescale.
 
     geometry->normalize(Recenter);
     geometry->rescale(scale_factor);
     geometry->refreshQuantities();
 
     V_bar = geometry->totalVolume();
-
+    A_bar = geometry->totalArea();
     // We will deal with the energies now
     std::vector<std::string> Energies(0);
     std::vector<std::vector<double>> Energy_constants(0);
@@ -566,28 +561,27 @@ int main(int argc, char** argv) {
         for(size_t z = 0; z < Constants.size(); z++) std::cout<<Constants[z] << " ";
         std::cout<<" \n";
 
+
         // I want to add here something
         if(Energy["Name"]=="Volume_constraint" && Constants[1] < 0){
             // THe volume constraint wants the default volume
             Constants[1] = geometry->totalVolume();
-            std::cout<<"Setting the target volume\n";
+            std::cout<<"Setting the target volume to current volume \n";
 
         }
         if(Energy["Name"]=="Area_constraint")
         {
-            // In this case we have a nu.Area_constraintArea_constraintArea_constraint
-            // The format for the area constraint is
-            // KA A_bar nu dA
+            // The format for the area constraint is KA A_bar nu dA
             if(Constants[2]>0){
             double nu = Constants[2];
             A_bar = pow(36*PI*V_bar*V_bar/(nu*nu),1.0/3.0);
-            // I will assume that if there is a nu
-            // Then there is a dA to explore the evolution.
+            
             std::cout<<"The target Area is "<< A_bar << " from nu "<< nu << "\n";
             std::cout<<"The current Area is "<< geometry->totalArea() << "\n";
 
             dA = Constants[3];
-            Constants[1] = geometry->totalArea()+dA;
+            // First problem
+            Constants[1] = geometry->totalArea()+ (dA/(fabs(dA)))*std::min(fabs(dA), fabs(A_bar -geometry->totalArea() )) ;
             }
             else{
                 if(Constants[1]>0){
@@ -870,8 +864,10 @@ int main(int argc, char** argv) {
     // Lets define our integrator and all its values
 
     M3DG = Mem3DG(mesh,geometry);
+    
     Sim_handler = E_Handler(mesh,geometry,Energies, Energy_constants);
     
+
     M3DG.recentering = Data["recentering"];
     M3DG.boundary = Data["boundary"];
     Sim_handler.boundary = Data["boundary"];
@@ -1102,13 +1098,6 @@ int main(int argc, char** argv) {
         }
     }
 
-    // if(Switch !="None"){
-    //     Directory = Directory + "Switch_" + Switch + "_";
-    //     stream.str(std::string());
-    //     stream << std::fixed << std::setprecision(1) << Switch_t;
-    //     Directory = Directory + "Switch_t_" + stream.str() + "_";
-    // }
-
 
     
     Directory = Directory+ "Nsim_" + std::to_string(Nsim)+"/";
@@ -1167,7 +1156,7 @@ int main(int argc, char** argv) {
 
     std::ofstream Sim_data(filename);
 
-    Sim_data<<"Volume Area time ";
+    Sim_data<<"time Volume Area ";
     for(size_t i = 0; i < Energies.size(); i++){
         Sim_data << Energies[i] <<" ";
     }
@@ -1249,6 +1238,7 @@ int main(int argc, char** argv) {
     M3DG.geometry = geometry;
     Sim_handler.mesh = mesh;
     Sim_handler.geometry = geometry;
+    M3DG.basic_name = basic_name;
 
      // Lets add noise here
     const int N_vert = mesh->nVertices();
@@ -1289,13 +1279,93 @@ int main(int argc, char** argv) {
             geometry->inputVertexPositions[v] = geometry->inputVertexPositions[v] + displacement*geometry->inputVertexPositions[v]*constant;
         }
 
-        Save_mesh(basic_name,132);
+        // Save_mesh(basic_name,132);
         geometry->refreshQuantities();
     }
 
 
     std::cout<<"Lets start the sim\n";
     start_full = chrono::steady_clock::now();
+
+
+
+   // IPOPT STUFF
+
+    SmartPtr<ShapeNLP> shapenlp = new ShapeNLP();
+    SmartPtr<IpoptApplication> app  = IpoptApplicationFactory();
+    
+    ApplicationReturnStatus status_opt;
+
+    shapenlp->M3DG = &M3DG;
+
+    std::cout<<"The number of vertices is "<< mesh->nVertices() << "\n";
+    app->Options()->SetStringValue("linear_solver", "ma57");
+    app->Options()->SetNumericValue("tol", 3.82e-4);
+    app->Options()->SetStringValue("mu_strategy", "adaptive");
+    app->Options()->SetStringValue("output_file", basic_name+"ipopt.out");
+    app->Options()->SetIntegerValue("max_iter", 50);
+
+    // app->Options()->SetStringValue("derivative_test", "first-order");
+    // app->Options()->SetStringValue("derivative_test", "second-order");  
+    // app->Options()->SetNumericValue("derivative_test_perturbation", 1e-6);
+        
+    status_opt = app->Initialize();
+    std::cout<<"App initialized\n";
+   if( status_opt != Solve_Succeeded )
+   {
+      std::cout << std::endl << std::endl << "*** Error during initialization!" << std::endl;
+      return (int) status_opt;
+   }
+    
+    M3DG.Sim_handler->Trgt_vol = geometry->totalVolume();
+    M3DG.Sim_handler->Constraints.push_back("Volume_constraint");
+    // M3DG.Sim_handler->Trgt_area = geometry->totalArea();
+    // M3DG.Sim_handler->Constraints.push_back("Area_constraint");
+
+    std::cout<<"There are constraints in sim handler ";
+    for(size_t i = 0; i < M3DG.Sim_handler->Constraints.size(); i++){
+        std::cout<< M3DG.Sim_handler->Constraints[i] << " ";
+    }
+    std::cout<<"\n";
+
+    M3DG.basic_name = basic_name;
+
+    // status_opt = app->OptimizeTNLP(shapenlp); // Here is where the magic happens
+    // if (status_opt == Solve_Succeeded) {
+    //     std::cout << "\n\n*** The problem solved!\n";
+    // }
+    // else {
+    //     std::cout << "\n\n*** The problem FAILED!\n";
+    // }
+
+    // Lets save it 
+    // Save_mesh(basic_name, 123);
+
+    // return 1;
+    // IPOPT STUFF
+    
+    // UPdating the C0 value
+    double R0;
+
+    for(size_t i = 0; i < Energies.size(); i++){
+        if(Energies[i] == "Bending"){
+            if(Energy_constants[i][1]>1e-5){
+                R0 = sqrt(A_bar/(4*PI));
+                c_null = Energy_constants[i][1]/R0;
+                Energy_constants[i][1] = c_null;
+                Sim_handler.Energy_constants[i][1] = c_null;
+                std::cout<<"Updated the C0 to "<< c_null << "\n";
+            }
+            else{
+                break;
+            }
+           break;
+           }
+    }
+
+
+
+    std::cout<<"Starting sim\n";
     for(size_t current_t=1; current_t <= Final_t ;current_t++ ){
 
 
@@ -1309,27 +1379,20 @@ int main(int argc, char** argv) {
             remesh_every = -1;
             // save_interval = 0;
             resize_vol = false;
-            for(size_t i = 0; i < Energies.size(); i++){
-                if(Energies[i] == "Edge_reg"){
-                 
-                Energy_constants[i][0] = 1.0;
-                Sim_handler.Energy_constants = Energy_constants;
-                std::cout<<"Setting edge reg constant to 1.0\n";
-                }
-            }
+            
         }
-        
+        if(Switch == "IpOpt" && current_t == Switch_t){
+            Integration = "IpOpt";
+            Switch_times_map[Switch] = current_t + 100;
+
+        }      
         if(Switch =="Freze beads" && current_t == Switch_t){
             std::cout<<"Switching the behavior of the beads\n";
-            
             for(size_t i = 0; i < Beads.size(); i++){
-                // We change their state to frozen
                 Beads[i].state = "froze";
             }
             Switch_times_map[Switch] = -1;
-
         }
-
         if(Switch=="Free_beads" && current_t == Switch_t){
 
             std::cout<<"Switching the beahaviour of the beads to Free\n";
@@ -1339,21 +1402,33 @@ int main(int argc, char** argv) {
             Switch_times_map[Switch] = -1;
         }
         if(Switch=="No_remesh" && current_t== Switch_t){
-
             arcsim = false;
             Switch_times_map[Switch] = -1;
             for(size_t i = 0; i < Energies.size(); i++){
                 if(Energies[i] == "Edge_reg"){
                  
-                Energy_constants[i][0] = 10.0;
+                Energy_constants[i][0] = Energy_constants[i][1]; 
                 Sim_handler.Energy_constants = Energy_constants;
-                std::cout<<"Setting edge reg constant to 1.0\n";
+                std::cout<<"Setting edge reg constant to"<< Energy_constants[i][1] << "\n";
                 }
             }
 
         }
+        if(Switch == "Remesh_always" && current_t == Switch_t){
+            arcsim = true;
+            remesh_every = 1;
+            Switch_times_map[Switch] = -1;
+            std::cout<<"Remeshing every step activated\n";
+        }
+        if(Switch == "Restore_remeshing" && current_t == Switch_t){
+            arcsim = true;
+            std::cout<<"Restoring remeshing\n";
+            remesh_every = Data["remesh_every"];
+            Switch_times_map[Switch] = -1;
+            std::cout<<"Restored remeshing frequency to "<< remesh_every << "\n";
+            
+        }
         if(Switch == "Volume_constraint" && current_t == Switch_t){
-            // 
             std::cout<<"Adding energy\n";
             Energies.push_back("Volume_constraint");
             Constants.resize(0);
@@ -1365,6 +1440,18 @@ int main(int argc, char** argv) {
             std::cout<<"Added the volume constraint\n";
             Switch_times_map[Switch] = -1;
             if(resize_vol) resize_vol = false;
+        }
+        if(Switch =="Save_all" && current_t == Switch_t){
+            std::cout<<"\t\tSaving last states activated\n";
+            save_interval = 1;
+        }
+        
+        if(Switch =="Finer_mesh" && current_t == Switch_t){
+            std::cout<<"\t\tSwitching to finer mesh\n";
+            // remeshing_params.size_min = remeshing_params.size_min*0.5;
+            // remeshing_params.size_max = remeshing_params.size_max*0.5;
+            Switch_times_map[Switch] = -1;
+  
         }
 
         }
@@ -1386,7 +1473,12 @@ int main(int argc, char** argv) {
                     if( fabs(A_bar-Energy_constants[i][1]) < fabs(dA)){
                         std::cout<<"\t\t\tReached target area\n";
                         dA = 0.0;
+                        Energy_constants[i][1]=A_bar;
+                        Sim_handler.Energy_constants[i][1] = A_bar;
+
+
                     }
+                break;    
                 }
             }
         }
@@ -1414,21 +1506,7 @@ int main(int argc, char** argv) {
             double avg_dih2;
             double max_dih2 = 0.0;
             double min_dih2 = 1e2;
-            // M3DG.Smooth_vertices();
-            // avg_dih2 = 0.0;
-            // avg_dih1 = 0.0;
-
-            // for( Edge e : mesh->edges()){ 
-            //     dih = fabs(geometry->dihedralAngle(e.halfedge()));
-            //     avg_dih1+=dih;
-            //     if(dih > max_dih1) max_dih1 = dih;
-            //     if(dih < min_dih1) min_dih1 = dih;
-            //     }
-            // // std::cout<<"The average dihedral is"<< avg_dih/mesh->nEdges()<<" \n";
-            // // std::cout<<"The min dih is"<< min_dih << " and the max dih is " << max_dih <<" \n";
-            // // avg_dih =0.0;
-            // avg_dih1 = avg_dih1/mesh->nEdges();
-
+   
 
             arcsim::Mesh remesher_mesh2 = translate_to_arcsim(mesh,geometry);
             Cloth_1.mesh=remesher_mesh2;
@@ -1510,6 +1588,9 @@ int main(int argc, char** argv) {
             // }
 
             // Ok so here we have remeshed, and the idea is that everytime u remesh you have to recompute the lagrange multipliers
+
+
+
             if(Integration =="Newton") {
                 try{
             Switch_t = Switch_times_map.at("Newton");
@@ -1521,41 +1602,33 @@ int main(int argc, char** argv) {
                 // Switch_times_map["Newton"] = -1;
             }
             }
-            if(Integration == "Newton" && current_t >  Switch_t && Switch_t >=0){
+        //     if(Integration == "Newton" && current_t >  Switch_t && Switch_t >=0){
 
-                // std::cout<<"\t \t At this step\n";
-            Sim_handler.Calculate_Jacobian();
-            // std::cout<<"\t \t The Jacobian is calculated\n";
-            Sim_handler.Calculate_gradient();
-            // std::cout<<"\t \t The gradient is calculated\n";
+        //         // std::cout<<"\t \t At this step\n";
+        //     Sim_handler.Calculate_Jacobian();
+        //     // std::cout<<"\t \t The Jacobian is calculated\n";
+        //     Sim_handler.Calculate_gradient();
+        //     // std::cout<<"\t \t The gradient is calculated\n";
 
-            // std::vector<double> RHS(0);
-            Eigen::VectorXd RHS(3* mesh->nVertices());
-            int index;
-            for(Vertex v: mesh->vertices()){
+        //     // std::vector<double> RHS(0);
+        //     Eigen::VectorXd RHS(3* mesh->nVertices());
+        //     int index;
+        //     for(Vertex v: mesh->vertices()){
             
-                index = v.getIndex();            
-                RHS(3*index) = Sim_handler.Current_grad[v].x;
-                RHS(3*index+1) = Sim_handler.Current_grad[v].y;
-                RHS(3*index+2) = Sim_handler.Current_grad[v].z;
+        //         index = v.getIndex();            
+        //         RHS(3*index) = Sim_handler.Current_grad[v].x;
+        //         RHS(3*index+1) = Sim_handler.Current_grad[v].y;
+        //         RHS(3*index+2) = Sim_handler.Current_grad[v].z;
                 
-            }
-            // std::cout<<"Doing the solve now\n";
-
-            // std::cout<<"The dimension of the jacobian is " << Sim_handler.Jacobian_constraints.rows() << " x " << Sim_handler.Jacobian_constraints.cols() << "\n";
-            // std::cout<<"The dimension of the RHS is " << RHS.size() << "\n";
-            // std::cout<<"The Jacobian is \n" << Sim_handler.Jacobian_constraints.transpose() << "\n";
-
-            // std::cout<<"THe RHS is \n" << RHS.transpose() << "\n";
-            Eigen::MatrixXd J_transpose = Sim_handler.Jacobian_constraints.transpose();
-            Eigen::VectorXd  Lagrange_mul = J_transpose.colPivHouseholderQr().solve(RHS);
-            // Eigen::VectorXd  Lagrange_mul = (J_transpose.transpose() * J_transpose).ldlt().solve(J_transpose.transpose()*RHS);
-            // Sim_handler.Lagrange_multipliers = Lagrange_mul;
-            // std::cout<<"SOlve done\n";
-            std::cout<<"THe previous Lagrange multipliers were " << Sim_handler.Lagrange_mult.transpose() <<" \n";
-            Sim_handler.Lagrange_mult = Lagrange_mul;
-            std::cout<<"THe new  Lagrange multipliers were " << Sim_handler.Lagrange_mult.transpose() <<" \n";
-        }
+        //     }
+            
+        //     Eigen::MatrixXd J_transpose = Sim_handler.Jacobian_constraints.transpose();
+        //     Eigen::VectorXd  Lagrange_mul = J_transpose.colPivHouseholderQr().solve(RHS);
+  
+        //     std::cout<<"THe previous Lagrange multipliers were " << Sim_handler.Lagrange_mult.transpose() <<" \n";
+        //     Sim_handler.Lagrange_mult = Lagrange_mul;
+        //     std::cout<<"THe new  Lagrange multipliers were " << Sim_handler.Lagrange_mult.transpose() <<" \n";
+        // }
              
         }
         end_time_control=chrono::steady_clock::now();
@@ -1694,14 +1767,11 @@ int main(int argc, char** argv) {
                 std::cout<<"There is no Newton switch? \n";
                 Switch_t = -1;
             }
-            // std::cout<<"The current t is " << current_t << " and the switch time is " << Switch_t << "\n";
+            std::cout<<"The current t is " << current_t << " and the switch time is " << Switch_t << "\n";
             if(current_t == 0 || current_t == Switch_t){
                 std::cout<<"defining lagrange mults\n";
-
                 if(!M3DG.boundary){
-                
                 Eigen::VectorXd Lagrange_mults;
-                
                 Lagrange_mults.resize(1);
                 Lagrange_mults(0) = 0.0;
                 
@@ -1722,7 +1792,6 @@ int main(int argc, char** argv) {
                 Sim_handler.Trgt_area = A_target;
                 std::cout<<"DOne definining\n";
 
-
                 }
             else{
                 Eigen::VectorXd Lagrange_mults(0);
@@ -1736,34 +1805,132 @@ int main(int argc, char** argv) {
             
             if(!M3DG.boundary) Constraints = std::vector<std::string>{"Volume"};
 
-            // I need to check if ther eis Area_constraint. (How?)
+            // I need to check if there is Area_constraint. 
+            // I also want the Energy gradients of the constraints to be multiplied by 0.
+
             for(size_t i = 0; i < Energies.size(); i++){
                 if(Energies[i] == "Area_constraint"){
                     Constraints.push_back("Area");
-                    Sim_handler.Trgt_area = Energy_constants[i][1];
-                    break;
+                    // Here i need to turn off the constant 
+                    // std::cout<<"Turning the area constraint gradient calc off for Newton\n";
+                    Sim_handler.Energy_constants[i][0] = 0.0;
+                    continue;
                 }
+                if(Energies[i] == "Volume_constraint"){
+                    // std::cout<<"Turning the vol constraint gradient calc off for Newton\n";
+                    Sim_handler.Energy_constants[i][0] = 0.0;
+                }
+
             }
 
-
-
             Sim_handler.Constraints = Constraints;
+
             std::vector<std::string> Data_filenames(0);
 
+            // Data_filenames.push_back(basic_name+"Data_backtracking.txt");
 
-            M3DG.integrate_Newton(Sim_data, time, Bead_filenames, Save_output_data, Constraints, Data_filenames);
+            dt_sim = M3DG.integrate_Newton(Sim_data, time, Bead_filenames, Save_output_data, Constraints, Data_filenames);
 
             if(M3DG.small_TS == true){
                 // Then i will do gradient descent for a while
-                std::cout<<"We will do GD for the next 500 steps\n";
+                std::cout<<"We will do GD for the next 100 steps\n";
                 Integration = "Gradient_descent";
-                Switch_t = current_t + 500;
+                Switch_t = current_t + 100;
                 Switch_times_map["Newton"] = Switch_t;
                 remesh_every = 1;
-                resize_vol = true;
-                save_interval = Data["save_interval"];
+                arcsim = true;
+                Switch_times_map["No_remesh"] = current_t + 50;
+
+                resize_vol = false;
+                // save_interval = Data["save_interval"];
+                for(size_t i = 0; i < Energies.size(); i++){
+                    if(Energies[i] == "Volume_constraint"){      
+                    Sim_handler.Energy_constants[i][0] = Energy_constants[i][0];
+                    continue;
+                    }
+                    if(Energies[i] == "Area_constraint"){
+                        Sim_handler.Energy_constants[i][0] = Energy_constants[i][0];
+                    }
+                    if(Energies[i] == "Edge_reg"){
+                        Sim_handler.Energy_constants[i][0] = 0.0;
+                    }
+                
+                }
+
+
             }
 
+        }
+        else if(Integration == "IpOpt"){
+
+
+            try{
+                Switch_t = Switch_times_map.at("IpOpt");
+                // std::cout<<"The Newton switch time is " << Switch_t << "\n";
+            }
+            catch(std::out_of_range e){
+                std::cout<<"There is no IpOpt switch? \n";
+                Switch_t = -1;
+            }
+            std::cout<<"The current t is " << current_t << " and the switch time for IpOpt is " << Switch_t << "\n";
+            if(current_t == 0 || current_t == Switch_t){               
+                Switch_times_map["IpOpt"] = -1;
+            }
+
+            std::vector<std::string> Constraints(0);
+            
+            if(!M3DG.boundary) Constraints = std::vector<std::string>{"Volume"};
+
+            // I need to check if there is Area_constraint. 
+            // I also want the Energy gradients of the constraints to be multiplied by 0.
+
+            double A_target;
+           
+            for(size_t i = 0; i < Energies.size(); i++){
+                if(Energies[i] == "Area_constraint"){
+                    Constraints.push_back("Area");
+                    // Here i need to turn off the constant 
+                    // std::cout<<"Turning the area constraint gradient calc off for Newton\n";
+                    Sim_handler.Energy_constants[i][0] = 0.0;
+                    A_target = Energy_constants[i][1];
+                    continue;
+                }
+                if(Energies[i] == "Volume_constraint"){
+                    // std::cout<<"Turning the vol constraint gradient calc off for Newton\n";
+                    Sim_handler.Energy_constants[i][0] = 0.0;
+                }
+
+            }
+            Sim_handler.Constraints = Constraints;
+
+            // std::cout<<"Integrating IpOpt\n";
+            shapenlp = new ShapeNLP();
+            shapenlp->M3DG = &M3DG;
+
+            M3DG.Sim_handler->Trgt_area = A_target;
+            std::cout<<"THe target area is" << A_target <<" and it should be " << A_bar <<" \n";
+
+            status_opt = app->OptimizeTNLP(shapenlp); // Here is where the magic happens
+            if (status_opt == Solve_Succeeded) {
+                std::cout << "\n\n*** The problem solved!\n";
+                break;
+            }
+            else {
+                Switch_times_map["IpOpt"] = current_t + 2*size_t(Data["remesh_every"]);
+                Switch_times_map["No_remesh"] = Switch_times_map["IpOpt"] - 2;
+                // Switch_times_map["Restore_remeshing"] = current_t +1 ;
+                std::cout<<"Remeshing and retrying \n";
+                // Switch_times_map["Finer_mesh"] = current_t + 1;
+                
+                remesh_every = 1;
+                arcsim = true;
+                
+                std::cout << "\n\n*** The problem FAILED!\n";
+                // std::cout<< "Refining mesh and trying again\n";
+            }
+            // Integration = "Gradient_descent";
+
+        
         }
         // if(dt_sim==0){
         //     Save_mesh(basic_name,-1);
@@ -1785,9 +1952,10 @@ int main(int argc, char** argv) {
             M3DG.system_time+=1;
             // std::cout<<"SUccesfully\n";
         }
-        if(time>10 && Beads.size()>1 ){
-            Beads[1].state="froze";
-        }
+
+        // if(time>10 && Beads.size()>1 ){
+        //     Beads[1].state="froze";
+        // }
 
 
         // nanvertex = false;

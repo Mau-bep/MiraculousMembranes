@@ -1,0 +1,3 @@
+repository='external project URL'
+module='http://www.netlib.org/lapack/lapack-3.8.0.tar.gz'
+tag=''

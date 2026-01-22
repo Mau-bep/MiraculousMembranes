@@ -1,24 +1,24 @@
 {
     "version": "0.2.0",
     "configurations": [
-
         
-
         {
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
             // Resolved by CMake Tools:
-            "program": "${workspaceFolder}/projects/geometric-flow/build/bin/Test_hessian",
-            // "args": ["../Config_files/Wrapping_L2.json","7"],
+            "program": "${workspaceFolder}/projects/geometric-flow/build_debug/bin/main_cluster",
+            "args": ["../Config_files/Mem_shape.json","1"],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/projects/geometric-flow/build/",
+            "cwd": "${workspaceFolder}/projects/geometric-flow/build_debug/",
             "environment": [
                 {
                     // add the directory where our target was built to the PATHs
                     // it gets resolved by CMake Tools:
                     "name": "PATH",
-                    "value": "$PATH:${command:cmake.launchTargetDirectory}"
+                    "value": "$PATH:${command:cmake.launchTargetDirectory}",
+                    "CFLAGS": "/fsanitize=address",
+                    "CXXFLAGS": "/fsanitize=address"
                 }
                 
             ],

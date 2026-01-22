@@ -33,7 +33,7 @@ class Interaction {
         virtual double Tot_Energy() = 0;
         virtual VertexData<Vector3>  Gradient() = 0;
         virtual SparseMatrix<double> Hessian() = 0;
-
+        virtual SparseMatrix<double> Hessian_IP() = 0;
         virtual std::vector<Eigen::Triplet<double>> Hessian_bonds_triplet();
 
         virtual double E_r(double r, std::vector<double> Energy_constants)  = 0;
@@ -57,6 +57,7 @@ class No_mem_Inter: public Interaction{
             }
             virtual VertexData<Vector3> Gradient();
             virtual SparseMatrix<double> Hessian();
+            virtual SparseMatrix<double> Hessian_IP();
 
             virtual double E_r(double r, std::vector<double> Energy_constants) override {
                 return 0.0;
@@ -77,6 +78,7 @@ class Integrated_Interaction: public Interaction {
         virtual double Tot_Energy();
         virtual VertexData<Vector3> Gradient();
         virtual SparseMatrix<double> Hessian();
+        virtual SparseMatrix<double> Hessian_IP();
 
         virtual double E_r(double r, std::vector<double> Energy_constants) = 0;
         virtual double dE_r(double r, std::vector<double> Energy_constants) = 0;
@@ -94,6 +96,7 @@ class Normal_dot_Interaction: public Interaction {
         virtual double Tot_Energy();
         virtual VertexData<Vector3>  Gradient();
         virtual SparseMatrix<double> Hessian();
+        virtual SparseMatrix<double> Hessian_IP();
         virtual double E_r(double r, std::vector<double> Energy_constants) = 0;
         virtual double dE_r(double r, std::vector<double> Energy_constants) = 0;
         virtual double ddE_r(double r, std::vector<double> Energy_constants) = 0;

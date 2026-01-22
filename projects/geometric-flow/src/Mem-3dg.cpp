@@ -4,6 +4,7 @@
 #include "Beads.h"
 #include <fstream>
 #include <omp.h>
+#include <sys/stat.h>
 
 #include <chrono>
 #include <Eigen/Core>
@@ -1242,6 +1243,14 @@ double Mem3DG::Backtracking_grad(Eigen::VectorXd p_lambda, double Projection, do
   Eigen::VectorXd initial_lag;
   std::vector<Vector3> initial_bead_pos(0);
   
+  // We will open a file to log the backtracking process
+  std::ofstream backtrack_log;
+
+  backtrack_log.open(basic_name+"backtrack_log.txt",std::ios::app);
+  // So the order will be : Prevnorm Projection NEWNORM NEWNORM NEWNORM ...
+
+  backtrack_log << PrevNorm <<" " << Projection <<" ";
+
 
   if(recentering){
     if(Field != "None"){
@@ -1343,13 +1352,20 @@ double Mem3DG::Backtracking_grad(Eigen::VectorXd p_lambda, double Projection, do
       return -1.0;
   }
 
+  
+
   while(true) {
     displacement_cond = true;
-    
+    // std::cout<<"The Norms are Prev: " << PrevNorm << " New: " << NewNorm << "\n";  
+
+    backtrack_log << NewNorm <<" ";
+
     for(size_t i = 0 ; i< Beads.size() ; i++) displacement_cond = displacement_cond && Beads[i]->Total_force.norm()*alpha<0.1*Beads[i]->sigma;
     
-      if(NewNorm <= PrevNorm + c1 * alpha * Projection  ) {
-    
+  
+      // if( fabs(PrevNorm-NewNorm) <= alpha * Projection && NewNorm < PrevNorm  ) {
+      if( NewNorm < PrevNorm  ) {
+
         if(fabs(NewNorm-PrevNorm) > 5e1  && false){
           
       
@@ -1410,6 +1426,8 @@ double Mem3DG::Backtracking_grad(Eigen::VectorXd p_lambda, double Projection, do
 
     if(std::isnan(NewNorm)){
       std::cout<<"Grad norm is nan \n";
+      backtrack_log <<"\n";
+      backtrack_log.close();
       alpha = -1.0;
       break;
 
@@ -1421,6 +1439,8 @@ double Mem3DG::Backtracking_grad(Eigen::VectorXd p_lambda, double Projection, do
       std::cout<<"The energy diff is quite small and so is the gradient\n";
       std::cout<<"The energy diff is"<< abs(NewNorm-PrevNorm)/PrevNorm<<"\n";
       std::cout<<"The projection is"<< Projection<<"\n";
+      backtrack_log <<"\n";
+      backtrack_log.close();
       return -1.0;
     }
 
@@ -1437,6 +1457,8 @@ double Mem3DG::Backtracking_grad(Eigen::VectorXd p_lambda, double Projection, do
       std::cout<<"The projections is "<< Projection<<"\n";
       geometry->inputVertexPositions = initial_pos;
       Sim_handler->Lagrange_mult = initial_lag;
+      backtrack_log <<"\n";
+      backtrack_log.close();
       return -1;
       }
       if(Projection <100){
@@ -1500,6 +1522,8 @@ double Mem3DG::Backtracking_grad(Eigen::VectorXd p_lambda, double Projection, do
   
   }
 
+  backtrack_log <<"\n";
+  backtrack_log.close();
 
   nanflag = false;
 
@@ -2947,9 +2971,9 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
         if( Bpos.norm2()< (3.0-2*Beads[bi]->sigma)*(3.0-2*Beads[bi]->sigma)) //The 2.0 here is hardcoded and it means the radius of the vesicle
         
         {
-          std::cout<<"\t\t Freezing a bead because it moved too much\n";
+          std::cout<<"\t\t Manual bead because it moved too much\n";
           std::cout<<"The bead positions 2 is"<< Bpos.norm2() <<" \n";
-          Beads[bi]->state = "froze";
+          Beads[bi]->state = "default";
         
         }
       }
@@ -3511,7 +3535,7 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
 
     // So we have the Grad_L
 
-    double Projection = 0.5*result.transpose()*LHS*RHS;
+    double Projection = result.transpose()*LHS*RHS;
     // if(Projection<0.0){ Projection*=-1;
     std::cout<<"THe projection is"<<  Projection <<  "\n";
     // Current grad norm is 
@@ -3522,8 +3546,16 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
     std::cout<<"The lagrange multipliers are" << Sim_handler->Lagrange_mult.transpose() << "\n";
     std::cout<<"THe dot produc between the result and the RHS is " << result.dot(RHS) << " \n";
 
+    // std::cout<<"The current volume is " << geometry->totalVolume() << " and the target is " << Sim_handler->Trgt_vol << "\n";
+    // std::cout<<"The current arae is " << geometry->totalArea() << " and the target is " << Sim_handler->Trgt_area << "\n";
+    
+    // Ok here
+
+
+
     double backtrackstep;
-    if(result.dot(RHS)<0 || Projection <0.0){
+    if(false){
+    // if(result.dot(RHS)<0 || Projection <0.0){
       // 
       std::cout<<"The result is not a descent direction, we will not backtrack\n";
       small_TS = true;
@@ -3532,11 +3564,16 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
     }
     else{
 
-      if(backtrack) backtrackstep = Backtracking_grad(result.tail(N_constraints),Projection,Current_grad_norm);
+      if(backtrack) 
+      {
+        // if(Data_filenames.size()>0) Data_filename = Data_filenames[0];
+        backtrackstep = Backtracking_grad(result.tail(N_constraints),Projection,Current_grad_norm);
+      }
       else backtrackstep = timestep;
 
-    // 
-    if(backtrackstep < 1e-9) small_TS = true;
+    
+    if(backtrackstep < 2e-6) small_TS = true; 
+
     //   std::cout<<"Newton is not happy lets try gradient descent here\n";
     //   backtrackstep = integrate(Sim_data,time,Bead_data_filenames,Save_output_data);
     //   std::cout<<"Gradient took " << backtrackstep <<" as a step\n";
@@ -3566,7 +3603,12 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
  
     Sim_data << TotE <<" ";
 
-    Sim_data << Current_grad_norm <<" " << backtrackstep <<" \n";
+    // Sim_data << Current_grad_norm <<" " << backtrackstep <<" \n";
+    for(size_t i = 0; i < Sim_handler->Gradient_norms.size(); i++){
+      Sim_data << Sim_handler->Gradient_norms[i]<< " ";
+      }
+    // Sim_data << Grad_tot_norm << " ";
+      Sim_data<< backtrackstep<<" \n";
     }
 
     // for(long int ci = 0; ci < Sim_handler->Lagrange_mult.size(); ci++){
@@ -5034,4 +5076,70 @@ bool Mem3DG::Area_sanity_check(){
   }
 
   return all_positive;
+}
+
+
+
+void Mem3DG::Save_mesh( size_t current_t){
+
+
+// Build member variables: mesh, geometry
+    Vector3 Pos;
+
+    // Here is where we need to find the latest directory
+    std::string test_name = basic_name+"Ip_mem_"+std::to_string(current_t)+".obj";
+    const char* dir = test_name.c_str();
+    struct stat sb;
+    size_t iteration = current_t;
+    int status = -1;
+    while( status < 0 ){
+
+    if( stat(dir, &sb) != 0){
+      // std::cout<<"Path already exists
+      status = -1;
+      break;
+    }
+    iteration +=1;
+    test_name = basic_name+"Ip_mem_"+std::to_string(iteration)+".obj";
+    dir = test_name.c_str();
+    }
+    std::ofstream o(test_name);
+    o << "#This is a meshfile from a saved state\n" ;
+
+    for(Vertex v : mesh->vertices()) {
+    Pos=geometry->inputVertexPositions[v];
+    o << "v " << Pos.x <<" "<< Pos.y << " "<< Pos.z <<"\n";
+
+    }
+
+
+    // I need to save the faces now
+
+    for(Face f : mesh->faces()) {
+    o<<"f";
+    
+    for(Vertex v: f.adjacentVertices()){
+        o << " " <<v.getIndex()+1;
+    }
+    o<<"\n";
+    
+    }
+    
+
+
+    // I need to save the bead positions too;
+
+    for(size_t b = 0; b < Beads.size(); b++){
+
+    test_name = basic_name+"Ip_bead_"+std::to_string(b)+"_data_"+std::to_string(iteration)+".txt";
+    std::ofstream bead_file(test_name, std::ios_base::app);
+    bead_file << Beads[b]->Pos.x <<" "<< Beads[b]->Pos.y << " "<< Beads[b]->Pos.z <<"\n";
+    bead_file.close();
+
+    }
+    
+
+
+    return ;
+
 }

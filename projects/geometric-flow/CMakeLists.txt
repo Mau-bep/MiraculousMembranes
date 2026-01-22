@@ -101,6 +101,7 @@ set(SRCScluster
   src/Energy_Handler.cpp
   src/Interaction.cpp
   ../../utils/src/colormap.cpp
+  src/ShapeNLP.cpp
 )
 
 set(SRCSvisualize 
@@ -206,7 +207,7 @@ set(TEST_fan_SRCS
 
 # set(TEST_SRCS
 #   src/mean-curvature-flow.cpp
-#   src/modified-mean-curvature-flow.cpp
+#   src/modified-mean-curvcature-flow.cpp
 #   src/normal-flow.cpp
 #   src/gauss-curvature-flow.cpp
 #   src/willmore-flow.cpp
@@ -220,6 +221,8 @@ add_subdirectory(../../deps/geometry-central deps/geometry-central)
 add_subdirectory(../../deps/polyscope deps/polyscope)
 add_subdirectory(../../deps/googletest deps/googletest)
 add_subdirectory(../../deps/libarcsim deps/libarcsim)
+
+
 
 
 find_package(OpenMP REQUIRED)
@@ -248,10 +251,7 @@ target_include_directories(main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/l
 # find_package(EigenRand REQUIRED)
 
 target_link_libraries(main PUBLIC geometry-central polyscope arcsim)
-# # find_package(OpenMP)
-# # if(OPENMP_CXX_FOUND)
-# #   target_link_libraries(main PUBLIC )
-# # endif()
+
 
 add_executable(main_cluster "${SRCScluster}")
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT main_cluster)
@@ -261,18 +261,27 @@ target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src_
 target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
 target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps")
 
-target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/EigenRand/")
+# target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/EigenRand/")
 # add the args.hxx project which we use for command line args
 target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
 target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
 
+target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include/")
+target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/")
+target_link_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/lib/")
+
+# add_library(ipopt_interface ipopt_interface.cpp)
+# target_link_libraries(main_cluster PUBLIC ipopt_interface)
+# target_link_libraries(main_cluster PUBLIC ipopt)
+
+
 add_library(EigenRand INTERFACE)
 target_include_directories(EigenRand INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/EigenRand-0.5.1/")
 
-# target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/EigenRand-0.5.1/")
+link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/lib")
+link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include")
 
-
-target_link_libraries(main_cluster PUBLIC geometry-central polyscope arcsim EigenRand)
+target_link_libraries(main_cluster PUBLIC geometry-central polyscope arcsim EigenRand ipopt)
 
 
 add_executable(main_visualize "${SRCSvisualize}")

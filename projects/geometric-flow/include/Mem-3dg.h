@@ -32,7 +32,7 @@ class Mem3DG {
     // Vector<double> Delta_y;
     // DenseMatrix<double> Quasi_H;
     // DenseMatrix<double> Inv_Quasi_H;
-
+    std::string basic_name;
     
     double Area_evol_steps;
     double Old_norm2;
@@ -144,4 +144,6 @@ class Mem3DG {
     double integrate_field(double h, double V_bar, double nu, double P0,double KA,double KB, double slope,double x0 ,std::ofstream& Sim_data, double time,bool Save);
     
     double integrate_finite(double h, double V_bar, double nu, double c0,double P0,double KA,double KB, double Kd,std::ofstream& Sim_data, double time,std::ofstream& Gradient_file_vol,std::ofstream& Gradient_file_area,std::ofstream& Gradient_file_bending,bool Save );
+
+    void Save_mesh(size_t current_t);
 };

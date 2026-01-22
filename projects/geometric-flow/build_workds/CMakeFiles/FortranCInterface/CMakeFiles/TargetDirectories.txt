@@ -1,0 +1,5 @@
+/home/mrojasve/Documents/DDG/MiraculousMembranes/projects/geometric-flow/build/CMakeFiles/FortranCInterface/CMakeFiles/myfort.dir
+/home/mrojasve/Documents/DDG/MiraculousMembranes/projects/geometric-flow/build/CMakeFiles/FortranCInterface/CMakeFiles/symbols.dir
+/home/mrojasve/Documents/DDG/MiraculousMembranes/projects/geometric-flow/build/CMakeFiles/FortranCInterface/CMakeFiles/FortranCInterface.dir
+/home/mrojasve/Documents/DDG/MiraculousMembranes/projects/geometric-flow/build/CMakeFiles/FortranCInterface/CMakeFiles/edit_cache.dir
+/home/mrojasve/Documents/DDG/MiraculousMembranes/projects/geometric-flow/build/CMakeFiles/FortranCInterface/CMakeFiles/rebuild_cache.dir

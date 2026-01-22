@@ -1,0 +1,30 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/projects/geometric-flow/build/CMakeFiles/FortranCInterface/symbols/MYSUB-UPPER.c
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/projects/geometric-flow/build/CMakeFiles/FortranCInterface/symbols/MY_SUB-UPPER.c
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/projects/geometric-flow/build/CMakeFiles/FortranCInterface/symbols/my_sub.c
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/projects/geometric-flow/build/CMakeFiles/FortranCInterface/symbols/my_sub_.c
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/projects/geometric-flow/build/CMakeFiles/FortranCInterface/symbols/my_sub__.c
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/projects/geometric-flow/build/CMakeFiles/FortranCInterface/symbols/mysub.c
+
+/home/mrojasve/Documents/DDG/MiraculousMembranes/projects/geometric-flow/build/CMakeFiles/FortranCInterface/symbols/mysub_.c
+
+/usr/share/cmake-3.22/Modules/FortranCInterface/MYMODULE.c
+
+/usr/share/cmake-3.22/Modules/FortranCInterface/MY_MODULE.c
+
+/usr/share/cmake-3.22/Modules/FortranCInterface/my_module_.c
+
+/usr/share/cmake-3.22/Modules/FortranCInterface/mymodule_.c
+

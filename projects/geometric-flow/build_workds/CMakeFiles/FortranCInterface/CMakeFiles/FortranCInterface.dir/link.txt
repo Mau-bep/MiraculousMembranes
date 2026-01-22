@@ -1,0 +1,1 @@
+/usr/bin/gfortran -O3 -DNDEBUG -O3 CMakeFiles/FortranCInterface.dir/main.F.o CMakeFiles/FortranCInterface.dir/call_sub.f.o -o FortranCInterface   -L/usr/lib/gcc/x86_64-linux-gnu/11  libsymbols.a libmyfort.a -lgcc -lgcc_s -lc -lgcc -lgcc_s 

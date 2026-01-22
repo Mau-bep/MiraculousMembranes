@@ -1,0 +1,14 @@
+prefix=/home/mrojasve/Documents/DDG/MiraculousMembranes/projects/geometric-flow/build/ipopt_binary
+exec_prefix=${prefix}
+libdir=/home/mrojasve/Documents/DDG/MiraculousMembranes/projects/geometric-flow/build/ipopt_binary/lib
+includedir=/home/mrojasve/Documents/DDG/MiraculousMembranes/projects/geometric-flow/build/ipopt_binary/include/coin-or
+
+Name: IPOPT
+Description: Interior Point Optimizer
+URL: https://github.com/coin-or/Ipopt
+Version: 3.13.0
+Libs: -L${libdir} -lipopt
+Libs.private: -lm -ldl
+Cflags: -I${includedir}
+Requires:
+Requires.private:  -llapack -lblas
