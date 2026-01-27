@@ -8,7 +8,7 @@
             "request": "launch",
             // Resolved by CMake Tools:
             "program": "${workspaceFolder}/projects/geometric-flow/build_debug/bin/main_cluster",
-            "args": ["../Config_files/Mem_shape.json","1"],
+            "args": ["../Config_files/Wrapping_manual.json","1"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/projects/geometric-flow/build_debug/",
             "environment": [

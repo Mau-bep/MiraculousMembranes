@@ -24,16 +24,19 @@ import numpy as np
 # KA=float(sys.argv[3])
 # KB=float(sys.argv[4])
 angle = sys.argv[1]
-Strength=sys.argv[2]
-radius = float(sys.argv[3])
+outside1 = int(sys.argv[2])
+outside2 = int(sys.argv[3])
 
-KA = sys.argv[4]
-KB = sys.argv[5]
-KE = 1
-# Init_cond=sys.argv[3]
-Nsim=sys.argv[6]
+# Strength=sys.argv[2]
+# radius = float(sys.argv[3])
 
+# KA = sys.argv[4]
+# KB = sys.argv[5]
+# KE = 1
+# # Init_cond=sys.argv[3]
+# Nsim=sys.argv[6]
 
+location = ["unavailable", "outside", "inside"]
 
 
 
@@ -86,30 +89,80 @@ def Create_json_wrapping_two(ka,kb,r,inter_str,angle):
     return Config_path , sim_path
 
 
+def Create_json_wrapping_two_outside(angle, outside1, outside2):
+    theta = float(angle)
+    os.makedirs("../Config_files/",exist_ok = True)
+    env = Environment(loader=FileSystemLoader('../Templates/'))
+
+
+    template = env.get_template('Wrapping_two_spring.txt')
+    
+    # Radius of the position of the beads is R_v-2*r_b
+    R_vesicle = 2.0
+    r_bead = 0.2
+    
+    location = [1,"outside","inside"]
+
+    dir = '"../Results/Two_beads_{}_{}/"'.format(location[outside1],location[outside2])
+
+    v1x = 10.0*(outside1*-1)
+    x1 = 2.0 + 0.3*outside1 
+
+    r2 = 2.0 + 0.3*outside2
+    # We should do 
+    x2 = r2*np.cos(theta)
+    y2 = r2*np.sin(theta)
+    Leq = np.sqrt( (x1-x2)**2 + y2**2 )
+
+    v2x = 10*np.cos(theta)*outside2*-1
+    v2y = 10*np.sin(theta)*outside2*-1
+
+    
+    output_from_parsed_template = template.render(Dir = dir, outside1 = outside1, v1x = v1x, x1 = x1,L0 = Leq, outside2 = outside2, v2x = v2x, v2y = v2y,x2 = x2, y2 = y2 )
+
+    # print(output_from_parsed_template)
+    data = json.loads(output_from_parsed_template)
+
+
+    # print("something\n")
+    Config_path = '../Config_files/Wrapping_two_{}_{}_{}.json'.format(angle,location[outside1],location[outside2]) 
+    
+    sim_path = data['first_dir']
+    
+    with open(Config_path, 'w') as file:
+        json.dump(data, file, indent=4)
+
+    return Config_path , sim_path
+
+
 
 os.makedirs('../Subjobs/',exist_ok=True)
 os.makedirs('../Outputs/',exist_ok=True)
 
 
 
-Config_path, sim_path = Create_json_wrapping_two(KA,KB,radius,Strength,angle)
+# Config_path, sim_path = Create_json_wrapping_two(KA,KB,radius,Strength,angle)
 # Hopefully this works
-Output_name = 'output_serial_two_beads_theta_{}_Strg_{}_radius_{}_KA_{}_KB_{}_KE_{}_Nsim_{}'.format(angle,Strength,radius,KA,KB,KE,Nsim)
+Config_path, sim_path = Create_json_wrapping_two_outside(angle,outside1,outside2)
+
+
+# def main():
+Output_name = 'output_serial_two_beads_theta_{}_{}_{}'.format(angle,location[outside1],location[outside2])
 Output_path = '../Outputs/'+Output_name
 
-f=open('../Subjobs/subjob_serial_two_beads_theta_{}_Strg_{}_radius_{}_KA_{}_KB_{}_Nsim_{}'.format(angle,Strength,radius,KA,KB,Nsim),'w')
+f=open('../Subjobs/subjob_serial_two_beads_theta_{}_{}_{}'.format(angle,location[outside1],location[outside2]),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')
 
-f.write('#SBATCH --job-name=Mem3DGpa\n')
+f.write('#SBATCH --job-name=Wrap\n')
 f.write('#SBATCH --output={}'.format(Output_path))
 f.write('#\n')
 f.write('#number of CPUs to be used\n')
 f.write('#SBATCH --ntasks=1\n')
 f.write('#Define the number of hours the job should run. \n')
 f.write('#Maximum runtime is limited to 10 days, ie. 240 hours\n')
-f.write('#SBATCH --time=40:00:00\n')
+f.write('#SBATCH --time=10:00:00\n')
 
 f.write('#\n')
 f.write('#Define the amount of system RAM used by your job in GigaBytes\n')

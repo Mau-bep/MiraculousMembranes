@@ -706,6 +706,43 @@ static ImVec4 F_sizing_currColor = releaseColor;
 std::vector<ImVec4*> sState = {&off_currColor, &V_sizing_currColor, &F_sizing_currColor};
 
 
+void Callback_curvatures(){
+    double HB = Sim_handler.E_Bending(Energy_constants[0]);
+    double HL = Sim_handler.E_Laplace(Energy_constants[0]);
+    double EC = 4* 3.1415926535*Energy_constants[0][0];
+    ImGui::Text("The Bending Energy is %0.1f ",HB);
+    ImGui::Text("The Laplace Energy is %0.1f ",HL);
+    ImGui::Text("The expected Energy is %0.1f", EC);
+    
+    if(ImGui::Button("Mean curvature")){
+        VertexData<double> Mean_curv(*mesh, 0.0);
+        for(Vertex v: mesh->vertices()){
+            Mean_curv[v] = geometry->scalarMeanCurvature(v)/geometry->barycentricDualArea(v);
+        }
+        psMesh->addVertexScalarQuantity("Mean curvature dihedrals", Mean_curv);
+    }
+    if(ImGui::Button("Mean curvature 2")){
+        VertexData<double> Mean_curv_2(*mesh, 0.0);
+        for(Vertex v: mesh->vertices()){
+            Mean_curv_2[v] = geometry->vertexNormalMeanCurvature(v).norm()/geometry->barycentricDualArea(v);
+        }
+        psMesh->addVertexScalarQuantity("Norm of normal cotangen", Mean_curv_2);
+    }
+    if(ImGui::Button("Bending E grad")){
+        VertexData<Vector3> Bending_Egrad(*mesh, Vector3{0.0, 0.0, 0.0});
+        Bending_Egrad = M3DG.Sim_handler->F_Bending(Energy_constants[0]);
+        psMesh->addVertexVectorQuantity("Bending Egrad", Bending_Egrad);
+    }
+    if(ImGui::Button("Laplace E grad")){
+        VertexData<Vector3> Laplace_Egrad(*mesh, Vector3{0.0, 0.0, 0.0});
+        Laplace_Egrad = M3DG.Sim_handler->F_Laplace(Energy_constants[0]);
+        psMesh->addVertexVectorQuantity("Laplace Egrad", Laplace_Egrad);
+    }
+
+
+}
+
+
 void functionCallback() {
 
     // std::cout<<"Functioncallback\n";
@@ -1000,29 +1037,16 @@ void functionCallback() {
 
 //     }
     int bead_counter = 0 ;
-  
-
- 
-       
+    
            if(ImGui::Button("Display newton")){
             std::cout<<"Calculating gradient newton\n";
             VertexData<Vector3> Gradient_newton;
             if(first_newton){
             Eigen::VectorXd Lagrange_mults(0);
-            // Lagrange_mults(0) = 0.0;
-            // Lagrange_mults(1) = 0.0;
-            // Lagrange_mults(2) = 0.0;
-            // Lagrange_mults(3) = 0.0;
-            // Lagrange_mults(4) = 0.0;
-            // Lagrange_mults(5) = 0.0;
-            // Lagrange_mults(6) = 0.0;
 
             Sim_handler.Lagrange_mult = Lagrange_mults;
-            
-            // Sim_handler.Constraints = std::vector<std::string>{"Volume","CMx","CMy","CMz","Rx","Ry","Rz"};
             // Sim_handler.Constraints = std::vector<std::string>{"Volume"};
             Sim_handler.Constraints = std::vector<std::string>{};
-            
             first_newton = false;
             }
             // M3DG.integrate_Newton(Sim_data,0.0,Energies,false,std::vector<std::string>{"Volume","CMx","CMy","CMz","Rx","Ry","Rz"},std::vector<std::string>{"Files"});
@@ -1096,13 +1120,9 @@ void functionCallback() {
             //     VertexData<Vector3> Gradient_temp = Beads[1].Gradient();
             //     std::cout<<"The gradient of this bead is " << Gradient_temp[0].x << " " << Gradient_temp[0].y << " " << Gradient_temp[0].z << "\n";
             //     psMesh->addVertexVectorQuantity("Gradient Bead 2" , Gradient_temp);
-               
-            
             // }  
             // }
             
-        
-
     
 
     if(ImGui::Button("Save current state")){
@@ -1119,16 +1139,6 @@ void functionCallback() {
 
         Save_slot++;
         std::cout<<"SAVE SLOT IS "<< Save_slot <<" \n";
-
-
-        // Here i need the state and the vectors
-        std::cout<<"THis button is being pressed\n";
-        // arcsim::delete_mesh(Saved_meshes[0]);
-        // Saved_vertex_positions = geometry->inputVertexPositions;
-        // arcsim::Mesh remesher_mesh2 = translate_to_arcsim(mesh,geometry);
-        // Saved_meshes[0] =  arcsim::deep_copy(remesher_mesh2);
-        
-        // std::cout<<"Saved mesh in a state\n";
 
     }
     if(ImGui::Button("Reload saved state")){
@@ -1211,9 +1221,6 @@ void functionCallback() {
 
     }
 
-
-
-    // scaling_factor = 1.0;
     ImGui::InputDouble("Scaling_factor", &scaling_factor);
     if(ImGui::Button("Rescale mesh ")){
         for(Vertex v: mesh->vertices()){
@@ -1246,27 +1253,14 @@ void functionCallback() {
         std::cout<<"The min edge length is " << min_l <<" and the max edge length is " << max_l <<"\n";
 
         }
-        // geometry->refreshQuantities();
-        // psMesh->updateVertexPositions(geometry->inputVertexPositions);
-        // M3DG.integrate()
+
     }
     ImGui::InputInt("Remeshing operations", &remeshing_ops);
     
 
-//     }
-//     ImGui::PopStyleColor(3);
-//     ImGui::SameLine();
-
-
 
 
 }
-
-
-
-
-
-
 
 int main(int argc, char** argv) {
 
@@ -1699,20 +1693,10 @@ int main(int argc, char** argv) {
         remeshing_params.size_min = Data["remesher"]["size_min"];    
         remeshing_params.total_op = -1;
     }
-
-
-    
-
     
     // return 1;
     // Its easy, we define a a mesh with 2 triangles
-
-
     
-    
-
-
-
     int saved_mesh_idx = 0;
     std::vector<Vector3> Bead_pos_saved(6);
 
@@ -1902,16 +1886,7 @@ int main(int argc, char** argv) {
 
     std::cout<<"Here2\n";
 
-
-    // Lets just start from here 
-
-
-
-
-
-
-
-    
+  
 
     for(size_t i = 0 ; i < Beads.size(); i++){
         Bead_filenames.push_back(basic_name+ "Bead_"+std::to_string(i)+"_data.txt");
@@ -1921,10 +1896,7 @@ int main(int argc, char** argv) {
         Bead_datas.close();
     }
 
-    
     std::cout<<"Here3\n";
-
-    // Here
 
     Bead_filenames.push_back(basic_name+ "Simulation_timings.txt");
     Bead_datas = std::ofstream(Bead_filenames[Beads.size()]);
@@ -1933,10 +1905,6 @@ int main(int argc, char** argv) {
 
 
     std::cout<<"Here4\n";
-
-
-
-
 
 
 
@@ -1951,23 +1919,26 @@ int main(int argc, char** argv) {
     TOTAL_ANGLE_DEFECT = geometry->totalAngleDefect();
     EULER_CHARACTERISTIC = geometry->eulerCharacteristic();
 
-    polyscope::state::userCallback = functionCallback;
+    std::cout<<"Im here happy\n";
+    // polyscope::state::userCallback = functionCallback;
+    polyscope::state::userCallback = Callback_curvatures;
     geometry->requireVertexPositions();
 
 
     psMesh = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions,mesh->getFaceVertexList());
     
+    std::cout<<"Registeredmesh\n";
     std::vector<glm::vec3> points;
-    for(size_t i = 0; i<Beads.size(); i++){
-        points.push_back(glm::vec3(Beads[i].Pos.x,Beads[i].Pos.y,Beads[i].Pos.z));
-    }
-    std::cout<<"Points is "<< points[0][0]<<" "<< points[0][1] <<" "<< points[0][2] << "\n";
-    if(Beads.size()>0){ 
-        psCloud = polyscope::registerPointCloud("really great points", points);
+    // for(size_t i = 0; i<Beads.size(); i++){
+    //     points.push_back(glm::vec3(Beads[i].Pos.x,Beads[i].Pos.y,Beads[i].Pos.z));
+    // }
+    // std::cout<<"Points is "<< points[0][0]<<" "<< points[0][1] <<" "<< points[0][2] << "\n";
+    // if(Beads.size()>0){ 
+    //     psCloud = polyscope::registerPointCloud("really great points", points);
     
-    std::cout<<"The radius would be " <<Beads[0].sigma*1.0 <<"\n";  
-    psCloud->setPointRadius(Beads[0].sigma);
-    }
+    // std::cout<<"The radius would be " <<Beads[0].sigma*1.0 <<"\n";  
+    // psCloud->setPointRadius(Beads[0].sigma);
+    // }
 
     std::cout<<"Here7\n";
 

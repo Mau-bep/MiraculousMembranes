@@ -75,6 +75,7 @@ class E_Handler {
         virtual SparseMatrix<double> H_Bending(std::vector<double> Constants);
         virtual SparseMatrix<double> H_Bending_2(std::vector<double> Constants);
         virtual SparseMatrix<double> H_Volume(std::vector<double> Constants);
+        virtual SparseMatrix<double> H_Laplace(std::vector<double> Constants);
         virtual SparseMatrix<double> H_Edge_reg(std::vector<double> Constants);
         virtual SparseMatrix<double> H_Edge_reg_2(std::vector<double> Constants);
 

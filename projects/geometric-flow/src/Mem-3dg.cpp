@@ -2968,11 +2968,12 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
     for(size_t bi = 0; bi < Beads.size(); bi++){
       if(Beads[bi]->state == "manual"){
         Vector3 Bpos = Beads[bi]->Pos;
-        if( Bpos.norm2()< (3.0-2*Beads[bi]->sigma)*(3.0-2*Beads[bi]->sigma)) //The 2.0 here is hardcoded and it means the radius of the vesicle
+        if( Bpos.norm2()< (2.0-2*Beads[bi]->sigma)*(2.0-2*Beads[bi]->sigma) || Bpos.norm2()> (2.0+2*Beads[bi]->sigma)*(2.0+2*Beads[bi]->sigma )) //The 2.0 here is hardcoded and it means the radius of the vesicle
         
         {
           std::cout<<"\t\t Manual bead because it moved too much\n";
-          std::cout<<"The bead positions 2 is"<< Bpos.norm2() <<" \n";
+          std::cout<<"The bead positions 2 is"<< sqrt(Bpos.norm2()) <<" \n";
+          
           Beads[bi]->state = "default";
         
         }
@@ -3283,7 +3284,6 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
   int N_beads = Beads.size();
   int N_constraints = 0;
 
-  // std::cout<<"Constraints are ";
 
   for(size_t i = 0; i < Constraints.size(); i++){
     if(Constraints[i]=="Volume") N_constraints +=1;
@@ -3475,15 +3475,6 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
 
     Eigen::VectorXd result = solverHess.solve(RHS);
 
-
-
-    
-    // std::cout<<"Giving result a value\n";
-    // And we got a result from this 
-
-    // std::cout<<"The RHS is" << RHS.transpose() << "\n";
-
-    // Ok so one idea will be displaying this force on polyscope
     // std::cout<<"Solved\n";
     VertexData<Vector3> Force_result(*mesh,Vector3({0.0,0.0,0.0}));
     // Eigen::VectorXd Grad_L = LambdaJ+ ;
@@ -3537,21 +3528,17 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
 
     double Projection = result.transpose()*LHS*RHS;
     // if(Projection<0.0){ Projection*=-1;
-    std::cout<<"THe projection is"<<  Projection <<  "\n";
+    // std::cout<<"THe projection is"<<  Projection <<  "\n";
     // Current grad norm is 
     double Current_grad_norm = 0.5*RHS.dot(RHS);
 
     // std::cout<<"Lets backtrack now\n";
-    std::cout<<"The projection is " << Projection << "The current grad norm is" << Current_grad_norm <<"\n";
-    std::cout<<"The lagrange multipliers are" << Sim_handler->Lagrange_mult.transpose() << "\n";
-    std::cout<<"THe dot produc between the result and the RHS is " << result.dot(RHS) << " \n";
+    // std::cout<<"The projection is " << Projection << "The current grad norm is" << Current_grad_norm <<"\n";
+    // std::cout<<"The lagrange multipliers are" << Sim_handler->Lagrange_mult.transpose() << "\n";
+    // std::cout<<"THe dot produc between the result and the RHS is " << result.dot(RHS) << " \n";
 
     // std::cout<<"The current volume is " << geometry->totalVolume() << " and the target is " << Sim_handler->Trgt_vol << "\n";
     // std::cout<<"The current arae is " << geometry->totalArea() << " and the target is " << Sim_handler->Trgt_area << "\n";
-    
-    // Ok here
-
-
 
     double backtrackstep;
     if(false){
@@ -3616,8 +3603,6 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
     //   if(Constraints[ci]=="Area") Sim_handler->Lagrange_mult(ci) -= backtrackstep*result(3*(N_vert+N_beads)+ci);
     //   // Sim_handler->Lagrange_mult(ci) += backtrackstep*result[3*(N_vert+N_beads)+ci];
     // }
-
-    // std::cout<<"THe lagrange multipliers are " << Sim_handler->Lagrange_mult.transpose() <<" \n";
 
     
     // geometry->normalize(Vector3({0.0,0.0,0.0}),false);
@@ -5131,7 +5116,7 @@ void Mem3DG::Save_mesh( size_t current_t){
 
     for(size_t b = 0; b < Beads.size(); b++){
 
-    test_name = basic_name+"Ip_bead_"+std::to_string(b)+"_data_"+std::to_string(iteration)+".txt";
+    test_name = basic_name+"Ip_bead_"+std::to_string(b)+"_data.txt";
     std::ofstream bead_file(test_name, std::ios_base::app);
     bead_file << Beads[b]->Pos.x <<" "<< Beads[b]->Pos.y << " "<< Beads[b]->Pos.z <<"\n";
     bead_file.close();

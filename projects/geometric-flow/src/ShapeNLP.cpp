@@ -59,12 +59,14 @@ bool ShapeNLP::get_nlp_info(
     // std::cout<<"Getting NLP info \n";
     double N_vert = M3DG->mesh->nVertices();
     double N_beads = M3DG->Beads.size();
-
+    // std::cout<<"The number of beads is "<< N_beads << "\n";
    // The number of variables is 3 times the number of vertices + the beads
    n = 3 * (N_vert + N_beads);
-//    std::cout<<"The number of beads is "<< N_beads << "\n";
+   std::cout<<"The number of vertices is" << N_vert << "\n";
+   std::cout<<"The number of beads is "<< N_beads << "\n";
 
    // There are 2 constraints in this problem the volume and the area
+//    std::cout<<"The number of constraints is "<< M3DG->Sim_handler->Constraints.size() << "\n";
    m = M3DG->Sim_handler->Constraints.size();
 
    // 2 constraints, so Jacobian has nonzero entries. For volume and area constraints, each depends on all vertices
@@ -76,8 +78,14 @@ bool ShapeNLP::get_nlp_info(
    // There are the conectivity ones first, then we also have the contributions from the beads which i may need to make dense because even tho a bead wont interact with all the vertices it could interarct with many of them 0    
     //So here I will have to calculate the number of nonzeros in the hesssian.    
     Eigen::SparseMatrix<double> Hessian_temp = M3DG->Sim_handler->Calculate_Hessian_E() + M3DG->Sim_handler->H_Volume(std::vector<double>{1.0});
-    for(int i = 0; i < M3DG->Beads.size(); i++) Hessian_temp += M3DG->Beads[i]->Bead_I->Hessian_IP();
+    //+M3DG->Sim_handler->Beads[0]->Bead_I->Hessian();
+    // for(int i = 0; i < M3DG->Beads.size(); i++) Hessian_temp += M3DG->Beads[i]->Bead_I->Hessian_IP();
+    // Eigen::SparseMatrix<double> Hessian_bead = M3DG->Beads[0]->Bead_I->Hessian_IP();
+    // Eigen::SparseMatrix<double> Hessian_bead_normal = M3DG->Beads[0]->Bead_I->Hessian();
 
+    // std::cout<<"The number of nonzeros in the regular bead is " << Hessian_bead.nonZeros() << "\n";
+    // std::cout<<"The number of nonzeros in the normal bead is " << Hessian_bead_normal.nonZeros() << "\n";
+    
     nnz_h_lag = (Hessian_temp.nonZeros()+n)/2 ; // Conectivity + Diagonal terms for regularization
     // nnz_h_lag = 144;
     // std::cout<<"The number of nonzeros in the hessian are are " << nnz_h_lag<<"\n";
@@ -342,10 +350,10 @@ bool ShapeNLP::eval_h(
         // Eigen::SparseMatrix<double> Hessian_temp = M3DG->Sim_handler->Calculate_Hessian_E();
         Eigen::SparseMatrix<double> Hessian_temp;
         
-        if(m==1) Hessian_temp = M3DG->Sim_handler->Calculate_Hessian_E() + M3DG->Sim_handler->H_Volume(std::vector<double>{1.0}); 
+        if(m==1) Hessian_temp = M3DG->Sim_handler->Calculate_Hessian_E() + M3DG->Sim_handler->H_Volume(std::vector<double>{1.0});// + M3DG->Sim_handler->Beads[0]->Bead_I->Hessian(); 
         if(m==2) Hessian_temp = M3DG->Sim_handler->Calculate_Hessian_E() + M3DG->Sim_handler->H_Volume(std::vector<double>{1.0}) + M3DG->Sim_handler->H_SurfaceTension({1.0});
         
-        for(int i = 0; i < M3DG->Beads.size(); i++) Hessian_temp += M3DG->Beads[i]->Bead_I->Hessian_IP();
+        // for(int i = 0; i < M3DG->Beads.size(); i++) Hessian_temp += M3DG->Beads[i]->Bead_I->Hessian_IP();
         
         // Eigen::SparseMatrix<double> Hessian_temp = M3DG->Sim_handler->Calculate_Hessian_E() + M3DG->Sim_handler->H_Volume({1.0}) + M3DG->Sim_handler->H_SurfaceTension({1.0}); 
         Index idx = 0;
@@ -371,9 +379,9 @@ bool ShapeNLP::eval_h(
 
         
         Eigen::SparseMatrix<double> Hessian_temp; 
-        if(m == 1) Hessian_temp = obj_factor * M3DG->Sim_handler->Calculate_Hessian_E() + lambda[0]*M3DG->Sim_handler->H_Volume(std::vector<double>{1.0});
+        if(m == 1) Hessian_temp = obj_factor * M3DG->Sim_handler->Calculate_Hessian_E() + lambda[0]*M3DG->Sim_handler->H_Volume(std::vector<double>{1.0}); //+ obj_factor* M3DG->Sim_handler->Beads[0]->Bead_I->Hessian();
         if(m == 2) Hessian_temp = obj_factor * M3DG->Sim_handler->Calculate_Hessian_E() + lambda[0]*M3DG->Sim_handler->H_Volume(std::vector<double>{1.0}) + lambda[1]*M3DG->Sim_handler->H_SurfaceTension({1.0});
-        for(int i = 0; i < M3DG->Beads.size(); i++) Hessian_temp += obj_factor * M3DG->Beads[i]->Bead_I->Hessian_IP();
+        // for(int i = 0; i < M3DG->Beads.size(); i++) Hessian_temp += obj_factor * M3DG->Beads[i]->Bead_I->Hessian_IP();
         
         int idx = 0;
         for (int k=0; k<Hessian_temp.outerSize(); ++k){
@@ -414,8 +422,8 @@ void ShapeNLP::finalize_solution(
     std::cout <<"************************************* \n";
     
     update_positions(x);
-    // std::cout << "\n\nObjective value\n";
-    // std::cout << "f(x*) = " << obj_value << "\n";
+    std::cout << "\n\nObjective value\n";
+    std::cout << "f(x*) = " << obj_value << "\n";
     // std::cout<<" The vertex positions are :\n";
     // for (int v =0; v < M3DG->mesh->nVertices(); v++) {
     //     Vector3 pos = M3DG->geometry->inputVertexPositions[v];

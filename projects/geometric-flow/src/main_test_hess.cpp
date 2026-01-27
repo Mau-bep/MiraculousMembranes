@@ -561,6 +561,34 @@ int main(int argc, char** argv) {
     std::cout<<"The finite difference gradient is " << Finite_Gradient_Angle.transpose() << "\n";
     std::cout<<"The summed absolute difference between the angle gradients is " << (Angle_gradient-Finite_Gradient_Angle).cwiseAbs().sum() << "\n";
 
+    // OK so we want to do the Hessian fo the angle 
+
+    Eigen::Matrix<double, 9,9> Angle_hessian = geometry->hessian_angle(Angle_positions);
+    Eigen::Matrix<double,9,9> Finite_Hessian_Angle = Eigen::Matrix<double, 9,9>::Zero(9,9);
+
+    for( int dim = 0; dim < Angle_positions.size(); dim++){
+        Eigen::Vector<double,9> Angle_positions2 = Angle_positions;
+        Angle_positions2[dim]+=1e-6;
+        Eigen::Vector<double,9> Gradient_fwd = geometry->gradient_angle(Angle_positions2);
+        Angle_positions2[dim]-=2e-6;
+        Eigen::Vector<double,9> Gradient_prev = geometry->gradient_angle(Angle_positions2);
+        Finite_Hessian_Angle.col(dim) = (Gradient_fwd-Gradient_prev)/(2e-6);
+
+    }
+
+    std::cout<<"THe absolute difference between the angle Hessians is "<< (Angle_hessian - Finite_Hessian_Angle).cwiseAbs().sum() <<" \n";
+
+    std::cout<<"THe angle hessian is \n" << Angle_hessian <<"\n";
+    std::cout<<"THe finite dif hessian is \n" << Finite_Hessian_Angle<<"\n"; 
+
+
+
+
+    // return 9;
+
+
+
+
 
     Eigen::Vector<double, 12> Cotan_w_positions;
 
@@ -587,8 +615,24 @@ int main(int argc, char** argv) {
     std::cout<<"The summed absolute difference between the cotangent weight gradients is " << (Cotan_w_gradient-Finite_Gradient_Cotan_w).cwiseAbs().sum() << "\n";
 
 
+    Eigen::Matrix<double,12,12> Cotan_hessian = geometry->hessian_cotan_weight(Cotan_w_positions);
+    Eigen::Matrix<double, 12,12> Finite_Hessian_Cotan = Eigen::Matrix<double,12,12>::Zero(9,9);
 
+    for( int dim = 0; dim < Cotan_w_positions.size(); dim++){
+        Eigen::Vector<double,12> Cotan_w_positions2 = Cotan_w_positions;
+        Cotan_w_positions2[dim]+=1e-6;
+        Eigen::Vector<double,12> Gradient_fwd = geometry->gradient_cotan_weight(Cotan_w_positions2);
+        Cotan_w_positions2[dim]-=2e-6;
+        Eigen::Vector<double,12> Gradient_prev = geometry->gradient_cotan_weight(Cotan_w_positions2);
+        Finite_Hessian_Cotan.col(dim) = (Gradient_fwd-Gradient_prev)/(2e-6);
+    }
 
+    std::cout<<"The absolute difference between the cotan weights is "<< (Cotan_hessian - Finite_Hessian_Cotan).cwiseAbs().sum()<<"\n";
+
+    std::cout<<"The cotan hessian is \n" << Cotan_hessian <<"\nThe finite dif hessian is \n"<< Finite_Hessian_Cotan<<"\n";
+    // geometry->hessian_cotan_weight(Cotan_w_positions);
+
+    // return 2;
 
 
     // Now we need to see if the cross product matrix works too.
@@ -969,7 +1013,7 @@ int main(int argc, char** argv) {
     std::vector<std::string> Energies(0);
     std::vector<std::vector<double>> Energy_constants(0);
     Energies.push_back("Surface_Tension");
-    Energy_constants.push_back({1.0,0.0}); // just a dummy value for the surface tension
+    Energy_constants.push_back({1.0,1.0}); // just a dummy value for the surface tension
     
     E_Handler Sim_handler;
     Sim_handler = E_Handler(mesh, geometry, Energies, Energy_constants);
@@ -1068,15 +1112,18 @@ int main(int argc, char** argv) {
             Gradient_Laplace_finite[v][coord] = (E_Lap_fwd - E_lap_bkwd)/(2e-6);
             
             }
-        // std::cout<<"The gradient for vertex " << v.getIndex() << " is " << Gradient_Laplace[v] << "\n";
+        
+        Difference[v] = Gradient_Laplace[v] + Gradient_Laplace_finite[v];
+        // std::cout<<"The gradient f            or vertex " << v.getIndex() << " is " << Gradient_Laplace[v] << "\n";
         // std::cout<<"The finite diff gradient for vertex " << v.getIndex() << " is " << Gradient_Laplace_finite[v] << "\n";
-        // std::cout<<"The difference for vertex " << v.getIndex() << " is " << Difference[v] << "\n";
+        std::cout<<"The difference for vertex           " << v.getIndex() << " is " << Difference[v] << "\n";
 
     }
     // std::cout<<"The gradient of the Laplace energy is \n" << Gradient_Laplace << "\n";
     // std::cout<<"The finite difference gradient of the Laplace energy is \n" << Gradient_Laplace_finite << "\n";
     // std::cout<<"The difference between gradients is \n" << Difference << "\n";
 
+    // return 1;
 
     double E_reg = Sim_handler.E_Edge_reg(Energy_constants[0]);
     double E_reg_fwd;
@@ -1160,6 +1207,54 @@ int main(int argc, char** argv) {
     Eigen::MatrixXd DifferenceHessians = Hessian_Edge_reg_finite_mesh + Hessian_Edge_reg_mesh;
     std::cout<<"The matrix difference between the hessians is \n" << DifferenceHessians <<"\n";                                                                                     
 
+
+    std::cout<<"Lets check the Hessian of laplace\n";
+
+    SparseMatrix<double> Hessian_Laplace_mesh = Sim_handler.H_Laplace(Energy_constants[0]);
+    Eigen::MatrixXd Hessian_Laplace_finite_mesh(3*mesh->nVertices(),3*mesh->nVertices());
+    // VertexData<Vector3> Gradient_fwd(*mesh);
+    // VertexData<Vector3> Gradient_prev(*mesh);
+    // Eigen::VectorXd Difference_grad_laplace(3*mesh->nVertices());
+    dim = 0;
+    for(Vertex v: mesh->vertices()){
+        for(size_t coord = 0; coord <3; coord++){
+            geometry->inputVertexPositions[v][coord]+=1e-6;
+            geometry->refreshQuantities();
+            Gradient_fwd = Sim_handler.F_Laplace(Energy_constants[0]);
+
+            geometry->inputVertexPositions[v][coord]-=2e-6;
+            geometry->refreshQuantities();
+            Gradient_prev = Sim_handler.F_Laplace(Energy_constants[0]);
+
+            geometry->inputVertexPositions[v][coord]+=1e-6;
+            geometry->refreshQuantities();
+
+            for(Vertex v2: mesh->vertices()){
+                Difference_grad[3*v2.getIndex()] = (Gradient_fwd[v2]-Gradient_prev[v2]).x/(2e-6);
+                Difference_grad[3*v2.getIndex()+1] = (Gradient_fwd[v2]-Gradient_prev[v2]).y/(2e-6);
+                Difference_grad[3*v2.getIndex()+2] = (Gradient_fwd[v2]-Gradient_prev[v2]).z/(2e-6); 
+            }
+
+            Hessian_Laplace_finite_mesh.col(dim) = Difference_grad;
+            dim+=1;
+
+
+        }
+
+    }
+    
+    std::cout<<"The finite difference hessian is \n"<< Hessian_Laplace_finite_mesh <<"\nThe sparse matrix i guess not so sparse\n" << Hessian_Laplace_mesh<<"\n";
+
+    DifferenceHessians = Hessian_Laplace_mesh + Hessian_Laplace_finite_mesh;
+
+    // std::cout<<"The matrix difference between the hessians is \n"<< DifferenceHessians<<"\n";
+
+    SparseMatrix<double> Bending_hessian = Sim_handler.H_Bending(Energy_constants[0]);
+
+    std::cout<<"THe bending hessian is \n" << Bending_hessian << "\n";
+
+
+    return 1;
 
 
 

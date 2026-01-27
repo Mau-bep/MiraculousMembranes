@@ -582,6 +582,7 @@ int main(int argc, char** argv) {
             dA = Constants[3];
             // First problem
             Constants[1] = geometry->totalArea()+ (dA/(fabs(dA)))*std::min(fabs(dA), fabs(A_bar -geometry->totalArea() )) ;
+            
             }
             else{
                 if(Constants[1]>0){
@@ -1286,7 +1287,7 @@ int main(int argc, char** argv) {
 
     std::cout<<"Lets start the sim\n";
     start_full = chrono::steady_clock::now();
-
+    std::cout<<"THe number of faces is "<< mesh->nFaces() << "\n";
 
 
    // IPOPT STUFF
@@ -1300,7 +1301,7 @@ int main(int argc, char** argv) {
 
     std::cout<<"The number of vertices is "<< mesh->nVertices() << "\n";
     app->Options()->SetStringValue("linear_solver", "ma57");
-    app->Options()->SetNumericValue("tol", 3.82e-4);
+    app->Options()->SetNumericValue("tol", 1e-4);
     app->Options()->SetStringValue("mu_strategy", "adaptive");
     app->Options()->SetStringValue("output_file", basic_name+"ipopt.out");
     app->Options()->SetIntegerValue("max_iter", 50);
@@ -1348,9 +1349,10 @@ int main(int argc, char** argv) {
     double R0;
 
     for(size_t i = 0; i < Energies.size(); i++){
-        if(Energies[i] == "Bending"){
+        if(Energies[i] == "Bending" || Energies[i]=="Laplace"){
             if(Energy_constants[i][1]>1e-5){
                 R0 = sqrt(A_bar/(4*PI));
+                
                 c_null = Energy_constants[i][1]/R0;
                 Energy_constants[i][1] = c_null;
                 Sim_handler.Energy_constants[i][1] = c_null;
@@ -1767,7 +1769,7 @@ int main(int argc, char** argv) {
                 std::cout<<"There is no Newton switch? \n";
                 Switch_t = -1;
             }
-            std::cout<<"The current t is " << current_t << " and the switch time is " << Switch_t << "\n";
+            // std::cout<<"The current t is " << current_t << " and the switch time is " << Switch_t << "\n";
             if(current_t == 0 || current_t == Switch_t){
                 std::cout<<"defining lagrange mults\n";
                 if(!M3DG.boundary){
@@ -1775,7 +1777,7 @@ int main(int argc, char** argv) {
                 Lagrange_mults.resize(1);
                 Lagrange_mults(0) = 0.0;
                 
-                double A_target;
+                double A_target=0.0;
                 // Now i need to do the area constraint
                 for(size_t i = 0; i < Energies.size(); i++){
                     if(Energies[i] == "Area_constraint"){
@@ -1828,9 +1830,9 @@ int main(int argc, char** argv) {
             std::vector<std::string> Data_filenames(0);
 
             // Data_filenames.push_back(basic_name+"Data_backtracking.txt");
-
+            // std::cout<<"Integrating\n";
             dt_sim = M3DG.integrate_Newton(Sim_data, time, Bead_filenames, Save_output_data, Constraints, Data_filenames);
-
+            // std::cout<<"Iteration\n";
             if(M3DG.small_TS == true){
                 // Then i will do gradient descent for a while
                 std::cout<<"We will do GD for the next 100 steps\n";
@@ -1909,7 +1911,8 @@ int main(int argc, char** argv) {
 
             M3DG.Sim_handler->Trgt_area = A_target;
             std::cout<<"THe target area is" << A_target <<" and it should be " << A_bar <<" \n";
-
+            app->Initialize();
+            
             status_opt = app->OptimizeTNLP(shapenlp); // Here is where the magic happens
             if (status_opt == Solve_Succeeded) {
                 std::cout << "\n\n*** The problem solved!\n";

@@ -154,11 +154,15 @@ double E_Handler::E_Bending_2(std::vector<double> Constants) const {
     return Eb;
 
 }
+
+
+
 double E_Handler::E_Laplace(std::vector<double> Constants) const{
 
     double E_L = 0.0;
 
     double Lambda = Constants[0];
+    double H0 = Constants[1];
     size_t index;
     Vector3 Pos;
     Vector3 Pos2;
@@ -169,45 +173,23 @@ double E_Handler::E_Laplace(std::vector<double> Constants) const{
     double Q2;
     double Q3;
     double Wij;
+    double H;
+    Vector3 dx;
+    Vector3 Hn;
     for(Vertex v : mesh->vertices()) {
         //boundary_fix
         if(v.isBoundary()) continue;
-
         
         index=v.getIndex();
         Pos = geometry->inputVertexPositions[v];
-        dual_Area = geometry->vertexDualArea(v);
+        dual_Area = geometry->barycentricDualArea(v);
         
         // I need to iterate over all the edges
-
-       
-        Q1 = 0;
-        Q2 = 0;
-        Q3 = 0;
-        // For each coordinate i have to calculate the quantity
-        for(Halfedge he : v.outgoingHalfedges()) {
-            // 
-            Vertex v_f=he.tipVertex();
-            Pos2 = geometry->inputVertexPositions[v_f];
-            // Ok so the idea now is that i need to calculate the weights and multiply by (uj-ui)
-            
-            Positions << geometry->inputVertexPositions[v].x, geometry->inputVertexPositions[v].y, geometry->inputVertexPositions[v].z,
-                        geometry->inputVertexPositions[v_f].x, geometry->inputVertexPositions[v_f].y, geometry->inputVertexPositions[v_f].z,
-                        geometry->inputVertexPositions[he.next().tipVertex()].x, geometry->inputVertexPositions[he.next().tipVertex()].y, geometry->inputVertexPositions[he.next().tipVertex()].z,
-                        geometry->inputVertexPositions[he.twin().next().tipVertex()].x, geometry->inputVertexPositions[he.twin().next().tipVertex()].y, geometry->inputVertexPositions[he.twin().next().tipVertex()].z;
-
-            Wij = geometry->Cotan_weight(Positions);
-            
-            Q1 += Wij*(Pos2.x-Pos.x);
-            Q2 += Wij*(Pos2.y-Pos.y);
-            Q3 += Wij*(Pos2.z-Pos.z);
-        
-        }
-        // Here we have the 3 quantities
-        Q1/=2.0;
-        Q2/=2.0;
-        Q3/=2.0;
-        E_L += (Q1*Q1 + Q2*Q2 + Q3*Q3)/(dual_Area*dual_Area);
+        H = geometry->vertexNormalMeanCurvature(v).norm();
+        // std::cout<<"One option is " << geometry->vertexNormalMeanCurvature(v).norm()/dual_Area << "\n";
+        // std::cout<<"THe other  is " << geometry->scalarMeanCurvature(v)/dual_Area << "\n";
+        // std::cout<<"THe curvature could be "<< H/dual_Area << " or " << geometry->scalarMeanCurvature(v)/dual_Area <<"\n";
+        E_L += (H/dual_Area-H0  )*(H/dual_Area -H0) *dual_Area;
 
 
     }
@@ -720,7 +702,7 @@ VertexData<Vector3> E_Handler::F_Bending_2(std::vector<double> Constants) const{
 VertexData<Vector3> E_Handler::F_Laplace(std::vector<double> Constants) const{
 
     double Lambda = Constants[0];
-    
+    double H0 = Constants[1];
 
     VertexData<Vector3> Force(*mesh);
 
@@ -736,19 +718,20 @@ VertexData<Vector3> E_Handler::F_Laplace(std::vector<double> Constants) const{
    
     EdgeData<double> Wij(*mesh,0.0);
     VertexData<double> Dual_areas(*mesh,0.0);
+    VertexData<double> Hi(*mesh,0.0);
 
     Halfedge he;
     double constant;
-    double Q1;
-    double Q2;
-    double Q3;
+
     Vector3 Q;
     Vector3 Force_vector;
     Vector3 dx;
 
     for(Vertex v : mesh->vertices()){
         Dual_areas[v] = geometry->barycentricDualArea(v);
+        Hi[v] = geometry->vertexNormalMeanCurvature(v).norm();
     }
+
     for(Edge e: mesh->edges()){
         he = e.halfedge();
         Positions_quad << geometry->inputVertexPositions[he.vertex()].x, geometry->inputVertexPositions[he.vertex()].y, geometry->inputVertexPositions[he.vertex()].z,
@@ -758,23 +741,15 @@ VertexData<Vector3> E_Handler::F_Laplace(std::vector<double> Constants) const{
         Wij[e] = geometry->Cotan_weight(Positions_quad);
         
     }
-
-    
     // Ok so we have the two terms and we need to start calculating stuff
-
 
     for(Vertex v: mesh->vertices()){
 
-        Q1 = 0;
-        Q2 = 0;
-        Q3 = 0;
         Q = Vector3{0,0,0};
-        for(Halfedge he: v.outgoingHalfedges()){
 
-            Q += Wij[he.edge()]*(geometry->inputVertexPositions[he.tipVertex()] - geometry->inputVertexPositions[v])/2.0;
-        }
+        Q = -1*geometry->vertexNormalMeanCurvature(v);
         
-        constant = -2.0/(3.0*Dual_areas[v]*Dual_areas[v]*Dual_areas[v])*(dot(Q,Q));
+        constant = -(1.0/3.0)*(Hi[v]*Hi[v]/(Dual_areas[v]*Dual_areas[v])-H0*H0);
         // 
         for(Face f: v.adjacentFaces()){
             he = f.halfedge();
@@ -790,7 +765,7 @@ VertexData<Vector3> E_Handler::F_Laplace(std::vector<double> Constants) const{
 
             for(size_t i = 0; i < 3; i++){
                 Force_vector = Vector3{Grad_face[i*3], Grad_face[i*3+1], Grad_face[i*3+2]};
-                Force_vector *= constant*Lambda;
+                Force_vector *= constant;
                 // Force_vector *= Lambda;
                 Force[Vertices_face[i]] -= Force_vector;
             }
@@ -801,7 +776,7 @@ VertexData<Vector3> E_Handler::F_Laplace(std::vector<double> Constants) const{
 
         // I  have Q at this point, which is 
 
-        constant = 2/(Dual_areas[v]*Dual_areas[v]);
+        constant = (Hi[v]/Dual_areas[v]-H0)/(2*Hi[v]);
 
         for(Halfedge he: v.outgoingHalfedges()){
             // 
@@ -816,13 +791,13 @@ VertexData<Vector3> E_Handler::F_Laplace(std::vector<double> Constants) const{
                             geometry->inputVertexPositions[Vertices_quad[2]].x, geometry->inputVertexPositions[Vertices_quad[2]].y, geometry->inputVertexPositions[Vertices_quad[2]].z,
                             geometry->inputVertexPositions[Vertices_quad[3]].x, geometry->inputVertexPositions[Vertices_quad[3]].y, geometry->inputVertexPositions[Vertices_quad[3]].z;
 
-            Grad_quad = geometry->gradient_cotan_weight(Positions_quad)/2.0;
+            Grad_quad = geometry->gradient_cotan_weight(Positions_quad);
 
             dx = geometry->inputVertexPositions[Vertices_quad[1]] - geometry->inputVertexPositions[v];
             for(size_t i = 0; i < 4; i++){
                 Force_vector = Vector3{Grad_quad[i*3], Grad_quad[i*3+1], Grad_quad[i*3+2]};
                 
-                Force_vector *= constant*Lambda*(dot(Q,dx));
+                Force_vector *= constant*(dot(Q,dx));
 
                 Force[Vertices_quad[i]] -= Force_vector;
             }
@@ -830,7 +805,7 @@ VertexData<Vector3> E_Handler::F_Laplace(std::vector<double> Constants) const{
             // What about the other term now the other term is 
             
             Force_vector = -1*Q*Wij[he.edge()];
-            Force_vector *= constant*Lambda/2.0;
+            Force_vector *= constant;
             Force[he.vertex()] -= Force_vector;
             Force[he.twin().vertex()] += Force_vector;
 
@@ -846,7 +821,7 @@ VertexData<Vector3> E_Handler::F_Laplace(std::vector<double> Constants) const{
     }
 
     // That is the first term
-    return Force;
+    return Force*Lambda;
 
 
 
@@ -1821,6 +1796,443 @@ SparseMatrix<double> E_Handler::H_Volume(std::vector<double> Constants){
     return KV*Hessian;
 }
 
+SparseMatrix<double> E_Handler::H_Laplace(std::vector<double> Constants){
+    double KB = Constants[0];
+    double H0 = Constants[1];
+    
+    int N_verts = mesh->nVertices();
+    int N_beads = Beads.size();
+    SparseMatrix<double> Hessian(3*(N_verts+N_beads),3*(N_verts+N_beads));
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+
+    
+    Eigen::Vector<double,3> dX;
+    Eigen::Vector<double,3> dX2;
+    
+    // Eigen::Vector<double,6> Positions_edge;
+    Eigen::Vector<double, 9> Positions_face;
+    Eigen::Vector<double,12> Positions_cotan;
+
+    Eigen::Vector<double,9> Grad_face;
+    Eigen::Vector<double,12> Grad_cotan_sample;
+    Eigen::Vector<double,12> Grad_cotan;
+    Eigen::Vector<double,12> Grad_cotan2;
+
+
+
+    std::array<Vertex,2> Vertices_edge;
+    std::array<Vertex,3> Vertices_face;
+    std::array<Vertex,4> Vertices_cotan;
+
+    std::array<Vertex,3 > Vertices_face_2;
+    std::array<Vertex,2> Vertices_edge_2;
+    std::array<Vertex,4> Vertices_cotan_2;
+
+
+    Halfedge he;
+    double constant;
+
+    VertexData<double> Dual_areas(*mesh,0.0);
+    VertexData<double> Hi(*mesh,0.0);
+    EdgeData<double> Cotan_W(*mesh,0.0);
+    VertexData<Vector3> Q(*mesh,{0.0,0.0,0.0});
+    std::vector<Eigen::Vector<double,3>> Qs;
+    
+    // std::cout<<"3\n";
+    
+    
+    for(Vertex v: mesh->vertices()){
+
+        Dual_areas[v] = geometry->barycentricDualArea(v);
+        Q[v] = geometry->vertexNormalMeanCurvature(v);
+        Qs.push_back( {Q[v].x,Q[v].y,Q[v].z});
+        Hi[v] = Q[v].norm();
+        
+    }
+
+    // std::cout<<"4\n";
+    
+    std::vector<Eigen::Vector<double,9>> Gradients_areas;
+    std::vector<Eigen::Vector<double,12>> Gradients_cotan;
+
+    for(Face f: mesh->faces()){
+        he = f.halfedge();
+
+        Vertices_face[0] = he.vertex();
+        Vertices_face[1] = he.next().vertex();
+        Vertices_face[2] = he.next().next().vertex();
+        Positions_face <<   geometry->inputVertexPositions[Vertices_face[0]].x, geometry->inputVertexPositions[Vertices_face[0]].y, geometry->inputVertexPositions[Vertices_face[0]].z,
+                            geometry->inputVertexPositions[Vertices_face[1]].x, geometry->inputVertexPositions[Vertices_face[1]].y, geometry->inputVertexPositions[Vertices_face[1]].z,
+                            geometry->inputVertexPositions[Vertices_face[2]].x, geometry->inputVertexPositions[Vertices_face[2]].y, geometry->inputVertexPositions[Vertices_face[2]].z;
+        
+        Grad_face = geometry->gradient_triangle_area(Positions_face);
+        Gradients_areas.push_back(Grad_face);
+        
+         
+    }
+
+    // std::cout<<"5\n";
+    
+    // std::cout<<"ITERATING OVER EDGES \n ";
+    for(Edge e: mesh->edges()){
+        // std::cout << e.getIndex()<< " ";
+
+        he = e.halfedge();
+
+        Vertices_cotan[0] = he.vertex();
+        Vertices_cotan[1] = he.next().vertex();
+        Vertices_cotan[2] = he.next().next().vertex();
+        Vertices_cotan[3] = he.twin().next().next().vertex();
+
+        Positions_cotan <<  geometry->inputVertexPositions[Vertices_cotan[0]].x, geometry->inputVertexPositions[Vertices_cotan[0]].y, geometry->inputVertexPositions[Vertices_cotan[0]].z,
+                            geometry->inputVertexPositions[Vertices_cotan[1]].x, geometry->inputVertexPositions[Vertices_cotan[1]].y, geometry->inputVertexPositions[Vertices_cotan[1]].z,
+                            geometry->inputVertexPositions[Vertices_cotan[2]].x, geometry->inputVertexPositions[Vertices_cotan[2]].y, geometry->inputVertexPositions[Vertices_cotan[2]].z,
+                            geometry->inputVertexPositions[Vertices_cotan[3]].x, geometry->inputVertexPositions[Vertices_cotan[3]].y, geometry->inputVertexPositions[Vertices_cotan[3]].z;
+        
+        Grad_cotan_sample = geometry->gradient_cotan_weight(Positions_cotan);
+        // std::cout<<"Grad cotan is" << Grad_cotan_sample.transpose() << "\n";
+        Gradients_cotan.push_back(Grad_cotan_sample);
+        Cotan_W[e] = geometry->Cotan_weight( Positions_cotan);
+
+    }
+    // std::cout<<"\n";
+    // std::cout<<"Gradients cotan at edge 0 is " << Gradients_cotan[0] << "\n";
+    // std::cout<<"6\n";
+    
+    Eigen::Matrix<double,9,9> M_9_9;
+    Eigen::Matrix<double,9,12> M_9_12;
+    // Eigen::Matrix<double,12,9> M_12_9;
+    // Eigen::Matrix<double,9,6> M_9_6;
+    // Eigen::Matrix<double,6,9> M_6_9;
+    Eigen::Matrix<double,12,12> M_12_12;
+    // Eigen::Matrix<double,12,6> M_12_6;
+    // Eigen::Matrix<double,6,12> M_6_12;
+    Eigen::Matrix<double,9,3> M_9_3;
+    // Eigen::Matrix<double,3,9> M_3_9;
+    Eigen::Matrix<double,3,12> M_3_12;
+    Eigen::Matrix<double,12,3> M_12_3;
+    
+    Eigen::Matrix<double,3,3> M_3_3;
+    Eigen::Matrix<double,3,3> Id = Eigen::Matrix3d::Identity();
+    
+
+    
+    for(Vertex v: mesh->vertices()){
+        // std::cout<<"v.getIndex() = " << v.getIndex() << "\n";
+        for(Face f: v.adjacentFaces()){
+            // std::cout<<"f.getIndex() = " << f.getIndex() << "\n";
+            he = f.halfedge();
+            Grad_face = Gradients_areas[f.getIndex()];
+            Vertices_face[0] = he.vertex();
+            Vertices_face[1] = he.next().vertex();
+            Vertices_face[2] = he.next().next().vertex();
+            Positions_face << geometry->inputVertexPositions[Vertices_face[0]].x , geometry->inputVertexPositions[Vertices_face[0]].y , geometry->inputVertexPositions[Vertices_face[0]].z,
+                            geometry->inputVertexPositions[Vertices_face[1]].x, geometry->inputVertexPositions[Vertices_face[1]].y, geometry->inputVertexPositions[Vertices_face[1]].z,
+                            geometry->inputVertexPositions[Vertices_face[2]].x, geometry->inputVertexPositions[Vertices_face[2]].y, geometry->inputVertexPositions[Vertices_face[2]].z;
+        
+            // std::cout<<"1\n";
+    
+
+            if(Vertices_face[0].isBoundary() || Vertices_face[1].isBoundary() || Vertices_face[2].isBoundary() ) continue;
+            // std::cout<<"2\n";
+    
+
+            constant = -1*(1.0/3.0)*( Hi[v]*Hi[v]/(Dual_areas[v]*Dual_areas[v])-H0*H0 );
+
+          
+            M_9_9 = constant * geometry->hessian_triangle_area(Positions_face);
+
+            for(size_t row = 0; row < 9; row++){
+                for(size_t col = 0; col < 9; col++){
+                    tripletList.push_back(T(Vertices_face[row/3].getIndex()*3+row%3, Vertices_face[col/3].getIndex()*3+col%3, M_9_9(row,col)));
+                    // if(isnan(M_9_9(row,col))) std::cout<<" nan flag 4 \n";
+                }
+            }
+            // std::cout<<"3\n";
+    
+            constant = (2.0/9.0)*Hi[v]*Hi[v]/(Dual_areas[v]*Dual_areas[v]*Dual_areas[v]);
+            
+            for(Face f2: v.adjacentFaces()){
+                he = f2.halfedge();
+
+                Vertices_face_2[0] = he.vertex();
+                Vertices_face_2[1] = he.next().vertex();
+                Vertices_face_2[2] = he.next().next().vertex();
+
+                M_9_9 = constant * Grad_face * Gradients_areas[f2.getIndex()].transpose();
+                for(size_t row = 0; row < 9; row++){
+                    for(size_t col = 0; col < 9; col++){
+
+                        tripletList.push_back(T(Vertices_face[row/3].getIndex()*3+row%3,Vertices_face_2[col/3].getIndex()*3+col%3, M_9_9(row,col) ));
+                        // if(isnan(M_9_9(row,col))) std::cout<<" nan flag 3 \n";
+                    }
+                }
+
+            }
+
+
+             //Here i am in a face in a vertex
+            // std::cout<<"4\n";
+    
+            constant = -(1.0/6.0)*(1/(Dual_areas[v]*Dual_areas[v]));
+            for(Halfedge he1: v.outgoingHalfedges()){
+                // he = e.halfedge();
+                
+                // if(he1.vertex().getIndex() != v.getIndex()) he1 = he.twin();
+                Vertices_edge[0] = he1.vertex();
+                Vertices_edge[1] = he1.twin().vertex();
+                
+                dX <<   geometry->inputVertexPositions[Vertices_edge[0]].x - geometry->inputVertexPositions[Vertices_edge[1]].x,
+                        geometry->inputVertexPositions[Vertices_edge[0]].y - geometry->inputVertexPositions[Vertices_edge[1]].y,
+                        geometry->inputVertexPositions[Vertices_edge[0]].z - geometry->inputVertexPositions[Vertices_edge[1]].z;
+                 // dX = geometry->inputVertexPositions[]
+    
+                Vertices_cotan[0] = he1.edge().halfedge().vertex();
+                Vertices_cotan[1] = he1.edge().halfedge().next().vertex();
+                Vertices_cotan[2] = he1.edge().halfedge().next().next().vertex();
+                Vertices_cotan[3] = he1.edge().halfedge().twin().next().next().vertex();
+
+    
+                 // THere are two terms, one is the gradient of the weight and the other gradient
+                // std::cout<<"The he1 edge index is " << he1.edge().getIndex() << "\n";
+                // std::cout<<"The size of Gradients cotan is " << Gradients_cotan.size() << "\n";
+                // std::cout<<"Gradients cotan at 0 is" << Gradients_cotan[0] << "\n";
+                Grad_cotan = Eigen::Vector<double,12>(Gradients_cotan[he1.edge().getIndex()]);
+
+                // std::cout<<"5.5\n";
+                M_9_12 = constant * Grad_face * Grad_cotan.transpose()*(Qs[v.getIndex()].transpose()*dX) ;
+
+                for(size_t row = 0; row < 9; row++){
+                    for(size_t col = 0; col < 12; col++){
+                        tripletList.push_back(T(Vertices_face[row/3].getIndex()*3+row%3, Vertices_cotan[col/3].getIndex()*3+col%3, M_9_12(row,col)  ));
+                        tripletList.push_back(T(Vertices_cotan[col/3].getIndex()*3+col%3, Vertices_face[row/3].getIndex()*3+row%3, M_9_12(row,col)  ));
+                    }
+                }
+    
+
+                M_9_3 = constant * Grad_face* Qs[v.getIndex()].transpose()*Cotan_W[he1.edge()];
+                 // Now this term is positive por vertex 1 and negative for vertex 0
+                for(size_t row = 0; row < 9; row++){
+                    for(size_t col = 0; col < 3; col++){
+                        tripletList.push_back(T(Vertices_face[row/3].getIndex()*3+row%3, Vertices_edge[0].getIndex()*3+col%3 ,    M_9_3(row,col) ));
+                        tripletList.push_back(T(Vertices_face[row/3].getIndex()*3+row%3, Vertices_edge[1].getIndex()*3+col%3 ,  -1*M_9_3(row,col) ));
+                        
+                        tripletList.push_back(T(Vertices_edge[0].getIndex()*3+col%3, Vertices_face[row/3].getIndex()*3+row%3, M_9_3(row,col)  ));
+                        tripletList.push_back(T(Vertices_edge[1].getIndex()*3+col%3, Vertices_face[row/3].getIndex()*3+row%3, -1*M_9_3(row,col)  ));
+
+                    }
+                }
+
+
+            }
+
+        
+
+        }
+
+
+    }
+    
+
+    // // AHora faltan los terminos que solo dependen de V Y E;
+    for(Vertex v: mesh->vertices()){
+        constant = 1/(8.0*Dual_areas[v]*Hi[v]*Hi[v]);
+
+        for(Halfedge he1: v.outgoingHalfedges()){
+            Vertices_edge[0] = he1.vertex();
+            Vertices_edge[1] = he1.twin().vertex();
+
+            
+            dX <<   geometry->inputVertexPositions[Vertices_edge[0]].x - geometry->inputVertexPositions[Vertices_edge[1]].x,
+                    geometry->inputVertexPositions[Vertices_edge[0]].y - geometry->inputVertexPositions[Vertices_edge[1]].y,
+                    geometry->inputVertexPositions[Vertices_edge[0]].z - geometry->inputVertexPositions[Vertices_edge[1]].z;
+
+            Vertices_cotan[0] = he1.edge().halfedge().vertex();
+            Vertices_cotan[1] = he1.edge().halfedge().next().vertex();
+            Vertices_cotan[2] = he1.edge().halfedge().next().next().vertex();
+            Vertices_cotan[3] = he1.edge().halfedge().twin().next().next().vertex();
+            Grad_cotan = Eigen::Vector<double,12>(Gradients_cotan[he1.edge().getIndex()]);
+            
+
+            for(Halfedge he2: v.outgoingHalfedges()){
+            Vertices_edge_2[0] = he2.vertex();
+            Vertices_edge_2[1] = he2.twin().vertex();
+            dX2 <<  geometry->inputVertexPositions[Vertices_edge_2[0]].x - geometry->inputVertexPositions[Vertices_edge_2[1]].x,
+                    geometry->inputVertexPositions[Vertices_edge_2[0]].y - geometry->inputVertexPositions[Vertices_edge_2[1]].y,
+                    geometry->inputVertexPositions[Vertices_edge_2[0]].z - geometry->inputVertexPositions[Vertices_edge_2[1]].z;
+                
+            Vertices_cotan_2[0] = he2.edge().halfedge().vertex();
+            Vertices_cotan_2[1] = he2.edge().halfedge().next().vertex();
+            Vertices_cotan_2[2] = he2.edge().halfedge().next().next().vertex();
+            Vertices_cotan_2[3] = he2.edge().halfedge().twin().next().next().vertex();
+            Grad_cotan2 = Eigen::Vector<double,12>(Gradients_cotan[he2.edge().getIndex()]);
+
+    //         // 
+            M_12_12 = (constant)* Grad_cotan * Grad_cotan2.transpose()*( dX2.transpose()*Qs[v.getIndex()] )*(Qs[v.getIndex()].transpose()*dX) ;
+
+            for(int row = 0; row < 12; row++){
+                for(int col = 0; col < 12; col++){
+                    tripletList.push_back(T(Vertices_cotan[row/3].getIndex()*3+row%3, Vertices_cotan_2[col/3].getIndex()*3 + col%3, M_12_12(row,col) ));    
+                }
+            }
+    //         // 
+            M_3_12 =  (constant*Cotan_W[he1.edge()])*Qs[v.getIndex()]*Grad_cotan2.transpose()*(Qs[v.getIndex()].transpose()*dX2 );
+
+            for(int row = 0; row < 3; row++){
+                for(int col = 0; col < 12; col++){
+                    tripletList.push_back(T( Vertices_edge[0].getIndex()*3+row%3, Vertices_cotan_2[col/3].getIndex()*3+col%3, M_3_12(row,col)));
+                    tripletList.push_back(T( Vertices_edge[1].getIndex()*3+row%3, Vertices_cotan_2[col/3].getIndex()*3+col%3, -1*M_3_12(row,col)));
+                }
+
+            }//Creo que esta correcto pero podemos revisitar
+
+            // M_12_3 (constant*Cotan_W[he2.edge()] ) *Grad_cotan * Qs[v.getIndex()].transpose() ;// *  (Qs[v.getIndex()].transpose()*dX);
+            M_12_3 = (constant*Cotan_W[he2.edge()])*Grad_cotan * Qs[v.getIndex()].transpose() * (Qs[v.getIndex()].transpose()*dX );
+
+            for(int row = 0; row <12; row ++){
+                for(int col = 0; col < 3; col++){
+                    tripletList.push_back(T( Vertices_cotan[row/3].getIndex()*3+row%3, Vertices_edge_2[0].getIndex()*3+col%3, M_12_3(row,col)));
+                    tripletList.push_back(T( Vertices_cotan[row/3].getIndex()*3+row%3, Vertices_edge_2[1].getIndex()*3+col%3, -1*M_12_3(row,col)));                    
+                }
+            }
+
+
+            M_3_3 = (constant*Cotan_W[he1.edge()]*Cotan_W[he2.edge()])*Qs[v.getIndex()]*Qs[v.getIndex()].transpose();
+
+            for(int row = 0; row < 3; row++){
+                for(int col = 0; col < 3; col++){
+                    tripletList.push_back(T( Vertices_edge[0].getIndex()*3+row%3, Vertices_edge_2[0].getIndex()*3+col%3,  M_3_3(row,col) ));
+                    tripletList.push_back(T( Vertices_edge[1].getIndex()*3+row%3, Vertices_edge_2[1].getIndex()*3+col%3,  M_3_3(row,col) ));
+                    tripletList.push_back(T( Vertices_edge[0].getIndex()*3+row%3, Vertices_edge_2[1].getIndex()*3+col%3,  -1*M_3_3(row,col) ));
+                    tripletList.push_back(T( Vertices_edge[1].getIndex()*3+row%3, Vertices_edge_2[0].getIndex()*3+col%3,   -1*M_3_3(row,col) ));                
+                }
+            }
+            
+            }
+
+
+        }
+
+
+        // Here i am again at the vertex
+        for(Halfedge he1 : v.outgoingHalfedges()){
+            Vertices_edge[0] = he1.vertex();
+            Vertices_edge[1] = he1.twin().vertex();
+
+            
+            dX <<   geometry->inputVertexPositions[Vertices_edge[0]].x-geometry->inputVertexPositions[Vertices_edge[1]].x,
+                    geometry->inputVertexPositions[Vertices_edge[0]].y-geometry->inputVertexPositions[Vertices_edge[1]].y,
+                    geometry->inputVertexPositions[Vertices_edge[0]].z-geometry->inputVertexPositions[Vertices_edge[1]].z;
+
+            Vertices_cotan[0] = he1.edge().halfedge().vertex();
+            Vertices_cotan[1] = he1.edge().halfedge().next().vertex();
+            Vertices_cotan[2] = he1.edge().halfedge().next().next().vertex();
+            Vertices_cotan[3] = he1.edge().halfedge().twin().next().next().vertex();
+            Grad_cotan = Eigen::Vector<double,12>(Gradients_cotan[he1.edge().getIndex()]);
+            
+            constant = 2*(Hi[v]/Dual_areas[v] - H0)/(16.0*Hi[v]);
+            for(Halfedge he2 : v.outgoingHalfedges()){
+
+                Vertices_edge_2[0] = he2.vertex();
+                Vertices_edge_2[1] = he2.twin().vertex();
+                dX2 <<   geometry->inputVertexPositions[Vertices_edge_2[0]].x-geometry->inputVertexPositions[Vertices_edge_2[1]].x,
+                                    geometry->inputVertexPositions[Vertices_edge_2[0]].y-geometry->inputVertexPositions[Vertices_edge_2[1]].y,
+                                    geometry->inputVertexPositions[Vertices_edge_2[0]].z-geometry->inputVertexPositions[Vertices_edge_2[1]].z;
+                    
+                Vertices_cotan_2[0] = he2.edge().halfedge().vertex();
+                Vertices_cotan_2[1] = he2.edge().halfedge().next().vertex();
+                Vertices_cotan_2[2] = he2.edge().halfedge().next().next().vertex();
+                Vertices_cotan_2[3] = he2.edge().halfedge().twin().next().next().vertex();
+                Grad_cotan2 = Eigen::Vector<double,12>(Gradients_cotan[he2.edge().getIndex()]);
+
+                M_12_12 = constant * Grad_cotan * Grad_cotan2.transpose() * ( dX.transpose()*(  Id - (Qs[v.getIndex()]*Qs[v.getIndex()].transpose())/(Hi[v]*Hi[v]) )*dX2);
+
+                for(int row = 0; row < 12; row++){
+                    for(int col = 0; col < 12; col++){
+                        tripletList.push_back(T(Vertices_cotan[row/3].getIndex()*3+row%3, Vertices_cotan_2[col/3].getIndex()*3 + col%3, M_12_12(row,col) ));    
+                    }
+                }
+
+                M_3_12 =  constant * Cotan_W[he1.edge()]*Id*( Id - (Qs[v.getIndex()]*Qs[v.getIndex()].transpose())/(Hi[v]*Hi[v]) )*dX2*Grad_cotan2.transpose();
+
+                for(int row = 0; row < 3; row++){
+                    for(int col = 0; col < 12; col++){
+                        tripletList.push_back(T( Vertices_edge[0].getIndex()*3+row%3, Vertices_cotan_2[col/3].getIndex()*3+col%3, M_3_12(row,col)));
+                        tripletList.push_back(T( Vertices_edge[1].getIndex()*3+row%3, Vertices_cotan_2[col/3].getIndex()*3+col%3, -1*M_3_12(row,col)));
+                    }
+                }
+
+                M_12_3 = constant * Cotan_W[he2.edge()]* Grad_cotan* dX.transpose()*( Id - (Qs[v.getIndex()]*Qs[v.getIndex()].transpose())/(Hi[v]*Hi[v]) ); 
+                
+                for(int row = 0; row < 12; row++){
+                    for(int col = 0; col < 3; col++){
+                        tripletList.push_back(T( Vertices_cotan[row/3].getIndex()*3+row%3, Vertices_edge_2[0].getIndex()*3+col%3, M_12_3(row,col)));
+                        tripletList.push_back(T( Vertices_cotan[row/3].getIndex()*3+row%3, Vertices_edge_2[1].getIndex()*3+col%3, -1*M_12_3(row,col)));
+                    }
+                }
+
+
+                M_3_3 = constant* Cotan_W[he1.edge()]*Cotan_W[he2.edge()]* ( Id - (Qs[v.getIndex()]*Qs[v.getIndex()].transpose())/(Hi[v]*Hi[v]) );
+
+                for(int row = 0; row < 3; row++){
+                    for(int col = 0; col < 3; col++){
+                        tripletList.push_back(T( Vertices_edge[0].getIndex()*3+row%3, Vertices_edge_2[0].getIndex()*3+col%3,    M_3_3(row,col) ));
+                        tripletList.push_back(T( Vertices_edge[1].getIndex()*3+row%3, Vertices_edge_2[1].getIndex()*3+col%3,    M_3_3(row,col) ));
+                        tripletList.push_back(T( Vertices_edge[0].getIndex()*3+row%3, Vertices_edge_2[1].getIndex()*3+col%3, -1*M_3_3(row,col) ));
+                        tripletList.push_back(T( Vertices_edge[1].getIndex()*3+row%3, Vertices_edge_2[0].getIndex()*3+col%3, -1*M_3_3(row,col) ));                
+                    }
+                }
+
+
+            }
+
+            // And now finally the Hessian term;
+
+            // 
+            constant = 2*(Hi[v]/Dual_areas[v] - H0)/(4.0*Hi[v]);
+
+            M_3_12 = constant * Qs[v.getIndex()]*Grad_cotan.transpose();
+            
+            for(int row = 0; row < 3; row++){
+                    for(int col = 0; col < 12; col++){
+                        tripletList.push_back(T( Vertices_edge[0].getIndex()*3+row%3, Vertices_cotan[col/3].getIndex()*3+col%3, M_3_12(row,col)));
+                        tripletList.push_back(T( Vertices_cotan[col/3].getIndex()*3+col%3, Vertices_edge[0].getIndex()*3+row%3, M_3_12(row,col)));
+                        
+                        tripletList.push_back(T( Vertices_edge[1].getIndex()*3+row%3, Vertices_cotan[col/3].getIndex()*3+col%3,  -1*M_3_12(row,col)));
+                        tripletList.push_back(T( Vertices_cotan[col/3].getIndex()*3+col%3, Vertices_edge[1].getIndex()*3+row%3,   -1*M_3_12(row,col)));                
+                    }
+                }
+
+                        // Out last one is 
+            Positions_cotan <<  geometry->inputVertexPositions[Vertices_cotan[0]].x, geometry->inputVertexPositions[Vertices_cotan[0]].y, geometry->inputVertexPositions[Vertices_cotan[0]].z,
+                                geometry->inputVertexPositions[Vertices_cotan[1]].x, geometry->inputVertexPositions[Vertices_cotan[1]].y, geometry->inputVertexPositions[Vertices_cotan[1]].z,
+                                geometry->inputVertexPositions[Vertices_cotan[2]].x, geometry->inputVertexPositions[Vertices_cotan[2]].y, geometry->inputVertexPositions[Vertices_cotan[2]].z,
+                                geometry->inputVertexPositions[Vertices_cotan[3]].x, geometry->inputVertexPositions[Vertices_cotan[3]].y, geometry->inputVertexPositions[Vertices_cotan[3]].z;
+        
+            M_12_12 = constant*geometry->hessian_cotan_weight(Positions_cotan)*(Qs[v.getIndex()].transpose()*dX );
+
+            for(int row = 0; row < 12; row++){
+                for(int col = 0; col < 12; col++){
+                    // if(fabs(M_12_12(row,col))>1e-10)
+                    tripletList.push_back(T(Vertices_cotan[row/3].getIndex()*3+row%3, Vertices_cotan[col/3].getIndex()*3 + col%3, M_12_12(row,col)  ));    
+                }
+            }
+            
+
+        }
+
+
+
+
+    }
+    // std::cout<<"DOne with hessian\n";
+    Hessian.setFromTriplets(tripletList.begin(),tripletList.end());
+    
+    
+    return KB*Hessian;
+}
+
 
 SparseMatrix<double> E_Handler::H_Edge_reg(std::vector<double> Constants){
     double KE = Constants[0];
@@ -2263,9 +2675,11 @@ void E_Handler::Calculate_gradient(){
 
         if(Energies[i]=="Laplace"){
 
+            // std::cout<<"Bending\n";
             Force_temp = F_Laplace(Energy_constants[i]);
             grad_norm = 0.0;
-            for(Vertex v : mesh->vertices()){
+
+            for(Vertex v :mesh->vertices()){
                 grad_norm += Force_temp[v].norm2();
             }
             if(Gradient_norms.size() == i){
@@ -2507,6 +2921,9 @@ SparseMatrix<double> E_Handler::Calculate_Hessian(){
         if(Energies[i] == "Surface_tension"){
             Hessian += H_SurfaceTension(Energy_constants[i]);
         }
+        if(Energies[i] =="Laplace"){
+            Hessian += H_Laplace(Energy_constants[i]);
+        }
         if(Energies[i] == "Bead"){
             // std::cout<<"Doing bead energy\n";
             // std::cout<<"The og hessian ahs size" << Hessian.rows() << " " << Hessian.cols() << "\n";
@@ -2591,10 +3008,14 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_E(){
             // std::cout<<"The og hessian ahs size" << Hessian.rows() << " " << Hessian.cols() << "\n";
             // std::cout<<"The energy constant is "<< Beads[bead_counter]->Bead_I->Energy_constants[0] << " \n";
             // std::cout<<"FUNCTION NOT AVAILABLE BUT SHOULD LOOK LIKE this\n";
-            Hessian += Beads[bead_counter]->Bead_I->Hessian();
+            Hessian += Beads[bead_counter]->Bead_I->Hessian_IP();
             // std::cout<<"Done with bead hessian\n";
             bead_counter +=1;
         }
+        if(Energies[i] =="Laplace"){
+            Hessian += H_Laplace(Energy_constants[i]);
+        }
+
         if(Energies[i] =="Edge_reg"){
             // std::cout<<"There should be one energy constant\n";
             // std::cout<<"The energy constants are " << Energy_constants[i][0]<<" \n";

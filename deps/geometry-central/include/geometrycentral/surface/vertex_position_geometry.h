@@ -176,6 +176,7 @@ class VertexPositionGeometry : public EmbeddedGeometryInterface {
 
     double Angle(Eigen::Vector<double,9> Positions) const;
     Eigen::Vector<double, 9 > gradient_angle(Eigen::Vector<double, 9> Positions) const;
+    Eigen::Matrix<double, 9,9 > hessian_angle(Eigen::Vector<double, 9> Positions) const;
 
     double Cotan_weight(Eigen::Vector<double,12> Positions) const;
     Eigen::Vector<double, 12> gradient_cotan_weight(Eigen::Vector<double, 12> Positions) const;

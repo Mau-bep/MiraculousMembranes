@@ -18,6 +18,11 @@ double Interaction::Bond_energy() {
     Vector3 vec_r;
     double r;
     std::vector<double> params;
+
+    if(Bead_1->state == "manual") return E_bond;
+
+    // std::cout<<"Calculating bond energy\n";
+
     for(size_t i = 0; i < Bead_1->Beads.size(); i ++){
         params = Bead_1->Interaction_constants_vector[i];
         if(Bead_1->Bond_type[i] == "Harmonic"){
@@ -43,6 +48,9 @@ std::vector<T> Interaction::Hessian_bonds_triplet(){
     int N_vert = mesh->nVertices();
     std::vector<T> tripletList;
     Eigen::Matrix<double,3,3> H_bond;
+
+    if(Bead_1->state == "manual") return tripletList;
+
     for(int i = 0; i < Bead_1->Beads.size(); i++){
         B_2 = Bead_1->Beads[i]->Bead_id;
 
@@ -106,7 +114,7 @@ Vector3 Interaction::Bond_force(){
     Vector3 Force{0.0,0.0,0.0};
     std::vector<double> params;
     double r;
-
+    if(Bead_1->state == "manual") return Force;
     for(size_t i = 0; i < Bead_1->Beads.size(); i++){
         params = Bead_1->Interaction_constants_vector[i];
         r_vec = Bead_1->Pos - Bead_1->Beads[i]->Pos;
@@ -577,13 +585,13 @@ SparseMatrix<double> Normal_dot_Interaction::Hessian_IP(){
     // We have all the nonzeroterms, now i need to add the zeros.
     
     for(Vertex v: mesh->vertices()){
-        tripletList.push_back(T(3*v.getIndex(), 3*(mesh->nVertices()+Bead_1->Bead_id), 0.0));
-        tripletList.push_back(T(3*v.getIndex()+1, 3*(mesh->nVertices()+Bead_1->Bead_id)+1, 0.0));
-        tripletList.push_back(T(3*v.getIndex()+2, 3*(mesh->nVertices()+Bead_1->Bead_id)+2, 0.0));
+        tripletList.push_back(T(3*v.getIndex()  , 3*(mesh->nVertices()+Bead_1->Bead_id)  , 1e-10));
+        tripletList.push_back(T(3*v.getIndex()+1, 3*(mesh->nVertices()+Bead_1->Bead_id)+1, 1e-10));
+        tripletList.push_back(T(3*v.getIndex()+2, 3*(mesh->nVertices()+Bead_1->Bead_id)+2, 1e-10));
 
-        tripletList.push_back(T(3*(mesh->nVertices()+Bead_1->Bead_id), 3*v.getIndex(),  0.0));
-        tripletList.push_back(T(3*(mesh->nVertices()+Bead_1->Bead_id)+1,3*v.getIndex() +1,  0.0));
-        tripletList.push_back(T(3*(mesh->nVertices()+Bead_1->Bead_id)+2, 3*v.getIndex()+2, 0.0));
+        tripletList.push_back(T(3*(mesh->nVertices()+Bead_1->Bead_id)  , 3*v.getIndex()  , 1e-10));
+        tripletList.push_back(T(3*(mesh->nVertices()+Bead_1->Bead_id)+1, 3*v.getIndex()+1, 1e-10));
+        tripletList.push_back(T(3*(mesh->nVertices()+Bead_1->Bead_id)+2, 3*v.getIndex()+2, 1e-10));
         
     }
 
@@ -975,13 +983,13 @@ SparseMatrix<double> Integrated_Interaction::Hessian_IP(){
     }
 
     for(Vertex v: mesh->vertices()){
-        tripletList.push_back(T(3*v.getIndex(), 3*(mesh->nVertices()+Bead_1->Bead_id), 0.0));
-        tripletList.push_back(T(3*v.getIndex()+1, 3*(mesh->nVertices()+Bead_1->Bead_id)+1, 0.0));
-        tripletList.push_back(T(3*v.getIndex()+2, 3*(mesh->nVertices()+Bead_1->Bead_id)+2, 0.0));
+        tripletList.push_back(T(3*v.getIndex()  , 3*(mesh->nVertices()+Bead_1->Bead_id)  , 1e-10));
+        tripletList.push_back(T(3*v.getIndex()+1, 3*(mesh->nVertices()+Bead_1->Bead_id)+1, 1e-10));
+        tripletList.push_back(T(3*v.getIndex()+2, 3*(mesh->nVertices()+Bead_1->Bead_id)+2, 1e-10));
 
-        tripletList.push_back(T(3*(mesh->nVertices()+Bead_1->Bead_id), 3*v.getIndex(),  0.0));
-        tripletList.push_back(T(3*(mesh->nVertices()+Bead_1->Bead_id)+1,3*v.getIndex() +1,  0.0));
-        tripletList.push_back(T(3*(mesh->nVertices()+Bead_1->Bead_id)+2, 3*v.getIndex()+2, 0.0));
+        tripletList.push_back(T(3*(mesh->nVertices()+Bead_1->Bead_id)  , 3*v.getIndex()  , 1e-10));
+        tripletList.push_back(T(3*(mesh->nVertices()+Bead_1->Bead_id)+1, 3*v.getIndex()+1, 1e-10));
+        tripletList.push_back(T(3*(mesh->nVertices()+Bead_1->Bead_id)+2, 3*v.getIndex()+2, 1e-10));
         
     }
 
