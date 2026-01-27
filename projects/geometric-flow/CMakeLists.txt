@@ -101,7 +101,7 @@ set(SRCScluster
   src/Energy_Handler.cpp
   src/Interaction.cpp
   ../../utils/src/colormap.cpp
-  src/ShapeNLP.cpp
+  # src/ShapeNLP.cpp
 )
 
 set(SRCSvisualize 
@@ -281,7 +281,10 @@ target_include_directories(EigenRand INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/../.
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/lib")
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include")
 
-target_link_libraries(main_cluster PUBLIC geometry-central polyscope arcsim EigenRand ipopt)
+target_link_libraries(main_cluster PUBLIC geometry-central polyscope arcsim EigenRand)
+
+
+# target_link_libraries(main_cluster PUBLIC geometry-central polyscope arcsim EigenRand ipopt)
 
 
 add_executable(main_visualize "${SRCSvisualize}")

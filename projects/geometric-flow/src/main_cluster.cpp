@@ -51,11 +51,11 @@
 #include "conf.hpp"
 #include "log.hpp"
 
-#include "coin-or/IpIpoptApplication.hpp"
-#include "coin-or/IpSolveStatistics.hpp"
-#include "coin-or/IpTNLP.hpp"
+// #include "coin-or/IpIpoptApplication.hpp"
+// #include "coin-or/IpSolveStatistics.hpp"
+// #include "coin-or/IpTNLP.hpp"
 
-#include "ShapeNLP.hpp"
+// #include "ShapeNLP.hpp"
 
 // #include "hs071_nlp.hpp"
 
@@ -1292,19 +1292,19 @@ int main(int argc, char** argv) {
 
    // IPOPT STUFF
 
-    SmartPtr<ShapeNLP> shapenlp = new ShapeNLP();
-    SmartPtr<IpoptApplication> app  = IpoptApplicationFactory();
+    // SmartPtr<ShapeNLP> shapenlp = new ShapeNLP();
+    // SmartPtr<IpoptApplication> app  = IpoptApplicationFactory();
     
-    ApplicationReturnStatus status_opt;
+    // ApplicationReturnStatus status_opt;
 
-    shapenlp->M3DG = &M3DG;
+    // shapenlp->M3DG = &M3DG;
 
     std::cout<<"The number of vertices is "<< mesh->nVertices() << "\n";
-    app->Options()->SetStringValue("linear_solver", "ma57");
-    app->Options()->SetNumericValue("tol", 1e-4);
-    app->Options()->SetStringValue("mu_strategy", "adaptive");
-    app->Options()->SetStringValue("output_file", basic_name+"ipopt.out");
-    app->Options()->SetIntegerValue("max_iter", 50);
+    // app->Options()->SetStringValue("linear_solver", "ma57");
+    // app->Options()->SetNumericValue("tol", 1e-4);
+    // app->Options()->SetStringValue("mu_strategy", "adaptive");
+    // app->Options()->SetStringValue("output_file", basic_name+"ipopt.out");
+    // app->Options()->SetIntegerValue("max_iter", 50);
 
     // app->Options()->SetStringValue("derivative_test", "first-order");
     // app->Options()->SetStringValue("derivative_test", "second-order");  
@@ -1906,14 +1906,14 @@ int main(int argc, char** argv) {
             Sim_handler.Constraints = Constraints;
 
             // std::cout<<"Integrating IpOpt\n";
-            shapenlp = new ShapeNLP();
-            shapenlp->M3DG = &M3DG;
+            // shapenlp = new ShapeNLP();
+            // shapenlp->M3DG = &M3DG;
 
             M3DG.Sim_handler->Trgt_area = A_target;
             std::cout<<"THe target area is" << A_target <<" and it should be " << A_bar <<" \n";
             app->Initialize();
             
-            status_opt = app->OptimizeTNLP(shapenlp); // Here is where the magic happens
+            // status_opt = app->OptimizeTNLP(shapenlp); // Here is where the magic happens
             if (status_opt == Solve_Succeeded) {
                 std::cout << "\n\n*** The problem solved!\n";
                 break;
