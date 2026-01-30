@@ -3,81 +3,100 @@ import os
 #I want to create a script that ask for the step size and creates a subjob that uses it
 
 #Lets assume we are on the directory where i can store all the data 
-import numpy as np
+
 # Lets do a rework here
 import json
-
 from jinja2 import Environment, FileSystemLoader
-
+import numpy as np
 # We need jinja and json here
 
 
 
 
-KA = sys.argv[1]
-KB = sys.argv[2]
-relaxation_step = int(sys.argv[3])
-# Nsim=sys.argv[4]
 
+# Nsim=int(sys.argv[1])
+# ini_config=int(sys.argv[2])
+# fin_config=int(sys.argv[3])
+# Target_val=float(sys.argv[4])
 
-def get_bead_pos(folderpath,relaxation_step):
-    filename = folderpath + "Bead_0_data.txt"
-    data = np.loadtxt(filename,skiprows=1)
-    # Ok now i need the position of the bead 
-    x = data[relaxation_step,0]
-    y = data[relaxation_step,1]
-    z = data[relaxation_step,2]
-    return [x,y,z]
+# v=float(sys.argv[1])
+# c0=float(sys.argv[2])
+# KA=float(sys.argv[3])
+# KB=float(sys.argv[4])
+angle = sys.argv[1]
+Nsim = 1
+strg = 300
 
-def Create_json_relaxation(KA,KB,relaxation_step):
+def Create_json_wrapping_with_tube(angle, strg):
+    theta = float(angle)
     os.makedirs("../Config_files/",exist_ok = True)
-
     env = Environment(loader=FileSystemLoader('../Templates/'))
-    template = env.get_template('Tube_relaxation.txt')
-    # I need to get the xpos ypos zpos
 
-    # folderpath = "../Results/Tube_pulling_on_plane/Surface_tension_0.0500_Bending_20.0000_Bead_radius_0.2000_str_10.0000_Bead_radius_0.4000_str_0.0000_Bonds_Lineal_1000.0000_Lineal_1000.0000_Nsim_4/"
-    folderpath = "../Results/Tube_pulling_on_plane/Surface_tension_0.0050_Bending_30.0000_Bead_radius_0.1000_str_10.0000_Bead_radius_0.4000_str_0.0000_Bonds_Lineal_1500.0000_Lineal_1500.0000_Nsim_1002/"
+
+    template = env.get_template('Wrapping_with_tube.txt')
     
-    [x,y,z] = get_bead_pos(folderpath,relaxation_step)
-    filename = folderpath +"membrane_{}.obj".format(relaxation_step*100)
+   
+    
+    x1 = 2.0*np.cos(theta) 
+    z1 = 2.0*np.sin(theta)
+    # We should do 
+    
+    # Leq = np.sqrt( (x1-x2)**2 + y2**2 )
 
-    output_from_parsed_template = template.render(KA = KA, KB = KB, xpos = x, ypos = y, zpos = z,init_file = filename )
+
+    
+    output_from_parsed_template = template.render( theta = theta,x1 = x1,z1 = z1, strg = strg)
+
+    # print(output_from_parsed_template)
     data = json.loads(output_from_parsed_template)
 
-    Config_path = '../Config_files/Tube_relaxation_step_{}_KA_{}_KB_{}.json'.format(relaxation_step,KA,KB) 
+
+    # print("something\n")
+    Config_path = '../Config_files/Wrapping_with_tube_{}_{}.json'.format(angle,strg) 
+    
+    sim_path = data['first_dir']
+    
     with open(Config_path, 'w') as file:
         json.dump(data, file, indent=4)
 
-    return Config_path
-
+    return Config_path , sim_path
 
 
 
 os.makedirs('../Subjobs/',exist_ok=True)
 os.makedirs('../Outputs/',exist_ok=True)
 
-Config_path = Create_json_relaxation(KA,KB,relaxation_step)
 
 
+# Config_path, sim_path = Create_json_wrapping_two(KA,KB,radius,Strength,angle)
+# # Hopefully this works
+Config_path, sim_path = Create_json_wrapping_with_tube(angle,strg)
 
-f=open('../Subjobs/subjob_tube_relaxation_KA_{}_KB_{}_Nsim_{}'.format(KA,KB,relaxation_step),'w')
+
+# def main():
+Output_name = 'output_bead_tube_theta_{}_{}.output'.format(angle,strg)
+Output_path = '../Outputs/'+Output_name
+
+f=open('../Subjobs/subjob_bead_tube_theta_{}_{}'.format(angle,strg),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')
 
-f.write('#SBATCH --job-name=Mem3DGpa\n')
-f.write('#SBATCH --output=../Outputs/output_tube_relaxation_{}_KA_{}_KB_{}_Nsim_{}'.format(relaxation_step,KA,KB,relaxation_step))
-f.write('#\n')
+f.write('#SBATCH --job-name=Wrap\n')
+f.write('#SBATCH --output={}'.format(Output_path))
+f.write('\n#\n')
+
+# f.write('module load boost\n')
+
 f.write('#number of CPUs to be used\n')
 f.write('#SBATCH --ntasks=1\n')
 f.write('#Define the number of hours the job should run. \n')
 f.write('#Maximum runtime is limited to 10 days, ie. 240 hours\n')
-f.write('#SBATCH --time=1-4:00:00\n')
+f.write('#SBATCH --time=10:01:20\n')
 
 f.write('#\n')
 f.write('#Define the amount of system RAM used by your job in GigaBytes\n')
-f.write('#SBATCH --mem=4G\n')
+f.write('#SBATCH --mem=5G\n')
 f.write('#\n')
 
 #f.write('#Send emails when a job starts, it is finished or it exits\n')
@@ -94,7 +113,7 @@ f.write('\n')
 f.write('#Do not export the local environment to the compute nodes\n')
 f.write('#SBATCH --export=NONE\n')
 f.write('\n')
-
+f.write('#SBATCH --error=%x_%j.err \n')
 f.write('unset SLURM_EXPORT_ENV\n')
 f.write('#for single-CPU jobs make sure that they use a single thread\n')
 f.write('export OMP_NUM_THREADS=1\n')
@@ -109,11 +128,18 @@ f.write('export PATH="/nfs/scistore16/wojtgrp/mrojasve/.local/bin:$PATH"\n')
 f.write('echo $PATH\n')
 
 
+f.write('module load conda\n')
+f.write('conda activate mir_membranes\n')
+
 f.write('pwd\n')
 
-f.write('srun time -v ../build/bin/main_cluster {} {}\n'.format(Config_path,relaxation_step))
+f.write('date\n')
+f.write('srun time -v ../build/bin/main_cluster {} {}\n'.format(Config_path,Nsim))
+f.write('date\n')
+#  Here we can tell the script to move the output file
 
-
+f.write('cp {}.output {}/{}.txt \n'.format(Output_path,sim_path,Output_name) )
+# I need to acces the data in the config file.
 
 f.write('\n')
 f.write('#sacct --format="JobID, State, AllocGRES, AllocNodes, CPUTime, ReqMem, MaxRSS, AveRSS, Elapsed" --units=G | head -n 1\n')

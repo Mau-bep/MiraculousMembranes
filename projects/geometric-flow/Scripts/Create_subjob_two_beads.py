@@ -142,27 +142,42 @@ os.makedirs('../Outputs/',exist_ok=True)
 
 
 # Config_path, sim_path = Create_json_wrapping_two(KA,KB,radius,Strength,angle)
+# # Hopefully this works
+Config_path, sim_path = Create_json_wrapping_two_outside(angle,outside1,outside2)
+
+
+
+
+os.makedirs('../Subjobs/',exist_ok=True)
+os.makedirs('../Outputs/',exist_ok=True)
+
+
+
+# Config_path, sim_path = Create_json_wrapping_two(KA,KB,radius,Strength,angle)
 # Hopefully this works
 Config_path, sim_path = Create_json_wrapping_two_outside(angle,outside1,outside2)
 
 
 # def main():
-Output_name = 'output_serial_two_beads_theta_{}_{}_{}'.format(angle,location[outside1],location[outside2])
+Output_name = 'output_two_beads_right_spring_theta_{}_{}_{}.output'.format(angle,location[outside1],location[outside2])
 Output_path = '../Outputs/'+Output_name
 
-f=open('../Subjobs/subjob_serial_two_beads_theta_{}_{}_{}'.format(angle,location[outside1],location[outside2]),'w')
+f=open('../Subjobs/subjob_serial_two_beads_right_spring_theta_{}_{}_{}'.format(angle,location[outside1],location[outside2]),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')
 
 f.write('#SBATCH --job-name=Wrap\n')
 f.write('#SBATCH --output={}'.format(Output_path))
-f.write('#\n')
+f.write('\n#\n')
+
+# f.write('module load boost\n')
+
 f.write('#number of CPUs to be used\n')
 f.write('#SBATCH --ntasks=1\n')
 f.write('#Define the number of hours the job should run. \n')
 f.write('#Maximum runtime is limited to 10 days, ie. 240 hours\n')
-f.write('#SBATCH --time=10:00:00\n')
+f.write('#SBATCH --time=10:01:20\n')
 
 f.write('#\n')
 f.write('#Define the amount of system RAM used by your job in GigaBytes\n')
@@ -183,7 +198,7 @@ f.write('\n')
 f.write('#Do not export the local environment to the compute nodes\n')
 f.write('#SBATCH --export=NONE\n')
 f.write('\n')
-
+f.write('#SBATCH --error=%x_%j.err \n')
 f.write('unset SLURM_EXPORT_ENV\n')
 f.write('#for single-CPU jobs make sure that they use a single thread\n')
 f.write('export OMP_NUM_THREADS=1\n')
@@ -198,13 +213,17 @@ f.write('export PATH="/nfs/scistore16/wojtgrp/mrojasve/.local/bin:$PATH"\n')
 f.write('echo $PATH\n')
 
 
+f.write('module load conda\n')
+f.write('conda activate mir_membranes\n')
+
 f.write('pwd\n')
 
+f.write('date\n')
 f.write('srun time -v ../build/bin/main_cluster {} {}\n'.format(Config_path,Nsim))
-
+f.write('date\n')
 #  Here we can tell the script to move the output file
 
-f.write('cp {} {}/{}.txt \n'.format(Output_path,sim_path,Output_name) )
+f.write('cp {}.output {}/{}.txt \n'.format(Output_path,sim_path,Output_name) )
 # I need to acces the data in the config file.
 
 f.write('\n')

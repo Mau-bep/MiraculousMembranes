@@ -437,7 +437,7 @@ Vector3 Get_bead_pos(std::string filename, int step){
     return Bead_pos;
 }
 
-using namespace Ipopt;
+// using namespace Ipopt;
 
 int main(int argc, char** argv) {
 
@@ -1310,13 +1310,13 @@ int main(int argc, char** argv) {
     // app->Options()->SetStringValue("derivative_test", "second-order");  
     // app->Options()->SetNumericValue("derivative_test_perturbation", 1e-6);
         
-    status_opt = app->Initialize();
-    std::cout<<"App initialized\n";
-   if( status_opt != Solve_Succeeded )
-   {
-      std::cout << std::endl << std::endl << "*** Error during initialization!" << std::endl;
-      return (int) status_opt;
-   }
+//     status_opt = app->Initialize();
+//     std::cout<<"App initialized\n";
+//    if( status_opt != Solve_Succeeded )
+//    {
+//       std::cout << std::endl << std::endl << "*** Error during initialization!" << std::endl;
+//       return (int) status_opt;
+//    }
     
     M3DG.Sim_handler->Trgt_vol = geometry->totalVolume();
     M3DG.Sim_handler->Constraints.push_back("Volume_constraint");
@@ -1911,26 +1911,26 @@ int main(int argc, char** argv) {
 
             M3DG.Sim_handler->Trgt_area = A_target;
             std::cout<<"THe target area is" << A_target <<" and it should be " << A_bar <<" \n";
-            app->Initialize();
+            // app->Initialize();
             
             // status_opt = app->OptimizeTNLP(shapenlp); // Here is where the magic happens
-            if (status_opt == Solve_Succeeded) {
-                std::cout << "\n\n*** The problem solved!\n";
-                break;
-            }
-            else {
-                Switch_times_map["IpOpt"] = current_t + 2*size_t(Data["remesh_every"]);
-                Switch_times_map["No_remesh"] = Switch_times_map["IpOpt"] - 2;
-                // Switch_times_map["Restore_remeshing"] = current_t +1 ;
-                std::cout<<"Remeshing and retrying \n";
-                // Switch_times_map["Finer_mesh"] = current_t + 1;
+            // if (status_opt == Solve_Succeeded) {
+                // std::cout << "\n\n*** The problem solved!\n";
+                // break;
+            // // }
+            // else {
+            //     Switch_times_map["IpOpt"] = current_t + 2*size_t(Data["remesh_every"]);
+            //     Switch_times_map["No_remesh"] = Switch_times_map["IpOpt"] - 2;
+            //     // Switch_times_map["Restore_remeshing"] = current_t +1 ;
+            //     std::cout<<"Remeshing and retrying \n";
+            //     // Switch_times_map["Finer_mesh"] = current_t + 1;
                 
-                remesh_every = 1;
-                arcsim = true;
+            //     remesh_every = 1;
+            //     arcsim = true;
                 
-                std::cout << "\n\n*** The problem FAILED!\n";
-                // std::cout<< "Refining mesh and trying again\n";
-            }
+            //     std::cout << "\n\n*** The problem FAILED!\n";
+            //     // std::cout<< "Refining mesh and trying again\n";
+            // }
             // Integration = "Gradient_descent";
 
         
