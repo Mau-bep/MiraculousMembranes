@@ -1,19 +1,20 @@
 {
     "init_file": "../../../input/Simplesphere.obj",
     "save_interval": 2000,
-    "timesteps": 300000,
+    "timesteps": 600000,
     "continue_sim": false,
     "resize_vol": false,
     "arcsim": true,
     "remesh_every": 10,
     "first_dir": {{ Dir }},
     "Switches" : ["No_remesh"],
-    "Switch_times": [250000],
+    "Switch_times": [550000],
     "boundary": false,
     "recentering": false,
     "saving_states": true,
     "rescale": 2.0,
     "finish_sim": false,
+    "theta": {{ theta }},
     "Displacement": [
         0.0 ,
         0.0,
@@ -28,6 +29,10 @@
         },
         {
             "Name": "Volume_constraint",
+            "constants":[10000.0, -1.0]
+        },
+        {
+            "Name": "Area_constraint",
             "constants":[10000.0, -1.0]
         }
         
@@ -45,7 +50,7 @@
             "mem_inter": "Frenkel_Normal_nopush",
             "inter_str": 700,
             "bonds": ["Harmonic"],
-            "bonds_constants": [[400.0,{{ L0 }}]],
+            "bonds_constants": [[0.0,{{ L0 }}]],
             "Beads": [1],
             "Constraint": "None",
             "Constraint_constants":[]
