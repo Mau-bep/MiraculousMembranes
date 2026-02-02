@@ -514,8 +514,13 @@ int main(int argc, char** argv) {
 
 
     int remesh_every = 1;
+    size_t last_remesh = 0;
+    bool adapt_remesh = true;
+
     if( Data.contains("remesh_every")) remesh_every = Data["remesh_every"];
     std::cout<<"Remeshing every " << remesh_every << " steps "<< std::endl;
+    if( Data.contains("adapt_remesh")) adapt_remesh = Data["adapt_remesh"];
+
 
     Vector3 Recenter{0.0,0.0,0.0};
     if(Data.contains("Displacement")){
@@ -1222,7 +1227,9 @@ int main(int argc, char** argv) {
 
     if(arcsim) {
         arcsim::dynamic_remesh(Cloth_1);
+
         std::cout<<"Done first remeshing\n";
+        std::cout<<"THis remeshing did "<< Cloth_1.remeshing.op_counter << " operations \n";
         std::cout<<" \n\n";
     }
 
@@ -1284,6 +1291,17 @@ int main(int argc, char** argv) {
         geometry->refreshQuantities();
     }
 
+
+    bool Count_remesh = false;
+    std::ofstream Remeshing_count;
+    if(Data.contains("Count_remesh")){
+        Count_remesh = Data["Count_remesh"];
+        std::cout<<"The remeshing counting is "<< Count_remesh << "\n";
+        Remeshing_count = std::ofstream(basic_name+"Remeshing_count.txt",std::ios_base::app);
+        Remeshing_count<<"#### timestep remeshing_operations nVertices nEdges nFaces \n";
+        Remeshing_count.close();
+    }
+    
 
     std::cout<<"Lets start the sim\n";
     start_full = chrono::steady_clock::now();
@@ -1364,6 +1382,9 @@ int main(int argc, char** argv) {
            break;
            }
     }
+
+    
+
 
 
 
@@ -1491,7 +1512,9 @@ int main(int argc, char** argv) {
 
 
 
-        if( arcsim  && (current_t%remesh_every==0 || dt_sim == 0.0)){
+        if( arcsim  &&  ((current_t-last_remesh) > remesh_every && remesh_every > 0 || dt_sim == 0.0)){
+
+            last_remesh = current_t;
             // if(dt_sim==0.0){ std::cout<<"wE ARE REMESHING CAUSE THINGS DONT MAKE SENSE\n";}
             // std::cout<<"\t\t Remeshing\n";
             // Here we want to explore whats going on 
@@ -1528,13 +1551,42 @@ int main(int argc, char** argv) {
             arcsim::compute_masses(Cloth_1);
             arcsim::compute_ws_data(Cloth_1.mesh);
             arcsim::dynamic_remesh(Cloth_1);
-
+            // std::cout<<"THis remeshing did "<< Cloth_1.remeshing.op_counter << " operations \n";
+            // if(Count_remesh){
+            // Remeshing_count = std::ofstream(basic_name+"Remeshing_count.txt",std::ios_base::app);
+            // Remeshing_count<< current_t << " "<< Cloth_1.remeshing.op_counter << " "<< Cloth_1.mesh.nodes.size() <<" " << Cloth_1.mesh.edges.size()<< " " << Cloth_1.mesh.faces.size()<< "\n"; 
+            // Remeshing_count.close();
+            // }
             // std::cout<<"The operation counter is "<< Cloth_1.remeshing.op_counter <<"\n";
+            if(adapt_remesh){
+            if(Cloth_1.remeshing.op_counter > 50){
+                remesh_every = remesh_every/2;
+            }
+            else if(Cloth_1.remeshing.op_counter < 20){
+                remesh_every = remesh_every+10;
+            }
+            else{
+                remesh_every = remesh_every +1;
+            }
+            }
+
+            if(remesh_every > 1000) remesh_every = 1000; // I wonder if i really need this or remesh_every should be unbounded
+
+            if(Count_remesh)
+                {
+                    Remeshing_count = std::ofstream(basic_name+"Remeshing_count.txt",std::ios_base::app);
+                    Remeshing_count<< current_t << " "<< Cloth_1.remeshing.op_counter << " "<< remesh_every << "\n"; 
+                    Remeshing_count.close(); 
+                }
+
             if(Cloth_1.remeshing.op_counter != 0){
                 arcsim::compute_masses(Cloth_1);
                 arcsim::compute_ws_data(Cloth_1.mesh);
                 arcsim::dynamic_remesh(Cloth_1);
+
+                
             }
+
             
             
 
@@ -1560,6 +1612,8 @@ int main(int argc, char** argv) {
             M3DG.geometry = geometry;
             Sim_handler.mesh = mesh;
             Sim_handler.geometry = geometry;
+
+            
 
             for( Edge e : mesh->edges()){ 
                 dih = fabs(geometry->dihedralAngle(e.halfedge()));
