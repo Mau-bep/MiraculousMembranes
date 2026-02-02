@@ -26,6 +26,7 @@ import numpy as np
 angle = sys.argv[1]
 outside1 = int(sys.argv[2])
 outside2 = int(sys.argv[3])
+Nsim = 1
 
 # Strength=sys.argv[2]
 # radius = float(sys.argv[3])
@@ -103,7 +104,7 @@ def Create_json_wrapping_two_outside(angle, outside1, outside2):
     
     location = [1,"outside","inside"]
 
-    dir = '"../Results/Two_beads_{}_{}/"'.format(location[outside1],location[outside2])
+    dir = '"../Results/Two_beads_without_spring_{}_{}/"'.format(location[outside1],location[outside2])
 
     v1x = 10.0*(outside1*-1)
     x1 = 2.0 + 0.3*outside1 
@@ -125,7 +126,7 @@ def Create_json_wrapping_two_outside(angle, outside1, outside2):
 
 
     # print("something\n")
-    Config_path = '../Config_files/Wrapping_two_{}_{}_{}.json'.format(angle,location[outside1],location[outside2]) 
+    Config_path = '../Config_files/Wrapping_two_without_{}_{}_{}.json'.format(angle,location[outside1],location[outside2]) 
     
     sim_path = data['first_dir']
     
@@ -159,10 +160,10 @@ Config_path, sim_path = Create_json_wrapping_two_outside(angle,outside1,outside2
 
 
 # def main():
-Output_name = 'output_two_beads_right_spring_theta_{}_{}_{}.output'.format(angle,location[outside1],location[outside2])
+Output_name = 'output_two_beads_without_spring_theta_{}_{}_{}.output'.format(angle,location[outside1],location[outside2])
 Output_path = '../Outputs/'+Output_name
 
-f=open('../Subjobs/subjob_serial_two_beads_right_spring_theta_{}_{}_{}'.format(angle,location[outside1],location[outside2]),'w')
+f=open('../Subjobs/subjob_serial_two_beads_without_spring_theta_{}_{}_{}'.format(angle,location[outside1],location[outside2]),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')
