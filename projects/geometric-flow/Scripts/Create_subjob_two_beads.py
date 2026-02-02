@@ -121,7 +121,7 @@ def Create_json_wrapping_two_outside(angle, outside1, outside2):
     
     output_from_parsed_template = template.render(Dir = dir,theta =theta, outside1 = outside1, v1x = v1x, x1 = x1,L0 = Leq, outside2 = outside2, v2x = v2x, v2y = v2y,x2 = x2, y2 = y2 )
 
-    print(output_from_parsed_template)
+    # print(output_from_parsed_template)
     data = json.loads(output_from_parsed_template)
 
 
