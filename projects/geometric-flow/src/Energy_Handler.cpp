@@ -93,18 +93,14 @@ double E_Handler::E_Bending(std::vector<double> Constants) const {
         r_eff2 = Pos.z*Pos.z + Pos.y*Pos.y ;      
         // std::cout<<"boundary? \n";
         if(r_eff2 > 1.6 && boundary ) continue;
-        // std::cout<<" MC and dual area\n";
+  
+
         A = geometry->barycentricDualArea(v);
         H=(geometry->scalarMeanCurvature(v)/A-H0);
         // std::cout<<" isnan\n";
-        if(std::isnan(H)){
-          
-        //   std::cout<<"Dual area: "<< geometry->barycentricDualArea(v);
-        //   std::cout<<"Scalar mean Curv"<< geometry->scalarMeanCurvature(v);
-        //   std::cout<<"One of the H is not a number\n";
-        continue;
-        }        
-        // std::cout<<" adding\n";
+        if(std::isnan(H)) continue;
+           
+  
         Eb+=KB*H*H*A;
         
         }   
@@ -472,8 +468,8 @@ VertexData<Vector3> E_Handler::F_Bending(std::vector<double> Constants) const{
     VertexData<double> Dual_areas(*mesh,0.0);
     VertexData<double> Scalar_MC(*mesh,0.0);
     for(Vertex v : mesh->vertices()){
-        Dual_areas[v] = geometry->barycentricDualArea(v);
-        Scalar_MC[v] = geometry->scalarMeanCurvature(v);
+        Dual_areas[v] = geometry->barycentricDualArea(v); //Ai
+        Scalar_MC[v] = geometry->scalarMeanCurvature(v); //Hi
     }
 
 
@@ -556,8 +552,10 @@ VertexData<Vector3> E_Handler::F_Bending(std::vector<double> Constants) const{
             if( Vertices_edge[i].isBoundary() ) Force[Vertices_edge[i]] = {0,0,0};
             else Force[Vertices_edge[i]] += -1*KB*Force_vector;
         }
+        
         for(size_t i = 0; i < 4; i++){
             Force_vector = Vector3{Grad_dihedral[3*i], Grad_dihedral[3*i+1], Grad_dihedral[3*i+2]};
+
             if( Vertices_dihedral[i].isBoundary() ) Force[Vertices_dihedral[i]] = {0,0,0};
             else Force[Vertices_dihedral[i]] += -1*KB*Force_vector;
         }
@@ -2395,6 +2393,8 @@ void E_Handler::Calculate_energies(double* E){
         if(Energies[i]=="Area_constraint"){
             if(Energy_constants[i][0]>1e-5) Energy_values[i] = E_Area_constraint(Energy_constants[i]);
             else Energy_values[i] = 0.0;
+
+            // std::cout<<"THe target area is " << Energy_constants[i][1] <<" \n";
             *E += Energy_values[i];
             continue;
         }

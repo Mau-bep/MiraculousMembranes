@@ -583,7 +583,7 @@ int main(int argc, char** argv) {
             
             std::cout<<"The target Area is "<< A_bar << " from nu "<< nu << "\n";
             std::cout<<"The current Area is "<< geometry->totalArea() << "\n";
-
+            
             dA = Constants[3];
             // First problem
             Constants[1] = geometry->totalArea()+ (dA/(fabs(dA)))*std::min(fabs(dA), fabs(A_bar -geometry->totalArea() )) ;
@@ -595,6 +595,7 @@ int main(int argc, char** argv) {
                 }
                 else{
                     A_bar = geometry->totalArea();
+                    Constants[1] = A_bar;
                 }
             }
             //
@@ -1390,7 +1391,7 @@ int main(int argc, char** argv) {
 
     std::cout<<"Starting sim\n";
     for(size_t current_t=1; current_t <= Final_t ;current_t++ ){
-
+        // std::cout<<"THe target area is " << 
 
         for(int sw = 0; sw < Switches.size(); sw ++){
         Switch = Switches[sw];
@@ -1481,7 +1482,9 @@ int main(int argc, char** argv) {
 
 
         // 
+        // std::cout<<"dA is "<< dA <<" \n";
         if(fabs(dA) > 1e-15){
+            // std::cout<<"dA is "<< dA <<" \n";
             // I need to add area to the target area
             for(size_t i = 0; i < Energies.size(); i++){
                 if(Energies[i] == "Area_constraint"){

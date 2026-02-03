@@ -147,10 +147,7 @@ double VertexPositionGeometry::barycentricDualArea(Vertex v) const {
         Dual_area+=faceArea(he.face());
     }
     
-    // for(Face f : v.adjacentFaces()) {
-    //     Dual_area+=faceArea(f);
-
-    // }
+  
     
     return Dual_area/3.0; // placeholder
 }

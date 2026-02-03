@@ -137,8 +137,9 @@ def Create_json_wrapping_two_outside(angle, outside1, outside2):
 
 
 
-os.makedirs('../Subjobs/',exist_ok=True)
-os.makedirs('../Outputs/',exist_ok=True)
+
+# os.makedirs('../Subjobs/',exist_ok=True)
+# os.makedirs('../Outputs/',exist_ok=True)
 
 
 
@@ -149,17 +150,9 @@ Config_path, sim_path = Create_json_wrapping_two_outside(angle,outside1,outside2
 
 
 
-os.makedirs('../Subjobs/',exist_ok=True)
-os.makedirs('../Outputs/',exist_ok=True)
 
 
-
-# Config_path, sim_path = Create_json_wrapping_two(KA,KB,radius,Strength,angle)
-# Hopefully this works
-Config_path, sim_path = Create_json_wrapping_two_outside(angle,outside1,outside2)
-
-
-# def main():
+# # def main():
 Output_name = 'output_two_beads_without_spring_theta_{}_{}_{}.output'.format(angle,location[outside1],location[outside2])
 Output_path = '../Outputs/'+Output_name
 

@@ -1,7 +1,7 @@
 {
     "init_file": "../../../input/Simplesphere.obj",
     "save_interval": 2000,
-    "timesteps": 600000,
+    "timesteps": 1000000,
     "continue_sim": false,
     "resize_vol": false,
     "arcsim": true,
@@ -9,7 +9,7 @@
     "remesh_every": 1,
     "first_dir": {{ Dir }},
     "Switches" : ["No_remesh"],
-    "Switch_times": [550000],
+    "Switch_times": [950000],
     "boundary": false,
     "recentering": false,
     "saving_states": true,
@@ -34,7 +34,7 @@
         },
         {
             "Name": "Area_constraint",
-            "constants":[10000.0, -1.0]
+            "constants":[10000.0, -1.0, -1.0]
         }
         
     ],
