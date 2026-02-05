@@ -30,11 +30,11 @@
         },
         {
             "Name": "Volume_constraint",
-            "constants":[10000.0, -1.0]
+            "constants":[100000.0, -1.0]
         },
         {
             "Name": "Area_constraint",
-            "constants":[10000.0, -1.0, -1.0]
+            "constants":[100000.0, -1.0, -1.0]
         }
         
     ],
@@ -49,7 +49,7 @@
                 {{ x1 }},0.0,0.0
             ],
             "mem_inter": "Frenkel_Normal_nopush",
-            "inter_str": 700,
+            "inter_str": 600,
             "bonds": ["Harmonic"],
             "bonds_constants": [[0.0,{{ L0 }}]],
             "Beads": [1],
@@ -70,7 +70,7 @@
                 0.0
             ],
             "mem_inter": "Frenkel_Normal_nopush",
-            "inter_str": 700,
+            "inter_str": 600,
             "bonds": ["Harmonic"],
             "bonds_constants": [[0.0, {{ L0 }}]],
             "Beads": [0],
@@ -84,7 +84,7 @@
         "refine_angle": 0.7,
         "refine_compression": 0.0001,
         "refine_velocity": 1.0,
-        "size_max": 0.45,
+        "size_max": 0.4,
         "size_min": 0.001
     }
 }

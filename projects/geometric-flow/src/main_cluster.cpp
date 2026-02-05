@@ -1573,7 +1573,7 @@ int main(int argc, char** argv) {
             }
             }
 
-            if(remesh_every > 1000) remesh_every = 1000; // I wonder if i really need this or remesh_every should be unbounded
+            // if(remesh_every > 1000) remesh_every = 1000; // I wonder if i really need this or remesh_every should be unbounded
 
             if(Count_remesh)
                 {
@@ -1878,6 +1878,7 @@ int main(int argc, char** argv) {
                 if(Energies[i] == "Volume_constraint"){
                     // std::cout<<"Turning the vol constraint gradient calc off for Newton\n";
                     Sim_handler.Energy_constants[i][0] = 0.0;
+                    continue;
                 }
 
             }
