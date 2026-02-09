@@ -21,13 +21,13 @@ foreach theta ( 0.15 0.175 0.2 0.3 0.325 0.35 0.375 0.4 0.425 0.45 0.475 0.5 0.5
 # sbatch ../Subjobs/subjob_serial_two_beads_theta_${theta}_Strg_${Strg}_radius_${radius}_KA_${KA}_KB_${KB}_Nsim_${Nsim}
 
 python3 Create_subjob_two_beads.py ${theta} -1 -1 
-sbatch ../Subjobs/subjob_serial_two_beads_without_spring_theta_${theta}_inside_inside
+sbatch ../Subjobs/subjob_two_beads_without_spring_theta_${theta}_inside_inside_finer
 
 python3 Create_subjob_two_beads.py ${theta} -1 1 
-sbatch ../Subjobs/subjob_serial_two_beads_without_spring_theta_${theta}_inside_outside
+sbatch ../Subjobs/subjob_two_beads_without_spring_theta_${theta}_inside_outside_finer
 
 python3 Create_subjob_two_beads.py ${theta} 1 1 
-sbatch ../Subjobs/subjob_serial_two_beads_without_spring_theta_${theta}_outside_outside
+sbatch ../Subjobs/subjob_two_beads_without_spring_theta_${theta}_outside_outside_finer
 
 
 end

@@ -515,6 +515,11 @@ int main(int argc, char** argv) {
 
     int remesh_every = 1;
     size_t last_remesh = 0;
+    int remesh_op_last = 0;
+    int trgt_remesh_op = 100;
+    double integral_error = 0;
+
+
     bool adapt_remesh = true;
 
     if( Data.contains("remesh_every")) remesh_every = Data["remesh_every"];
@@ -1232,16 +1237,17 @@ int main(int argc, char** argv) {
         std::cout<<"Done first remeshing\n";
         std::cout<<"THis remeshing did "<< Cloth_1.remeshing.op_counter << " operations \n";
         std::cout<<" \n\n";
+        delete mesh;
+        delete geometry;
+    
+        std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
+        arcsim::delete_mesh(Cloth_1.mesh);
+        mesh = mesh_uptr.release();
+        geometry = geometry_uptr.release();
     }
 
     
-    delete mesh;
-    delete geometry;
     
-    std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
-    arcsim::delete_mesh(Cloth_1.mesh);
-    mesh = mesh_uptr.release();
-    geometry = geometry_uptr.release();
 
     M3DG.mesh = mesh;
     M3DG.geometry = geometry;
@@ -1472,8 +1478,8 @@ int main(int argc, char** argv) {
         
         if(Switch =="Finer_mesh" && current_t == Switch_t){
             std::cout<<"\t\tSwitching to finer mesh\n";
-            // remeshing_params.size_min = remeshing_params.size_min*0.5;
-            // remeshing_params.size_max = remeshing_params.size_max*0.5;
+            remeshing_params.size_min = remeshing_params.size_min*0.5;
+            remeshing_params.size_max = remeshing_params.size_max*0.5;
             Switch_times_map[Switch] = -1;
   
         }
@@ -1561,7 +1567,19 @@ int main(int argc, char** argv) {
             // Remeshing_count.close();
             // }
             // std::cout<<"The operation counter is "<< Cloth_1.remeshing.op_counter <<"\n";
+            double output = 0.0;
             if(adapt_remesh){
+
+                int error = Cloth_1.remeshing.op_counter - trgt_remesh_op;
+                double proportional = error;
+                integral_error = integral_error + error*remesh_every;
+                double derivative = (error - (remesh_op_last - trgt_remesh_op) )/remesh_every;
+                output = 0.6*proportional + 1.2*integral_error/10000 + (3.0/40)*derivative/10000;
+                
+                remesh_op_last = Cloth_1.remeshing.op_counter;
+                
+                // 
+
             if(Cloth_1.remeshing.op_counter > 50){
                 remesh_every = remesh_every/2;
             }
@@ -1578,7 +1596,7 @@ int main(int argc, char** argv) {
             if(Count_remesh)
                 {
                     Remeshing_count = std::ofstream(basic_name+"Remeshing_count.txt",std::ios_base::app);
-                    Remeshing_count<< current_t << " "<< Cloth_1.remeshing.op_counter << " "<< remesh_every << "\n"; 
+                    Remeshing_count<< current_t << " "<< Cloth_1.remeshing.op_counter << " "<< remesh_every << " "<< output<<"\n"; 
                     Remeshing_count.close(); 
                 }
 

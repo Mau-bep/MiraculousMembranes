@@ -932,7 +932,7 @@ void Mem3DG::Smooth_vertices(){
  */
 double Mem3DG::Backtracking(){
 
-  double c1 = 1e-4;
+  double c1 = 0.5;
   double rho = 0.5;
   double alpha = 1;
   // alpha = 5e-4;
@@ -943,13 +943,10 @@ double Mem3DG::Backtracking(){
   // Sim_handler.Calculate_energies(previousE);
   double previousE = 0;
   Sim_handler->Calculate_energies(&previousE);
-  // std::cout<<"Current e is  " << previousE << "\n";
   for(size_t i = 0; i < Sim_handler->Energies.size(); i++) {
-    // previousE += Sim_handler.Energy_values[i];
     if(isnan(Sim_handler->Energy_values[i])) std::cout<<"Energy " << Sim_handler->Energies[i] << " is nan\n";
   }
 
-  // std::cout<<"THe previous energy is "<< previousE<<" \n";
   double NewE;
   VertexData<Vector3> initial_pos(*mesh);
   if(recentering){
@@ -1036,7 +1033,10 @@ double Mem3DG::Backtracking(){
     displacement_cond = true;
     
     for(size_t i = 0 ; i< Beads.size() ; i++) displacement_cond = displacement_cond && Beads[i]->Total_force.norm()*alpha<0.1*Beads[i]->sigma;
-    
+    // if(!displacement_cond) std::cout<<"The displacement condition is not satisfied\n";
+
+      // std::cout<<"THe relative energy diff in this step is "<< fabs((NewE-previousE)/previousE) <<" \n"; 
+      // std::cout<<"THe new E is "<< NewE <<" the previous is "<< previousE <<" and the expected decrease is "<< c1 * alpha * Projection<< "\n";
       if(NewE <= previousE - c1 * alpha * Projection && displacement_cond  && fabs(NewE-previousE)<1e2 ) {
     
         if(fabs(NewE-previousE) > 5e1  && false){
@@ -1101,10 +1101,12 @@ double Mem3DG::Backtracking(){
     }
     
     alpha *=rho;
-    if( (abs((NewE-previousE)/previousE) < 1e-7 && Projection < 0.5) || Projection < 1e-5){
+    
+
+    if( (fabs((NewE-previousE)/previousE) < 1e-4 && Projection < 0.5) || Projection < 1e-5){
       small_TS = true;
       std::cout<<"The energy diff is quite small and so is the gradient\n";
-      std::cout<<"The energy diff is"<< abs(NewE-previousE)/previousE<<"\n";
+      std::cout<<"The energy diff is"<< abs(NewE-previousE)<<"\n";
       std::cout<<"The projection is"<< Projection<<"\n";
       return -1.0;
     }
@@ -1119,13 +1121,13 @@ double Mem3DG::Backtracking(){
       if(Projection>1.0e8){
       // return alpha;
       std::cout<<"The gradient got crazy\n";
-      std::cout<<"The projections is "<< Projection<<"\n";
+      std::cout<<"The projection is "<< Projection<<"\n";
       geometry->inputVertexPositions = initial_pos;
       return -1;
       }
 
       small_TS = true;
-      if(Projection>=100) small_TS = false;
+      if(Projection>=5000) small_TS = false;
 
       break;
 
@@ -1146,6 +1148,7 @@ double Mem3DG::Backtracking(){
       // Beads[i]->Move_bead(alpha, Vector3({0,0,0}));
     }
     geometry->inputVertexPositions = initial_pos;
+
     }
     
     geometry->refreshQuantities();
