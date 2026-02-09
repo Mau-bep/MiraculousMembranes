@@ -7,6 +7,7 @@
     "arcsim": true,
     "adapt_remesh": true,
     "remesh_every": 1,
+    "Count_remesh": true,
     "first_dir": {{ Dir }},
     "Switches" : ["No_remesh","Fine_mesh"],
     "Switch_times": [1100000,950000],
