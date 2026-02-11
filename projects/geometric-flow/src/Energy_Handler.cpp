@@ -302,7 +302,7 @@ double E_Handler::E_Face_reg(std::vector<double> Constants ) const{
     double A;
     for(Face f: mesh->faces()){
         A = geometry->faceArea(f);
-        E_face += 0.5*KF*(A-Face_reference[f])*(A-Face_reference[f])/Face_reference[f];
+        E_face += 0.5*KF*(A-Face_reference[f])*(A-Face_reference[f])/(Face_reference[f]*Face_reference[f]);
     }
 
     return E_face;
@@ -1020,7 +1020,7 @@ VertexData<Vector3> E_Handler::F_Face_reg(std::vector<double> Constants) const{
                 std::cout<<"THere is a boundary in this sim\n";
                 Force[Vertices[i]] = {0,0,0};}
 
-            else Force[Vertices[i]] += -1*KF*Force_vector*(A- Face_reference[f])/Face_reference[f];
+            else Force[Vertices[i]] += -1*KF*Force_vector*(A- Face_reference[f])/(Face_reference[f]*Face_reference[f]);
         }
 
     }
@@ -2484,11 +2484,11 @@ SparseMatrix<double> E_Handler::H_Face_reg(std::vector<double> Constants){
                     geometry->inputVertexPositions[v2].x,geometry->inputVertexPositions[v2].y,geometry->inputVertexPositions[v2].z,
                     geometry->inputVertexPositions[v3].x,geometry->inputVertexPositions[v3].y,geometry->inputVertexPositions[v3].z;
          
-        Eigen::Matrix<double,9,9> Hessian_block = KA*((geometry->faceArea(f)-Face_reference[f])/Face_reference[f]) *geometry->hessian_triangle_area(Positions);
+        Eigen::Matrix<double,9,9> Hessian_block = KA*((geometry->faceArea(f)-Face_reference[f])/(Face_reference[f]*Face_reference[f])) *geometry->hessian_triangle_area(Positions);
         // I need to multiply the hessian block by the constant
 
         Eigen::Vector<double,9> Gradient_face = geometry->gradient_triangle_area(Positions);
-        Eigen::Matrix<double,9,9> Hessian_block_2 = (KA/Face_reference[f]) * Gradient_face * Gradient_face.transpose();
+        Eigen::Matrix<double,9,9> Hessian_block_2 = (KA/(Face_reference[f]*Face_reference[f])) * Gradient_face * Gradient_face.transpose();
         // Now i need to load this quantities onto a bigger matrix ...
         for(int i = 0; i < 9; i++){
             for(int j = 0; j <9; j++){

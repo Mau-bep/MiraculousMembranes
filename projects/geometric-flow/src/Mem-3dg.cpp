@@ -3120,54 +3120,25 @@ Eigen::MatrixXd Mem3DG::integrate_BFGS(std::ofstream& Sim_data , double time, st
     Grad_vec[v.getIndex()+2*mesh->nVertices()] = Sim_handler->Current_grad[v].z;
   }
 
-  // std::cout<<"Finished loading grad_vec\n";
-
-  // std::cout<<"The size of gravec is " << Grad_vec.size() <<" \n";
-
-  // std::cout<<"The gradvec at some position is " << Grad_vec[10] << " \n";
-  // std::cout<<"The t gradvec at same position is " << Grad_vec.transpose()[10] <<" \n";
   Grad_vec = Hessian * Grad_vec;
 
-  // std::cout<<"The gradvec at some position is " << Grad_vec[10] << " \n";
-  // std::cout<<"The t gradvec at same position is " << Grad_vec.transpose()[10] <<" \n";
-  
-  // std::cout<<"Works?\n";
-  // Eigen::RowVectorXd T_Grad_vec1 = Grad_vec.transpose();
-
-  // std::cout<<"The size of gravecafter is " << Grad_vec.size() <<" \n";
-
+ 
 
   // std::cout<<"Vertex product\n";
   VertexData<Vector3> Force(*mesh,Vector3({0.0,0.0,0.0}));
   for(Vertex v : mesh->vertices()){
-    // Vector3 Some_Force = Vector3({Grad_vec[v.getIndex()],Grad_vec[v.getIndex()+mesh->nVertices()],Grad_vec[v.getIndex()+2*mesh->nVertices()]});
-    // std::cout<<"Force norm2 is " << Some_Force.norm2() << " and currentgrad norm2 is " << Sim_handler->Current_grad[v].norm2() << " \n";
     Force[v].x = Grad_vec[v.getIndex()];
     Force[v].y = Grad_vec[v.getIndex()+mesh->nVertices()];
     Force[v].z = Grad_vec[v.getIndex()+2*mesh->nVertices()];
   }
-  // std::cout<<"Force converted\n now backtracking \n";
-
   backtrackstep = Backtracking_BFGS( Force);
 
-  // std::cout<<"Backtrackstep is " << backtrackstep <<" \n";
-
-
-  // Here we just moved the positions, lets see what we need to do
-  // std::cout<<"Backtracking down boots\n New gradient\n";
   Sim_handler->Calculate_gradient();
-
   
-  // std::cout<<"done with it, now magic quantities\n";
   VertexData<Vector3> yk = Sim_handler->Current_grad-Sim_handler->Previous_grad;
 
-  // std::cout<<"YK DONE\n";
-  // Deleting the scalar product
   Grad_vec = backtrackstep* Grad_vec; //So this is sk
   
-  // std::cout<<"The size of grade vec after is also now " << Grad_vec.size() <<" \n";
-  // std::cout<<"THis works\n";
-
   Eigen::VectorXd yk_vec = Eigen::VectorXd::Zero(3*mesh->nVertices());
   for(Vertex v : mesh->vertices()){
     yk_vec[v.getIndex()] = yk[v].x;
@@ -3207,16 +3178,6 @@ Eigen::MatrixXd Mem3DG::integrate_BFGS(std::ofstream& Sim_data , double time, st
   // Eigen::RowVectorXd trans_simple_vec = Simple_vec.transpose();
   // std::cout<<"Simple vec transposed easy " << trans_simple_vec <<" \n";
   Eigen::RowVectorXd T_Grad_vec = Grad_vec.transpose();
-  // std::cout<<"This row vec exists\n";
-  // std::cout<<T_Grad_vec << " \n";
-
-  // DenseMatrix<double> Hessian_temp = (Grad_vec*Grad_vec.transpose());
-  // std::cout<<"Lets output the vector " << Grad_vec <<" \n";
-  
-  // std::cout<< Grad_vec.transpose().size() << " \n";
-  // std::cout<<"The gradvec size is " << Grad_vec.transpose().size() << " \n";  
-
-  // Eigen::MatrixXd Hessian_temp = Grad_vec * T_Grad_vec1;
 
 
   Hessian = Hessian + (Grad_vec.dot(yk_vec) + yk_vec.dot(Hessian * yk_vec) )*(Grad_vec*T_Grad_vec)/(Grad_vec.dot(yk_vec) *yk_vec.dot(Grad_vec) ) - (Hessian * yk_vec*Grad_vec.transpose() + Grad_vec*yk_vec.transpose()*Hessian)/(yk_vec.dot(Grad_vec));
@@ -3254,10 +3215,6 @@ Eigen::MatrixXd Mem3DG::integrate_BFGS(std::ofstream& Sim_data , double time, st
   Sim_data<< backtrackstep<<" \n";
   
     }
-
-  
-
-
 
 
   return Hessian;
