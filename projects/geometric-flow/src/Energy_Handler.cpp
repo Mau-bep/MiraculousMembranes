@@ -48,8 +48,41 @@ void E_Handler::Add_Energy(std::string Energy_name, std::vector<double> Constant
 }
 
 
-// SparseMatrix<double> E_Handler::H1_operator(bool CM, bool Vol_c
-// The H1 AND H2 OPERATORS WILL BE A TASK FOR LATER 
+
+void E_Handler::update_face_reference(){
+    // std::cout<<"Updating face reference, guess we remeshed (: \n";
+
+    Face_reference = FaceData<double>(*mesh);
+    // Damn i need the target area here
+    double A_bar = 0.0;
+    for(size_t i = 0; i < Energies.size(); i++){
+        if(Energies[i] == "Area_constraint"){
+            A_bar = Energy_constants[i][1];
+            // std::cout<<"The target area is " << A_bar <<  "\n";
+            break;
+        }
+    }
+    
+    // Now i need to calculate the difference between the current area and the target area
+    double Total_A;
+    double A_face;
+    for(Face f : mesh->faces()){
+        A_face = geometry->faceArea(f);
+        Total_A += A_face;
+        Face_reference[f] = A_face; //We need to remove this 2 later
+    }
+    if(A_bar>1e-5){
+        double factor = A_bar/Total_A; // If we assume this difference is small for all the vertices then we can just add A_diff/mesh->nFaces() to each face reference
+        // for(Face f : mesh->faces()){
+        // std::cout<<"We are multiplying a factor of " << factor << " to each face reference to account for the area constraint\n";
+        Face_reference *= factor;
+        // }
+    }
+
+
+    return;
+}
+
 
 double E_Handler::E_Volume_constraint(std::vector<double> Constants) const {
 double V = geometry->totalVolume();
@@ -261,6 +294,22 @@ double E_Handler::E_Edge_reg_2(std::vector<double> Constants) const{
 }
 
 
+double E_Handler::E_Face_reg(std::vector<double> Constants ) const{
+
+    double E_face = 0.0;
+    double KF = Constants[0];
+
+    double A;
+    for(Face f: mesh->faces()){
+        A = geometry->faceArea(f);
+        E_face += 0.5*KF*(A-Face_reference[f])*(A-Face_reference[f])/Face_reference[f];
+    }
+
+    return E_face;
+
+}
+
+
 
 
 
@@ -371,7 +420,7 @@ VertexData<Vector3> E_Handler::F_Volume(std::vector<double> Constants) const{
 
 VertexData<Vector3> E_Handler::F_SurfaceTension(std::vector<double> Constants) const{
 
-    double sigma = Constants[0];
+    double sigma = Constants[0]; 
 
     size_t index;
     Vector3 Normal;
@@ -940,6 +989,46 @@ VertexData<Vector3> E_Handler::F_Edge_reg_2(std::vector<double> Constants) const
     return Force;
 }
 
+
+VertexData<Vector3> E_Handler::F_Face_reg(std::vector<double> Constants) const{
+
+    double KF = Constants[0];
+
+    VertexData<Vector3> Force(*mesh);
+    
+    Eigen::Vector<double,9> Positions;
+    Eigen::Vector<double,9> Grad;
+    std::array<Vertex,3> Vertices;
+    
+    Halfedge he;
+    Vector3 Force_vector;
+    double A;
+    for(Face f:  mesh->faces()){
+        A = geometry->faceArea(f);
+        he = f.halfedge();
+        Vertices[0] = he.vertex();
+        Vertices[1] = he.next().vertex();
+        Vertices[2] = he.next().next().vertex();
+
+        Positions << geometry->inputVertexPositions[Vertices[0]].x , geometry->inputVertexPositions[Vertices[0]].y , geometry->inputVertexPositions[Vertices[0]].z,
+                    geometry->inputVertexPositions[Vertices[1]].x, geometry->inputVertexPositions[Vertices[1]].y, geometry->inputVertexPositions[Vertices[1]].z,
+                    geometry->inputVertexPositions[Vertices[2]].x, geometry->inputVertexPositions[Vertices[2]].y, geometry->inputVertexPositions[Vertices[2]].z;
+        Grad = geometry->gradient_triangle_area(Positions);
+        for( size_t i = 0; i < 3; i++){
+            Force_vector = Vector3{Grad[3*i], Grad[3*i+1], Grad[3*i+2]};
+            if( Vertices[i].isBoundary() ) {
+                std::cout<<"THere is a boundary in this sim\n";
+                Force[Vertices[i]] = {0,0,0};}
+
+            else Force[Vertices[i]] += -1*KF*Force_vector*(A- Face_reference[f])/Face_reference[f];
+        }
+
+    }
+
+    return Force;
+
+
+}
 
 
 
@@ -2356,7 +2445,69 @@ SparseMatrix<double> E_Handler::H_Edge_reg_2(std::vector<double> Constants){
 
 
 
+SparseMatrix<double> E_Handler::H_Face_reg(std::vector<double> Constants){
 
+    // Ok so this functino will assemble the Hessi an for the surface tension energy 
+    int nVerts = mesh->nVertices();
+    int nBeads = Beads.size();
+    double KA = Constants[0];
+    // Eigen::MatrixXd Hessian = Eigen::MatrixXd::Zero(nVerts,nVerts);
+    SparseMatrix<double> Hessian(3*(nVerts+nBeads),3*(nVerts+nBeads) );
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+    // Eigen::Matrix<double, nVerts, nVerts> Hessian;
+    Vertex v1;
+    Vertex v2;
+    Vertex v3;
+    Halfedge he;
+    size_t index1;
+    size_t index2;
+    size_t index3;
+    array<int,3> indices;
+    // 
+    for(Face f: mesh->faces()){
+        // 
+        he = f.halfedge();
+        v1 = he.vertex();
+        v2 = he.next().vertex();
+        v3 = he.next().next().vertex();
+        indices[0] = v1.getIndex();
+        indices[1] = v2.getIndex();
+        indices[2] = v3.getIndex();
+        
+        // So we will add a modification for boundaries then check if it works :p
+        if(v1.isBoundary() || v2.isBoundary() || v3.isBoundary() ) continue;
+
+        Eigen::Vector<double,9> Positions;
+
+        Positions << geometry->inputVertexPositions[v1].x,geometry->inputVertexPositions[v1].y,geometry->inputVertexPositions[v1].z,
+                    geometry->inputVertexPositions[v2].x,geometry->inputVertexPositions[v2].y,geometry->inputVertexPositions[v2].z,
+                    geometry->inputVertexPositions[v3].x,geometry->inputVertexPositions[v3].y,geometry->inputVertexPositions[v3].z;
+         
+        Eigen::Matrix<double,9,9> Hessian_block = KA*((geometry->faceArea(f)-Face_reference[f])/Face_reference[f]) *geometry->hessian_triangle_area(Positions);
+        // I need to multiply the hessian block by the constant
+
+        Eigen::Vector<double,9> Gradient_face = geometry->gradient_triangle_area(Positions);
+        Eigen::Matrix<double,9,9> Hessian_block_2 = (KA/Face_reference[f]) * Gradient_face * Gradient_face.transpose();
+        // Now i need to load this quantities onto a bigger matrix ...
+        for(int i = 0; i < 9; i++){
+            for(int j = 0; j <9; j++){
+
+                // So i am at vertex ij  now the i and j correspond to a vertex  i = 0 1 2 (vertex 1 )  3 4 5 (vertex 2 ) 6 7 8 (vertex 3)
+                if( Hessian_block(i,j) > 1e-12 || Hessian_block(i,j) < -1e-12) tripletList.push_back(T(indices[i/3]*3+i%3,indices[j/3]*3+j%3,Hessian_block(i,j)) );  
+                if( Hessian_block_2(i,j) > 1e-12 || Hessian_block_2(i,j) < -1e-12) tripletList.push_back(T(indices[i/3]*3+i%3,indices[j/3]*3+j%3,Hessian_block_2(i,j)) );
+            }
+        } 
+        
+
+
+    }
+    Hessian.setFromTriplets(tripletList.begin(),tripletList.end());
+    // That gives me the hessian of the surface tension :O.
+
+
+    return KA*Hessian;
+}
 
 
 
@@ -2451,7 +2602,17 @@ void E_Handler::Calculate_energies(double* E){
             // std::cout<<"The value of E is" << *E <<" \n";
             continue;
         }
-        
+        if(Energies[i]=="Face_reg"){
+            if(Face_reference.size() == 0){
+               update_face_reference();
+            }
+            Energy_values[i] = E_Face_reg(Energy_constants[i]);
+            *E += Energy_values[i];
+            // std::cout<<"The energy value is " << Energy_values[i]<<" \n";
+            // std::cout<<"The value of E is" << *E <<" \n";
+            continue;
+            
+            }
 
     }
 
@@ -2710,6 +2871,25 @@ void E_Handler::Calculate_gradient(){
             continue;
         }
 
+        if(Energies[i]=="Face_reg"){
+            if(Face_reference.size()==0) update_face_reference();
+
+            Force_temp = F_Face_reg(Energy_constants[i]);
+            grad_norm = 0.0;
+            for(Vertex v: mesh->vertices()){
+                grad_norm += Force_temp[v].norm2();
+
+            }
+            if(Gradient_norms.size() == i){
+                Gradient_norms.push_back(grad_norm);
+            }
+            else{
+                Gradient_norms[i] = grad_norm;
+            }
+            Current_grad+=Force_temp;
+            continue;
+        }
+
         }
     // std::cout<<"5 \n";
     grad_norm = 0.0;
@@ -2938,6 +3118,9 @@ SparseMatrix<double> E_Handler::Calculate_Hessian(){
             // std::cout<<"The energy constants are " << Energy_constants[i][0]<<" \n";
             Hessian += H_Edge_reg(Energy_constants[i]);
         }
+        if(Energies[i] =="Face_reg"){
+            Hessian += H_Face_reg(Energy_constants[i]);
+        }
 
     }
     // std::cout<<"DOne calculating hessian\n";
@@ -3020,6 +3203,9 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_E(){
             // std::cout<<"There should be one energy constant\n";
             // std::cout<<"The energy constants are " << Energy_constants[i][0]<<" \n";
             Hessian += H_Edge_reg(Energy_constants[i]);
+        }
+        if(Energies[i] =="Face_reg"){
+            Hessian += H_Face_reg(Energy_constants[i]);
         }
 
     }

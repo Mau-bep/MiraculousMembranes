@@ -30,6 +30,7 @@ class E_Handler {
         
         VertexData<Vector3> Previous_grad;
         VertexData<Vector3> Current_grad;
+        FaceData<double> Face_reference;
 
         Eigen::MatrixXd Jacobian_constraints;
 
@@ -48,6 +49,8 @@ class E_Handler {
         SparseMatrix<double> H1_operator(bool CM, bool Vol_const, bool Area_const);
         SparseMatrix<double> H2_operator(bool CM, bool Vol_const, bool Area_const);
         
+        void update_face_reference();
+
         virtual double E_Volume_constraint(std::vector<double> Constants) const;
         virtual double E_Area_constraint(std::vector<double> Constants) const;
         virtual double E_SurfaceTension(std::vector<double> Constants) const;
@@ -56,20 +59,20 @@ class E_Handler {
         virtual double E_Laplace(std::vector<double> Constants) const;
         virtual double E_Edge_reg(std::vector<double> Constants) const;
         virtual double E_Edge_reg_2(std::vector<double> Constants) const;
+        virtual double E_Face_reg(std::vector<double> Constants) const;
 
         virtual VertexData<Vector3> F_Volume_constraint(std::vector<double> Constants) const;
         virtual VertexData<Vector3> F_SurfaceTension(std::vector<double> Constants) const;
         virtual VertexData<Vector3> F_Area_constraint(std::vector<double> Constants) const;
         virtual VertexData<Vector3> F_Bending(std::vector<double> Constants) const;
-        
         virtual VertexData<Vector3> F_SurfaceTension_2(std::vector<double> Constants) const;
-        
         virtual VertexData<Vector3> F_Bending_2(std::vector<double> Constants) const;
         virtual VertexData<Vector3> F_Volume_constraint_2(std::vector<double> Constants) const;
         virtual VertexData<Vector3> F_Volume(std::vector<double> Constants) const;
         virtual VertexData<Vector3> F_Laplace(std::vector<double> Constants) const;
         virtual VertexData<Vector3> F_Edge_reg(std::vector<double> Constants) const;
         virtual VertexData<Vector3> F_Edge_reg_2(std::vector<double> Constants) const;
+        virtual VertexData<Vector3> F_Face_reg(std::vector<double> Constants) const;
 
         virtual SparseMatrix<double> H_SurfaceTension(std::vector<double> Constants);
         virtual SparseMatrix<double> H_Bending(std::vector<double> Constants);
@@ -78,7 +81,7 @@ class E_Handler {
         virtual SparseMatrix<double> H_Laplace(std::vector<double> Constants);
         virtual SparseMatrix<double> H_Edge_reg(std::vector<double> Constants);
         virtual SparseMatrix<double> H_Edge_reg_2(std::vector<double> Constants);
-
+        virtual SparseMatrix<double> H_Face_reg(std::vector<double> Constants);
         
 
         virtual void Calculate_energies(double* E);

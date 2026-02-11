@@ -145,6 +145,8 @@ VertexData<Vector3> Normal_dot_Interaction::Gradient() {
 
 
     Halfedge he;
+    // I need to check that there is a nonzero total force 
+    Bead_1->Prev_Total_force = Bead_1->Total_force;
 
     Bead_1->Total_force = Vector3{0.0, 0.0, 0.0};
     Bead_1->Total_force += Bond_force(); 

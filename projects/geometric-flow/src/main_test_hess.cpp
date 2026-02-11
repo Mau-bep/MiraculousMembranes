@@ -1155,6 +1155,7 @@ int main(int argc, char** argv) {
 
 
 
+
     // std::cout<<"The gradient of the Edge Regularization energy is \n" << Gradient_Edge_reg << "\n";
     // std::cout<<"The finite difference gradient of the Edge Regularization energy is \n" << Gradient_Edge_reg_finite << "\n";
     // std::cout<<"The difference between gradients is \n" << (Gradient_Edge_reg - Gradient_Edge_reg_finite) << "\n";
@@ -1252,6 +1253,91 @@ int main(int argc, char** argv) {
     SparseMatrix<double> Bending_hessian = Sim_handler.H_Bending(Energy_constants[0]);
 
     std::cout<<"THe bending hessian is \n" << Bending_hessian << "\n";
+
+
+
+
+    // Lets check the face reg gradient
+
+    Sim_handler.update_face_reference();
+
+    // 
+
+
+    double E_face = Sim_handler.E_Face_reg(Energy_constants[0]);
+    double E_face_fwd;
+    double E_face_bkwd;
+
+    std::cout<<"The Face Regularization Energy is " << E_face << "\n";
+    VertexData<Vector3> Gradient_Face_reg = Sim_handler.F_Face_reg(Energy_constants[0]);
+    VertexData<Vector3> Gradient_Face_reg_finite(*mesh,{0.0,0.0,0.0});
+    VertexData<Vector3> Difference_Face_reg(*mesh);
+
+    for(Vertex v: mesh->vertices()){
+        // SO the idea here is  
+        for(size_t coord = 0; coord < 3; coord++){
+            
+            geometry->inputVertexPositions[v][coord]+=1e-6; //move forward
+            geometry->refreshQuantities();
+            E_face_fwd = Sim_handler.E_Face_reg(Energy_constants[0]);
+            geometry->inputVertexPositions[v][coord]-=2e-6; //move backward
+            geometry->refreshQuantities();
+            E_face_bkwd = Sim_handler.E_Face_reg(Energy_constants[0]);
+            geometry->inputVertexPositions[v][coord]+=1e-6; //restore
+            geometry->refreshQuantities();
+
+            Gradient_Face_reg_finite[v][coord] = (E_face_fwd - E_face_bkwd)/(2e-6);
+            
+        }
+        Difference_Face_reg[v] = Gradient_Face_reg[v] + Gradient_Face_reg_finite[v];
+        std::cout<<"The difference for vertex           " << v.getIndex() << " is " << Difference_Face_reg[v] << "\n";
+        // std::cout<<"The gradient for vertex             " << v.getIndex() << " is " << Gradient_Face_reg[v] << "\n";
+        // std::cout<<"The finite diff gradient for vertex " << v.getIndex() << " is " << Gradient_Face_reg_finite[v] << "\n";
+
+    }
+
+    // Lets do the hessian now
+
+    SparseMatrix<double> Hessian_Face_reg = Sim_handler.H_Face_reg(Energy_constants[0]);
+    std::cout << "The Hessian of face regularization is \n" << Hessian_Face_reg << "\n";
+
+    // Compare the Hessian of face regularization with the finite difference Hessian
+
+    Eigen::MatrixXd Hessian_Face_reg_finite_mesh(3*mesh->nVertices(),3*mesh->nVertices());
+
+    dim = 0;
+    for(Vertex v: mesh->vertices()){
+        for(size_t coord = 0; coord <3; coord++){
+            geometry->inputVertexPositions[v][coord]+=1e-6;
+            geometry->refreshQuantities();
+            Gradient_fwd = Sim_handler.F_Face_reg(Energy_constants[0]);
+
+            geometry->inputVertexPositions[v][coord]-=2e-6;
+            geometry->refreshQuantities();
+            Gradient_prev = Sim_handler.F_Face_reg(Energy_constants[0]);
+
+            geometry->inputVertexPositions[v][coord]+=1e-6;
+            geometry->refreshQuantities();
+
+            for(Vertex v2: mesh->vertices()){
+                Difference_grad[3*v2.getIndex()] = (Gradient_fwd[v2]-Gradient_prev[v2]).x/(2e-6);
+                Difference_grad[3*v2.getIndex()+1] = (Gradient_fwd[v2]-Gradient_prev[v2]).y/(2e-6);
+                Difference_grad[3*v2.getIndex()+2] = (Gradient_fwd[v2]-Gradient_prev[v2]).z/(2e-6); 
+            }
+
+            Hessian_Face_reg_finite_mesh.col(dim) = Difference_grad;
+            dim+=1;
+
+
+        }
+
+    }
+
+
+    Eigen::MatrixXd Difference_Hessian_Face_reg = Hessian_Face_reg + Hessian_Face_reg_finite_mesh;
+    std::cout << "The matrix difference between the face regularization Hessians is \n" << Difference_Hessian_Face_reg << "\n";
+
+
 
 
     return 1;

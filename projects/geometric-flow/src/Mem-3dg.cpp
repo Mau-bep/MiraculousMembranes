@@ -37,6 +37,9 @@ Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo)
     Field="None";
     Field_vals.resize(0);
 
+    momentum = false;
+    learn_rate = 0.5;
+
 }
 Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, Bead input_Bead) {
 
@@ -938,6 +941,27 @@ double Mem3DG::Backtracking(){
   // alpha = 5e-4;
   double position_Projeection = 0;
   double X_pos;
+
+  // We calculate the dot product between the 2 gradients
+  if(momentum && system_time > 0 && Sim_handler->Previous_grad.size() >0) {
+    // std::cout<<"THe number of vertices is " << mesh->nVertices() << "\n";
+    // std::cout<<"The number of entries in the previous grad is"<< Sim_handler->Previous_grad.size() << "\n";
+    
+
+    double product = 0;
+    for(Vertex v: mesh->vertices()){
+      product+= dot(Sim_handler->Current_grad[v],Sim_handler->Previous_grad[v]);
+    }
+    // 
+    if(product > 0) {
+      // std::cout<<"The product IS ALIGNED (:\n";
+      // The two gradients are somewhat aligned
+      Sim_handler->Current_grad = Sim_handler->Current_grad + Sim_handler->Previous_grad*learn_rate;
+      for(Bead* b : Beads) b->Total_force = b->Total_force + b->Prev_Total_force*learn_rate; //This line needs to be tested still
+    }
+  }
+
+
 
   // if(system_time>10) std::cout<<"Printing this as system time is " << system_time <<" \n";
   // Sim_handler.Calculate_energies(previousE);
@@ -2880,8 +2904,11 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
   start = chrono::steady_clock::now();
   // std::cout<<"Calling simulation handler for gradiebts\n";
   // std::cout<<"Calling sim handler for gradient\n";
+
+
   Sim_handler->Calculate_gradient();
-  
+
+
 
   // std::cout<<"Got the gradient\n";
   // std::cout<<"Sucesfully calculated\n";

@@ -67,7 +67,8 @@ class Mem3DG {
     Vector3 Total_force;
 
     // Eigen::SimplicialLDLT<SparseMatrix<double>> solver_H;
-
+    bool momentum;
+    double learn_rate;
 
     // double pulling_offset;
     // constructors

@@ -81,8 +81,24 @@ plt.axvline(0.65,color='black',ls='dashed',label=r'$\nu=0.65$')
 plt.scatter(nus[0],Ebs[0],color='pink',marker='^',label='prolate')
 plt.scatter(nus[1],Ebs[1],color='purple',label='oblate')
 plt.scatter(nus[2],Ebs[2],color='blue',marker='s',label='stomatocyte')
-plt.ylabel(r'$\frac{E_b}{8\pi \kappa_B}$',rotation=0,fontsize=)
+plt.ylabel(r'$\frac{E_b}{8\pi \kappa_B}$',rotation=0,fontsize=18)
 plt.xlabel(r'reduced volume $\nu$',fontsize=18)
+
+
+# Ok so here i want to add my data
+file = open('./Shape_energies.txt','w+')
+for i in range(len(nus[0])):
+    file.write('{} {} \n'.format(nus[0][i],Ebs[0][i]))
+
+for i in range(len(nus[1])):
+    file.write('{} {} \n'.format(nus[1][i],Ebs[1][i]))
+
+
+for i in range(len(nus[2])):
+    file.write('{} {} \n'.format(nus[2][i],Ebs[2][i]))
+
+file.close()
+
 
 plt.legend()
 plt.savefig('./Energy_minimization.eps',bbox_inches='tight')

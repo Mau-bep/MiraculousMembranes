@@ -17,6 +17,7 @@ class Bead {
     int Bead_id;
     int Total_beads;
     Vector3 Pos;
+    Vector3 Prev_Total_force;
     Vector3 Total_force;
     double sigma;
     double strength;

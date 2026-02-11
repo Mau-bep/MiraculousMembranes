@@ -919,6 +919,13 @@ int main(int argc, char** argv) {
     }
 
 
+    if(Data.contains("momentum")){
+        M3DG.momentum = Data["momentum"];
+        std::cout<<"Momentum is "<< M3DG.momentum << "\n";
+    }
+
+    
+
 
     arcsim::Cloth Cloth_1;
     arcsim::Cloth::Remeshing remeshing_params;
@@ -1560,6 +1567,7 @@ int main(int argc, char** argv) {
             arcsim::compute_masses(Cloth_1);
             arcsim::compute_ws_data(Cloth_1.mesh);
             arcsim::dynamic_remesh(Cloth_1);
+            // std::cout<<"We remesh\n";
             // std::cout<<"THis remeshing did "<< Cloth_1.remeshing.op_counter << " operations \n";
             // if(Count_remesh){
             // Remeshing_count = std::ofstream(basic_name+"Remeshing_count.txt",std::ios_base::app);
