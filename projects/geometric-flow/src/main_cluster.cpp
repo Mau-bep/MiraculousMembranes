@@ -139,7 +139,7 @@ Bead Bead_1;
 Bead Bead_2;
 
 Eigen::SparseMatrix<double> Hessian;
-Eigen::MatrixXd Hessian_matrix;
+
 std::array<double, 3> BLUE = {0.11, 0.388, 0.89};
 // glm::vec<3, float> ORANGE_VEC = {1, 0.65, 0};
 std::array<double, 3> ORANGE = {1, 0.65, 0};
@@ -1262,6 +1262,8 @@ int main(int argc, char** argv) {
     Sim_handler.geometry = geometry;
     M3DG.basic_name = basic_name;
 
+    M3DG.BFGS_iter = 0;
+
      // Lets add noise here
     const int N_vert = mesh->nVertices();
     if(Data.contains("Initial_noise")){
@@ -1418,6 +1420,13 @@ int main(int argc, char** argv) {
             resize_vol = false;
             
         }
+        if(Switch =="BFGS" && current_t == Switch_t){
+            Integration = "BFGS";
+            M3DG.BFGS_iter = 0;
+            // remesh_every = Data["remesh_every"];
+            // save_interval = Data["save_interval"];
+            // resize_vol = true;
+        }
         if(Switch == "IpOpt" && current_t == Switch_t){
             Integration = "IpOpt";
             Switch_times_map[Switch] = current_t + 100;
@@ -1527,9 +1536,8 @@ int main(int argc, char** argv) {
         start_time_control=chrono::steady_clock::now();
 
 
-
         if( arcsim  &&  ((current_t-last_remesh) > remesh_every && remesh_every > 0 || dt_sim == 0.0)){
-
+            // std::cout<<"Remesh every is "<< remesh_every<<" \n";
             last_remesh = current_t;
             // if(dt_sim==0.0){ std::cout<<"wE ARE REMESHING CAUSE THINGS DONT MAKE SENSE\n";}
             // std::cout<<"\t\t Remeshing\n";
@@ -1590,6 +1598,7 @@ int main(int argc, char** argv) {
 
             if(Cloth_1.remeshing.op_counter > 50){
                 remesh_every = remesh_every/2;
+                if(remesh_every <1) remesh_every =1;
             }
             else if(Cloth_1.remeshing.op_counter < 20){
                 remesh_every = remesh_every+10;
@@ -1639,6 +1648,7 @@ int main(int argc, char** argv) {
             
             M3DG.mesh = mesh;
             M3DG.geometry = geometry;
+            M3DG.BFGS_iter = 0;
             Sim_handler.mesh = mesh;
             Sim_handler.geometry = geometry;
 
@@ -1811,37 +1821,8 @@ int main(int argc, char** argv) {
             dt_sim = M3DG.integrate(Sim_data, time, Bead_filenames, Save_output_data);
         }
         else if(Integration == "BFGS"){
-            // std::cout<<"Integrating BFGS\n";
-            if(current_t%remesh_every == 0){
-                Hessian_matrix = Eigen::MatrixXd::Identity(mesh->nVertices()*3, mesh->nVertices()*3);
-             }
-                bool Save_Hessian = false;
-                if(Save_Hessian){
-                    // std::cout<<"Saving Hessian\n";
-                    std::ofstream Hess_data(basic_name+"Hessian_"+std::to_string(current_t)+".txt");
-
-                    // Now i just need to save the whole matrix
-                    for(size_t i = 0; i < mesh->nVertices()*3; i++){
-                        for(size_t j = 0; j < mesh->nVertices()*3; j++){
-                            Hess_data << Hessian_matrix(i,j) << " ";
-                        } 
-                        Hess_data << "\n";
-                    }
-
-                    // for (int k=0; k<Hessian.outerSize(); ++k)
-                    // for (SparseMatrix<double>::InnerIterator it(Hessian,k); it; ++it)
-                    // {
-                    //     Hess_data<< it.row() << " "<< it.col() << " " << it.value() << "\n";
-                    // }
-                    Hess_data.close();
-                    // std::cout<<"Succesfully saved\n";
-                }
-
-                
-                
-            Hessian_matrix = M3DG.integrate_BFGS(Sim_data, time, Bead_filenames, Save_output_data, Hessian_matrix);
-            // Hessian = M3DG.integrate_BFGS(Sim_data, time, Bead_filenames, Save_output_data, Hessian);
-        
+            M3DG.m = 10;
+            dt_sim = M3DG.integrate_BFGS(Sim_data, time, Bead_filenames, Save_output_data);
         }
         else if(Integration == "Newton"){
             try{

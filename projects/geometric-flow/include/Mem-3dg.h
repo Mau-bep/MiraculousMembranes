@@ -66,6 +66,15 @@ class Mem3DG {
 
     Vector3 Total_force;
 
+    // BFGS PARAMETERS
+    int BFGS_iter;
+    int m;
+    std::vector<Eigen::VectorXd> s_list;
+    std::vector<Eigen::VectorXd> y_list;
+    std::vector<double> rho_list;
+
+
+
     // Eigen::SimplicialLDLT<SparseMatrix<double>> solver_H;
     bool momentum;
     double learn_rate;
@@ -132,7 +141,7 @@ class Mem3DG {
     EdgeData<double> Edge_sizing(VertexData<double> Vert_sizings);
 
     double integrate(std::ofstream& Sim_data , double time, std::vector<std::string>Bead_data_filenames, bool Save_output_data);
-    Eigen::MatrixXd integrate_BFGS(std::ofstream& Sim_data , double time, std::vector<std::string>Bead_data_filenames, bool Save_output_data, Eigen::MatrixXd Hessian);
+    double integrate_BFGS(std::ofstream& Sim_data , double time, std::vector<std::string>Bead_data_filenames, bool Save_output_data);
     double integrate_Newton(std::ofstream& Sim_data , double time, std::vector<std::string>Bead_data_filenames, bool Save_output_data, std::vector<std::string> Constraints,std::vector<std::string> Data_filenames);
     
     double integrate_implicit(std::vector<std::string> Energies,  std::vector<std::vector<double>> Energy_constants,std::ofstream& Sim_data , double time, std::vector<std::string>Bead_data_filenames, bool Save_output_data);

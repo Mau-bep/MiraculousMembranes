@@ -517,7 +517,7 @@ int main(int argc, char** argv) {
 
     int remesh_every = 1;
     if( Data.contains("remesh_every")) remesh_every = Data["remesh_every"];
-    std::cout<<"Remesh every is " << remesh_every << std::endl;
+    // std::cout<<"Remesh every is " << remesh_every << std::endl;
 
     Vector3 Recenter{0.0,0.0,0.0};
     if(Data.contains("Displacement")){

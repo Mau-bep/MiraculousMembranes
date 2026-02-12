@@ -40,6 +40,9 @@ Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo)
     momentum = false;
     learn_rate = 0.5;
 
+    BFGS_iter =0;
+
+
 }
 Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, Bead input_Bead) {
 
@@ -926,11 +929,7 @@ void Mem3DG::Smooth_vertices(){
 /**
  * @brief Performs the backtracking algorithm for the Mem3DG class.
  *
- * This function is responsible for performing the backtracking algorithm in the Mem3DG class. It takes in the force vector, a vector of energy names, and a matrix of energy constants as input. It updates the position of the vertices and beads based on the force, and calculates the energy values for each energy term. It then performs backtracking to find the optimal step size that minimizes the energy.
- *
- * @param Force The force vector applied to the vertices.
- * @param Energies A vector of energy names.
- * @param Energy_constants A matrix of energy constants.
+ * 
  * @return The optimal step size for the backtracking algorithm.
  */
 double Mem3DG::Backtracking(){
@@ -1623,22 +1622,16 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force){
   double c1 = 1e-4;
   double rho = 0.5;
   double alpha = 1;
-  // alpha = 5e-4;
   double position_Projeection = 0;
   double X_pos;
 
-  // if(system_time>10) std::cout<<"Printing this as system time is " << system_time <<" \n";
   double previousE = 0;
   Sim_handler->Calculate_energies(&previousE);
-  // std::cout<<"Current e is  " << previousE << "\n";
 
-  // std::cout<<"Sim hanlder call\n";
   for(size_t i = 0; i < Sim_handler->Energies.size(); i++) {
-    // previousE += Sim_handler.Energy_values[i];
     if(isnan(Sim_handler->Energy_values[i])) std::cout<<"Energy " << Sim_handler->Energies[i] << " is nan\n";
   }
 
-  // std::cout<<"THe previous energy is "<< previousE<<" \n";
   double NewE;
   VertexData<Vector3> initial_pos(*mesh);
   if(recentering){
@@ -1650,17 +1643,12 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force){
 
   std::vector<Vector3> Bead_init;
 
-  // std::cout<<"mOVING BEADS\n"; 
   for( size_t i = 0 ; i < Beads.size() ; i++) Bead_init.push_back( Beads[i]->Pos);
 
   double Projection = 0;
   Vector3 center;  
 
 
-  // We start the evolution
-  // We move the vertices
-  // std::cout<<" checking for nan grads\n";
-  // std::cout<<"some nan calcs\n";
   for(Vertex v : mesh->vertices()){
     if(isnan(Force[v].x || Force[v].y || Force[v].z)) std::cout<<" Is this force nan at vertex but norm2 is " << Force[v.getIndex()].norm2() <<"\n";
   
@@ -1703,7 +1691,7 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force){
   // std::cout<<"THe projection is " << Projection <<" \n";
   // std::cout<<"The number of beads is " << Beads.size() << " \n";
   
-  if(Projection < 1e-7) {
+  if(Projection < 1e-2) {
     small_TS = true;
       std::cout<<"The energy diff is quite small and so is the gradient\n";
       std::cout<<"The energy diff is"<< abs(NewE-previousE)/previousE<<"\n";
@@ -1716,9 +1704,9 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force){
     
     for(size_t i = 0 ; i< Beads.size() ; i++) displacement_cond = displacement_cond && Beads[i]->Total_force.norm()*alpha<0.1*Beads[i]->sigma;
     
-      if(NewE <= previousE - c1 * alpha * Projection && displacement_cond  && fabs(NewE-previousE)<5e1 ) {
+      if(NewE <= previousE - c1 * alpha * Projection && displacement_cond  && fabs(NewE-previousE)<1e2 ) {
     
-        if(fabs(NewE-previousE) > 5e1){
+        if(fabs(NewE-previousE) > 5e1 && false){
           
       
           std::cout<<"The energies are ";
@@ -1780,7 +1768,7 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force){
     }
     
     alpha *=rho;
-    if( (abs((NewE-previousE)/previousE) < 1e-7 && Projection < 0.5) || Projection < 1e-5){
+    if( (abs((NewE-previousE)/previousE) < 1e-4 && Projection < 0.5) || Projection < 1e-5){
       small_TS = true;
       std::cout<<"The energy diff is quite small and so is the gradient\n";
       std::cout<<"The energy diff is"<< abs(NewE-previousE)/previousE<<"\n";
@@ -1834,7 +1822,7 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force){
   
   }
 
-  std::cout<<"The energy final is" << NewE <<" \n";
+  // std::cout<<"The energy final is" << NewE <<" \n";
 
   nanflag = false;
 
@@ -3015,7 +3003,7 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
   return backtrackstep;
 }
 
-Eigen::MatrixXd Mem3DG::integrate_BFGS(std::ofstream& Sim_data , double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data, Eigen::MatrixXd Hessian){
+double Mem3DG::integrate_BFGS(std::ofstream& Sim_data , double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data){
 
   // We need to store the Hessian somewhere, maybe it should be received as a pointer
   auto start = chrono::steady_clock::now();
@@ -3025,7 +3013,7 @@ Eigen::MatrixXd Mem3DG::integrate_BFGS(std::ofstream& Sim_data , double time, st
   auto solve_start = chrono::steady_clock::now();
   auto solve_end = chrono::steady_clock::now();
 
-  
+  double backtrackstep;
 
   double time_construct = 0;
   double time_solve = 0;
@@ -3048,155 +3036,128 @@ Eigen::MatrixXd Mem3DG::integrate_BFGS(std::ofstream& Sim_data , double time, st
       }
 
   }
-  // std::cout<<"BEAD DATA DONE\n";
-
-
-
-  // I need to get the force and their gradients
-
-
-  // std::vector<double> Gradient_norms;
-  // double grad_value;
-  // VertexData<Vector3> Force(*mesh,Vector3({0.0,0.0,0.0}));
-  // VertexData<Vector3> Force_temp(*mesh);
-  // if(Energy_vals.size()==0) Energy_vals.resize(Energies.size());
-  
-  // double A_bar = 4.0*3.1415926535;
-  // double V_bar = 4.0*3.14115926535/3.0;
-  // double V;
-  // double A = 0;
-
+ 
   start = chrono::steady_clock::now();
-  // std::cout<<"Calling simulation handler for gradiebts\n";
-
-  // backtrackstep = Sim_handler->Backtracking(BFGS);s
-  // I need to check here that 
-  // std::cout<<"Calculating gradient\n";
 
 
-  Sim_handler->Calculate_gradient();
-  // std::cout<<"Gradient calculated\n";
+  // Ok so for starters 
+  // We now which iteration of BFGS WE ARE in.
+  // std::cout<<"Starting iteration\n";
 
+  SparseMatrix<double> HK0(3*mesh->nVertices(),3*mesh->nVertices());
+  HK0.setIdentity();
+  // We need to turn HK0 into the identity matrix 
+
+
+  // std::cout<<"Identity set\n";
+  if(BFGS_iter==0){
+    // std::cout<<"BFGS Started/Restarted\n";
+    Sim_handler->Calculate_gradient();
+
+    // I need to do the backtracking now lol.
+    // std::cout<<"Lets backtrack\n";
+    backtrackstep = Backtracking_BFGS(Sim_handler->Current_grad);
+    // std::cout<<"\n\n First iteration with the normal gradient\n";
+    Eigen::VectorXd Aux_vector = Eigen::VectorXd::Zero(3*mesh->nVertices());
+    for(Vertex v : mesh->vertices()){
+      Aux_vector[3*v.getIndex()] = backtrackstep*Sim_handler->Current_grad[v].x;
+      Aux_vector[3*v.getIndex()+1] = backtrackstep*Sim_handler->Current_grad[v].y;
+      Aux_vector[3*v.getIndex()+2] = backtrackstep*Sim_handler->Current_grad[v].z;
+    }
+    s_list.resize(0);
+    y_list.resize(0);
+    rho_list.resize(0);
+
+    s_list.push_back(Aux_vector);
+
+    Sim_handler->Calculate_gradient();
+    Vector3 Diff;
+    for(Vertex v:mesh->vertices()){
+      Diff = Sim_handler->Current_grad[v] - Sim_handler->Previous_grad[v];
+      Aux_vector[3*v.getIndex()] = Diff.x;
+      Aux_vector[3*v.getIndex()+1] = Diff.y;
+      Aux_vector[3*v.getIndex()+2] = Diff.z;
+    }
+    y_list.push_back(Aux_vector);
+
+
+    double rho_i = 1.0/(s_list[0].dot(y_list[0]));
+    rho_list.push_back(rho_i);
   
-  end = chrono::steady_clock::now();
+  }
+  else{
+    // IF this is not 0 we need to call the BFGS UPDATE FOR THE HESSIAN 
+    // std::cout<<"Standard iteration happening\n";
+    Eigen::VectorXd Grad_vec = Eigen::VectorXd::Zero(3*mesh->nVertices());
+    for(Vertex v : mesh->vertices()){
+      Grad_vec[3*v.getIndex()] = Sim_handler->Current_grad[v].x;
+      Grad_vec[3*v.getIndex()+1] = Sim_handler->Current_grad[v].y;
+      Grad_vec[3*v.getIndex()+2] = Sim_handler->Current_grad[v].z;
+    }
+    // We have the gradient vector
+    double alpha_i;
+    std::vector<double> alpha_list(m);
+    // oK 
+    for(int i = BFGS_iter-1; i>=0 && BFGS_iter-i<m ; i--){
+      // std::cout<<"i has value"<< i <<"\n";
+      alpha_i = rho_list[i%m]*s_list[i%m].dot(Grad_vec);
+      alpha_list[i%m] = alpha_i;
+      Grad_vec = Grad_vec - alpha_i*y_list[i%m];
+    }
 
-  time_gradients = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-  
-  
-  // THis is the time it takes for the gradients 
+    Eigen::VectorXd r = Grad_vec;
+    // std::cout<<"The vector r is"
+    for(int i = std::max(0,BFGS_iter-m); i<BFGS_iter; i++){
+      // std::cout<<"The value of i is "<< i <<" at iteration " << BFGS_iter<<" \n";
+      double beta_i = rho_list[i%m]*y_list[i%m].dot(r);
+      r = r + s_list[i%m]*(alpha_list[i%m]-beta_i);
+    }
 
+    // So here we have r which is the product of the inverse Hessian with the gradient, we just need to do the backtracking and then update the lists
+    VertexData<Vector3> Force(*mesh,Vector3({0.0,0.0,0.0}));
+    for(Vertex v : mesh->vertices()){
+      Force[v].x = r[3*v.getIndex()];
+      Force[v].y = r[3*v.getIndex()+1];
+      Force[v].z = r[3*v.getIndex()+2];
+    }
+    backtrackstep = Backtracking_BFGS(Force);
 
+    Eigen::VectorXd s_k = backtrackstep*r;
+    Sim_handler->Calculate_gradient();
+    for(Vertex v:mesh->vertices()){
+      Grad_vec[3*v.getIndex()] = Sim_handler->Current_grad[v].x - Sim_handler->Previous_grad[v].x;
+      Grad_vec[3*v.getIndex()+1] = Sim_handler->Current_grad[v].y- Sim_handler->Previous_grad[v].y;
+      Grad_vec[3*v.getIndex()+2] = Sim_handler->Current_grad[v].z- Sim_handler->Previous_grad[v].z;
+    }
 
-  // std::cout<<" \n";
-  //  std::cout<<"The energy vals are ";
-  // for(size_t i = 0; i < Energy_vals.size(); i++){
-  //   std::cout<< Energy_vals[i] <<" ";
+    if(BFGS_iter<m){
+      s_list.push_back(s_k);
+      y_list.push_back(Grad_vec);  
+      rho_list.push_back(1.0/(s_k.dot(Grad_vec)));
+    }
+    else{
+      // In case this is not the case we do 
+      s_list[BFGS_iter%m] = s_k;
+      y_list[BFGS_iter%m] = Grad_vec;
+      rho_list[BFGS_iter%m] = 1.0/(s_k.dot(Grad_vec));
+      }
 
-  // }
-  // std::cout<<" \n";
-  // Ok now i have the force
-  double alpha = 1e-3;
-  double backtrackstep;
-  Total_force = Vector3({0.0, 0.0, 0.0});
-  double Grad_tot_norm  = 0;
+  }
+
+  BFGS_iter +=1;
+
+  // std::cout<<"We got gere? impressive\n";
  
   V = geometry->totalVolume();
   double r_eff = 0;
 
-
-  // F_dist.close();
-  // std::cout<<"Moving to backtracking\n";
   
-  start = chrono::steady_clock::now();
-  
-  // We want to know how this is transformed 
-
-  // std::cout<<"Started converting stuff\n";
-  Eigen::VectorXd Grad_vec = Eigen::VectorXd::Zero(3*mesh->nVertices());
-
-  for(Vertex v : mesh->vertices()){
-    Grad_vec[v.getIndex()] = Sim_handler->Current_grad[v].x;
-    Grad_vec[v.getIndex()+mesh->nVertices()] = Sim_handler->Current_grad[v].y;
-    Grad_vec[v.getIndex()+2*mesh->nVertices()] = Sim_handler->Current_grad[v].z;
-  }
-
-  Grad_vec = Hessian * Grad_vec;
-
- 
-
-  // std::cout<<"Vertex product\n";
-  VertexData<Vector3> Force(*mesh,Vector3({0.0,0.0,0.0}));
-  for(Vertex v : mesh->vertices()){
-    Force[v].x = Grad_vec[v.getIndex()];
-    Force[v].y = Grad_vec[v.getIndex()+mesh->nVertices()];
-    Force[v].z = Grad_vec[v.getIndex()+2*mesh->nVertices()];
-  }
-  backtrackstep = Backtracking_BFGS( Force);
-
-  Sim_handler->Calculate_gradient();
-  
-  VertexData<Vector3> yk = Sim_handler->Current_grad-Sim_handler->Previous_grad;
-
-  Grad_vec = backtrackstep* Grad_vec; //So this is sk
-  
-  Eigen::VectorXd yk_vec = Eigen::VectorXd::Zero(3*mesh->nVertices());
-  for(Vertex v : mesh->vertices()){
-    yk_vec[v.getIndex()] = yk[v].x;
-    yk_vec[v.getIndex()+mesh->nVertices()] = yk[v].y;
-    yk_vec[v.getIndex()+2*mesh->nVertices()] = yk[v].z;
-  }
-  // std::cout<<"Yk vec at 10 is" << yk_vec[10] << " \n";
-
-  // std::cout<<"YK VEC DONE\n";
-  // I have yk ready, sk and Hk
-
-  // Lets see whos size is wrong
-  // Eigen::DenseMatri
-  // std::cout<<"THe size of Grad_vec is " << Grad_vec.size() << " \n";
-  // std::cout<<"THe size of ykvec is " << yk_vec.size() << " \n";
-  // std::cout<<"The size of Hessian is " << Hessian.rows() << "  and " << Hessian.cols() <<"\n";
-
-  // std::cout<<"THe size of "<< (Grad_vec* Grad_vec.transpose()).size() << " \n";
-  // std::cout<<"THe size of "<< (yk_vec.transpose()*Grad_vec).size() << " \n";
-  
-
-  // std::cout<<"The rows are " << (Grad_vec * Grad_vec.transpose()).coeff(0,0) << " and the columns are " << (Grad_vec * Grad_vec.transpose()).cols() << "\n";
-  // He ssian = Hessian + (Grad_vec.transpose()* yk_vec + yk_vec.transpose()*Hessian * yk_vec)*(Grad_vec*Grad_vec.transpose())/(Grad_vec.transpose()*yk_vec*yk_vec.transpose()*Grad_vec) - (Hessian * yk_vec*Grad_vec.transpose() + Grad_vec*yk_vec.transpose()*Hessian)/(yk_vec.transpose()*Grad_vec); 
-
-
-  // Eigen::VectorXd Simple_vec(4);
-  // Simple_vec << 1,2,3,4;
-  // Eigen::VectorXd other_simple_vec(4);
-  // other_simple_vec << 1,2,3,4;
-
-  // std::cout<<"Simple vec is " << Simple_vec << " \n";
-  // std::cout<<"First they are different\n";
-  // std::cout<<Simple_vec * other_simple_vec.transpose() << " \n";
-  // std::cout<<"Second they are the same";
-  // std::cout<< Simple_vec * Simple_vec.transpose() << " \n";
-
-  // Eigen::RowVectorXd trans_simple_vec = Simple_vec.transpose();
-  // std::cout<<"Simple vec transposed easy " << trans_simple_vec <<" \n";
-  Eigen::RowVectorXd T_Grad_vec = Grad_vec.transpose();
-
-
-  Hessian = Hessian + (Grad_vec.dot(yk_vec) + yk_vec.dot(Hessian * yk_vec) )*(Grad_vec*T_Grad_vec)/(Grad_vec.dot(yk_vec) *yk_vec.dot(Grad_vec) ) - (Hessian * yk_vec*Grad_vec.transpose() + Grad_vec*yk_vec.transpose()*Hessian)/(yk_vec.dot(Grad_vec));
-  // std::cout<<"Big op done\n";
-
-
   end = chrono::steady_clock::now();
   time_backtracking = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
 
-  // OK NOW I HAVE TO save the timings
-
-  std::ofstream Timings = std::ofstream(Bead_data_filenames[Beads.size()],std::ios_base::app);
-  Timings << time_gradients <<" "<< time_backtracking <<" "<< time_construct <<" "<< time_compute <<" "<< time_solve <<" \n";
-  Timings.close();
-  // std::cout<<"The backtrackstep is " << backtrackstep << " \n";
-  // After backtracking i have to save.
 
   // 
-  if(Save_output_data || backtrackstep <0 ){
+  if(Save_output_data ){
   double tot_E=0;
   Sim_data << time <<" "<< V<<" " << A<<" ";
   for(size_t i = 0; i < Sim_handler->Energies.size(); i++){
@@ -3217,7 +3178,7 @@ Eigen::MatrixXd Mem3DG::integrate_BFGS(std::ofstream& Sim_data , double time, st
     }
 
 
-  return Hessian;
+  return backtrackstep;
 }
 
 double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data, std::vector<std::string> Constraints,std::vector<std::string> Data_filenames){
