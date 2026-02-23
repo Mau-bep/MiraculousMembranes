@@ -55,8 +55,8 @@ class Mem3DG {
     double E_Bead;
 
     bool backtrack;
-    double timestep;
-
+    double timestep;  
+    bool remesh_flag;
     std::string Field;
     std::vector<double> Field_vals;
 
@@ -73,7 +73,13 @@ class Mem3DG {
     std::vector<Eigen::VectorXd> y_list;
     std::vector<double> rho_list;
 
-
+    // Convergence estimators 
+    int N_data;
+    double mean_E;
+    double var_E;
+    double mean_Grad;
+    double var_Grad;
+    bool Turn_normal_iter;
 
     // Eigen::SimplicialLDLT<SparseMatrix<double>> solver_H;
     bool momentum;
@@ -128,7 +134,7 @@ class Mem3DG {
 
     double Backtracking();
     double Backtracking_grad(Eigen::VectorXd pk, double Projection, double Current_grad_norm);
-    double Backtracking_BFGS(VertexData<Vector3> Force);
+    double Backtracking_BFGS(VertexData<Vector3> Force,std::vector<Vector3> Bead_forces);
     double Backtracking(VertexData<Vector3> Force,double P0,double V_bar,double A_bar,double KA,double KB,double H_bar,bool bead, bool pulling) ;
     double Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar) ;
     double Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double KA);
@@ -142,6 +148,8 @@ class Mem3DG {
 
     double integrate(std::ofstream& Sim_data , double time, std::vector<std::string>Bead_data_filenames, bool Save_output_data);
     double integrate_BFGS(std::ofstream& Sim_data , double time, std::vector<std::string>Bead_data_filenames, bool Save_output_data);
+    double integrate_BFGS_Normal(std::ofstream& Sim_data , double time, std::vector<std::string>Bead_data_filenames, bool Save_output_data, VertexData<Vector3> Vertex_Normals);
+    
     double integrate_Newton(std::ofstream& Sim_data , double time, std::vector<std::string>Bead_data_filenames, bool Save_output_data, std::vector<std::string> Constraints,std::vector<std::string> Data_filenames);
     
     double integrate_implicit(std::vector<std::string> Energies,  std::vector<std::vector<double>> Energy_constants,std::ofstream& Sim_data , double time, std::vector<std::string>Bead_data_filenames, bool Save_output_data);

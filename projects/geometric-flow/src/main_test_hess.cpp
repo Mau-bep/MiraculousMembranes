@@ -1339,6 +1339,20 @@ int main(int argc, char** argv) {
 
 
 
+    Sim_handler.update_vertex_normals();
+    Sim_handler.Energies.push_back("Bending");
+    Sim_handler.Energy_constants.push_back({1.0,0.0});
+
+
+    for(Vertex v: mesh->vertices()){
+        std::cout<<"The vertex normal for vertex " << v.getIndex() << " is " << Sim_handler.Vertex_normals[v] << "\n";
+    }
+    std::cout<<"Lesto\n";
+    std::cout<< "Hessian is \n" << Sim_handler.Calculate_Hessian_E_Normal() <<" \n";
+
+
+
+
 
     return 1;
 

@@ -56,6 +56,7 @@ class Bead {
     double Energy();
     void Reset_bead(Vector3 Actual_pos);
     void Move_bead(double dt, Vector3 center);
+    void Move_bead(double dt, Vector3 center, Vector3 Force);
 
     SparseMatrix<double> H_Bead();
     void Add_bead(Bead *bead, std::string Interaction, std::vector<double> Interaction_strength);

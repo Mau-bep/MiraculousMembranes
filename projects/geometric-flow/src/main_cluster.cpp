@@ -132,6 +132,8 @@ bool edge_length_adj;
 VertexData<Vector3> ORIG_VPOS; // original vertex positions
 Vector3 CoM;                   // original center of mass
 
+VertexData<Vector3> Vertex_Normals;
+
 
 Mem3DG M3DG;
 E_Handler Sim_handler;
@@ -482,6 +484,10 @@ int main(int argc, char** argv) {
     else{
         std::cout<<"The integration method is not defined, using Gradient descent\n";
     }
+    int Stored_info = 10;
+    if(Data.contains("BFGS_saved_states")){
+        Stored_info = Data["BFGS_saved_states"];
+    }
 
     // Switches handling
 
@@ -683,7 +689,41 @@ int main(int argc, char** argv) {
         }
         }
 
+        if(interaction_mem == "Frenkel"){
+            
 
+            if(Bead_data.contains("outside")){
+             Bead_params.push_back(Bead_data["outside"]); 
+                }
+            else{
+                Bead_params.push_back(1.0); // default outside
+            }
+  
+            Interaction_container.push_back(std::move( make_unique<Frenkel>(mesh, geometry, Bead_params)));
+            
+            Beads.push_back(Bead());
+            Beads[bead_counter].mesh = mesh;
+            Beads[bead_counter].geometry = geometry;
+            Beads[bead_counter].Pos = BPos;
+            Beads[bead_counter].strength = Bead_params[0];
+            Beads[bead_counter].sigma = Bead_params[1];
+            Beads[bead_counter].rc = Bead_params[2];
+            Beads[bead_counter].interaction = interaction_mem;
+            std::cout<<"Trivial assignments done\n";
+            Beads[bead_counter].Bead_I = Interaction_container[bead_counter].get();
+            std::cout<<"Assigned INter \n";
+            Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
+            std::cout<<"Assined bead of inter\n";
+            Beads[bead_counter].Bead_id = bead_counter;
+
+            std::cout<<"The energy constants are ";
+            for(size_t i = 0; i < Interaction_container[bead_counter].get()->Energy_constants.size(); i ++){
+                std::cout<< Interaction_container[bead_counter].get()->Energy_constants[i] <<" ";
+            }
+            std::cout<<"\n";
+            
+        }
+  
         if(interaction_mem == "Frenkel_Normal_nopush"){
             
 
@@ -693,11 +733,8 @@ int main(int argc, char** argv) {
             else{
                 Bead_params.push_back(1.0); // default outside
             }
-            // Frenkel_uptr = std::move( make_unique<Frenkel_Normal>(mesh, geometry, Bead_params));
-            // fnormal = Frenkel_uptr.get();
+  
             Interaction_container.push_back(std::move( make_unique<Frenkel_Normal>(mesh, geometry, Bead_params)));
-            // std::cout<<"THe frenkel uptr points to"<< Interaction_container[bead_counter].get() <<"\n";
-            // std::cout<<"The Fnormal points to" << fnormal <<" \n";
             
             Beads.push_back(Bead());
             Beads[bead_counter].mesh = mesh;
@@ -1432,6 +1469,11 @@ int main(int argc, char** argv) {
             Switch_times_map[Switch] = current_t + 100;
 
         }      
+        if(Switch =="BFGS-Normal" && current_t ==Switch_t){
+            Integration = "BFGS-Normal";
+            M3DG.BFGS_iter = 0;
+            remesh_every = -1;
+        }
         if(Switch =="Freze beads" && current_t == Switch_t){
             std::cout<<"Switching the behavior of the beads\n";
             for(size_t i = 0; i < Beads.size(); i++){
@@ -1821,8 +1863,19 @@ int main(int argc, char** argv) {
             dt_sim = M3DG.integrate(Sim_data, time, Bead_filenames, Save_output_data);
         }
         else if(Integration == "BFGS"){
-            M3DG.m = 10;
+            M3DG.m = Stored_info;
             dt_sim = M3DG.integrate_BFGS(Sim_data, time, Bead_filenames, Save_output_data);
+            // std::cout<<"The remesh flag is " << M3DG.remesh_flag << "\n";
+            if(M3DG.remesh_flag) {
+                remesh_every = 1; 
+                M3DG.remesh_flag = false;
+                std::cout<<"We need to remesh before we can continue with the iteration\n";
+            }
+            if(M3DG.Turn_normal_iter){
+                Integration = "BFGS-Normal";
+                M3DG.BFGS_iter = 0;
+            }
+
         }
         else if(Integration == "Newton"){
             try{
@@ -1898,6 +1951,9 @@ int main(int argc, char** argv) {
             // std::cout<<"Integrating\n";
             dt_sim = M3DG.integrate_Newton(Sim_data, time, Bead_filenames, Save_output_data, Constraints, Data_filenames);
             // std::cout<<"Iteration\n";
+
+
+
             if(M3DG.small_TS == true){
                 // Then i will do gradient descent for a while
                 std::cout<<"We will do GD for the next 100 steps\n";
@@ -1999,6 +2055,27 @@ int main(int argc, char** argv) {
             Integration = "Gradient_descent";
 
         
+        }
+        else if(Integration == "BFGS-Normal"){
+            // std::cout<<"Integrating with BFGS but only in the normal direction\n";
+            if(M3DG.BFGS_iter == 0){
+                Vertex_Normals = VertexData<Vector3>(*mesh,{0.0,0.0,0.0});
+                for(Vertex v: mesh->vertices()){
+                    Vertex_Normals[v] = geometry->vertexNormalAreaWeighted(v);
+                }
+                std::cout<<"Normals calculated\n";
+                }
+            // std::cout<<"Integrating\n";
+            dt_sim = M3DG.integrate_BFGS_Normal(Sim_data, time, Bead_filenames, Save_output_data, Vertex_Normals);
+            
+            if(M3DG.remesh_flag) {
+                remesh_every = 1; 
+                M3DG.remesh_flag = false;
+                std::cout<<"We need to remesh before we can continue with the iteration\n";
+            }
+            // else{
+                // remesh_every = -1;
+            // }
         }
         // if(dt_sim==0){
         //     Save_mesh(basic_name,-1);

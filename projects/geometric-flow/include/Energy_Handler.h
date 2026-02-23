@@ -30,6 +30,7 @@ class E_Handler {
         
         VertexData<Vector3> Previous_grad;
         VertexData<Vector3> Current_grad;
+        VertexData<Vector3> Vertex_normals;
         FaceData<double> Face_reference;
 
         Eigen::MatrixXd Jacobian_constraints;
@@ -50,6 +51,7 @@ class E_Handler {
         SparseMatrix<double> H2_operator(bool CM, bool Vol_const, bool Area_const);
         
         void update_face_reference();
+        void update_vertex_normals();
 
         virtual double E_Volume_constraint(std::vector<double> Constants) const;
         virtual double E_Area_constraint(std::vector<double> Constants) const;
@@ -93,6 +95,8 @@ class E_Handler {
         virtual SparseMatrix<double> Calculate_Hessian(); 
         virtual SparseMatrix<double> Calculate_Hessian_E();
         virtual SparseMatrix<double> Calculate_Hessian_Constraints();
+        virtual SparseMatrix<double> Calculate_Hessian_E_Normal();
+        virtual SparseMatrix<double> Calculate_Hessian_Constraints_Normal();
 
 
         virtual void Do_nothing();

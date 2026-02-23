@@ -105,6 +105,89 @@ class Normal_dot_Interaction: public Interaction {
 
 };
 
+class Frenkel: public Integrated_Interaction{
+
+    public:
+
+    Frenkel(){}
+
+    Frenkel(std::vector<double> params) {
+        Energy_constants = params;
+    }
+    Frenkel(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, std::vector<double> params) {
+        Energy_constants = params;
+        mesh = inputMesh;
+        geometry = inputGeo;
+    }
+    
+
+    double E_r(double r, std::vector<double> Energy_constants) override {
+        // r is the distance between the two beads
+        // Energy_constants[0] is the strength of the interaction
+        // Energy_constants[1] is the sigma of the interaction
+        double sigma = Energy_constants[1];
+        double epsilon = Energy_constants[0];
+        double rc = Energy_constants[2]; // cutoff distance
+    
+        if( r >= rc) {
+            return 0.0; // No interaction beyond cutoff
+        }
+        double rc2 = rc * rc;
+        double r2 = r*r;
+        double alpha = 2*(rc2/(sigma*sigma))*pow( 3/(2*( (rc2/(sigma*sigma)) -1))  ,3.0 );
+
+        return epsilon*alpha*( (sigma*sigma/r2)-1  )*pow( (rc2/r2)-1 ,2.0);
+        
+    }
+    double dE_r(double r, std::vector<double> Energy_constants) override {
+
+
+        double epsilon = Energy_constants[0];
+        double sigma = Energy_constants[1];
+        double rc = Energy_constants[2]; // cutoff distance
+        if (r >= rc) {
+            return 0.0; // No interaction beyond cutoff
+        }
+        double rc2 = rc * rc;
+        double r2 = r*r;
+        double alpha = 2*(rc2/(sigma*sigma))*pow( 3/(2*( (rc2/(sigma*sigma)) -1))  ,3.0 );
+
+        // Ok so now i need to calculate the derivative
+        double Q1 = -2*alpha/(r2*r);
+        double Q2 = rc2/r2 -1;
+        double Q3 = sigma*sigma*( rc2/r2 -1) + 2*rc2 *( sigma*sigma/r2 -1);
+
+        return epsilon*Q1*Q2*Q3;
+
+    }
+    double ddE_r(double r, std::vector<double> Energy_constants) override {
+
+        double sigma = Energy_constants[1];
+        double epsilon = Energy_constants[0];
+        double rc = Energy_constants[2]; // cutoff distance
+        if (r >= rc) {
+            return 0.0; // No interaction beyond cutoff
+        }
+        double rc2 = rc * rc;
+        double r2 = r*r;
+        double alpha = 2*(rc2/(sigma*sigma))*pow( 3/(2*( (rc2/(sigma*sigma)) -1))  ,3.0 );
+
+        // Ok so now i need to calculate the second derivative
+        double Q1 = -2*alpha/(r2*r);
+        double Q2 = rc2/r2 -1;
+        double Q3 = sigma*sigma*( rc2/r2 -1) + 2*rc2 *( sigma*sigma/r2 -1);
+
+        double dQ1 = 6*alpha/(r2*r2);
+        double dQ2 = -2 *rc2/(r2*r);
+        double dQ3 = sigma*sigma*(-2)*rc2/(r2*r) -  4*rc2*sigma*sigma/(r2*r);
+
+        return dQ1*Q2*Q3 + Q1*dQ2*Q3 + Q1*Q2*dQ3;
+
+
+    }
+
+
+};
 
 class Frenkel_Normal: public Normal_dot_Interaction{
 

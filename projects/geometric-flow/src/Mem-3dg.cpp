@@ -41,8 +41,12 @@ Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo)
     learn_rate = 0.5;
 
     BFGS_iter =0;
-
-
+    N_data = 0;
+    mean_E = 0;
+    var_E = 0;
+    mean_Grad = 0;
+    var_Grad = 0;
+    Turn_normal_iter = false;
 }
 Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, Bead input_Bead) {
 
@@ -64,6 +68,7 @@ Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,
     Save_SS = false;
     stop_increasing = false;
     small_TS = false;
+    remesh_flag = false;
 }
 
 
@@ -85,6 +90,7 @@ Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,
     pulling=false;
     stop_increasing = false;
     small_TS = false;
+    remesh_flag = false;
 }
 
 
@@ -1135,6 +1141,9 @@ double Mem3DG::Backtracking(){
     }
 
     if(alpha<1e-10){
+      BFGS_iter = 0;
+      remesh_flag = true;
+      std::cout<<"The remesh flag is true\n";
       std::cout<<"THe timestep got small so the simulation would end \n";
       std::cout<<"THe timestep is "<< alpha <<" \n";
       std::cout<<"The energy diff is"<< abs(NewE-previousE)<<"\n";
@@ -1145,7 +1154,7 @@ double Mem3DG::Backtracking(){
       // return alpha;
       std::cout<<"The gradient got crazy\n";
       std::cout<<"The projection is "<< Projection<<"\n";
-      geometry->inputVertexPositions = initial_pos;
+      // geometry->inputVertexPositions = initial_pos;
       return -1;
       }
 
@@ -1617,7 +1626,7 @@ double Mem3DG::Backtracking_grad(Eigen::VectorXd p_lambda, double Projection, do
  * @param Energy_constants A matrix of energy constants.
  * @return The optimal step size for the backtracking algorithm.
  */
-double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force){
+double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3> Bead_forces){
 
   double c1 = 1e-4;
   double rho = 0.5;
@@ -1669,7 +1678,7 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force){
   
   // We move the beads;
   // std::cout<<"Moving beads\n";
-  for(size_t i = 0 ; i < Beads.size(); i++) Beads[i]->Move_bead(alpha,Vector3({0,0,0})); 
+  for(size_t i = 0 ; i < Beads.size(); i++) Beads[i]->Move_bead(alpha,Vector3({0,0,0}),Bead_forces[i]); 
   Projection = 0.0;
   // std::cout<<"Calculating projection\n";
   for(Vertex v: mesh->vertices()){
@@ -1691,14 +1700,14 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force){
   // std::cout<<"THe projection is " << Projection <<" \n";
   // std::cout<<"The number of beads is " << Beads.size() << " \n";
   
-  if(Projection < 1e-2) {
+  if(Projection < 1e-5) {
     small_TS = true;
-      std::cout<<"The energy diff is quite small and so is the gradient\n";
+      std::cout<<"The energy diff is quite small and so is the gradieeent\n";
       std::cout<<"The energy diff is"<< abs(NewE-previousE)/previousE<<"\n";
       std::cout<<"The projection is"<< Projection<<"\n";
       return -1.0;
   }
-
+  // std::cout<<"Backtracking\n";
   while(true) {
     displacement_cond = true;
     
@@ -1768,29 +1777,34 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force){
     }
     
     alpha *=rho;
-    if( (abs((NewE-previousE)/previousE) < 1e-4 && Projection < 0.5) || Projection < 1e-5){
+    // if(Projection<1) std::cout<<"THe projection is " << Projection <<" at iter "<< BFGS_iter << "\n";
+    if( (abs((NewE-previousE)/previousE) < 1e-5 && Projection < 1e-2) || Projection < 1e-4){
       small_TS = true;
       std::cout<<"The energy diff is quite small and so is the gradient\n";
-      std::cout<<"The energy diff is"<< abs(NewE-previousE)/previousE<<"\n";
+      std::cout<<"The energy diff is"<< abs((NewE-previousE)/previousE)<<"\n";
       std::cout<<"The projection is"<< Projection<<"\n";
+      std::cout<<"Finishing sim\n";
       return -1.0;
     }
 
     if(alpha<1e-10){
+      BFGS_iter = 0;
+      
       std::cout<<"THe timestep got small so the simulation would end \n";
       std::cout<<"THe timestep is "<< alpha <<" \n";
       std::cout<<"The energy diff is"<< abs(NewE-previousE)<<"\n";
       std::cout<<"THe relative energy diff  is"<<abs((NewE-previousE)/previousE)<<"\n";
       std::cout<<"The projection is"<< Projection<<"\n";
       std::cout<<"The projection is too big "<< (Projection>1.0e8) <<" \n";
-      if(Projection>1.0e8){
+      if(Projection>1.0e5){
+      remesh_flag = true;
       // return alpha;
       std::cout<<"The gradient got crazy\n";
       std::cout<<"The projections is "<< Projection<<"\n";
       geometry->inputVertexPositions = initial_pos;
-      return -1;
+      // return -1; //I may need to change this later
       }
-      small_TS = true;
+      // small_TS = true;
 
       break;
 
@@ -1801,7 +1815,7 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force){
     
     for(size_t i = 0; i<Beads.size(); i++){
       Beads[i]->Reset_bead(Bead_init[i]);
-      Beads[i]->Move_bead(alpha, Vector3({0,0,0}));
+      Beads[i]->Move_bead(alpha, Vector3({0,0,0}),Bead_forces[i]);
     }
     }
     else {
@@ -1860,6 +1874,9 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force){
     }
   geometry->refreshQuantities();
   }
+
+  // 
+
 
 
   // std::cout<<"The difference in energy is " << fabs(NewE-previousE) <<"(: \n";
@@ -3003,6 +3020,212 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
   return backtrackstep;
 }
 
+double Mem3DG::integrate_BFGS_Normal(std::ofstream& Sim_data, double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data, VertexData<Vector3> Vertex_Normals){
+  auto start = chrono::steady_clock::now();
+  auto end = chrono::steady_clock::now();
+  auto construction_start = chrono::steady_clock::now();
+  auto construction_end = chrono::steady_clock::now();
+  auto solve_start = chrono::steady_clock::now();
+  auto solve_end = chrono::steady_clock::now();
+
+  double backtrackstep;
+
+  double time_construct = 0;
+  double time_solve = 0;
+  double time_compute = 0;
+  double time_gradients = 0;
+  double time_backtracking = 0;
+
+  size_t bead_count = 0;
+
+  if(Bead_data_filenames.size()!=0 && Save_output_data){
+    std::ofstream Bead_data;
+    for(size_t i = 0; i < Beads.size(); i++){
+      
+      Bead_data = std::ofstream(Bead_data_filenames[i],std::ios_base::app);
+      Bead_data<<Beads[i]->Pos.x <<" "<< Beads[i]->Pos.y << " "<< Beads[i]->Pos.z<< " "<< Beads[i]->Total_force.x <<" "<< Beads[i]->Total_force.y << " "<< Beads[i]->Total_force.z <<" \n";
+      // std::cout<<Bead_1.Pos.x << " "<< Bead_1.Pos.y << " "<< Bead_1.Pos.z<<" \n";
+      // std::cout<<"The total force is "<<Bead_1.Total_force <<"\n";
+      Bead_data.close();
+      }
+
+  }
+  start = chrono::steady_clock::now();
+
+  // std::cout<<"iteration begins\n";
+  std::vector<Vector3> Bead_forces(Beads.size());
+
+  if(BFGS_iter == 0){
+    // 
+    Sim_handler->Calculate_gradient();
+
+    VertexData<double> Grad_E = VertexData<double>(*mesh,0.0);
+    for(Vertex v : mesh->vertices()){
+      Grad_E[v] = dot(Sim_handler->Current_grad[v],Vertex_Normals[v]);
+    }
+    VertexData<Vector3> Force(*mesh,Vector3{0.0,0.0,0.0});
+    for(Vertex v: mesh->vertices()){
+      Force[v] = Grad_E[v]*Vertex_Normals[v];
+    }
+    for(size_t bi = 0; bi < Beads.size(); bi++){
+      Bead_forces[bi] = Vector3{0.0,0.0,0.0};
+    }
+    
+    // std::cout<<"Calling backtracker\n";
+    backtrackstep = Backtracking_BFGS(Force,Bead_forces);
+
+
+    Eigen::VectorXd Aux_vector = Eigen::VectorXd::Zero((mesh->nVertices()));
+
+    for(Vertex v : mesh->vertices()){
+      Aux_vector[v.getIndex()] = backtrackstep * Grad_E[v];
+    }
+
+    s_list.resize(0);
+    y_list.resize(0);
+    rho_list.resize(0);
+
+    s_list.push_back(Aux_vector);
+    Sim_handler->Calculate_gradient();
+
+    for(Vertex v:mesh->vertices()){
+      Aux_vector[v.getIndex()] = dot(Sim_handler->Current_grad[v],Vertex_Normals[v]) - dot(Sim_handler->Previous_grad[v],Vertex_Normals[v]);
+    }
+    y_list.push_back(Aux_vector);
+
+    double rho_i = 1.0/(s_list[0].dot(y_list[0]));
+    rho_list.push_back(rho_i);
+
+
+  }
+  else{
+
+    Eigen::VectorXd Grad_E = Eigen::VectorXd::Zero(mesh->nVertices());
+
+    for(Vertex v : mesh->vertices()){
+      Grad_E[v.getIndex()] = dot(Sim_handler->Current_grad[v],Vertex_Normals[v]);
+    }
+
+    double alpha_i;
+    std::vector<double> alpha_list(m);
+    for( int i = BFGS_iter-1; i>=0 && BFGS_iter-i <m; i--){
+      alpha_i = rho_list[i%m]*s_list[i%m].dot(Grad_E);
+      alpha_list[i%m] = alpha_i;
+      Grad_E = Grad_E - alpha_i*y_list[i%m];
+    }
+  Eigen::VectorXd r = Grad_E;
+
+  for(int i = std::max(0,BFGS_iter-m); i<BFGS_iter; i++){
+    // std::cout<<"The value of i is "<< i <<" at iteration " << BFGS_iter<<" \n";
+    double beta_i = rho_list[i%m]*y_list[i%m].dot(r);
+    r = r + s_list[i%m]*(alpha_list[i%m]-beta_i);
+  }
+  VertexData<Vector3> Force(*mesh,Vector3({0.0,0.0,0.0}));
+  for(Vertex v : mesh->vertices()){
+    Force[v] = r[v.getIndex()]*Vertex_Normals[v];
+  }
+  for(size_t bi = 0; bi < Beads.size(); bi++){
+    Bead_forces[bi] = Vector3{0.0,0.0,0.0};
+  }
+
+  backtrackstep = Backtracking_BFGS(Force,Bead_forces);
+
+  Eigen::VectorXd s_k = backtrackstep*r;
+  Sim_handler->Calculate_gradient();
+  for(Vertex v: mesh->vertices()){
+    Grad_E[v.getIndex()] = dot((Sim_handler->Current_grad[v]-Sim_handler->Previous_grad[v]),Vertex_Normals[v]);
+
+  }
+
+  if(BFGS_iter<m){
+    s_list.push_back(s_k);
+    y_list.push_back(Grad_E);
+    rho_list.push_back(1.0/(s_k.dot(Grad_E)));
+  }
+  else{
+    s_list[BFGS_iter%m]= s_k;
+    y_list[BFGS_iter%m] = Grad_E;
+    rho_list[BFGS_iter%m] = 1.0/(s_k.dot(Grad_E));
+  }
+
+
+
+
+  }
+  // std::cout<<"DOne with iteration\n";
+  BFGS_iter +=1;
+
+  V = geometry->totalVolume();
+  A = geometry->totalArea();
+  double r_eff = 0;
+
+  
+  end = chrono::steady_clock::now();
+  time_backtracking = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
+
+
+
+
+
+  // 
+  
+  double tot_E=0;
+  Sim_handler->Calculate_energies(&tot_E);
+
+
+
+    // Ok so at this point we will evaluate the evolution of the  energy
+    N_data+=1;
+    mean_E = mean_E + (tot_E-mean_E)/N_data;
+    var_E = var_E*(N_data-1)/(N_data)  + (tot_E-mean_E)*(tot_E-mean_E)/(N_data-1);
+    if(N_data == 1){
+        var_E = 0;
+      }
+      else{
+        var_E = var_E*(N_data-1)/(N_data)  + (tot_E-mean_E)*(tot_E-mean_E)/(N_data-1);
+      }
+
+    if( N_data % 200==0 ){
+      
+      // In this case we will print the value of this quantity
+      std::cout<<"After" << N_data << "steps of iterations the mean Energy is " << mean_E <<" and the variance is " << var_E << "\n";
+      if(var_E < 1e-7){
+        std::cout<<"We would end the simulation because the variance of the energy is very small\n";
+        // backtrackstep= -1;
+      }
+      N_data = 0;
+      mean_E = 0;
+      var_E = 0;
+    }
+
+  if(Save_output_data ){
+
+    Sim_data << time <<" "<< V<<" " << A<<" ";
+    for(size_t i = 0; i < Sim_handler->Energies.size(); i++){
+      // std::cout<<"Printing " << Energies[i] << " ";
+
+      Sim_data << Sim_handler->Energy_values[i] << " ";
+      // std::cout<<"the val is " << Energy_vals[i] << " ";
+      // tot_E += Sim_handler->Energy_values[i];
+    }
+    // std::cout<<" \n";
+    Sim_data<< tot_E <<" ";
+    for(size_t i = 0; i < Sim_handler->Gradient_norms.size(); i++){
+      Sim_data << Sim_handler->Gradient_norms[i]<< " ";
+    }
+    // Sim_data << Grad_tot_norm << " ";
+    Sim_data<< backtrackstep<<" \n";
+  
+  }
+
+
+
+
+  return backtrackstep;
+
+}
+
+
 double Mem3DG::integrate_BFGS(std::ofstream& Sim_data , double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data){
 
   // We need to store the Hessian somewhere, maybe it should be received as a pointer
@@ -3020,7 +3243,7 @@ double Mem3DG::integrate_BFGS(std::ofstream& Sim_data , double time, std::vector
   double time_compute = 0;
   double time_gradients = 0;
   double time_backtracking = 0;
-
+  Turn_normal_iter = false;
 
   size_t bead_count = 0;
   // std::cout<<"Bead data\n";
@@ -3040,14 +3263,11 @@ double Mem3DG::integrate_BFGS(std::ofstream& Sim_data , double time, std::vector
   start = chrono::steady_clock::now();
 
 
-  // Ok so for starters 
-  // We now which iteration of BFGS WE ARE in.
-  // std::cout<<"Starting iteration\n";
-
+  
   SparseMatrix<double> HK0(3*mesh->nVertices(),3*mesh->nVertices());
   HK0.setIdentity();
-  // We need to turn HK0 into the identity matrix 
-
+  
+  std::vector<Vector3> Bead_forces(Beads.size());
 
   // std::cout<<"Identity set\n";
   if(BFGS_iter==0){
@@ -3056,14 +3276,29 @@ double Mem3DG::integrate_BFGS(std::ofstream& Sim_data , double time, std::vector
 
     // I need to do the backtracking now lol.
     // std::cout<<"Lets backtrack\n";
-    backtrackstep = Backtracking_BFGS(Sim_handler->Current_grad);
+    // The thing we need to decide is how we handle the forces at the beads.
+    // I think it should receive a vertex data and a std::vector<Vector3>
+    
+    for(size_t bi = 0; bi < Beads.size(); bi++){
+      Bead_forces[bi] = Beads[bi]->Total_force;
+    }
+
+    backtrackstep = Backtracking_BFGS(Sim_handler->Current_grad,Bead_forces);
     // std::cout<<"\n\n First iteration with the normal gradient\n";
-    Eigen::VectorXd Aux_vector = Eigen::VectorXd::Zero(3*mesh->nVertices());
+    
+    Eigen::VectorXd Aux_vector = Eigen::VectorXd::Zero(3*(mesh->nVertices()+Beads.size()));
     for(Vertex v : mesh->vertices()){
       Aux_vector[3*v.getIndex()] = backtrackstep*Sim_handler->Current_grad[v].x;
       Aux_vector[3*v.getIndex()+1] = backtrackstep*Sim_handler->Current_grad[v].y;
       Aux_vector[3*v.getIndex()+2] = backtrackstep*Sim_handler->Current_grad[v].z;
     }
+    int N_vert = mesh->nVertices();
+    for(size_t bi = 0; bi < Beads.size(); bi++){
+      Aux_vector[3*N_vert+3*bi] = backtrackstep*Beads[bi]->Total_force.x;
+      Aux_vector[3*N_vert+3*bi+1] = backtrackstep*Beads[bi]->Total_force.y;
+      Aux_vector[3*N_vert+3*bi+2] = backtrackstep*Beads[bi]->Total_force.z;
+    }
+
     s_list.resize(0);
     y_list.resize(0);
     rho_list.resize(0);
@@ -3078,6 +3313,12 @@ double Mem3DG::integrate_BFGS(std::ofstream& Sim_data , double time, std::vector
       Aux_vector[3*v.getIndex()+1] = Diff.y;
       Aux_vector[3*v.getIndex()+2] = Diff.z;
     }
+    for(size_t bi = 0; bi < Beads.size(); bi++){
+      Diff = Beads[bi]->Total_force - Beads[bi]->Prev_Total_force;
+      Aux_vector[3*N_vert+3*bi] = Diff.x;
+      Aux_vector[3*N_vert+3*bi+1] = Diff.y;
+      Aux_vector[3*N_vert+3*bi+2] = Diff.z;
+    }
     y_list.push_back(Aux_vector);
 
 
@@ -3088,12 +3329,19 @@ double Mem3DG::integrate_BFGS(std::ofstream& Sim_data , double time, std::vector
   else{
     // IF this is not 0 we need to call the BFGS UPDATE FOR THE HESSIAN 
     // std::cout<<"Standard iteration happening\n";
-    Eigen::VectorXd Grad_vec = Eigen::VectorXd::Zero(3*mesh->nVertices());
+    Eigen::VectorXd Grad_vec = Eigen::VectorXd::Zero(3*(mesh->nVertices()+Beads.size()));
     for(Vertex v : mesh->vertices()){
       Grad_vec[3*v.getIndex()] = Sim_handler->Current_grad[v].x;
       Grad_vec[3*v.getIndex()+1] = Sim_handler->Current_grad[v].y;
       Grad_vec[3*v.getIndex()+2] = Sim_handler->Current_grad[v].z;
+      }
+    int N_vert = mesh->nVertices();
+    for(size_t bi = 0; bi < Beads.size(); bi++){
+      Grad_vec[3*N_vert+3*bi] = Beads[bi]->Total_force.x;
+      Grad_vec[3*N_vert+3*bi+1] = Beads[bi]->Total_force.y;
+      Grad_vec[3*N_vert+3*bi+2] = Beads[bi]->Total_force.z;
     }
+
     // We have the gradient vector
     double alpha_i;
     std::vector<double> alpha_list(m);
@@ -3105,7 +3353,7 @@ double Mem3DG::integrate_BFGS(std::ofstream& Sim_data , double time, std::vector
       Grad_vec = Grad_vec - alpha_i*y_list[i%m];
     }
 
-    Eigen::VectorXd r = Grad_vec;
+    Eigen::VectorXd r = Grad_vec;  
     // std::cout<<"The vector r is"
     for(int i = std::max(0,BFGS_iter-m); i<BFGS_iter; i++){
       // std::cout<<"The value of i is "<< i <<" at iteration " << BFGS_iter<<" \n";
@@ -3120,7 +3368,12 @@ double Mem3DG::integrate_BFGS(std::ofstream& Sim_data , double time, std::vector
       Force[v].y = r[3*v.getIndex()+1];
       Force[v].z = r[3*v.getIndex()+2];
     }
-    backtrackstep = Backtracking_BFGS(Force);
+    for(size_t bi = 0; bi < Beads.size(); bi++){
+      Bead_forces[bi] = Vector3{r[3*N_vert+3*bi],r[3*N_vert+3*bi+1],r[3*N_vert+3*bi+2]};
+    }
+
+
+    backtrackstep = Backtracking_BFGS(Force,Bead_forces);
 
     Eigen::VectorXd s_k = backtrackstep*r;
     Sim_handler->Calculate_gradient();
@@ -3128,6 +3381,11 @@ double Mem3DG::integrate_BFGS(std::ofstream& Sim_data , double time, std::vector
       Grad_vec[3*v.getIndex()] = Sim_handler->Current_grad[v].x - Sim_handler->Previous_grad[v].x;
       Grad_vec[3*v.getIndex()+1] = Sim_handler->Current_grad[v].y- Sim_handler->Previous_grad[v].y;
       Grad_vec[3*v.getIndex()+2] = Sim_handler->Current_grad[v].z- Sim_handler->Previous_grad[v].z;
+    }
+    for(size_t bi = 0; bi < Beads.size(); bi++){
+      Grad_vec[3*N_vert+3*bi] = Beads[bi]->Total_force.x - Beads[bi]->Prev_Total_force.x;
+      Grad_vec[3*N_vert+3*bi+1] = Beads[bi]->Total_force.y - Beads[bi]->Prev_Total_force.y;
+      Grad_vec[3*N_vert+3*bi+2] = Beads[bi]->Total_force.z - Beads[bi]->Prev_Total_force.z;
     }
 
     if(BFGS_iter<m){
@@ -3149,6 +3407,7 @@ double Mem3DG::integrate_BFGS(std::ofstream& Sim_data , double time, std::vector
   // std::cout<<"We got gere? impressive\n";
  
   V = geometry->totalVolume();
+  A = geometry->totalArea();
   double r_eff = 0;
 
   
@@ -3157,15 +3416,44 @@ double Mem3DG::integrate_BFGS(std::ofstream& Sim_data , double time, std::vector
 
 
   // 
-  if(Save_output_data ){
+
   double tot_E=0;
+  Sim_handler->Calculate_energies(&tot_E);
+
+  N_data+=1;
+  mean_E = mean_E + (tot_E-mean_E)/N_data;
+
+  // double grad_norm = Sim_handler->Gradient_norms[Sim_handler->Gradient_norms.size()-1];
+  // mean_Grad = mean_Grad + (grad_norm - mean_Grad)/N_data;
+
+  if(N_data == 1){
+    var_E = 0;
+    var_Grad = 0;
+  }else{
+    var_E = var_E*(N_data-1)/(N_data)  + (tot_E-mean_E)*(tot_E-mean_E)/(N_data-1);
+    // var_Grad = var_Grad*(N_data-1)/(N_data)  + (grad_norm - mean_Grad)*(grad_norm - mean_Grad)/(N_data-1);
+    }
+  
+  if( N_data % 100==0){
+    
+    // // In this case we will print the value of this quantity
+    // std::cout<<"After" << N_data << "steps of iterations the mean Energy is " << mean_E <<" and the variance is " << var_E << "\n";
+    // std::cout<<"After" << N_data << "steps of iterations the mean Energy is " << mean_Grad <<" and the variance is " << var_Grad << "\n";
+    
+    if(var_E<0.06) Turn_normal_iter = true;
+    N_data = 0;
+    mean_E = 0;
+    var_E = 0;
+  }
+  
+  if(Save_output_data ){
   Sim_data << time <<" "<< V<<" " << A<<" ";
   for(size_t i = 0; i < Sim_handler->Energies.size(); i++){
     // std::cout<<"Printing " << Energies[i] << " ";
 
     Sim_data << Sim_handler->Energy_values[i] << " ";
     // std::cout<<"the val is " << Energy_vals[i] << " ";
-    tot_E += Sim_handler->Energy_values[i];
+    // tot_E += Sim_handler->Energy_values[i];
   }
   // std::cout<<" \n";
   Sim_data<< tot_E <<" ";

@@ -21,7 +21,7 @@ using namespace geometrycentral::surface;
 E_Handler::E_Handler(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo){
     mesh = inputMesh;
     geometry = inputGeo;
-
+    VertexData<Vector3> Vertex_normals(*mesh);
 }
 
 E_Handler::E_Handler(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, std::vector<std::string> inputEnergyNames, std::vector<std::vector<double>> inputEnergyConstants ){
@@ -29,6 +29,7 @@ E_Handler::E_Handler(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inp
     geometry = inputGeo;
     Energies = inputEnergyNames;
     Energy_constants = inputEnergyConstants;
+    VertexData<Vector3> Vertex_normals(*mesh);
 }
 
 void E_Handler::Add_Bead(Bead *bead){
@@ -82,6 +83,15 @@ void E_Handler::update_face_reference(){
 
     return;
 }
+
+void E_Handler::update_vertex_normals(){
+    Vertex_normals = VertexData<Vector3>(*mesh);
+    for(Vertex v : mesh->vertices()){
+        Vertex_normals[v] = geometry->vertexNormalAngleWeighted(v);
+    }
+    return;
+}
+
 
 
 double E_Handler::E_Volume_constraint(std::vector<double> Constants) const {
@@ -2578,8 +2588,6 @@ void E_Handler::Calculate_energies(double* E){
         {
             // Energy_values[i] = Beads[bead_count]->Energy();
             Energy_values[i] = Beads[bead_count]->Bead_I->Tot_Energy();
-            // double E_bead = Beads[bead_count]->Energy();
-            // if(Energy_values[i]-E_bead > 1e1) std::cout<<"The oldE is" << E_bead <<" and the new one is" << Energy_values[i] <<" \n";
             *E += Energy_values[i];
             bead_count++;
             // std::cout<<"The energy value is " << Energy_values[i]<<" \n";
@@ -2804,15 +2812,8 @@ void E_Handler::Calculate_gradient(){
         // I need to add the beads 
 
         if(Energies[i]=="Bead"){
-            // std::cout<<"Bead E \n";
-            // std::cout<<"The number of beads is " << Beads.size() << "\n";
-            // std::cout<<"This is bead" << Beads[bead_count]->Bead_id << "\n";
             Force_temp = Beads[bead_count]->Bead_I->Gradient();
-            // Force_tem2 = Beads[bead_count]->Gradient();
-            // std::cout<<"The bead feels a force of " << Beads[bead_count]->Total_force.norm2() << "\n";
-            // std::cout<<"Interactions \n";
-            // Beads[bead_count]->Bead_interactions();
-            // std::cout<<"? \n";
+
             grad_norm = 0;
             for(size_t j = 0; j < mesh->nVertices(); j++){
              grad_norm+= Force_temp[j].norm2();
@@ -3083,8 +3084,7 @@ SparseMatrix<double> E_Handler::Calculate_Hessian(){
 
     int N_verts = mesh->nVertices();
     int N_beads = Beads.size();
-    // std::cout<<"THe number of beads is " << N_beads << "\n";
-    // std::cout<<"Calculating energy\n";
+
     std::vector<double> Energy_constants_val;
     SparseMatrix<double> Hessian(3*(N_verts+N_beads),3*(N_verts+N_beads));
     std::string constraint;
@@ -3092,9 +3092,7 @@ SparseMatrix<double> E_Handler::Calculate_Hessian(){
 
 
     int bead_counter= 0;
-    // std::cout<<"THe size of Energies is "<< Energies.size() << "\n";
     for(size_t i = 0; i < Energies.size(); i++){
-        // std::cout<<"Energy is " << Energies[i] <<" \n";
         if(Energies[i] == "Bending"){
             Hessian += H_Bending(Energy_constants[i]);
         }
@@ -3105,17 +3103,10 @@ SparseMatrix<double> E_Handler::Calculate_Hessian(){
             Hessian += H_Laplace(Energy_constants[i]);
         }
         if(Energies[i] == "Bead"){
-            // std::cout<<"Doing bead energy\n";
-            // std::cout<<"The og hessian ahs size" << Hessian.rows() << " " << Hessian.cols() << "\n";
-            // std::cout<<"The energy constant is "<< Beads[bead_counter]->Bead_I->Energy_constants[0] << " \n";
-            // std::cout<<"FUNCTION NOT AVAILABLE BUT SHOULD LOOK LIKE this\n";
             Hessian += Beads[bead_counter]->Bead_I->Hessian();
-            // std::cout<<"Done with bead hessian\n";
             bead_counter +=1;
         }
         if(Energies[i] =="Edge_reg"){
-            // std::cout<<"There should be one energy constant\n";
-            // std::cout<<"The energy constants are " << Energy_constants[i][0]<<" \n";
             Hessian += H_Edge_reg(Energy_constants[i]);
         }
         if(Energies[i] =="Face_reg"){
@@ -3123,38 +3114,18 @@ SparseMatrix<double> E_Handler::Calculate_Hessian(){
         }
 
     }
-    // std::cout<<"DOne calculating hessian\n";
 
-    // Eigen::MatrixXd Hessian_E = Hessian.toDense();
-    // Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(Hessian_E);
-
-    // Eigen::VectorXd Eigenvalues = solver.eigenvalues();
-
-    // double min_eig = Eigenvalues.minCoeff();
-    // std::cout<<"The minimum eigenvalue is " << min_eig << "\n";
-    
-    // SparseMatrix<double> Id_reg = 
-    // std::cout<<"Doing the volume const\n";
-    // Eigen::SparseMatrix::Ide
     for(size_t i = 0; i < Constraints.size() ; i++){
         constraint = Constraints[i];
-        // std::cout<<"The constraint is " << constraint<<"\n";
         if(constraint == "Volume"){
-            // I need to find which are the energy constants
-            // std::cout<<"Doing the volume constraint\n";       
             Hessian += -1.0*Lagrange_mult(i)*H_Volume(std::vector<double>{1.0});
-            // std::cout<<"DONE WITH VOLUME CONSTRAINT\n";
         }
         if(constraint == "Area"){
             Hessian += -1.0*Lagrange_mult(i)*H_SurfaceTension(std::vector<double>{1.0});
         }
 
         
-    }
-
-    // std::cout<<"DOne with the Hessian\n";
-    // I want this t
-    
+    }  
 
     return Hessian;
 }
@@ -3162,14 +3133,8 @@ SparseMatrix<double> E_Handler::Calculate_Hessian(){
 
 SparseMatrix<double> E_Handler::Calculate_Hessian_E(){
 
-    // Ok so the Hessian is the normal Hessian + lagrange multipliers * Hessian of the gradients
-    // For beads you need to include the beads at the size of the matrix of the hessian
-    // I recommend adding them at the bottom. 
-    // std::cout<<"Creating the Hessian E\n";
     int N_verts = mesh->nVertices();
     int N_beads = Beads.size();
-    // std::cout<<"THe number of beads is " << N_beads << "\n";
-    // std::cout<<"Calculating energy\n";
     std::vector<double> Energy_constants_val;
     SparseMatrix<double> Hessian(3*(N_verts+N_beads),3*(N_verts+N_beads));
     std::string constraint;
@@ -3177,9 +3142,7 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_E(){
 
 
     int bead_counter= 0;
-    // std::cout<<"THe size of Energies is "<< Energies.size() << "\n";
     for(size_t i = 0; i < Energies.size(); i++){
-        // std::cout<<"Energy is " << Energies[i] <<" \n";
         if(Energies[i] == "Bending"){
             Hessian += H_Bending(Energy_constants[i]);
         }
@@ -3187,21 +3150,13 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_E(){
             Hessian += H_SurfaceTension(Energy_constants[i]);
         }
         if(Energies[i] == "Bead"){
-            // std::cout<<"Doing bead energy\n";
-            // std::cout<<"The og hessian ahs size" << Hessian.rows() << " " << Hessian.cols() << "\n";
-            // std::cout<<"The energy constant is "<< Beads[bead_counter]->Bead_I->Energy_constants[0] << " \n";
-            // std::cout<<"FUNCTION NOT AVAILABLE BUT SHOULD LOOK LIKE this\n";
             Hessian += Beads[bead_counter]->Bead_I->Hessian_IP();
-            // std::cout<<"Done with bead hessian\n";
             bead_counter +=1;
         }
         if(Energies[i] =="Laplace"){
             Hessian += H_Laplace(Energy_constants[i]);
         }
-
         if(Energies[i] =="Edge_reg"){
-            // std::cout<<"There should be one energy constant\n";
-            // std::cout<<"The energy constants are " << Energy_constants[i][0]<<" \n";
             Hessian += H_Edge_reg(Energy_constants[i]);
         }
         if(Energies[i] =="Face_reg"){
@@ -3214,6 +3169,47 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_E(){
 
     return Hessian;
 }
+
+SparseMatrix<double> E_Handler::Calculate_Hessian_E_Normal(){
+    // This hessian uses the vertex normals that have been previously calculated and stored in M3DG 
+    int N_verts = mesh->nVertices();
+    int N_beads = Beads.size();
+    std::vector<double> Energy_constants_val;
+    SparseMatrix<double> Hessian(N_verts,N_verts);
+    SparseMatrix<double> Full_hessian = Calculate_Hessian_E();
+
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+    
+    double val;
+    Eigen::Vector<double,3> Normal_i;
+    Eigen::Vector<double,3> Normal_j;
+    Eigen::Matrix<double,3,3> Block;
+    
+    for (int k=0; k<Full_hessian.outerSize(); ++k)
+        for (SparseMatrix<double>::InnerIterator it(Full_hessian,k); it; ++it)
+        {
+            it.value();
+            it.row();   // row index
+            it.col();   // col index (here it is equal to k)
+            if(it.row()%3 == 0 && it.col()%3 ==0 && it.row() < 3*N_verts && it.col() < 3*N_verts){
+                Normal_i << Vertex_normals[it.row()/3].x, Vertex_normals[it.row()/3].y, Vertex_normals[it.row()/3].z;
+                Normal_j << Vertex_normals[it.col()/3].x, Vertex_normals[it.col()/3].y, Vertex_normals[it.col()/3].z;
+                Block = Full_hessian.block(it.row(),it.col(),3,3);
+                val = Normal_i.transpose()*Block*Normal_j;
+                if(val > 1e-12 || val < -1e-12) tripletList.push_back(T(it.row()/3,it.col()/3,val));
+
+            }
+            // And this is how u turn the block into the thing
+        }
+
+    Hessian.setFromTriplets(tripletList.begin(),tripletList.end());
+
+    return Hessian;
+}
+
+
+
 
 
 SparseMatrix<double> E_Handler::Calculate_Hessian_Constraints(){
@@ -3251,6 +3247,46 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_Constraints(){
     // I want this t
     
 
+    return Hessian;
+}
+
+SparseMatrix<double> E_Handler::Calculate_Hessian_Constraints_Normal(){
+    // This hessian uses the vertex normals that have been previously calculated and stored in M3DG 
+    int N_verts = mesh->nVertices();
+    int N_beads = Beads.size();
+    std::vector<double> Energy_constants_val;
+    SparseMatrix<double> Hessian(N_verts,N_verts);
+
+    SparseMatrix<double> Full_hessian = Calculate_Hessian_Constraints();
+
+    
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+    
+    double val;
+    Eigen::Vector<double,3> Normal_i;
+    Eigen::Vector<double,3> Normal_j;
+    Eigen::Matrix<double,3,3> Block;
+    
+    for (int k=0; k<Full_hessian.outerSize(); ++k)
+        for (SparseMatrix<double>::InnerIterator it(Full_hessian,k); it; ++it)
+        {
+            it.value();
+            it.row();   // row index
+            it.col();   // col index (here it is equal to k)
+            if(it.row()%3 == 0 && it.col()%3 ==0 && it.row() < 3*N_verts && it.col() < 3*N_verts){
+                Normal_i << Vertex_normals[it.row()/3].x, Vertex_normals[it.row()/3].y, Vertex_normals[it.row()/3].z;
+                
+                Normal_j << Vertex_normals[it.col()/3].x, Vertex_normals[it.col()/3].y, Vertex_normals[it.col()/3].z;
+                Block = Full_hessian.block(it.row(),it.col(),3,3);
+                val = Normal_i.transpose()*Block*Normal_j;
+                if(val > 1e-12 || val < -1e-12) tripletList.push_back(T(it.row()/3,it.col()/3,val));
+                // Hessian(it.row()/3,it.col()/3) += it.value()*geometry->vertexNormal(Vertex(it.row()/3)) geometry->vertexNormal(Vertex(it.col()/3)));
+            }
+            // And this is how u turn the block into the thing
+        }
+
+    Hessian.setFromTriplets(tripletList.begin(),tripletList.end());
     return Hessian;
 }
 

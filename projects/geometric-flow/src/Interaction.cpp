@@ -147,7 +147,6 @@ VertexData<Vector3> Normal_dot_Interaction::Gradient() {
     Halfedge he;
     // I need to check that there is a nonzero total force 
     Bead_1->Prev_Total_force = Bead_1->Total_force;
-
     Bead_1->Total_force = Vector3{0.0, 0.0, 0.0};
     Bead_1->Total_force += Bond_force(); 
 
@@ -638,6 +637,7 @@ double Integrated_Interaction::Tot_Energy(){
 
 VertexData<Vector3> Integrated_Interaction::Gradient(){
     VertexData<Vector3> Force(*mesh, {0.0, 0.0, 0.0});
+    Bead_1->Prev_Total_force = Bead_1->Total_force;
     Bead_1->Total_force = {0.0,0.0,0.0};
     Bead_1->Total_force += Bond_force();
     // std::cout<<"Force initialied\n";
@@ -1005,6 +1005,7 @@ SparseMatrix<double> Integrated_Interaction::Hessian_IP(){
 VertexData<Vector3> No_mem_Inter::Gradient() 
     {
         VertexData<Vector3> Force(*mesh,{0.0,0.0,0.0});
+        Bead_1->Prev_Total_force = Bead_1->Total_force;
         Bead_1->Total_force = Bond_force();
         return Force;
     }

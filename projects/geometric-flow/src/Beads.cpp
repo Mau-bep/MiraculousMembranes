@@ -2451,6 +2451,30 @@ void Bead::Move_bead(double dt,Vector3 center) {
     return;
 }
 
+void Bead::Move_bead(double dt,Vector3 center, Vector3 Force) {
+    if(state == "default") {
+        if(Constraint == "None"){
+        this->Pos = this->Pos + Force*dt -center;
+        }
+        if(Constraint == "Radial"){
+            
+            double theta = Constraint_constants[0];
+            Vector3 unit_r = Vector3{sin(theta),0.0,cos(theta)};
+            // std::cout<<"THe angle is " << theta << " and the vector is " << unit_r<<" \n";
+            // std::cout<<"THe displacement is in " << unit_r*(dot(Total_force,unit_r)) <<" \n";
+            this->Pos =  this->Pos  + unit_r*(dot(Force,unit_r)*dt) - center;
+            // std::cout<<"THe center is " << center << "\n";
+        }
+    }
+    if(state == "froze") return;
+
+    if(state == "manual") {
+        this->Pos += Velocity*dt;
+        // std::cout<<"Moving manually\n";
+    }
+    // std::cout<<"The bead is moving "<< norm(Total_force*dt -center)<<"\n";
+    return;
+}
 
 SparseMatrix<double> Bead::H_Bead()
     {
