@@ -5,14 +5,14 @@
     "continue_sim": false,
     "resize_vol": false,
     "arcsim": true,
-    "Integration": "BFGS",
+    "Integration": "Gradient_descent",
     "BFGS_saved_states":10,
     "adapt_remesh": true,
     "remesh_every": 1,
     "Count_remesh": true,
     "first_dir": {{ Dir }},
-    "Switches" : ["BFGS-Normal"],
-    "Switch_times": [40000],
+    "Switches" : ["BFGS","BFGS-Normal"],
+    "Switch_times": [3000,40000],
     "boundary": false,
     "recentering": false,
     "saving_states": true,
@@ -54,7 +54,7 @@
             "mem_inter": "Frenkel_Normal_nopush",
             "inter_str": 600,
             "bonds": ["Harmonic"],
-            "bonds_constants": [[0.0,{{ L0 }}]],
+            "bonds_constants": [[100.0,{{ L0 }}]],
             "Beads": [1],
             "Constraint": "None",
             "Constraint_constants":[]
@@ -75,7 +75,7 @@
             "mem_inter": "Frenkel_Normal_nopush",
             "inter_str": 600,
             "bonds": ["Harmonic"],
-            "bonds_constants": [[0.0, {{ L0 }}]],
+            "bonds_constants": [[100.0, {{ L0 }}]],
             "Beads": [0],
             "Constraint": "None",
             "Constraint_constants":[]
@@ -87,7 +87,7 @@
         "refine_angle": 0.7,
         "refine_compression": 0.0001,
         "refine_velocity": 1.0,
-        "size_max": 0.3,
+        "size_max": 0.25,
         "size_min": 0.001
     }
 }

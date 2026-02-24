@@ -3003,7 +3003,7 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
     for(size_t bi = 0; bi < Beads.size(); bi++){
       if(Beads[bi]->state == "manual"){
         Vector3 Bpos = Beads[bi]->Pos;
-        if( Bpos.norm2()< (2.0-1.0*Beads[bi]->sigma)*(2.0-1.0*Beads[bi]->sigma) || Bpos.norm2()> (2.0+1.0*Beads[bi]->sigma)*(2.0+1.0*Beads[bi]->sigma )) //The 2.0 here is hardcoded and it means the radius of the vesicle
+        if( (Bpos.norm2()< 4.0  && dot(Bpos,Beads[bi]->Velocity)<0 ) || (Bpos.norm2()> 4.0  && dot(Bpos,Beads[bi]->Velocity)>0 )   ) //The 2.0 here is hardcoded and it means the radius of the vesicle
         
         {
           std::cout<<"\t\t Manual bead because it moved too much\n";
@@ -3175,7 +3175,7 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream& Sim_data, double time, std::
 
 
     // Ok so at this point we will evaluate the evolution of the  energy
-    N_data+=1;
+    N_data += N_data+1;
     mean_E = mean_E + (tot_E-mean_E)/N_data;
     var_E = var_E*(N_data-1)/(N_data)  + (tot_E-mean_E)*(tot_E-mean_E)/(N_data-1);
     if(N_data == 1){

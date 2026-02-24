@@ -113,7 +113,7 @@ def Create_json_wrapping_two_outside(angle, outside1, outside2):
     # We should do 
     x2 = r2*np.cos(theta)
     y2 = r2*np.sin(theta)
-    Leq = np.sqrt( (x1-x2)**2 + y2**2 )
+    Leq = (R_vesicle-r_bead)*theta
 
     v2x = 10*np.cos(theta)*outside2*-1
     v2y = 10*np.sin(theta)*outside2*-1

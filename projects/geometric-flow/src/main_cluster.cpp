@@ -605,7 +605,7 @@ int main(int argc, char** argv) {
                     A_bar = Constants[1];
                 }
                 else{
-                    A_bar = geometry->totalArea()*1.05;
+                    A_bar = geometry->totalArea();
                     Constants[1] = A_bar;
                 }
             }
@@ -2075,9 +2075,9 @@ int main(int argc, char** argv) {
                 M3DG.remesh_flag = false;
                 std::cout<<"We need to remesh before we can continue with the iteration\n";
             }
-            // else{
-                // remesh_every = -1;
-            // }
+            else{
+                remesh_every = -1;
+            }
         }
         // if(dt_sim==0){
         //     Save_mesh(basic_name,-1);
