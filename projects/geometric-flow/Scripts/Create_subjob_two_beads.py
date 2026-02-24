@@ -107,9 +107,9 @@ def Create_json_wrapping_two_outside(angle, outside1, outside2):
     dir = '"../Results/Two_beads_{}_{}_BFGS/"'.format(location[outside1],location[outside2])
 
     v1x = 10.0*(outside1*-1)
-    x1 = 2.0 + 0.3*outside1 
+    x1 = 2.0 + 0.25*outside1 
 
-    r2 = 2.0 + 0.3*outside2
+    r2 = 2.0 + 0.25*outside2
     # We should do 
     x2 = r2*np.cos(theta)
     y2 = r2*np.sin(theta)
