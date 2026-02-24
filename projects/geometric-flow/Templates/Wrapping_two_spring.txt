@@ -6,7 +6,7 @@
     "resize_vol": false,
     "arcsim": true,
     "Integration": "BFGS",
-    "BFGS_saved_states: : 10,
+    "BFGS_saved_states": : 10,
     "adapt_remesh": true,
     "remesh_every": 1,
     "Count_remesh": true,
