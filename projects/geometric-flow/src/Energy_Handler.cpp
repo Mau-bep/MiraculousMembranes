@@ -2588,6 +2588,8 @@ void E_Handler::Calculate_energies(double* E){
         {
             // Energy_values[i] = Beads[bead_count]->Energy();
             Energy_values[i] = Beads[bead_count]->Bead_I->Tot_Energy();
+            // double E_bead = Beads[bead_count]->Energy();
+            // if(Energy_values[i]-E_bead > 1e1) std::cout<<"The oldE is" << E_bead <<" and the new one is" << Energy_values[i] <<" \n";
             *E += Energy_values[i];
             bead_count++;
             // std::cout<<"The energy value is " << Energy_values[i]<<" \n";

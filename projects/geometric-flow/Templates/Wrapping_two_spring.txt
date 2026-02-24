@@ -1,16 +1,17 @@
 {
     "init_file": "../../../input/Simplesphere.obj",
-    "save_interval": 2000,
-    "timesteps": 1200000,
+    "save_interval": 100,
+    "timesteps": 50000,
     "continue_sim": false,
     "resize_vol": false,
     "arcsim": true,
+    "Integration": "BFGS",
     "adapt_remesh": true,
     "remesh_every": 1,
     "Count_remesh": true,
     "first_dir": {{ Dir }},
-    "Switches" : ["No_remesh","Fine_mesh"],
-    "Switch_times": [1100000,950000],
+    "Switches" : ["BFGS-Normal"],
+    "Switch_times": [40000],
     "boundary": false,
     "recentering": false,
     "saving_states": true,
@@ -43,7 +44,7 @@
         {
             "gradient_order": "Bead",
             "radius" : 0.2,
-            "state": "manual",
+            "state": "default",
             "outside" : {{ outside1 }},
             "Velocity": [{{ v1x }},0.0,0.0],
             "Pos": [
@@ -60,7 +61,7 @@
         {
             "gradient_order": "Bead",
             "radius" : 0.2,
-            "state": "manual",
+            "state": "default",
             "outside" : {{ outside2 }},
             "Velocity":[{{ v2x }},
                         {{ v2y }},
@@ -85,7 +86,7 @@
         "refine_angle": 0.7,
         "refine_compression": 0.0001,
         "refine_velocity": 1.0,
-        "size_max": 0.4,
+        "size_max": 0.3,
         "size_min": 0.001
     }
 }
