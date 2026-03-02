@@ -104,7 +104,7 @@ def Create_json_wrapping_two_outside(angle, outside1, outside2):
     
     location = [1,"outside","inside"]
 
-    dir = '"../Results/Two_beads_{}_{}_BFGS/"'.format(location[outside1],location[outside2])
+    dir = '"../Results/Two_beads_{}_{}_BFGS_MAR2/"'.format(location[outside1],location[outside2])
 
     v1x = 10.0*(outside1*-1)
     x1 = 2.0 + 0.25*outside1 
@@ -113,7 +113,7 @@ def Create_json_wrapping_two_outside(angle, outside1, outside2):
     # We should do 
     x2 = r2*np.cos(theta)
     y2 = r2*np.sin(theta)
-    Leq = (R_vesicle-r_bead)*theta
+    Leq = (R_vesicle)*theta
 
     v2x = 10*np.cos(theta)*outside2*-1
     v2y = 10*np.sin(theta)*outside2*-1
@@ -126,7 +126,7 @@ def Create_json_wrapping_two_outside(angle, outside1, outside2):
 
 
     # print("something\n")
-    Config_path = '../Config_files/Wrapping_two_{}_{}_{}_BFGS.json'.format(angle,location[outside1],location[outside2]) 
+    Config_path = '../Config_files/Wrapping_two_{}_{}_{}_BFGS_M2.json'.format(angle,location[outside1],location[outside2]) 
     
     sim_path = data['first_dir']
     
@@ -153,10 +153,10 @@ Config_path, sim_path = Create_json_wrapping_two_outside(angle,outside1,outside2
 
 
 # # def main():
-Output_name = 'output_two_theta_{}_{}_{}_BFGS.output'.format(angle,location[outside1],location[outside2])
+Output_name = 'output_two_theta_{}_{}_{}_BFGS_M2.output'.format(angle,location[outside1],location[outside2])
 Output_path = '../Outputs/'+Output_name
 
-f=open('../Subjobs/subjob_two_bead_theta_{}_{}_{}_BFGS'.format(angle,location[outside1],location[outside2]),'w')
+f=open('../Subjobs/subjob_two_bead_theta_{}_{}_{}_BFGS_M2'.format(angle,location[outside1],location[outside2]),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')
@@ -171,7 +171,7 @@ f.write('#number of CPUs to be used\n')
 f.write('#SBATCH --ntasks=1\n')
 f.write('#Define the number of hours the job should run. \n')
 f.write('#Maximum runtime is limited to 10 days, ie. 240 hours\n')
-f.write('#SBATCH --time=10:01:20\n')
+f.write('#SBATCH --time=12:01:20\n')
 
 f.write('#\n')
 f.write('#Define the amount of system RAM used by your job in GigaBytes\n')
