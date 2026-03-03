@@ -1625,6 +1625,15 @@ int main(int argc, char** argv) {
             // Remeshing_count.close();
             // }
             // std::cout<<"The operation counter is "<< Cloth_1.remeshing.op_counter <<"\n";
+
+            if(Cloth_1.remeshing.op_counter>=300){
+                std::cout<<"These are waaayyy too many operations\n";
+                std::cout<<"We need to do smt abt it\n";
+                Cloth_1.mesh = arcsim::deep_copy(Saved_meshes[(saved_mesh_idx)]);
+                // This just returns the mesh as it was
+                
+            }
+
             double output = 0.0;
             if(adapt_remesh){
 
@@ -1685,16 +1694,51 @@ int main(int argc, char** argv) {
             std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
             arcsim::delete_mesh(Cloth_1.mesh);
 
+
             mesh = mesh_uptr.release();
             geometry = geometry_uptr.release();
-            
+
+
             M3DG.mesh = mesh;
             M3DG.geometry = geometry;
             M3DG.BFGS_iter = 0;
             Sim_handler.mesh = mesh;
             Sim_handler.geometry = geometry;
 
-            
+            if(Cloth_1.remeshing.op_counter>300){
+                double min_a = 1e10;
+                double a;
+                for( Face f: mesh->faces()){
+                    a = geometry->faceArea(f);
+                    if(a < min_a) min_a = a;
+
+                if(geometry->faceArea(f) < 1e-6){
+                    std::cout<<"There is a face with area smaller than 1e-6\n";
+                    std::cout<<"THe area is "<< geometry->faceArea(f) << "\n";
+                    // std::cout<<"The area is "<< geometry->faceArea(f) << "\n";
+                    Eigen::Vector<double,9> Face_pos;
+                    Halfedge he = f.halfedge();
+                    for(int i = 0; i < 3; i++){
+                        Vertex v = he.vertex();
+                        Vector3 pos = geometry->inputVertexPositions[v];
+                        Face_pos.segment<3>(3*i) << pos.x, pos.y, pos.z;
+                        he = he.next();
+                    }
+                    Eigen::Vector<double,9> Face_grad = geometry->gradient_triangle_area(Face_pos);
+                    for(int i = 0; i < 3; i++){
+                        Vertex v = he.vertex();
+                        Vector3 grad = Vector3{Face_grad(3*i), Face_grad(3*i+1), Face_grad(3*i+2)};
+                        geometry->inputVertexPositions[v] = geometry->inputVertexPositions[v] - 1e-6*grad;
+                        he = he.next();
+                    }
+                    // We displaced the triangle so the area is a lil bit bigger
+                    geometry->refreshQuantities();
+                    std::cout<<"THe new face area is "<< geometry->faceArea(f) << "\n";
+
+                }
+            }
+            std::cout<<"The smallest area is "<< min_a << "\n";
+            }
 
             for( Edge e : mesh->edges()){ 
                 dih = fabs(geometry->dihedralAngle(e.halfedge()));
