@@ -1608,12 +1608,9 @@ int main(int argc, char** argv) {
             if(Saving_last_states){
                 saved_mesh_idx = (saved_mesh_idx+1)%6;
                 arcsim::delete_mesh(Saved_meshes[saved_mesh_idx]);
-                if(Beads.size()>=1){
+                
                 for(size_t i = 0; i < Beads.size(); i++){
                     Bead_pos_saved[6*i+saved_mesh_idx] = Beads[i].Pos;
-
-                }
-                
                 }
                 Saved_meshes[saved_mesh_idx] = arcsim::deep_copy(remesher_mesh2);
 
@@ -1634,14 +1631,21 @@ int main(int argc, char** argv) {
             // std::cout<<"The operation counter is "<< Cloth_1.remeshing.op_counter <<"\n";
 
             if(Cloth_1.remeshing.op_counter>=300){
-                std::cout<<"These are waaayyy too many operations\n";
-                std::cout<<"We need to do smt abt it\n";
-                Cloth_1.mesh = arcsim::deep_copy(Saved_meshes[(saved_mesh_idx-1)]);
+                // std::cout<<"These are waaayyy too many operations\n";
+                // std::cout<<"We need to do smt abt it\n";
+                // std::cout<<"The index to use is " << (saved_mesh_idx-1)%6 <<" \n";
+                Cloth_1.mesh = arcsim::deep_copy(Saved_meshes[(saved_mesh_idx-1+6)%6]);
                 // This just returns the mesh as it was
                 // I need to return the beads as well
+                // std::cout<<"Here too for safety\n";
+                // for(size_t j = 0 ; j < Bead_pos_saved.size(); j++){
+                //  std::cout<<"The component j of the saved position of bead "<< j/6 <<" is "<< Bead_pos_saved[j] << "\n";
+                // }
                 for(size_t i = 0; i < Beads.size(); i++){
-                    Beads[i].Pos =  Bead_pos_saved[6*i+saved_mesh_idx-1];
+                    // std::cout<<"THe index to use is "<<  6*i+(saved_mesh_idx-1)%6 <<" \n";
+                    Beads[i].Pos =  Bead_pos_saved[6*i+(saved_mesh_idx-1+6)%6];
             }
+
             }
             double output = 0.0;
             if(adapt_remesh){
