@@ -1636,11 +1636,11 @@ int main(int argc, char** argv) {
             if(Cloth_1.remeshing.op_counter>=300){
                 std::cout<<"These are waaayyy too many operations\n";
                 std::cout<<"We need to do smt abt it\n";
-                Cloth_1.mesh = arcsim::deep_copy(Saved_meshes[(saved_mesh_idx)]);
+                Cloth_1.mesh = arcsim::deep_copy(Saved_meshes[(saved_mesh_idx-1)]);
                 // This just returns the mesh as it was
                 // I need to return the beads as well
                 for(size_t i = 0; i < Beads.size(); i++){
-                    Beads[i].Pos =  Bead_pos_saved[6*i+saved_mesh_idx];
+                    Beads[i].Pos =  Bead_pos_saved[6*i+saved_mesh_idx-1];
             }
             }
             double output = 0.0;
