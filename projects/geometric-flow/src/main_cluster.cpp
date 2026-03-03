@@ -986,7 +986,7 @@ int main(int argc, char** argv) {
 
     
     int saved_mesh_idx = 0;
-    std::vector<Vector3> Bead_pos_saved(6*Beads.size());
+    std::vector<Vector3> Bead_pos_saved(12);
     // std::vector<std::vector<Vector3>> Beads_positions_saved(0);
     // Beads_positions_saved[0].push_back(Bead_pos_saved);
     // Beads_positions_saved[1].push_back(Bead_pos_saved);
