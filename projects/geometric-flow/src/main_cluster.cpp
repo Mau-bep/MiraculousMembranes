@@ -986,7 +986,10 @@ int main(int argc, char** argv) {
 
     
     int saved_mesh_idx = 0;
-    std::vector<Vector3> Bead_pos_saved(6);
+    std::vector<Vector3> Bead_pos_saved(6*Beads.size());
+    // std::vector<std::vector<Vector3>> Beads_positions_saved(0);
+    // Beads_positions_saved[0].push_back(Bead_pos_saved);
+    // Beads_positions_saved[1].push_back(Bead_pos_saved);
 
     
 
@@ -1605,8 +1608,12 @@ int main(int argc, char** argv) {
             if(Saving_last_states){
                 saved_mesh_idx = (saved_mesh_idx+1)%6;
                 arcsim::delete_mesh(Saved_meshes[saved_mesh_idx]);
-                if(Beads.size()>=01){
-                Bead_pos_saved[saved_mesh_idx] = Beads[0].Pos;
+                if(Beads.size()>=1){
+                for(size_t i = 0; i < Beads.size(); i++){
+                    Bead_pos_saved[6*i+saved_mesh_idx] = Beads[i].Pos;
+
+                }
+                
                 }
                 Saved_meshes[saved_mesh_idx] = arcsim::deep_copy(remesher_mesh2);
 
@@ -1631,9 +1638,11 @@ int main(int argc, char** argv) {
                 std::cout<<"We need to do smt abt it\n";
                 Cloth_1.mesh = arcsim::deep_copy(Saved_meshes[(saved_mesh_idx)]);
                 // This just returns the mesh as it was
-                
+                // I need to return the beads as well
+                for(size_t i = 0; i < Beads.size(); i++){
+                    Beads[i].Pos =  Bead_pos_saved[6*i+saved_mesh_idx];
             }
-
+            }
             double output = 0.0;
             if(adapt_remesh){
 
@@ -1682,7 +1691,7 @@ int main(int argc, char** argv) {
             if(Saving_last_states){
                 arcsim::delete_mesh(Saved_after_remesh[saved_mesh_idx]);
                 Saved_after_remesh[saved_mesh_idx] = arcsim::deep_copy(Cloth_1.mesh);
-   
+
             }
    
             small_Ts = M3DG.small_TS;
@@ -2217,12 +2226,15 @@ int main(int argc, char** argv) {
 
         std::cout<<"Printing bead info\n";
         for( int k = 0 ; k < 6 ; k++){
-            std::cout<<Bead_pos_saved[k].x << " " << Bead_pos_saved[k].y << " " << Bead_pos_saved[k].z <<" \n";
+            // I need to resolve this for multiple beads;
+            for(size_t i = 0; i < Beads.size(); i++){
+            beads_saved<< Bead_pos_saved[6*i +saved_mesh_idx].x<<" "<<Bead_pos_saved[6*i +saved_mesh_idx].y<<" "<<Bead_pos_saved[6*i +saved_mesh_idx].z<<" ";
+            }
+            beads_saved<<" \n";
+            // std::cout<<Bead_pos_saved[k].x << " " << Bead_pos_saved[k].y << " " << Bead_pos_saved[k].z << Bead_pos_saved[6+k].x << " " << Bead_pos_saved[6+k].y << " " << Bead_pos_saved[6+k].z << " \n";
             std::cout<<"Saved mesh idx is " << saved_mesh_idx<<" \n";
             arcsim::save_obj(Saved_meshes[saved_mesh_idx],basic_name+"Saved_final_frame_"+std::to_string(11-2*k)+".obj");
             arcsim::save_obj(Saved_after_remesh[saved_mesh_idx],basic_name+"Saved_final_frame_"+std::to_string(12-2*k)+".obj");
-
-            beads_saved<< Bead_pos_saved[saved_mesh_idx].x<<" "<<Bead_pos_saved[saved_mesh_idx].y<<" "<<Bead_pos_saved[saved_mesh_idx].z<<" \n";
 
             
             saved_mesh_idx = (saved_mesh_idx -1 +6)%6;
