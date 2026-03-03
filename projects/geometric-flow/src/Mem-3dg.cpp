@@ -3159,6 +3159,7 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream& Sim_data, double time, std::
   A = geometry->totalArea();
   double r_eff = 0;
 
+  // std::cout<<"N data is" << N_data<<"\n";
   
   end = chrono::steady_clock::now();
   time_backtracking = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
@@ -3175,9 +3176,9 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream& Sim_data, double time, std::
 
 
     // Ok so at this point we will evaluate the evolution of the  energy
-    N_data += N_data+1;
+    N_data += 1;
     mean_E = mean_E + (tot_E-mean_E)/N_data;
-    var_E = var_E*(N_data-1)/(N_data)  + (tot_E-mean_E)*(tot_E-mean_E)/(N_data-1);
+    // var_E = var_E*(N_data-1)/(N_data)  + (tot_E-mean_E)*(tot_E-mean_E)/(N_data-1);
     if(N_data == 1){
         var_E = 0;
       }
@@ -3189,7 +3190,7 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream& Sim_data, double time, std::
       
       // In this case we will print the value of this quantity
       std::cout<<"After" << N_data << "steps of iterations the mean Energy is " << mean_E <<" and the variance is " << var_E << "\n";
-      if(var_E < 1e-6){
+      if(var_E < 1e-4){
         std::cout<<"We would end the simulation because the variance of the energy is very small\n";
         backtrackstep= -1;
       }
@@ -3274,11 +3275,6 @@ double Mem3DG::integrate_BFGS(std::ofstream& Sim_data , double time, std::vector
     // std::cout<<"BFGS Started/Restarted\n";
     Sim_handler->Calculate_gradient();
 
-    // I need to do the backtracking now lol.
-    // std::cout<<"Lets backtrack\n";
-    // The thing we need to decide is how we handle the forces at the beads.
-    // I think it should receive a vertex data and a std::vector<Vector3>
-    
     for(size_t bi = 0; bi < Beads.size(); bi++){
       Bead_forces[bi] = Beads[bi]->Total_force;
     }
@@ -3423,6 +3419,8 @@ double Mem3DG::integrate_BFGS(std::ofstream& Sim_data , double time, std::vector
   N_data+=1;
   mean_E = mean_E + (tot_E-mean_E)/N_data;
 
+  // var_E = var_E*(N_data-1)/(N_data)  + (tot_E-mean_E)*(tot_E-mean_E)/(N_data-1);
+    
   // double grad_norm = Sim_handler->Gradient_norms[Sim_handler->Gradient_norms.size()-1];
   // mean_Grad = mean_Grad + (grad_norm - mean_Grad)/N_data;
 
