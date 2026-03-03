@@ -104,7 +104,7 @@ def Create_json_wrapping_two_outside(angle, outside1, outside2):
     
     location = [1,"outside","inside"]
 
-    dir = '"../Results/Two_beads_{}_{}_BFGS_MAR2/"'.format(location[outside1],location[outside2])
+    dir = '"../Results/Two_beads_{}_{}_BFGS_MAR3/"'.format(location[outside1],location[outside2])
 
     v1x = 10.0*(outside1*-1)
     x1 = 2.0 + 0.25*outside1 
@@ -126,7 +126,7 @@ def Create_json_wrapping_two_outside(angle, outside1, outside2):
 
 
     # print("something\n")
-    Config_path = '../Config_files/Wrapping_two_{}_{}_{}_BFGS_M2.json'.format(angle,location[outside1],location[outside2]) 
+    Config_path = '../Config_files/Wrapping_two_{}_{}_{}_BFGS_M3.json'.format(angle,location[outside1],location[outside2]) 
     
     sim_path = data['first_dir']
     
@@ -153,10 +153,10 @@ Config_path, sim_path = Create_json_wrapping_two_outside(angle,outside1,outside2
 
 
 # # def main():
-Output_name = 'output_two_theta_{}_{}_{}_BFGS_M2.output'.format(angle,location[outside1],location[outside2])
+Output_name = 'output_two_theta_{}_{}_{}_BFGS_M3.output'.format(angle,location[outside1],location[outside2])
 Output_path = '../Outputs/'+Output_name
 
-f=open('../Subjobs/subjob_two_bead_theta_{}_{}_{}_BFGS_M2'.format(angle,location[outside1],location[outside2]),'w')
+f=open('../Subjobs/subjob_two_bead_theta_{}_{}_{}_BFGS_M3'.format(angle,location[outside1],location[outside2]),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')
