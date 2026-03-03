@@ -27,7 +27,7 @@ foreach theta ( 0.3 0.35 0.4 0.45 0.5 0.55 0.6 0.65 0.7 0.75 0.8 0.85 0.9 0.95 1
 # sbatch ../Subjobs/subjob_two_beads_without_spring_theta_${theta}_inside_outside_finer
 
 python3 Create_subjob_two_beads.py ${theta} 1 1 
-sbatch ../Subjobs/subjob_two_bead_theta_${theta}_outside_outside_BFGS_M2
+sbatch ../Subjobs/subjob_two_bead_theta_${theta}_outside_outside_BFGS_Fixed
 
 
 end

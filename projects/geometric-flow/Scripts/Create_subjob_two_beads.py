@@ -138,6 +138,51 @@ def Create_json_wrapping_two_outside(angle, outside1, outside2):
 
 
 
+
+def Create_json_wrapping_two_fixed(dist, outside1, outside2):
+    # theta = float(angle)
+    os.makedirs("../Config_files/",exist_ok = True)
+    env = Environment(loader=FileSystemLoader('../Templates/'))
+
+
+    template = env.get_template('Wrapping_two_fixed.txt')
+    
+    # Radius of the position of the beads is R_v-2*r_b
+    R_vesicle = 2.0
+    r_bead = 0.2
+    
+    location = [1,"outside","inside"]
+
+    dir = '"../Results/Two_beads_{}_{}_BFGS_Fixed/"'.format(location[outside1],location[outside2])
+
+    x1 = float(dist)/2.0
+    x2 = -float(dist)/2.0 
+
+    disp = -1*np.sqrt(  (R_vesicle+r_bead)**2 -(float(dist)/2.0)**2)
+
+    # We should do 
+    
+    output_from_parsed_template = template.render(Dir = dir,dist = dist, outside1 = outside1,disp = disp, x1 = x1, outside2 = outside2, x2 = x2 )
+
+
+
+    # print(output_from_parsed_template)
+    data = json.loads(output_from_parsed_template)
+
+
+    # print("something\n")
+    Config_path = '../Config_files/Wrapping_two_{}_{}_{}_BFGS_Fixed.json'.format(angle,location[outside1],location[outside2]) 
+    
+    sim_path = data['first_dir']
+    
+    with open(Config_path, 'w') as file:
+        json.dump(data, file, indent=4)
+
+    return Config_path , sim_path
+
+
+
+
 # os.makedirs('../Subjobs/',exist_ok=True)
 # os.makedirs('../Outputs/',exist_ok=True)
 
@@ -145,18 +190,19 @@ def Create_json_wrapping_two_outside(angle, outside1, outside2):
 
 # Config_path, sim_path = Create_json_wrapping_two(KA,KB,radius,Strength,angle)
 # # Hopefully this works
-Config_path, sim_path = Create_json_wrapping_two_outside(angle,outside1,outside2)
+# Config_path, sim_path = Create_json_wrapping_two_outside(angle,outside1,outside2)
 
+Config_path, sim_path = Create_json_wrapping_two_fixed(angle,outside1,outside2)
 
 
 
 
 
 # # def main():
-Output_name = 'output_two_theta_{}_{}_{}_BFGS_M3.output'.format(angle,location[outside1],location[outside2])
+Output_name = 'output_two_theta_{}_{}_{}_BFGS_Fixed.output'.format(angle,location[outside1],location[outside2])
 Output_path = '../Outputs/'+Output_name
 
-f=open('../Subjobs/subjob_two_bead_theta_{}_{}_{}_BFGS_M3'.format(angle,location[outside1],location[outside2]),'w')
+f=open('../Subjobs/subjob_two_bead_theta_{}_{}_{}_BFGS_Fixed'.format(angle,location[outside1],location[outside2]),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')

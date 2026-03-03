@@ -3190,7 +3190,7 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream& Sim_data, double time, std::
       
       // In this case we will print the value of this quantity
       std::cout<<"After" << N_data << "steps of iterations the mean Energy is " << mean_E <<" and the variance is " << var_E << "\n";
-      if(var_E < 1e-4){
+      if(var_E < 1e-5){
         std::cout<<"We would end the simulation because the variance of the energy is very small\n";
         backtrackstep= -1;
       }
@@ -3199,7 +3199,7 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream& Sim_data, double time, std::
       var_E = 0;
     }
 
-  if(Save_output_data ){
+  if(Save_output_data || backtrackstep <0.0 ){
 
     Sim_data << time <<" "<< V<<" " << A<<" ";
     for(size_t i = 0; i < Sim_handler->Energies.size(); i++){
