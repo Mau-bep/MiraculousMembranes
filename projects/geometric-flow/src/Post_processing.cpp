@@ -293,7 +293,7 @@ int main(int argc, char** argv) {
     
     
     
-    double arr_3[] = {0.0, 11.0, 22.0, 33.0, 44.0, 55.0, 66.0, 77.0, 88.0, 99.0, 110.0, 121.0, 132.0, 143.0, 154.0, 165.0};
+    double arr_3[] = {77.0, 88.0, 99.0, 110.0, 121.0, 132.0, 143.0, 154.0, 165.0};
     // double arr_3[] = {20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 80.0,90.0, 95.0, 100.0, 105.0, 110.0, 115.0, 120.0, 125.0, 130.0, 135.0, 140.0};
     
     n=sizeof(arr_3) / sizeof(arr_3[0]);
@@ -315,7 +315,7 @@ int main(int argc, char** argv) {
 
 
     int Init_cond=2;
-    int Nsim=3;
+    int Nsim=2;
 
     auto start = chrono::steady_clock::now();
     auto end = chrono::steady_clock::now();
@@ -354,7 +354,7 @@ int main(int argc, char** argv) {
    
     KBstream << std::fixed << std::setprecision(4) << KB;
 
-    first_dir="../Results/Particle_wrapping_on_plane_phase_space_Conf/";
+    first_dir="../Results/Particle_wrapping_on_plane_phase_space_Conf_big/";
     
     filename = first_dir + "Coverage_final.txt" ;
     std::ofstream Coverage_final(filename,std::ios_base::app);
