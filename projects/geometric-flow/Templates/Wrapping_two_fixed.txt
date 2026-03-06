@@ -26,7 +26,7 @@
     ],
     "Energies": [
         {
-            "Name": "Bending",
+            "Name": "Bending_tan",
             "constants": [
                 20.0 
             ]

@@ -556,6 +556,22 @@ double VertexPositionGeometry::scalarMeanCurvature(Vertex v) const {
 
     return 0.25*scalar_mean_curve; // placeholder
 }
+double VertexPositionGeometry::scalarMeanCurvatureTan(Vertex v) const {
+
+    Vector3 Position_1=inputVertexPositions[v];
+    Vector3 Position_2;
+    double scalar_mean_curve=0;
+    Vector3 e_ij;
+    for(Halfedge he: v.incomingHalfedges()){
+        Position_2=inputVertexPositions[he.tailVertex().getIndex()];
+        e_ij=Position_2-Position_1;
+        scalar_mean_curve+= 2*tan(dihedralAngle(he)/2)*norm(e_ij);
+
+    }
+    
+
+    return 0.25*scalar_mean_curve; // placeholder
+}
 
 /*
  * Computes the circumcentric dual area of a vertex.

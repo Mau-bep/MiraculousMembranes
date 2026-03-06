@@ -1423,7 +1423,7 @@ int main(int argc, char** argv) {
     double R0;
 
     for(size_t i = 0; i < Energies.size(); i++){
-        if(Energies[i] == "Bending" || Energies[i]=="Laplace"){
+        if(Energies[i] == "Bending" || Energies[i]=="Laplace" || Energies[i]=="Bending_tan"){
             if(Energy_constants[i][1]>1e-5){
                 R0 = sqrt(A_bar/(4*PI));
                 
@@ -1630,22 +1630,11 @@ int main(int argc, char** argv) {
             // }
             // std::cout<<"The operation counter is "<< Cloth_1.remeshing.op_counter <<"\n";
 
-            if(Cloth_1.remeshing.op_counter>=300){
-                // std::cout<<"These are waaayyy too many operations\n";
-                // std::cout<<"We need to do smt abt it\n";
-                // std::cout<<"The index to use is " << (saved_mesh_idx-1)%6 <<" \n";
+            if(Cloth_1.remeshing.op_counter>=300 && false){
                 Cloth_1.mesh = arcsim::deep_copy(Saved_meshes[(saved_mesh_idx-1+6)%6]);
-                // This just returns the mesh as it was
-                // I need to return the beads as well
-                // std::cout<<"Here too for safety\n";
-                // for(size_t j = 0 ; j < Bead_pos_saved.size(); j++){
-                //  std::cout<<"The component j of the saved position of bead "<< j/6 <<" is "<< Bead_pos_saved[j] << "\n";
-                // }
                 for(size_t i = 0; i < Beads.size(); i++){
-                    // std::cout<<"THe index to use is "<<  6*i+(saved_mesh_idx-1)%6 <<" \n";
                     Beads[i].Pos =  Bead_pos_saved[6*i+(saved_mesh_idx-1+6)%6];
             }
-
             }
             double output = 0.0;
             if(adapt_remesh){

@@ -86,6 +86,7 @@ class VertexPositionGeometry : public EmbeddedGeometryInterface {
     double angleDefect(Vertex v) const;
     double totalAngleDefect() const;
     double scalarMeanCurvature(Vertex v) const;
+    double scalarMeanCurvatureTan(Vertex v) const;
     double circumcentricDualArea(Vertex v) const;
     std::pair<double, double> principalCurvatures(Vertex v) const;
 

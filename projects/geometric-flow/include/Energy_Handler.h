@@ -57,6 +57,7 @@ class E_Handler {
         virtual double E_Area_constraint(std::vector<double> Constants) const;
         virtual double E_SurfaceTension(std::vector<double> Constants) const;
         virtual double E_Bending(std::vector<double> Constants) const;
+        virtual double E_Bending_tan(std::vector<double> Constants) const;
         virtual double E_Bending_2(std::vector<double> Constants) const;
         virtual double E_Laplace(std::vector<double> Constants) const;
         virtual double E_Edge_reg(std::vector<double> Constants) const;
@@ -67,6 +68,7 @@ class E_Handler {
         virtual VertexData<Vector3> F_SurfaceTension(std::vector<double> Constants) const;
         virtual VertexData<Vector3> F_Area_constraint(std::vector<double> Constants) const;
         virtual VertexData<Vector3> F_Bending(std::vector<double> Constants) const;
+        virtual VertexData<Vector3> F_Bending_tan(std::vector<double> Constants) const;
         virtual VertexData<Vector3> F_SurfaceTension_2(std::vector<double> Constants) const;
         virtual VertexData<Vector3> F_Bending_2(std::vector<double> Constants) const;
         virtual VertexData<Vector3> F_Volume_constraint_2(std::vector<double> Constants) const;

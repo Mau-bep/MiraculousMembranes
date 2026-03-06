@@ -533,6 +533,9 @@ int main(int argc, char** argv) {
     // std::cout<<"If we move with the gradient " << geometry->Triangle_area(Positions+Gradient*1e-6) << "\n";
 
 
+    // Lets 
+
+
     
     std::cout<<"Lets do the gradient of the angle now\n";
 
@@ -1123,7 +1126,45 @@ int main(int argc, char** argv) {
     // std::cout<<"The finite difference gradient of the Laplace energy is \n" << Gradient_Laplace_finite << "\n";
     // std::cout<<"The difference between gradients is \n" << Difference << "\n";
 
-    // return 1;
+
+
+    double E_Ben = Sim_handler.E_Bending_tan(Energy_constants[0]);
+    double E_Ben_fwd;
+    double E_Ben_bkwd;
+    std::cout<<"The Bending Energy is " << E_Ben << "\n";
+    std::cout<<"The OG BENDING energy " << Sim_handler.E_Bending(Energy_constants[0]) << "\n";
+
+    VertexData<Vector3> Gradient_Ben = Sim_handler.F_Bending_tan(Energy_constants[0]);
+    VertexData<Vector3> Gradient_Ben_finite(*mesh);
+    // VertexData<Vector3> Difference(*mesh);
+
+    dim = 0;
+    for(Vertex v: mesh->vertices()){
+        // SO the idea here is  
+        for(size_t coord = 0; coord < 3; coord++){
+            
+            geometry->inputVertexPositions[v][coord]+=1e-6; //move forward
+            geometry->refreshQuantities();
+            E_Ben_fwd = Sim_handler.E_Bending_tan(Energy_constants[0]);
+            geometry->inputVertexPositions[v][coord]-=2e-6; //move backward
+            geometry->refreshQuantities();
+            E_Ben_bkwd = Sim_handler.E_Bending_tan(Energy_constants[0]);
+            geometry->inputVertexPositions[v][coord]+=1e-6; //restore
+            geometry->refreshQuantities();
+
+            Gradient_Ben_finite[v][coord] = (E_Ben_fwd - E_Ben_bkwd)/(2e-6);
+            
+            }
+        
+        Difference[v] = Gradient_Ben[v] + Gradient_Ben_finite[v];
+        // std::cout<<"The gradient f            or vertex " << v.getIndex() << " is " << Gradient_Laplace[v] << "\n";
+        // std::cout<<"The finite diff gradient for vertex " << v.getIndex() << " is " << Gradient_Laplace_finite[v] << "\n";
+        std::cout<<"The difference for vertex           " << v.getIndex() << " is " << Difference[v] << "\n";
+
+    }
+
+
+    return 0;
 
     double E_reg = Sim_handler.E_Edge_reg(Energy_constants[0]);
     double E_reg_fwd;
