@@ -171,7 +171,7 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
 
 
     # print("something\n")
-    Config_path = '../Config_files/Wrapping_two_{}_{}_{}_BFGS_Fixed.json'.format(angle,location[outside1],location[outside2]) 
+    Config_path = '../Config_files/Wrapping_two_{}_{}_{}_BFGS_Fixed_2.json'.format(angle,location[outside1],location[outside2]) 
     
     sim_path = data['first_dir']
     
@@ -238,7 +238,7 @@ f.write('\n')
 f.write('#Do not export the local environment to the compute nodes\n')
 f.write('#SBATCH --export=NONE\n')
 f.write('\n')
-f.write('#SBATCH --error=%x_%j.err \n')
+# f.write('#SBATCH --error=%x_%j.err \n')
 f.write('unset SLURM_EXPORT_ENV\n')
 f.write('#for single-CPU jobs make sure that they use a single thread\n')
 f.write('export OMP_NUM_THREADS=1\n')
