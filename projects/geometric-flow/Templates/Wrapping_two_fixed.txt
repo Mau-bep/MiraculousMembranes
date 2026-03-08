@@ -20,7 +20,7 @@
     "finish_sim": false,
     "theta": {{ dist }},
     "Displacement": [
-        0.0 ,
+        {{disp2}} ,
         {{disp}},
         0.0
     ],
@@ -51,7 +51,7 @@
             "Pos": [
                 {{ x1 }},0.0,0.0
             ],
-            "mem_inter": "Frenkel_Normal_nopush",
+            "mem_inter": "Frenkel",
             "inter_str": 600,
             "bonds": [],
             "bonds_constants": [],
@@ -72,7 +72,7 @@
                 0.0,
                 0.0
             ],
-            "mem_inter": "Frenkel_Normal_nopush",
+            "mem_inter": "Frenkel",
             "inter_str": 600,
             "bonds": [],
             "bonds_constants": [],

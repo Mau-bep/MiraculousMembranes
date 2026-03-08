@@ -149,7 +149,7 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
     
     # Radius of the position of the beads is R_v-2*r_b
     R_vesicle = 2.0
-    r_bead = 0.2
+    r_bead = 0.19
     
     location = [1,"outside","inside"]
 
@@ -158,11 +158,22 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
     x1 = float(dist)/2.0
     x2 = -float(dist)/2.0 
 
+
     disp = -1*np.sqrt(  (R_vesicle+r_bead)**2 -(float(dist)/2.0)**2)
+    disp2 = 0.0
+
+    if(outside1<0 and outside2 <0 ):
+        disp =-1*np.sqrt(  (R_vesicle-r_bead)**2 -(float(dist)/2.0)**2)
+
+    if(outside1*outside2<0):
+        # In this case we need to  do math
+        disp2 = ((R_vesicle+r_bead)**2-(R_vesicle-r_bead)**2)/(2*float(dist))
+        disp = np.sqrt(  (R_vesicle+r_bead)**2 - (disp2+float(dist)/2)**2      ) 
+
 
     # We should do 
     
-    output_from_parsed_template = template.render(Dir = dir,dist = dist, outside1 = outside1,disp = disp, x1 = x1, outside2 = outside2, x2 = x2 )
+    output_from_parsed_template = template.render(Dir = dir,dist = dist, outside1 = outside1,disp = disp,disp2 = disp2, x1 = x1, outside2 = outside2, x2 = x2 )
 
 
 
