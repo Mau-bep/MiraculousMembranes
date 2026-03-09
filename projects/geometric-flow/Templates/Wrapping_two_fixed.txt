@@ -1,7 +1,7 @@
 {
     "init_file": "../../../input/Simplesphere.obj",
     "save_interval": 100,
-    "timesteps": 100000,
+    "timesteps": 150000,
     "continue_sim": false,
     "resize_vol": false,
     "arcsim": true,
