@@ -44,7 +44,7 @@
     "Beads": [ 
         {
             "gradient_order": "Bead",
-            "radius" : 0.2,
+            "radius" : {{ r }},
             "state": "froze",
             "outside" : {{ outside1 }},
             "Velocity": [0.0,0.0,0.0],
@@ -61,7 +61,7 @@
         },
         {
             "gradient_order": "Bead",
-            "radius" : 0.2,
+            "radius" : {{ r }},
             "state": "froze",
             "outside" : {{ outside2 }},
             "Velocity":[0.0,

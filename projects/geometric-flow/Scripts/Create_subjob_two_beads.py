@@ -28,8 +28,11 @@ outside1 = int(sys.argv[2])
 outside2 = int(sys.argv[3])
 Nsim = 1
 
+
+
+
 # Strength=sys.argv[2]
-# radius = float(sys.argv[3])
+radius = float(sys.argv[4])
 
 # KA = sys.argv[4]
 # KB = sys.argv[5]
@@ -149,11 +152,11 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
     
     # Radius of the position of the beads is R_v-2*r_b
     R_vesicle = 2.0
-    r_bead = 0.185
+    r_bead = radius*0.9
     
     location = [1,"outside","inside"]
 
-    dir = '"../Results/Two_beads_{}_{}_BFGS_Fixed_2/"'.format(location[outside1],location[outside2])
+    dir = '"../Results/Two_beads_r_{0:.2f}_{1}_{2}_BFGS_Fixed/"'.format(radius,location[outside1],location[outside2])
 
     x1 = float(dist)/2.0
     x2 = -float(dist)/2.0 
@@ -173,7 +176,7 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
 
     # We should do 
     
-    output_from_parsed_template = template.render(Dir = dir,dist = dist, outside1 = outside1,disp = disp,disp2 = disp2, x1 = x1, outside2 = outside2, x2 = x2 )
+    output_from_parsed_template = template.render(Dir = dir,r=radius,dist = dist, outside1 = outside1,disp = disp,disp2 = disp2, x1 = x1, outside2 = outside2, x2 = x2 )
 
 
 
@@ -182,7 +185,7 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
 
 
     # print("something\n")
-    Config_path = '../Config_files/Wrapping_two_{}_{}_{}_BFGS_Fixed_2.json'.format(angle,location[outside1],location[outside2]) 
+    Config_path = '../Config_files/Wrapping_two_{0:.2f}_{1}_{2}_BFGS_Fixed.json'.format(radius,angle,location[outside1],location[outside2]) 
     
     sim_path = data['first_dir']
     
@@ -210,10 +213,10 @@ Config_path, sim_path = Create_json_wrapping_two_fixed(angle,outside1,outside2)
 
 
 # # def main():
-Output_name = 'output_two_theta_{}_{}_{}_BFGS_Fixed_2.output'.format(angle,location[outside1],location[outside2])
+Output_name = 'output_two_r_{0:.2f}_theta_{1}_{2}_{3}_BFGS_Fixed_2.output'.format(radius,angle,location[outside1],location[outside2])
 Output_path = '../Outputs/'+Output_name
 
-f=open('../Subjobs/subjob_two_bead_theta_{}_{}_{}_BFGS_Fixed_2'.format(angle,location[outside1],location[outside2]),'w')
+f=open('../Subjobs/subjob_two_bead_r_{0:.2f}_theta_{1}_{2}_{3}_BFGS_Fixed_2'.format(radius,angle,location[outside1],location[outside2]),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')
