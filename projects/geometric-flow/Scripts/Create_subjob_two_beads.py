@@ -149,7 +149,7 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
     
     # Radius of the position of the beads is R_v-2*r_b
     R_vesicle = 2.0
-    r_bead = 0.19
+    r_bead = 0.185
     
     location = [1,"outside","inside"]
 

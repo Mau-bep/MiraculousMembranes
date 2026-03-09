@@ -3192,7 +3192,7 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream& Sim_data, double time, std::
       std::cout<<"After" << N_data << "steps of iterations the mean Energy is " << mean_E <<" and the variance is " << var_E << "\n";
       if(var_E < 1e-8){
         std::cout<<"We would end the simulation because the variance of the energy is very small\n";
-        backtrackstep= -1;
+        // backtrackstep= -1;
       }
       N_data = 0;
       mean_E = 0;
