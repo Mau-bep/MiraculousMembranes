@@ -156,7 +156,7 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
     
     location = [1,"outside","inside"]
 
-    dir = '"../Results/Two_beads_r_{0:.2f}_{1}_{2}_BFGS_Fixed/"'.format(radius,location[outside1],location[outside2])
+    dir = '"../Results/Two_beads_r_{0:.2f}_{1}_{2}_BFGS_Fixed_3/"'.format(radius,location[outside1],location[outside2])
 
     x1 = float(dist)/2.0
     x2 = -float(dist)/2.0 
@@ -185,7 +185,7 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
 
 
     # print("something\n")
-    Config_path = '../Config_files/Wrapping_two_{0:.2f}_{1}_{2}_BFGS_Fixed.json'.format(radius,angle,location[outside1],location[outside2]) 
+    Config_path = '../Config_files/Wrapping_two_{0:.2f}_{1}_{2}_{3}_BFGS_Fixed_3.json'.format(radius,angle,location[outside1],location[outside2]) 
     
     sim_path = data['first_dir']
     
@@ -213,10 +213,10 @@ Config_path, sim_path = Create_json_wrapping_two_fixed(angle,outside1,outside2)
 
 
 # # def main():
-Output_name = 'output_two_r_{0:.2f}_theta_{1}_{2}_{3}_BFGS_Fixed_2.output'.format(radius,angle,location[outside1],location[outside2])
+Output_name = 'output_two_r_{0:.2f}_theta_{1}_{2}_{3}_BFGS_Fixed_3.output'.format(radius,angle,location[outside1],location[outside2])
 Output_path = '../Outputs/'+Output_name
 
-f=open('../Subjobs/subjob_two_bead_r_{0:.2f}_theta_{1}_{2}_{3}_BFGS_Fixed_2'.format(radius,angle,location[outside1],location[outside2]),'w')
+f=open('../Subjobs/subjob_two_bead_r_{0:.2f}_theta_{1}_{2}_{3}_BFGS_Fixed_3'.format(radius,angle,location[outside1],location[outside2]),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')

@@ -605,7 +605,7 @@ int main(int argc, char** argv) {
                     A_bar = Constants[1];
                 }
                 else{
-                    A_bar = geometry->totalArea()*1.05;
+                    A_bar = geometry->totalArea();
                     Constants[1] = A_bar;
                 }
             }
