@@ -1269,6 +1269,39 @@ SparseMatrix<double> E_Handler::H_SurfaceTension(std::vector<double> Constants){
     return KA*Hessian;
 }
 
+SparseMatrix<double> E_Handler::H_SurfaceTension_Normal(std::vector<double> Constants){
+    
+
+
+    SparseMatrix<double> Hessian = H_SurfaceTension(Constants);
+    int N_verts = mesh->nVertices();
+    SparseMatrix<double> Normal_Hess(mesh->nVertices(), mesh->nVertices());
+
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+    double val;
+    Eigen::Vector<double,3> Normal_i;
+    Eigen::Vector<double,3> Normal_j;
+    Eigen::Matrix<double,3,3> Block;
+
+    for(int k = 0; k < Hessian.outerSize(); ++k){
+        for(SparseMatrix<double>::InnerIterator it(Hessian,k);it; ++it){
+            if(it.row()%3 == 0 && it.col()%3 == 0 && it.row() < 3*N_verts && it.col() < 3*N_verts){
+            Normal_i << Vertex_normals[it.row()/3].x, Vertex_normals[it.row()/3].y, Vertex_normals[it.row()/3].z;
+            Normal_j << Vertex_normals[it.col()/3].x, Vertex_normals[it.col()/3].y, Vertex_normals[it.col()/3].z;
+            Block = Hessian.block(it.row(),it.col(),3,3);
+            val = Normal_i.transpose()*Block*Normal_j;
+            if(val > 1e-12 || val < -1e-12) tripletList.push_back(T(it.row()/3,it.col()/3,val));
+
+
+            }
+        }
+    }
+    Normal_Hess.setFromTriplets(tripletList.begin(),tripletList.end());
+    // std::cout<<"Hessian volume done\n";
+    return Normal_Hess;
+}
+
 SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants) {
 
     double KB = Constants[0];
@@ -2062,6 +2095,40 @@ SparseMatrix<double> E_Handler::H_Volume(std::vector<double> Constants){
     // std::cout<<"Hessian volume done\n";
     return KV*Hessian;
 }
+
+SparseMatrix<double> E_Handler::H_Volume_Normal(std::vector<double> Constants){
+    
+
+
+    SparseMatrix<double> Hessian = H_Volume(Constants);
+    int N_verts = mesh->nVertices();
+    SparseMatrix<double> Normal_Hess(mesh->nVertices(), mesh->nVertices());
+
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+    double val;
+    Eigen::Vector<double,3> Normal_i;
+    Eigen::Vector<double,3> Normal_j;
+    Eigen::Matrix<double,3,3> Block;
+
+    for(int k = 0; k < Hessian.outerSize(); ++k){
+        for(SparseMatrix<double>::InnerIterator it(Hessian,k);it ; ++it){
+            if(it.row()%3 == 0 && it.col()%3 == 0 && it.row() < 3*N_verts && it.col() < 3*N_verts){
+            Normal_i << Vertex_normals[it.row()/3].x, Vertex_normals[it.row()/3].y, Vertex_normals[it.row()/3].z;
+            Normal_j << Vertex_normals[it.col()/3].x, Vertex_normals[it.col()/3].y, Vertex_normals[it.col()/3].z;
+            Block = Hessian.block(it.row(),it.col(),3,3);
+            val = Normal_i.transpose()*Block*Normal_j;
+            if(val > 1e-12 || val < -1e-12) tripletList.push_back(T(it.row()/3,it.col()/3,val));
+
+
+            }
+        }
+    }
+    Normal_Hess.setFromTriplets(tripletList.begin(),tripletList.end());
+    // std::cout<<"Hessian volume done\n";
+    return Normal_Hess;
+}
+
 
 SparseMatrix<double> E_Handler::H_Laplace(std::vector<double> Constants){
     double KB = Constants[0];
@@ -3397,6 +3464,7 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_E_Normal(){
             it.row();   // row index
             it.col();   // col index (here it is equal to k)
             if(it.row()%3 == 0 && it.col()%3 ==0 && it.row() < 3*N_verts && it.col() < 3*N_verts){
+                
                 Normal_i << Vertex_normals[it.row()/3].x, Vertex_normals[it.row()/3].y, Vertex_normals[it.row()/3].z;
                 Normal_j << Vertex_normals[it.col()/3].x, Vertex_normals[it.col()/3].y, Vertex_normals[it.col()/3].z;
                 Block = Full_hessian.block(it.row(),it.col(),3,3);

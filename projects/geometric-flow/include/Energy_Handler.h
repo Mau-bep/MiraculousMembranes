@@ -79,9 +79,12 @@ class E_Handler {
         virtual VertexData<Vector3> F_Face_reg(std::vector<double> Constants) const;
 
         virtual SparseMatrix<double> H_SurfaceTension(std::vector<double> Constants);
+        virtual SparseMatrix<double> H_SurfaceTension_Normal(std::vector<double> Constants);   
         virtual SparseMatrix<double> H_Bending(std::vector<double> Constants);
         virtual SparseMatrix<double> H_Bending_2(std::vector<double> Constants);
         virtual SparseMatrix<double> H_Volume(std::vector<double> Constants);
+        virtual SparseMatrix<double> H_Volume_Normal(std::vector<double> Constants);
+        
         virtual SparseMatrix<double> H_Laplace(std::vector<double> Constants);
         virtual SparseMatrix<double> H_Edge_reg(std::vector<double> Constants);
         virtual SparseMatrix<double> H_Edge_reg_2(std::vector<double> Constants);
