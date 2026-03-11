@@ -443,6 +443,7 @@ Vector3 Get_bead_pos(std::string filename, int step){
 
 int main(int argc, char** argv) {
 
+
  
 
 
@@ -605,7 +606,7 @@ int main(int argc, char** argv) {
                     A_bar = Constants[1];
                 }
                 else{
-                    A_bar = geometry->totalArea();
+                    A_bar = geometry->totalArea()   ;
                     Constants[1] = A_bar;
                 }
             }

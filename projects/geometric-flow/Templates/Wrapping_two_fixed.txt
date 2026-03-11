@@ -51,8 +51,9 @@
             "Pos": [
                 {{ x1 }},0.0,0.0
             ],
-            "mem_inter": "Frenkel",
+            "mem_inter": "Frenkel_Normal_nopush",
             "inter_str": 600,
+            "rc" : 0.25,
             "bonds": [],
             "bonds_constants": [],
             "Beads": [],
@@ -72,8 +73,9 @@
                 0.0,
                 0.0
             ],
-            "mem_inter": "Frenkel",
+            "mem_inter": "Frenkel_Normal_nopush",
             "inter_str": 600,
+            "rc" : 0.25,
             "bonds": [],
             "bonds_constants": [],
             "Beads": [],
@@ -87,7 +89,7 @@
         "refine_angle": 0.7,
         "refine_compression": 0.0001,
         "refine_velocity": 1.0,
-        "size_max": 0.1,
+        "size_max": 0.2,
         "size_min": 0.001
     }
 }

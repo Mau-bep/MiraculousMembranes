@@ -17,6 +17,18 @@ using namespace geometrycentral::surface;
 // THings to note, i should make this structure in main and then give a pointer of it to Mem3DG
 // Because if i dont then it will be carried all the time by mem3dg and i dont think thats very smart.
 
+class MyHashForPairs {
+public:
+
+    // We use predefined hash functions of strings
+    // and define our hash function as XOR of the
+    // hash values.
+    size_t operator()(const pair<int,int> p) const
+    {
+        return (hash<int>()(p.first)) ^ (hash<int>()(p.second));
+    }
+};
+
 
 E_Handler::E_Handler(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo){
     mesh = inputMesh;
@@ -1284,19 +1296,37 @@ SparseMatrix<double> E_Handler::H_SurfaceTension_Normal(std::vector<double> Cons
     Eigen::Vector<double,3> Normal_j;
     Eigen::Matrix<double,3,3> Block;
 
-    for(int k = 0; k < Hessian.outerSize(); ++k){
-        for(SparseMatrix<double>::InnerIterator it(Hessian,k);it; ++it){
-            if(it.row()%3 == 0 && it.col()%3 == 0 && it.row() < 3*N_verts && it.col() < 3*N_verts){
-            Normal_i << Vertex_normals[it.row()/3].x, Vertex_normals[it.row()/3].y, Vertex_normals[it.row()/3].z;
-            Normal_j << Vertex_normals[it.col()/3].x, Vertex_normals[it.col()/3].y, Vertex_normals[it.col()/3].z;
-            Block = Hessian.block(it.row(),it.col(),3,3);
-            val = Normal_i.transpose()*Block*Normal_j;
-            if(val > 1e-12 || val < -1e-12) tripletList.push_back(T(it.row()/3,it.col()/3,val));
-
+    std::unordered_set<std::pair<int,int>,MyHashForPairs> visited_pairs;
+    
+    size_t row;
+    size_t col;
+    std::pair<int,int> current_pair;
+    for (int k=0; k<Hessian.outerSize(); ++k)
+        for (SparseMatrix<double>::InnerIterator it(Hessian,k); it; ++it)
+        {
+            it.value();
+            row = it.row();   // row index
+            col = it.col();   // col index (here it is equal to k)
+            
+            current_pair = make_pair(row/3, col/3);
+            // 
+            if(visited_pairs.find(current_pair) != visited_pairs.end()){
+            // This means that the pair has already been visited and we can skip it
+                continue;
+            }
+            else{
+                visited_pairs.insert(current_pair);
+                
+                Normal_i << Vertex_normals[row/3].x, Vertex_normals[row/3].y, Vertex_normals[row/3].z;
+                Normal_j << Vertex_normals[col/3].x, Vertex_normals[col/3].y, Vertex_normals[col/3].z;
+                Block = Hessian.block(row,col,3,3);
+                val = Normal_i.transpose()*Block*Normal_j;
+                if(val > 1e-12 || val < -1e-12) tripletList.push_back(T(row/3,col/3,val));
 
             }
+            // And this is how u turn the block into the thing
         }
-    }
+
     Normal_Hess.setFromTriplets(tripletList.begin(),tripletList.end());
     // std::cout<<"Hessian volume done\n";
     return Normal_Hess;
@@ -2111,19 +2141,37 @@ SparseMatrix<double> E_Handler::H_Volume_Normal(std::vector<double> Constants){
     Eigen::Vector<double,3> Normal_j;
     Eigen::Matrix<double,3,3> Block;
 
-    for(int k = 0; k < Hessian.outerSize(); ++k){
-        for(SparseMatrix<double>::InnerIterator it(Hessian,k);it ; ++it){
-            if(it.row()%3 == 0 && it.col()%3 == 0 && it.row() < 3*N_verts && it.col() < 3*N_verts){
-            Normal_i << Vertex_normals[it.row()/3].x, Vertex_normals[it.row()/3].y, Vertex_normals[it.row()/3].z;
-            Normal_j << Vertex_normals[it.col()/3].x, Vertex_normals[it.col()/3].y, Vertex_normals[it.col()/3].z;
-            Block = Hessian.block(it.row(),it.col(),3,3);
-            val = Normal_i.transpose()*Block*Normal_j;
-            if(val > 1e-12 || val < -1e-12) tripletList.push_back(T(it.row()/3,it.col()/3,val));
-
+    std::unordered_set<std::pair<int,int>,MyHashForPairs> visited_pairs;
+    
+    size_t row;
+    size_t col;
+    std::pair<int,int> current_pair;
+    for (int k=0; k<Hessian.outerSize(); ++k)
+        for (SparseMatrix<double>::InnerIterator it(Hessian,k); it; ++it)
+        {
+            it.value();
+            row = it.row();   // row index
+            col = it.col();   // col index (here it is equal to k)
+            
+            current_pair = make_pair(row/3, col/3);
+            // 
+            if(visited_pairs.find(current_pair) != visited_pairs.end()){
+            // This means that the pair has already been visited and we can skip it
+                continue;
+            }
+            else{
+                visited_pairs.insert(current_pair);
+                
+                Normal_i << Vertex_normals[row/3].x, Vertex_normals[row/3].y, Vertex_normals[row/3].z;
+                Normal_j << Vertex_normals[col/3].x, Vertex_normals[col/3].y, Vertex_normals[col/3].z;
+                Block = Hessian.block(row,col,3,3);
+                val = Normal_i.transpose()*Block*Normal_j;
+                if(val > 1e-12 || val < -1e-12) tripletList.push_back(T(row/3,col/3,val));
 
             }
+            // And this is how u turn the block into the thing
         }
-    }
+
     Normal_Hess.setFromTriplets(tripletList.begin(),tripletList.end());
     // std::cout<<"Hessian volume done\n";
     return Normal_Hess;
@@ -3457,19 +3505,33 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_E_Normal(){
     Eigen::Vector<double,3> Normal_j;
     Eigen::Matrix<double,3,3> Block;
     
+    // So here i need to define the thigns that i need
+    std::unordered_set<std::pair<int,int>,MyHashForPairs> visited_pairs;
+    
+    size_t row;
+    size_t col;
+    std::pair<int,int> current_pair;
     for (int k=0; k<Full_hessian.outerSize(); ++k)
         for (SparseMatrix<double>::InnerIterator it(Full_hessian,k); it; ++it)
         {
             it.value();
-            it.row();   // row index
-            it.col();   // col index (here it is equal to k)
-            if(it.row()%3 == 0 && it.col()%3 ==0 && it.row() < 3*N_verts && it.col() < 3*N_verts){
+            row = it.row();   // row index
+            col = it.col();   // col index (here it is equal to k)
+            
+            current_pair = make_pair(row/3, col/3);
+            // 
+            if(visited_pairs.find(current_pair) != visited_pairs.end()){
+            // This means that the pair has already been visited and we can skip it
+                continue;
+            }
+            else{
+                visited_pairs.insert(current_pair);
                 
-                Normal_i << Vertex_normals[it.row()/3].x, Vertex_normals[it.row()/3].y, Vertex_normals[it.row()/3].z;
-                Normal_j << Vertex_normals[it.col()/3].x, Vertex_normals[it.col()/3].y, Vertex_normals[it.col()/3].z;
-                Block = Full_hessian.block(it.row(),it.col(),3,3);
+                Normal_i << Vertex_normals[row/3].x, Vertex_normals[row/3].y, Vertex_normals[row/3].z;
+                Normal_j << Vertex_normals[col/3].x, Vertex_normals[col/3].y, Vertex_normals[col/3].z;
+                Block = Full_hessian.block(row,col,3,3);
                 val = Normal_i.transpose()*Block*Normal_j;
-                if(val > 1e-12 || val < -1e-12) tripletList.push_back(T(it.row()/3,it.col()/3,val));
+                if(val > 1e-12 || val < -1e-12) tripletList.push_back(T(row/3,col/3,val));
 
             }
             // And this is how u turn the block into the thing
@@ -3540,20 +3602,33 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_Constraints_Normal(){
     Eigen::Vector<double,3> Normal_j;
     Eigen::Matrix<double,3,3> Block;
     
+    std::unordered_set<std::pair<int,int>,MyHashForPairs> visited_pairs;
+    
+    size_t row;
+    size_t col;
+    std::pair<int,int> current_pair;
     for (int k=0; k<Full_hessian.outerSize(); ++k)
         for (SparseMatrix<double>::InnerIterator it(Full_hessian,k); it; ++it)
         {
             it.value();
-            it.row();   // row index
-            it.col();   // col index (here it is equal to k)
-            if(it.row()%3 == 0 && it.col()%3 ==0 && it.row() < 3*N_verts && it.col() < 3*N_verts){
-                Normal_i << Vertex_normals[it.row()/3].x, Vertex_normals[it.row()/3].y, Vertex_normals[it.row()/3].z;
+            row = it.row();   // row index
+            col = it.col();   // col index (here it is equal to k)
+            
+            current_pair = make_pair(row/3, col/3);
+            // 
+            if(visited_pairs.find(current_pair) != visited_pairs.end()){
+            // This means that the pair has already been visited and we can skip it
+                continue;
+            }
+            else{
+                visited_pairs.insert(current_pair);
                 
-                Normal_j << Vertex_normals[it.col()/3].x, Vertex_normals[it.col()/3].y, Vertex_normals[it.col()/3].z;
-                Block = Full_hessian.block(it.row(),it.col(),3,3);
+                Normal_i << Vertex_normals[row/3].x, Vertex_normals[row/3].y, Vertex_normals[row/3].z;
+                Normal_j << Vertex_normals[col/3].x, Vertex_normals[col/3].y, Vertex_normals[col/3].z;
+                Block = Full_hessian.block(row,col,3,3);
                 val = Normal_i.transpose()*Block*Normal_j;
-                if(val > 1e-12 || val < -1e-12) tripletList.push_back(T(it.row()/3,it.col()/3,val));
-                // Hessian(it.row()/3,it.col()/3) += it.value()*geometry->vertexNormal(Vertex(it.row()/3)) geometry->vertexNormal(Vertex(it.col()/3)));
+                if(val > 1e-12 || val < -1e-12) tripletList.push_back(T(row/3,col/3,val));
+
             }
             // And this is how u turn the block into the thing
         }
