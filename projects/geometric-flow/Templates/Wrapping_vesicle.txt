@@ -1,5 +1,5 @@
 {
-    "init_file": "../../../input/disk_init.obj",
+    "init_file": "../../../input/Simplesphere.obj",
     "save_interval": 1000,
     "timesteps": 100000,
     "continue_sim": false,
@@ -18,8 +18,8 @@
     "rescale": 2.0,
     "Energies": [ 
         {"Name": "Surface_tension", "constants": [ {{KA}} ] },
-        {"Name": "Bending", "constants": [ {{KB}} ]},
-        {"Name": "Volume_constraint", "constants": [ 100000.0 ]}
+        {"Name": "Bending", "constants": [ {{KB}} , 0.0]},
+        {"Name": "Volume_constraint", "constants": [ 100000.0, -1.0 ]}
         ],
     "Beads":[
         {
