@@ -176,7 +176,7 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
 
     # We should do 
     
-    output_from_parsed_template = template.render(Dir = dir,r=radius,dist = dist, outside1 = outside1,disp = disp,disp2 = disp2, x1 = x1, outside2 = outside2, x2 = x2 )
+    output_from_parsed_template = template.render(Dir = dir,r=radius,rc = radius*1.2,dist = dist, outside1 = outside1,disp = disp,disp2 = disp2, x1 = x1, outside2 = outside2, x2 = x2 )
 
 
 
@@ -197,8 +197,8 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
 
 
 
-# os.makedirs('../Subjobs/',exist_ok=True)
-# os.makedirs('../Outputs/',exist_ok=True)
+os.makedirs('../Subjobs/',exist_ok=True)
+os.makedirs('../Outputs/',exist_ok=True)
 
 
 

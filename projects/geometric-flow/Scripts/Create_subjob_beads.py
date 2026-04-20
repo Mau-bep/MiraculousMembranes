@@ -10,6 +10,7 @@ from jinja2 import Environment, FileSystemLoader
 
 # We need jinja and json here
 
+import numpy as np
 
 
 
@@ -45,7 +46,7 @@ def Create_json_wrapping(ka,kb,r,inter_str):
     env = Environment(loader=FileSystemLoader('../Templates/'))
 
     template = env.get_template('Wrapping.txt')
-    output_from_parsed_template = template.render(KA = ka, KB = kb,radius = r,xpos = r*1.95 ,interaction=inter_str,KE = KE)
+    output_from_parsed_template = template.render(KA = ka, KB = kb,radius = r,xpos = 2+r ,interaction=inter_str)
 
     data = json.loads(output_from_parsed_template)
 
@@ -55,22 +56,46 @@ def Create_json_wrapping(ka,kb,r,inter_str):
 
     return Config_path
 
+def Create_json_wrapping_vesicle(ka,kb,r,inter_str):
+
+    os.makedirs("../Config_files/",exist_ok = True)
+    env = Environment(loader=FileSystemLoader('../Templates/'))
+
+    template = env.get_template('Wrapping_vesicle.txt')
+    output_from_parsed_template = template.render(KA = ka, KB = kb,radius = r,rc=r*1.2,xpos = 2.0+r ,interaction=inter_str)
+
+    data = json.loads(output_from_parsed_template)
+
+    Config_path = '../Config_files/Wrapping_BFGS_strg_{}_radius_{}_KA_{}_KB_{}.json'.format(inter_str,r,ka,kb) 
+    
+    sim_path = data['first_dir']
+
+    with open(Config_path, 'w') as file:
+        json.dump(data, file, indent=4)
+
+    return Config_path, sim_path
+
 
 
 
 os.makedirs('../Subjobs/',exist_ok=True)
 os.makedirs('../Outputs/',exist_ok=True)
 
-Config_path = Create_json_wrapping(KA,KB,radius,Strength)
+Config_path, sim_path = Create_json_wrapping_vesicle(KA,KB,radius,Strength)
 
 
-f=open('../Subjobs/subjob_serial_wrapping_Strg_{}_radius_{}_KA_{}_KB_{}_Nsim_{}'.format(Strength,radius,KA,KB,Nsim),'w')
+f=open('../Subjobs/subjob_BFGS_wrapping_Strg_{}_radius_{}_KA_{}_KB_{}_Nsim_{}'.format(Strength,radius,KA,KB,Nsim),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')
 
 f.write('#SBATCH --job-name=Mem3DGpa\n')
-f.write('#SBATCH --output=../Outputs/output_serial_wrapping_Strg_{}_radius_{}_KA_{}_KB_{}_Nsim_{}'.format(Strength,radius,KA,KB,Nsim))
+
+Output_name = 'output_BFGS_wrapping_Strg_{}_radius_{}_KA_{}_KB_{}_Nsim_{}.output'.format(Strength,radius,KA,KB,Nsim)
+
+Output_path = '../Outputs/'+Output_name
+f.write('#SBATCH --output={}\n'.format(Output_path))
+# f.write('#SBATCH --output=../Outputs/output_BFGS_wrapping_Strg_{}_radius_{}_KA_{}_KB_{}_Nsim_{}'.format(Strength,radius,KA,KB,Nsim))
 f.write('#\n')
 f.write('#number of CPUs to be used\n')
 f.write('#SBATCH --ntasks=1\n')
@@ -111,11 +136,15 @@ f.write('\n')
 f.write('export PATH="/nfs/scistore16/wojtgrp/mrojasve/.local/bin:$PATH"\n')
 f.write('echo $PATH\n')
 
+f.write('module load conda\n')
+f.write('conda activate mir_membranes\n')
 
 f.write('pwd\n')
-
+f.write('date\n')
 f.write('srun time -v ../build/bin/main_cluster {} {}\n'.format(Config_path,Nsim))
+f.write('date\n')
 
+f.write('cp {}.output {}/{}.txt \n'.format(Output_path,sim_path,Output_name) )
 
 
 f.write('\n')
