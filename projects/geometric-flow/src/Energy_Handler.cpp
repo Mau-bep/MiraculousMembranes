@@ -1289,6 +1289,79 @@ SparseMatrix<double> E_Handler::H_SurfaceTension(std::vector<double> Constants)
             }
         }
     }
+
+    for (auto &t : tripletList)
+    {
+        assert(t.row() >= 0 && t.row() < 3 * (nVerts + nBeads) && "Row index OOB sur");
+        assert(t.col() >= 0 && t.col() < 3 * (nVerts + nBeads) && "Col index OOB sur");
+    }
+    Hessian.setFromTriplets(tripletList.begin(), tripletList.end());
+    // That gives me the hessian of the surface tension :O.
+
+    return KA * Hessian;
+}
+
+SparseMatrix<double> E_Handler::H_SurfaceTension_Verts(std::vector<double> Constants)
+{
+
+    // Ok so this functino will assemble the Hessi an for the surface tension energy
+    int nVerts = mesh->nVertices();
+    int nBeads = Beads.size();
+    double KA = Constants[0];
+    // Eigen::MatrixXd Hessian = Eigen::MatrixXd::Zero(nVerts,nVerts);
+    SparseMatrix<double> Hessian(3 * (nVerts), 3 * (nVerts));
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+    // Eigen::Matrix<double, nVerts, nVerts> Hessian;
+    Vertex v1;
+    Vertex v2;
+    Vertex v3;
+    Halfedge he;
+    size_t index1;
+    size_t index2;
+    size_t index3;
+    array<int, 3> indices;
+    //
+    for (Face f : mesh->faces())
+    {
+        //
+        he = f.halfedge();
+        v1 = he.vertex();
+        v2 = he.next().vertex();
+        v3 = he.next().next().vertex();
+        indices[0] = v1.getIndex();
+        indices[1] = v2.getIndex();
+        indices[2] = v3.getIndex();
+
+        // So we will add a modification for boundaries then check if it works :p
+        if (v1.isBoundary() || v2.isBoundary() || v3.isBoundary())
+            continue;
+
+        Eigen::Vector<double, 9> Positions;
+
+        Positions << geometry->inputVertexPositions[v1].x, geometry->inputVertexPositions[v1].y, geometry->inputVertexPositions[v1].z,
+            geometry->inputVertexPositions[v2].x, geometry->inputVertexPositions[v2].y, geometry->inputVertexPositions[v2].z,
+            geometry->inputVertexPositions[v3].x, geometry->inputVertexPositions[v3].y, geometry->inputVertexPositions[v3].z;
+
+        Eigen::Matrix<double, 9, 9> Hessian_block = geometry->hessian_triangle_area(Positions);
+        // Now i need to load this quantities onto a bigger matrix ...
+        for (int i = 0; i < 9; i++)
+        {
+            for (int j = 0; j < 9; j++)
+            {
+
+                // So i am at vertex ij  now the i and j correspond to a vertex  i = 0 1 2 (vertex 1 )  3 4 5 (vertex 2 ) 6 7 8 (vertex 3)
+                if (Hessian_block(i, j) > 1e-12 || Hessian_block(i, j) < -1e-12)
+                    tripletList.push_back(T(indices[i / 3] * 3 + i % 3, indices[j / 3] * 3 + j % 3, Hessian_block(i, j)));
+            }
+        }
+    }
+
+    for (auto &t : tripletList)
+    {
+        assert(t.row() >= 0 && t.row() < 3 * (nVerts) && "Row index OOB sur");
+        assert(t.col() >= 0 && t.col() < 3 * (nVerts) && "Col index OOB sur");
+    }
     Hessian.setFromTriplets(tripletList.begin(), tripletList.end());
     // That gives me the hessian of the surface tension :O.
 
@@ -1300,7 +1373,7 @@ SparseMatrix<double> E_Handler::H_SurfaceTension_Normal(std::vector<double> Cons
 
     SparseMatrix<double> Hessian = H_SurfaceTension(Constants);
     int N_verts = mesh->nVertices();
-    SparseMatrix<double> Normal_Hess(mesh->nVertices() + 3 * Beads.size(), mesh->nVertices() + 3 * Beads.size());
+    SparseMatrix<double> Normal_Hess(mesh->nVertices(), mesh->nVertices());
 
     typedef Eigen::Triplet<double> T;
     std::vector<T> tripletList;
@@ -1345,6 +1418,377 @@ SparseMatrix<double> E_Handler::H_SurfaceTension_Normal(std::vector<double> Cons
     Normal_Hess.setFromTriplets(tripletList.begin(), tripletList.end());
     // std::cout<<"Hessian volume done\n";
     return Normal_Hess;
+}
+
+SparseMatrix<double> E_Handler::H_Bending_tan(std::vector<double> Constants)
+{
+
+    double KB = Constants[0];
+    double H0 = Constants[1];
+
+    int N_verts = mesh->nVertices();
+    int N_beads = Beads.size();
+    // std::cout<<"The number of beads is "<< N_beads <<"\n";
+    SparseMatrix<double> Hessian(3 * (N_verts + N_beads), 3 * (N_verts + N_beads));
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+
+    Eigen::Vector<double, 6> Positions_edge;
+    Eigen::Vector<double, 9> Positions_face;
+    Eigen::Vector<double, 12> Positions_dihedral;
+
+    Eigen::Vector<double, 6> Grad_edge;
+    Eigen::Vector<double, 9> Grad_face;
+    Eigen::Vector<double, 12> Grad_dihedral;
+
+    std::array<Vertex, 2> Vertices_edge;
+    std::array<Vertex, 3> Vertices_face;
+    std::array<Vertex, 4> Vertices_dihedral;
+
+    std::array<Vertex, 3> Vertices_face_2;
+    std::array<Vertex, 2> Vertices_edge_2;
+    std::array<Vertex, 4> Vertices_dihedral_2;
+
+    Eigen::Matrix<double, 6, 6> Hessian_block_edge;
+    Eigen::Matrix<double, 9, 9> Hessian_block_face;
+    Eigen::Matrix<double, 12, 12> Hessian_block_dihedral;
+
+    Halfedge he;
+    double constant;
+
+    VertexData<double> Dual_areas(*mesh, 0.0);
+    VertexData<double> Scalar_MC(*mesh, 0.0);
+    EdgeData<double> Edge_lengths(*mesh, 0.0);
+    EdgeData<double> Dihedral_angles(*mesh, 0.0);
+
+    for (Vertex v : mesh->vertices())
+    {
+        Dual_areas[v] = geometry->barycentricDualArea(v);
+        Scalar_MC[v] = geometry->scalarMeanCurvatureTan(v);
+    }
+
+    for (Edge e : mesh->edges())
+    {
+        Edge_lengths[e] = geometry->edgeLength(e);
+        Dihedral_angles[e] = 2 * tan(geometry->dihedralAngle(e.halfedge()) / 2.0); // this is x
+    }
+
+    std::vector<Eigen::Vector<double, 9>> Gradients_areas;
+    std::vector<Eigen::Vector<double, 6>> Gradients_edges;
+    std::vector<Eigen::Vector<double, 12>> Gradients_dihedrals;
+
+    int id = 0;
+    for (Face f : mesh->faces())
+    {
+
+        he = f.halfedge();
+
+        Vertices_face[0] = he.vertex();
+        Vertices_face[1] = he.next().vertex();
+        Vertices_face[2] = he.next().next().vertex();
+        Positions_face << geometry->inputVertexPositions[Vertices_face[0]].x, geometry->inputVertexPositions[Vertices_face[0]].y, geometry->inputVertexPositions[Vertices_face[0]].z,
+            geometry->inputVertexPositions[Vertices_face[1]].x, geometry->inputVertexPositions[Vertices_face[1]].y, geometry->inputVertexPositions[Vertices_face[1]].z,
+            geometry->inputVertexPositions[Vertices_face[2]].x, geometry->inputVertexPositions[Vertices_face[2]].y, geometry->inputVertexPositions[Vertices_face[2]].z;
+
+        Grad_face = geometry->gradient_triangle_area(Positions_face);
+        Gradients_areas.push_back(Grad_face);
+    }
+
+    double dih1 = 0.0;
+    double dih2 = 0.0;
+    for (Edge e : mesh->edges())
+    {
+        Vertices_edge[0] = e.halfedge().vertex();
+        Vertices_edge[1] = e.halfedge().twin().vertex();
+
+        Vertices_dihedral[0] = e.halfedge().vertex();
+        Vertices_dihedral[1] = e.halfedge().next().vertex();
+        Vertices_dihedral[3] = e.halfedge().next().next().vertex();
+        Vertices_dihedral[2] = e.halfedge().twin().next().next().vertex();
+
+        Positions_edge << geometry->inputVertexPositions[Vertices_edge[0]].x, geometry->inputVertexPositions[Vertices_edge[0]].y, geometry->inputVertexPositions[Vertices_edge[0]].z,
+            geometry->inputVertexPositions[Vertices_edge[1]].x, geometry->inputVertexPositions[Vertices_edge[1]].y, geometry->inputVertexPositions[Vertices_edge[1]].z;
+        Positions_dihedral << geometry->inputVertexPositions[Vertices_dihedral[0]].x, geometry->inputVertexPositions[Vertices_dihedral[0]].y, geometry->inputVertexPositions[Vertices_dihedral[0]].z,
+            geometry->inputVertexPositions[Vertices_dihedral[1]].x, geometry->inputVertexPositions[Vertices_dihedral[1]].y, geometry->inputVertexPositions[Vertices_dihedral[1]].z,
+            geometry->inputVertexPositions[Vertices_dihedral[2]].x, geometry->inputVertexPositions[Vertices_dihedral[2]].y, geometry->inputVertexPositions[Vertices_dihedral[2]].z,
+            geometry->inputVertexPositions[Vertices_dihedral[3]].x, geometry->inputVertexPositions[Vertices_dihedral[3]].y, geometry->inputVertexPositions[Vertices_dihedral[3]].z;
+
+        Grad_edge = geometry->gradient_edge_length(Positions_edge);
+        Gradients_edges.push_back(Grad_edge);
+
+        Grad_dihedral = geometry->gradient_dihedral_angle(Positions_dihedral);
+        Gradients_dihedrals.push_back(Grad_dihedral);
+        // std::cout<<"The edge " << e.getIndex() << "has a edge grad = " << Gradients_edges[e.getIndex()].transpose() <<"\n and dihedral = " << Gradients_dihedrals[e.getIndex()].transpose()<< "\n";
+    }
+
+    // I have calculated all the quantities that i will be needing, this takes a lot of memory but lets hope its worth it ahah
+
+    // Lets iterate over the faces
+    Eigen::Matrix<double, 9, 12> M_9_12;
+    Eigen::Matrix<double, 9, 6> M_9_6;
+    Eigen::Matrix<double, 9, 9> M_9_9;
+    Eigen::Matrix<double, 6, 6> M_6_6;
+    Eigen::Matrix<double, 6, 12> M_6_12;
+    Eigen::Matrix<double, 12, 6> M_12_6;
+    Eigen::Matrix<double, 12, 12> M_12_12;
+    Eigen::Matrix<double, 6, 9> M_6_9;
+    Eigen::Matrix<double, 12, 9> M_12_9;
+    size_t max_id = 0;
+    for (Face f : mesh->faces())
+    {
+
+        he = f.halfedge();
+        Grad_face = Gradients_areas[f.getIndex()];
+
+        Vertices_face[0] = he.vertex();
+        Vertices_face[1] = he.next().vertex();
+        Vertices_face[2] = he.next().next().vertex();
+
+        if (Vertices_face[0].isBoundary() || Vertices_face[1].isBoundary() || Vertices_face[2].isBoundary())
+            continue;
+
+        for (Vertex v : f.adjacentVertices())
+        {
+
+            constant = -1 * (1.0 / 6.0) * (Scalar_MC[v.getIndex()]) / (Dual_areas[v.getIndex()] * Dual_areas[v.getIndex()]);
+            for (Edge e : v.adjacentEdges())
+            {
+                he = e.halfedge();
+                Vertices_dihedral[0] = he.vertex();
+                Vertices_dihedral[1] = he.next().vertex();
+                Vertices_dihedral[3] = he.next().next().vertex();
+                Vertices_dihedral[2] = he.twin().next().next().vertex();
+
+                Vertices_edge[0] = he.vertex();
+                Vertices_edge[1] = he.next().vertex();
+
+                M_9_12 = constant * Edge_lengths[e.getIndex()] * (1 + 0.25 * Dihedral_angles[e.getIndex()] * Dihedral_angles[e.getIndex()]) * Grad_face * Gradients_dihedrals[e.getIndex()].transpose();
+
+                for (size_t row = 0; row < 9; row++)
+                {
+                    for (size_t col = 0; col < 12; col++)
+                    {
+                        tripletList.push_back(T(Vertices_face[row / 3].getIndex() * 3 + row % 3, Vertices_dihedral[col / 3].getIndex() * 3 + col % 3, M_9_12(row, col)));
+                    }
+                }
+
+                M_9_6 = constant * Dihedral_angles[e] * Grad_face * Gradients_edges[e.getIndex()].transpose();
+
+                for (size_t row = 0; row < 9; row++)
+                {
+                    for (size_t col = 0; col < 6; col++)
+                    {
+                        tripletList.push_back(T(Vertices_face[row / 3].getIndex() * 3 + row % 3, Vertices_edge[col / 3].getIndex() * 3 + col % 3, M_9_6(row, col)));
+                    }
+                }
+
+                M_6_9 = constant * Dihedral_angles[e] * Gradients_edges[e.getIndex()] * Grad_face.transpose();
+
+                for (size_t row = 0; row < 6; row++)
+                {
+                    for (size_t col = 0; col < 9; col++)
+                    {
+                        tripletList.push_back(T(Vertices_edge[row / 3].getIndex() * 3 + row % 3, Vertices_face[col / 3].getIndex() * 3 + col % 3, M_6_9(row, col)));
+                    }
+                }
+
+                M_12_9 = constant * Edge_lengths[e.getIndex()] * (1 + 0.25 * Dihedral_angles[e.getIndex()] * Dihedral_angles[e.getIndex()]) * Gradients_dihedrals[e.getIndex()] * Grad_face.transpose();
+
+                for (size_t row = 0; row < 12; row++)
+                {
+                    for (size_t col = 0; col < 9; col++)
+                    {
+                        tripletList.push_back(T(Vertices_dihedral[row / 3].getIndex() * 3 + row % 3, Vertices_face[col / 3].getIndex() * 3 + col % 3, M_12_9(row, col)));
+                    }
+                }
+            }
+
+            constant = (2.0 / 9.0) * (Scalar_MC[v.getIndex()]) * (Scalar_MC[v.getIndex()]) / (Dual_areas[v.getIndex()] * Dual_areas[v.getIndex()] * Dual_areas[v.getIndex()]);
+
+            for (Face f2 : v.adjacentFaces())
+            {
+                he = f2.halfedge();
+
+                Vertices_face_2[0] = he.vertex();
+                Vertices_face_2[1] = he.next().vertex();
+                Vertices_face_2[2] = he.next().next().vertex();
+
+                M_9_9 = constant * Grad_face * Gradients_areas[f2.getIndex()].transpose();
+                for (size_t row = 0; row < 9; row++)
+                {
+                    for (size_t col = 0; col < 9; col++)
+                    {
+
+                        tripletList.push_back(T(Vertices_face[row / 3].getIndex() * 3 + row % 3, Vertices_face_2[col / 3].getIndex() * 3 + col % 3, M_9_9(row, col)));
+                        // if(isnan(M_9_9(row,col))) std::cout<<" nan flag 3 \n";
+                    }
+                }
+            }
+
+            // And last but not least we have the hessian term
+
+            constant = -1 * (1.0 / 3.0) * (Scalar_MC[v.getIndex()] * Scalar_MC[v.getIndex()] / (Dual_areas[v.getIndex()] * Dual_areas[v.getIndex()]) - H0 * H0);
+
+            Positions_face << geometry->inputVertexPositions[Vertices_face[0]].x, geometry->inputVertexPositions[Vertices_face[0]].y, geometry->inputVertexPositions[Vertices_face[0]].z,
+                geometry->inputVertexPositions[Vertices_face[1]].x, geometry->inputVertexPositions[Vertices_face[1]].y, geometry->inputVertexPositions[Vertices_face[1]].z,
+                geometry->inputVertexPositions[Vertices_face[2]].x, geometry->inputVertexPositions[Vertices_face[2]].y, geometry->inputVertexPositions[Vertices_face[2]].z;
+
+            M_9_9 = constant * geometry->hessian_triangle_area(Positions_face);
+
+            for (size_t row = 0; row < 9; row++)
+            {
+                for (size_t col = 0; col < 9; col++)
+                {
+                    tripletList.push_back(T(Vertices_face[row / 3].getIndex() * 3 + row % 3, Vertices_face[col / 3].getIndex() * 3 + col % 3, M_9_9(row, col)));
+                    // if(isnan(M_9_9(row,col))) std::cout<<" nan flag 4 \n";
+                }
+            }
+        }
+    }
+    // And those are all the terms at the sum over all the vertices (On paper is term I)
+
+    for (Edge e : mesh->edges())
+    {
+        he = e.halfedge();
+
+        Vertices_edge[0] = he.vertex();
+        Vertices_edge[1] = he.twin().vertex();
+
+        Vertices_dihedral[0] = he.vertex();
+        Vertices_dihedral[1] = he.next().vertex();
+        Vertices_dihedral[3] = he.next().next().vertex();
+        Vertices_dihedral[2] = he.twin().next().next().vertex();
+
+        if (Vertices_edge[0].isBoundary() || Vertices_edge[1].isBoundary() || Vertices_dihedral[2].isBoundary() || Vertices_dihedral[3].isBoundary())
+            continue;
+
+        for (Vertex v : e.adjacentVertices())
+        {
+            constant = 1.0 / (8.0 * Dual_areas[v.getIndex()]);
+            for (Edge e2 : v.adjacentEdges())
+            {
+                Vertices_edge_2[0] = e2.halfedge().vertex();
+                Vertices_edge_2[1] = e2.halfedge().twin().vertex();
+
+                M_6_6 = constant * Dihedral_angles[e.getIndex()] * Dihedral_angles[e2.getIndex()] * Gradients_edges[e.getIndex()] * Gradients_edges[e2.getIndex()].transpose();
+
+                for (size_t row = 0; row < 6; row++)
+                {
+                    for (size_t col = 0; col < 6; col++)
+                    {
+                        tripletList.push_back(T(Vertices_edge[row / 3].getIndex() * 3 + row % 3, Vertices_edge_2[col / 3].getIndex() * 3 + col % 3, M_6_6(row, col)));
+                        // if(isnan(M_6_6(row,col))) std::cout<<" nan flag 5 \n";
+                    }
+                }
+
+                he = e2.halfedge();
+                Vertices_dihedral_2[0] = he.vertex();
+                Vertices_dihedral_2[1] = he.next().vertex();
+                Vertices_dihedral_2[3] = he.next().next().vertex();
+                Vertices_dihedral_2[2] = he.twin().next().next().vertex();
+
+                M_6_12 = constant * Dihedral_angles[e.getIndex()] * Edge_lengths[e2.getIndex()] * (1 + 0.25 * Dihedral_angles[e2.getIndex()] * Dihedral_angles[e2.getIndex()]) * Gradients_edges[e.getIndex()] * Gradients_dihedrals[e2.getIndex()].transpose();
+
+                for (size_t row = 0; row < 6; row++)
+                {
+                    for (size_t col = 0; col < 12; col++)
+                    {
+                        tripletList.push_back(T(Vertices_edge[row / 3].getIndex() * 3 + row % 3, Vertices_dihedral_2[col / 3].getIndex() * 3 + col % 3, M_6_12(row, col)));
+                        // if(isnan(M_6_12(row,col))) std::cout<<" nan flag 6 \n";
+                    }
+                }
+
+                M_12_6 = constant * Edge_lengths[e.getIndex()] * Dihedral_angles[e2.getIndex()] * (1 + 0.25 * Dihedral_angles[e.getIndex()] * Dihedral_angles[e.getIndex()]) * Gradients_dihedrals[e.getIndex()] * Gradients_edges[e2.getIndex()].transpose();
+
+                for (size_t row = 0; row < 12; row++)
+                {
+                    for (size_t col = 0; col < 6; col++)
+                    {
+                        tripletList.push_back(T(Vertices_dihedral[row / 3].getIndex() * 3 + row % 3, Vertices_edge_2[col / 3].getIndex() * 3 + col % 3, M_12_6(row, col)));
+                        // if(isnan(M_12_6(row,col))) std::cout<<" nan flag 7 \n";
+                    }
+                }
+
+                M_12_12 = constant * Edge_lengths[e.getIndex()] * Edge_lengths[e2.getIndex()] * (1 + 0.25 * Dihedral_angles[e2.getIndex()] * Dihedral_angles[e2.getIndex()]) * (1 + 0.25 * Dihedral_angles[e.getIndex()] * Dihedral_angles[e.getIndex()]) * Gradients_dihedrals[e.getIndex()] * Gradients_dihedrals[e2.getIndex()].transpose();
+
+                for (size_t row = 0; row < 12; row++)
+                {
+                    for (size_t col = 0; col < 12; col++)
+                    {
+                        tripletList.push_back(T(Vertices_dihedral[row / 3].getIndex() * 3 + row % 3, Vertices_dihedral_2[col / 3].getIndex() * 3 + col % 3, M_12_12(row, col)));
+                        // if(isnan(M_12_12(row,col))) std::cout<<"  8 \n";
+                    }
+                }
+            }
+
+            // Those are the first terms
+            // I MOVED THIS TERMS TO THE OTHER SUMMATION
+
+            constant = (1.0 / 2.0) * (Scalar_MC[v.getIndex()] / (Dual_areas[v.getIndex()]) - H0);
+
+            M_6_12 = constant * Gradients_edges[e.getIndex()] * (1 + 0.25 * Dihedral_angles[e.getIndex()] * Dihedral_angles[e.getIndex()]) * Gradients_dihedrals[e.getIndex()].transpose();
+
+            for (size_t row = 0; row < 6; row++)
+            {
+                for (size_t col = 0; col < 12; col++)
+                {
+                    tripletList.push_back(T(Vertices_edge[row / 3].getIndex() * 3 + row % 3, Vertices_dihedral[col / 3].getIndex() * 3 + col % 3, M_6_12(row, col)));
+                }
+            }
+
+            M_12_6 = constant * Gradients_dihedrals[e.getIndex()] * (1 + 0.25 * Dihedral_angles[e.getIndex()] * Dihedral_angles[e.getIndex()]) * Gradients_edges[e.getIndex()].transpose();
+
+            for (size_t row = 0; row < 12; row++)
+            {
+                for (size_t col = 0; col < 6; col++)
+                {
+                    tripletList.push_back(T(Vertices_dihedral[row / 3].getIndex() * 3 + row % 3, Vertices_edge[col / 3].getIndex() * 3 + col % 3, M_12_6(row, col)));
+                }
+            }
+
+            Positions_dihedral << geometry->inputVertexPositions[Vertices_dihedral[0]].x, geometry->inputVertexPositions[Vertices_dihedral[0]].y, geometry->inputVertexPositions[Vertices_dihedral[0]].z,
+                geometry->inputVertexPositions[Vertices_dihedral[1]].x, geometry->inputVertexPositions[Vertices_dihedral[1]].y, geometry->inputVertexPositions[Vertices_dihedral[1]].z,
+                geometry->inputVertexPositions[Vertices_dihedral[2]].x, geometry->inputVertexPositions[Vertices_dihedral[2]].y, geometry->inputVertexPositions[Vertices_dihedral[2]].z,
+                geometry->inputVertexPositions[Vertices_dihedral[3]].x, geometry->inputVertexPositions[Vertices_dihedral[3]].y, geometry->inputVertexPositions[Vertices_dihedral[3]].z;
+
+            M_12_12 = constant * Edge_lengths[e.getIndex()] * ((1 + 0.25 * Dihedral_angles[e.getIndex()] * Dihedral_angles[e.getIndex()]) * geometry->hessian_dihedral_angle(Positions_dihedral) + 0.5 * Dihedral_angles[e.getIndex()] * (1 + 0.25 * Dihedral_angles[e.getIndex()] * Dihedral_angles[e.getIndex()]) * Gradients_dihedrals[e.getIndex()] * Gradients_dihedrals[e.getIndex()].transpose());
+
+            for (size_t row = 0; row < 12; row++)
+            {
+                for (size_t col = 0; col < 12; col++)
+                {
+                    if (M_12_12(row, col) > 1e-12 || M_12_12(row, col) < -1e-12)
+                        tripletList.push_back(T(Vertices_dihedral[row / 3].getIndex() * 3 + row % 3, Vertices_dihedral[col / 3].getIndex() * 3 + col % 3, M_12_12(row, col)));
+                }
+            }
+
+            Positions_edge << geometry->inputVertexPositions[Vertices_edge[0]].x, geometry->inputVertexPositions[Vertices_edge[0]].y, geometry->inputVertexPositions[Vertices_edge[0]].z,
+                geometry->inputVertexPositions[Vertices_edge[1]].x, geometry->inputVertexPositions[Vertices_edge[1]].y, geometry->inputVertexPositions[Vertices_edge[1]].z;
+
+            M_6_6 = constant * Dihedral_angles[e.getIndex()] * geometry->hessian_edge_length(Positions_edge);
+
+            for (size_t row = 0; row < 6; row++)
+            {
+                for (size_t col = 0; col < 6; col++)
+                {
+                    tripletList.push_back(T(Vertices_edge[row / 3].getIndex() * 3 + row % 3, Vertices_edge[col / 3].getIndex() * 3 + col % 3, M_6_6(row, col)));
+                }
+            }
+
+        } // Sumation over adjacent vertices
+
+        // Here we do the last terms
+
+    } // Summation over edges
+
+    for (auto &t : tripletList)
+    {
+        assert(t.row() >= 0 && t.row() < 3 * (N_verts + N_beads) && "Row index OOB BEND");
+        assert(t.col() >= 0 && t.col() < 3 * (N_verts + N_beads) && "Col index OOB BEND");
+    }
+    Hessian.setFromTriplets(tripletList.begin(), tripletList.end());
+
+    return KB * Hessian;
 }
 
 SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants)
@@ -1708,6 +2152,11 @@ SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants)
 
     } // Summation over edges
 
+    for (auto &t : tripletList)
+    {
+        assert(t.row() >= 0 && t.row() < 3 * (N_verts + N_beads) && "Row index OOB BEND");
+        assert(t.col() >= 0 && t.col() < 3 * (N_verts + N_beads) && "Col index OOB BEND");
+    }
     Hessian.setFromTriplets(tripletList.begin(), tripletList.end());
 
     return KB * Hessian;
@@ -2120,6 +2569,65 @@ SparseMatrix<double> E_Handler::H_Volume(std::vector<double> Constants)
             }
         }
     }
+
+    for (auto &t : tripletList)
+    {
+        assert(t.row() >= 0 && t.row() < 3 * (N_verts + N_beads) && "Row index OOB VOL");
+        assert(t.col() >= 0 && t.col() < 3 * (N_verts + N_beads) && "Col index OOB VOL");
+    }
+    Hessian.setFromTriplets(tripletList.begin(), tripletList.end());
+
+    // std::cout<<"Hessian volume done\n";
+    return KV * Hessian;
+}
+
+SparseMatrix<double> E_Handler::H_Volume_Verts(std::vector<double> Constants)
+{
+
+    // std::cout<<"Hessian volume\n";
+    double KV = Constants[0];
+
+    int N_verts = mesh->nVertices();
+    int N_beads = Beads.size();
+    SparseMatrix<double> Hessian(3 * (N_verts), 3 * (N_verts));
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+
+    Eigen::Matrix<double, 9, 9> Hessian_block_vol;
+    Eigen::Vector<double, 9> Positions;
+    std::vector<Vertex> Vertices(3);
+    Halfedge he;
+    Eigen::Matrix3d Zeros = Eigen::Matrix3d::Zero();
+
+    for (Face f : mesh->faces())
+    {
+        he = f.halfedge();
+        Vertices[0] = he.vertex();
+        Vertices[1] = he.next().vertex();
+        Vertices[2] = he.next().next().vertex();
+
+        Positions << geometry->inputVertexPositions[Vertices[0]].x, geometry->inputVertexPositions[Vertices[0]].y, geometry->inputVertexPositions[Vertices[0]].z,
+            geometry->inputVertexPositions[Vertices[1]].x, geometry->inputVertexPositions[Vertices[1]].y, geometry->inputVertexPositions[Vertices[1]].z,
+            geometry->inputVertexPositions[Vertices[2]].x, geometry->inputVertexPositions[Vertices[2]].y, geometry->inputVertexPositions[Vertices[2]].z;
+
+        // Now we do the hesian thingy
+        Hessian_block_vol = geometry->hessian_volume(Positions);
+
+        for (size_t row = 0; row < 9; row++)
+        {
+            for (size_t col = 0; col < 9; col++)
+            {
+                if (Hessian_block_vol(row, col) > 1e-12 || Hessian_block_vol(row, col) < -1e-12)
+                    tripletList.push_back(T(Vertices[row / 3].getIndex() * 3 + row % 3, Vertices[col / 3].getIndex() * 3 + col % 3, Hessian_block_vol(row, col)));
+            }
+        }
+    }
+
+    for (auto &t : tripletList)
+    {
+        assert(t.row() >= 0 && t.row() < 3 * (N_verts) && "Row index OOB VOL");
+        assert(t.col() >= 0 && t.col() < 3 * (N_verts) && "Col index OOB VOL");
+    }
     Hessian.setFromTriplets(tripletList.begin(), tripletList.end());
 
     // std::cout<<"Hessian volume done\n";
@@ -2131,7 +2639,7 @@ SparseMatrix<double> E_Handler::H_Volume_Normal(std::vector<double> Constants)
 
     SparseMatrix<double> Hessian = H_Volume(Constants);
     int N_verts = mesh->nVertices();
-    SparseMatrix<double> Normal_Hess(mesh->nVertices() + 3 * Beads.size(), mesh->nVertices() + 3 * Beads.size());
+    SparseMatrix<double> Normal_Hess(mesh->nVertices(), mesh->nVertices());
 
     typedef Eigen::Triplet<double> T;
     std::vector<T> tripletList;
@@ -2167,8 +2675,8 @@ SparseMatrix<double> E_Handler::H_Volume_Normal(std::vector<double> Constants)
                 Normal_j << Vertex_normals[col / 3].x, Vertex_normals[col / 3].y, Vertex_normals[col / 3].z;
                 Block = Hessian.block(row, col, 3, 3);
                 val = Normal_i.transpose() * Block * Normal_j;
-                if (val > 1e-12 || val < -1e-12)
-                    tripletList.push_back(T(row / 3, col / 3, val));
+                // if (val > 1e-12 || val < -1e-12)
+                tripletList.push_back(T(row / 3, col / 3, val));
             }
             // And this is how u turn the block into the thing
         }
@@ -3478,7 +3986,7 @@ SparseMatrix<double> E_Handler::Calculate_Hessian()
         }
         if (Energies[i] == "Bead")
         {
-            Hessian += Beads[bead_counter]->Bead_I->Hessian();
+            Hessian += Beads[bead_counter]->Bead_I->Hessian_IP();
             bead_counter += 1;
         }
         if (Energies[i] == "Edge_reg")
@@ -3488,6 +3996,10 @@ SparseMatrix<double> E_Handler::Calculate_Hessian()
         if (Energies[i] == "Face_reg")
         {
             Hessian += H_Face_reg(Energy_constants[i]);
+        }
+        if (Energies[i] == "Bending_tan")
+        {
+            Hessian += H_Bending_tan(Energy_constants[i]);
         }
     }
 
@@ -3521,7 +4033,12 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_E()
     {
         if (Energies[i] == "Bending")
         {
+            // continue;
             Hessian += H_Bending(Energy_constants[i]);
+        }
+        if (Energies[i] == "Bending_tan")
+        {
+            Hessian += H_Bending_tan(Energy_constants[i]);
         }
         if (Energies[i] == "Surface_tension")
         {
@@ -3529,6 +4046,7 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_E()
         }
         if (Energies[i] == "Bead")
         {
+            // std::cout << "Adding bead hessian \n";
             Hessian += Beads[bead_counter]->Bead_I->Hessian_IP();
             bead_counter += 1;
         }
@@ -3549,6 +4067,31 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_E()
     return Hessian;
 }
 
+SparseMatrix<double> E_Handler::Calculate_Hessian_E_Verts()
+{
+
+    SparseMatrix<double> Hessian_Verts(mesh->nVertices() * 3, mesh->nVertices() * 3);
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+    SparseMatrix<double> Full_hessian = Calculate_Hessian_E();
+    size_t row;
+    size_t col;
+    for (int k = 0; k < Full_hessian.outerSize(); ++k)
+        for (SparseMatrix<double>::InnerIterator it(Full_hessian, k); it; ++it)
+        {
+            it.value();
+            row = it.row(); // row index
+            col = it.col(); // col index (here it is equal to k)
+
+            if (row < mesh->nVertices() * 3 && col < mesh->nVertices() * 3)
+            {
+                tripletList.push_back(T(row, col, it.value()));
+            }
+        }
+    Hessian_Verts.setFromTriplets(tripletList.begin(), tripletList.end());
+    return Hessian_Verts;
+}
+
 SparseMatrix<double> E_Handler::Calculate_Hessian_E_Normal()
 {
     // This hessian uses the vertex normals that have been previously calculated and stored in M3DG
@@ -3556,7 +4099,7 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_E_Normal()
     // std::cout<<"The size of the beads is calculated\n";
     int N_beads = Beads.size();
     std::vector<double> Energy_constants_val;
-    SparseMatrix<double> Hessian(N_verts + 3 * N_beads, N_verts + 3 * N_beads);
+    SparseMatrix<double> Hessian(N_verts, N_verts);
 
     // std::cout<<"We first call the OG hessian\n";
     SparseMatrix<double> Full_hessian = Calculate_Hessian_E();
@@ -3598,6 +4141,7 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_E_Normal()
             }
             else if (current_pair.first >= N_verts || current_pair.second >= N_verts)
             {
+                continue;
                 // This means that we are in the bead part of the hessian and we can skip it
                 visited_pairs.insert(current_pair);
 
@@ -3666,7 +4210,7 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_E_Normal()
             // And this is how u turn the block into the thing
         }
 
-    std::cout << "Setting for triplets\n";
+    // std::cout << "Setting for triplets\n";
     Hessian.setFromTriplets(tripletList.begin(), tripletList.end());
 
     return Hessian;
@@ -3714,13 +4258,38 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_Constraints()
     return Hessian;
 }
 
+SparseMatrix<double> E_Handler::Calculate_Hessian_Constraints_Verts()
+{
+
+    SparseMatrix<double> Hessian_Verts(mesh->nVertices() * 3, mesh->nVertices() * 3);
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+    SparseMatrix<double> Full_hessian = Calculate_Hessian_Constraints();
+    size_t row;
+    size_t col;
+    for (int k = 0; k < Full_hessian.outerSize(); ++k)
+        for (SparseMatrix<double>::InnerIterator it(Full_hessian, k); it; ++it)
+        {
+            it.value();
+            row = it.row(); // row index
+            col = it.col(); // col index (here it is equal to k)
+
+            if (row < mesh->nVertices() * 3 && col < mesh->nVertices() * 3)
+            {
+                tripletList.push_back(T(row, col, it.value()));
+            }
+        }
+    Hessian_Verts.setFromTriplets(tripletList.begin(), tripletList.end());
+    return Hessian_Verts;
+}
+
 SparseMatrix<double> E_Handler::Calculate_Hessian_Constraints_Normal()
 {
     // This hessian uses the vertex normals that have been previously calculated and stored in M3DG
     int N_verts = mesh->nVertices();
     // int N_beads = Beads.size();
     std::vector<double> Energy_constants_val;
-    SparseMatrix<double> Hessian(N_verts + 3 * Beads.size(), N_verts + 3 * Beads.size());
+    SparseMatrix<double> Hessian(N_verts, N_verts);
 
     SparseMatrix<double> Full_hessian = Calculate_Hessian_Constraints();
 
@@ -3765,8 +4334,8 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_Constraints_Normal()
                 Normal_j << Vertex_normals[col / 3].x, Vertex_normals[col / 3].y, Vertex_normals[col / 3].z;
                 Block = Full_hessian.block(row, col, 3, 3);
                 val = Normal_i.transpose() * Block * Normal_j;
-                if (val > 1e-12 || val < -1e-12)
-                    tripletList.push_back(T(row / 3, col / 3, val));
+                // if (val > 1e-12 || val < -1e-12)
+                tripletList.push_back(T(row / 3, col / 3, val));
             }
             // And this is how u turn the block into the thing
         }

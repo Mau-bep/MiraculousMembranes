@@ -24,7 +24,7 @@ void NormalNLP::update_positions(
     const Number *x)
 {
     // This function can only be called after get_starting_point has been called
-    std::cout << "Updating positions\n";
+    // std::cout << "Updating positions\n";
 
     std::ofstream file("T_evol.txt", std::ios::app);
     if (file.is_open())
@@ -63,22 +63,22 @@ bool NormalNLP::get_nlp_info(
 {
     // std::cout<<"Getting NLP info \n";
     double N_vert = M3DG->mesh->nVertices();
-    double N_beads = M3DG->Beads.size();
-    std::cout << "The number of beads is " << N_beads << "\n";
+    // double N_beads = M3DG->Beads.size();
+    // std::cout << "The number of beads is " << N_beads << "\n";
     // The number of variables is 3 times the number of vertices + the beads
-    n = N_vert + 3 * N_beads;
-    std::cout << "The number of vertices is " << N_vert << "\n";
+    n = N_vert;
+    // std::cout << "The number of vertices is " << N_vert << "\n";
 
     // There are 2 constraints in this problem the volume and the area
 
-    std::cout << "The number of constraints is " << M3DG->Sim_handler->Constraints.size() << "\n";
+    // std::cout << "The number of constraints is " << M3DG->Sim_handler->Constraints.size() << "\n";
     m = M3DG->Sim_handler->Constraints.size();
 
     // 2 constraints, so Jacobian has nonzero entries. For volume and area constraints, each depends on all vertices
     nnz_jac_g = m * (N_vert); // I need to calculate this
                               //  The Jacobian will have more terms when we constrain the beads
 
-    std::cout << "CALCULATING HESSIAN\n";
+    // std::cout << "CALCULATING HESSIAN\n";
 
     Eigen::SparseMatrix<double> Hessian_temp = M3DG->Sim_handler->Calculate_Hessian_E_Normal() + M3DG->Sim_handler->Calculate_Hessian_Constraints_Normal();
 
@@ -124,7 +124,7 @@ bool NormalNLP::get_bounds_info(
     // here, the n and m we gave IPOPT in get_nlp_info are passed back to us.
     // If desired, we could assert to make sure they are what we think they are.
     std::cout << "\t\tGetting bounds info\n";
-    assert(n == (M3DG->mesh->nVertices()) + 3 * M3DG->Beads.size());
+    assert(n == (M3DG->mesh->nVertices()));
     assert(m == M3DG->Sim_handler->Constraints.size());
 
     // Set bounds for vertex positions (In theory no bounds, but we set large bounds to help numerical stability)
@@ -173,12 +173,12 @@ bool NormalNLP::get_starting_point(
     {
         x[idx++] = 0;
     }
-    for (auto bead : M3DG->Beads)
-    {
-        x[idx++] = bead->Pos[0];
-        x[idx++] = bead->Pos[1];
-        x[idx++] = bead->Pos[2];
-    }
+    // for (auto bead : M3DG->Beads)
+    // {
+    //     x[idx++] = bead->Pos[0];
+    //     x[idx++] = bead->Pos[1];
+    //     x[idx++] = bead->Pos[2];
+    // }
 
     return true;
 }
@@ -189,9 +189,9 @@ bool NormalNLP::eval_f(
     bool new_x,
     Number &obj_value)
 {
-    std::cout << "Evaluating F\n";
-    if (new_x)
-        update_positions(x);
+    // std::cout << "Evaluating F\n";
+    // if (new_x)
+    update_positions(x);
 
     double E = 0;
 
@@ -200,7 +200,7 @@ bool NormalNLP::eval_f(
 
     obj_value = E;
 
-    std::cout << "F evaluated \n";
+    // std::cout << "F evaluated \n";
     return true;
 }
 
@@ -210,9 +210,9 @@ bool NormalNLP::eval_grad_f(
     bool new_x,
     Number *grad_f)
 {
-    std::cout << " Eval grad f\n";
-    if (new_x)
-        update_positions(x);
+    // std::cout << " Eval grad f\n";
+    // if (new_x)
+    update_positions(x);
     M3DG->Sim_handler->Calculate_gradient();
 
     VertexData<Vector3> Current_grad = M3DG->Sim_handler->Current_grad;
@@ -224,15 +224,15 @@ bool NormalNLP::eval_grad_f(
         grad_f[i] = -1 * dot(Current_grad[i], Normals[i]); // Start with zero gradient
         idx++;
     }
-    for (size_t b = 0; b < M3DG->Beads.size(); b++)
-    {
-        std::cout << "Evaluating gradient for bead " << b << "\n";
-        beadGrad = -1 * M3DG->Beads[b]->Total_force;
-        grad_f[idx++] = beadGrad[0];
-        grad_f[idx++] = beadGrad[1];
-        grad_f[idx++] = beadGrad[2];
-    }
-    std::cout << "Gradient evaluated \n";
+    // for (size_t b = 0; b < M3DG->Beads.size(); b++)
+    // {
+    //     std::cout << "Evaluating gradient for bead " << b << "\n";
+    //     beadGrad = -1 * M3DG->Beads[b]->Total_force;
+    //     grad_f[idx++] = beadGrad[0];
+    //     grad_f[idx++] = beadGrad[1];
+    //     grad_f[idx++] = beadGrad[2];
+    // }
+    // std::cout << "Gradient evaluated \n";
     return true;
 }
 
@@ -243,9 +243,9 @@ bool NormalNLP::eval_g(
     Index m,
     Number *g)
 {
-    std::cout << "Evaluating g\n";
-    if (new_x)
-        update_positions(x);
+    // std::cout << "Evaluating g\n";
+    // if (new_x)
+    update_positions(x);
 
     // Volume constraint
     g[0] = M3DG->geometry->totalVolume();
@@ -296,8 +296,8 @@ bool NormalNLP::eval_jac_g(
     }
     else
     {
-        if (new_x)
-            update_positions(x);
+        // if (new_x)
+        update_positions(x);
 
         VertexData<Vector3> volGrad = M3DG->Sim_handler->F_Volume(std::vector<double>{1.0});
 
@@ -368,8 +368,8 @@ bool NormalNLP::eval_h(
     }
     else
     {
-        if (new_x)
-            update_positions(x);
+        // if (new_x)
+        update_positions(x);
 
         Eigen::SparseMatrix<double> Hessian_temp;
         if (m == 1)
@@ -412,7 +412,7 @@ bool NormalNLP::eval_h(
             }
         }
     }
-    std::cout << "Done with this particular op\n";
+    // std::cout << "Done with this particular op\n";
     return true;
 }
 
@@ -466,6 +466,10 @@ bool NormalNLP::intermediate_callback(
 {
 
     M3DG->Save_mesh(iter);
+
+    // M3DG->geometry->totalArea();
+    // M3DG->geometry->totalVolume();
+    // std::cout << "The total area is " << M3DG->geometry->totalArea() << " and the total volume is " << M3DG->geometry->totalVolume() << "\n";
 
     return true;
 }

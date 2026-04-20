@@ -48,6 +48,7 @@
 #include "coin-or/IpTNLP.hpp"
 
 #include "NormalNLP.hpp"
+#include "ShapeNLP.hpp"
 
 // #include "hs071_nlp.hpp"
 
@@ -1349,19 +1350,21 @@ int main(int argc, char **argv)
     // IPOPT STUFF
 
     SmartPtr<NormalNLP> normalnlp = new NormalNLP();
+    SmartPtr<ShapeNLP> shapenlp = new ShapeNLP();
     SmartPtr<IpoptApplication> app = IpoptApplicationFactory();
 
     ApplicationReturnStatus status_opt;
 
     normalnlp->M3DG = &M3DG;
+    shapenlp->M3DG = &M3DG;
     // THE ORGINAL POSITIONS AND THE NORMAL WILL GET ADDED LATER :3
 
     // std::cout<<"The number of vertices is "<< mesh->nVertices() << "\n";
     app->Options()->SetStringValue("linear_solver", "ma57");
-    app->Options()->SetNumericValue("tol", 1e-3);
+    app->Options()->SetNumericValue("tol", 1e-1);
     app->Options()->SetStringValue("mu_strategy", "adaptive");
     app->Options()->SetStringValue("output_file", basic_name + "ipopt.out");
-    app->Options()->SetIntegerValue("max_iter", 50);
+    app->Options()->SetIntegerValue("max_iter", 40);
 
     // app->Options()->SetStringValue("derivative_test", "first-order");
     // app->Options()->SetStringValue("derivative_test", "second-order");
@@ -2094,31 +2097,36 @@ int main(int argc, char **argv)
 
             std::cout << "Integrating IpOpt\n";
 
-            // shapenlp = new ShapeNLP();
-            // shapenlp->M3DG = &M3DG;
+            shapenlp = new ShapeNLP();
+            shapenlp->M3DG = &M3DG;
 
+            M3DG.Sim_handler->Trgt_area = geometry->totalArea();
             // M3DG.Sim_handler->Trgt_area = A_target;
-            // std::cout<<"THe target area is" << A_target <<" and it should be " << A_bar <<" \n";
-            // app->Initialize();
+            // M3DG.Sim_handler->Trgt_vol = geometry->totalVolume();
 
-            // status_opt = app->OptimizeTNLP(shapenlp); // Here is where the magic happens
-            // if (status_opt == Solve_Succeeded) {
-            //     std::cout << "\n\n*** The problem solved!\n";
-            //     break;
-            // }
-            // else {
-            //     Switch_times_map["IpOpt"] = current_t + 2*size_t(Data["remesh_every"]);
-            //     Switch_times_map["No_remesh"] = Switch_times_map["IpOpt"] - 2;
-            //     // Switch_times_map["Restore_remeshing"] = current_t +1 ;
-            //     std::cout<<"Remeshing and retrying \n";
-            //     // Switch_times_map["Finer_mesh"] = current_t + 1;
+            std::cout << "THe target area is" << A_target << " and it should be " << A_bar << " \n";
+            app->Initialize();
 
-            //     remesh_every = 1;
-            //     arcsim = true;
+            status_opt = app->OptimizeTNLP(shapenlp); // Here is where the magic happens
+            if (status_opt == Solve_Succeeded)
+            {
+                std::cout << "\n\n*** The problem solved!\n";
+                break;
+            }
+            else
+            {
+                Switch_times_map["IpOptl"] = current_t + 10;
+                Switch_times_map["No_remesh"] = Switch_times_map["IpOpt"] - 1;
+                Switch_times_map["Restore_remeshing"] = current_t + 1;
+                std::cout << "Remeshing and retrying \n";
+                // Switch_times_map["Finer_mesh"] = current_t + 1;
 
-            //     std::cout << "\n\n*** The problem FAILED!\n";
-            //     // std::cout<< "Refining mesh and trying again\n";
-            // }
+                // remesh_every = 1;
+                // arcsim = true;
+
+                std::cout << "\n\n*** The problem FAILED!\n";
+                // std::cout<< "Refining mesh and trying again\n";
+            }
             Integration = "Gradient_descent";
         }
         else if (Integration == "IpOpt-Normal")
@@ -2179,8 +2187,18 @@ int main(int argc, char **argv)
             normalnlp->Normals = M3DG.Sim_handler->Vertex_normals;
             normalnlp->ORIG_VPOS = geometry->inputVertexPositions;
 
-            M3DG.Sim_handler->Trgt_area = A_target;
-            std::cout << "THe target area is" << A_target << " and it should be " << A_bar << " \n";
+            std::cout << "THe original target volume is " << V_bar << "\n";
+
+            // M3DG.Sim_handler->Trgt_vol = (4.0 / 3.0) * PI * 8.0;
+            // std::cout << "THew new target volume is " << M3DG.Sim_handler->Trgt_vol << "\n";
+            // M3DG.Sim_handler->Trgt_area = geometry->totalArea();
+
+            // Here lets compute the other area candidate, which is the sum of the areas of 2 spheres
+            // double A_bar_new_candidate = 4 * PI * 4 + 4 * PI * M3DG.Beads[0]->sigma * M3DG.Beads[0]->sigma;
+            // std::cout << "THe current area  is " << geometry->totalArea() << " \n and the estimation for the new area is " << A_bar_new_candidate << "\n";
+            // std::cout << "THe target area is" << A_target << " and it should be " << A_bar << " \n";
+            // M3DG.Sim_handler->Trgt_area = A_target * 1.05;
+
             app->Initialize();
 
             status_opt = app->OptimizeTNLP(normalnlp); // Here is where the magic happens

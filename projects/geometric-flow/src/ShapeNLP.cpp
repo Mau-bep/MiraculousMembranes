@@ -2,7 +2,7 @@
 
 #include "ShapeNLP.hpp"
 #include <cassert>
-
+#include <fstream>
 #include <Eigen/Core>
 
 #ifdef __GNUC__
@@ -39,13 +39,14 @@ void ShapeNLP::update_positions(
 
     size_t N_vert = M3DG->mesh->nVertices();
 
-    for (Index i = 0; i < Index(M3DG->Beads.size()); i++)
-    {
-        Pos.x = x[3 * (N_vert + i)];
-        Pos.y = x[3 * (N_vert + i) + 1];
-        Pos.z = x[3 * (N_vert + i) + 2];
-        M3DG->Beads[i]->Pos = Pos;
-    }
+    // for (Index i = 0; i < Index(M3DG->Beads.size()); i++)
+    // {
+    //     Pos.x = x[3 * (N_vert + i)];
+    //     Pos.y = x[3 * (N_vert + i) + 1];
+    //     Pos.z = x[3 * (N_vert + i) + 2];
+    //     // M3DG->Beads[i]->Pos = Pos;
+    //     M3DG->Beads[i]->Reset_bead(Pos);
+    // }
 
     return;
 }
@@ -61,36 +62,26 @@ bool ShapeNLP::get_nlp_info(
     double N_beads = M3DG->Beads.size();
     // std::cout<<"The number of beads is "<< N_beads << "\n";
     // The number of variables is 3 times the number of vertices + the beads
-    n = 3 * (N_vert + N_beads);
+    // n = 3 * (N_vert) + N_beads);
+    n = 3 * (N_vert); // + N_beads);
     std::cout << "The number of vertices is" << N_vert << "\n";
     std::cout << "The number of beads is " << N_beads << "\n";
 
-    // There are 2 constraints in this problem the volume and the area
-    //    std::cout<<"The number of constraints is "<< M3DG->Sim_handler->Constraints.size() << "\n";
     m = M3DG->Sim_handler->Constraints.size();
 
     // 2 constraints, so Jacobian has nonzero entries. For volume and area constraints, each depends on all vertices
-    nnz_jac_g = m * (n - 3 * N_beads); // I need to calculate this
-    // The Jacobian will have more terms when we constrain the beads
+    nnz_jac_g = m * (3 * N_vert); // I need to calculate this
 
-    // The Hessian has a lot of nonzero entries.
-    // There are the conectivity ones first, then we also have the contributions from the beads which i may need to make dense because even tho a bead wont interact with all the vertices it could interarct with many of them 0
-    // So here I will have to calculate the number of nonzeros in the hesssian.
-    Eigen::SparseMatrix<double> Hessian_temp = M3DG->Sim_handler->Calculate_Hessian_E() + M3DG->Sim_handler->H_Volume(std::vector<double>{1.0});
-    //+M3DG->Sim_handler->Beads[0]->Bead_I->Hessian();
-    // for(int i = 0; i < M3DG->Beads.size(); i++) Hessian_temp += M3DG->Beads[i]->Bead_I->Hessian_IP();
-    // Eigen::SparseMatrix<double> Hessian_bead = M3DG->Beads[0]->Bead_I->Hessian_IP();
-    // Eigen::SparseMatrix<double> Hessian_bead_normal = M3DG->Beads[0]->Bead_I->Hessian();
-
-    // std::cout<<"The number of nonzeros in the regular bead is " << Hessian_bead.nonZeros() << "\n";
-    // std::cout<<"The number of nonzeros in the normal bead is " << Hessian_bead_normal.nonZeros() << "\n";
-
+    // Eigen::SparseMatrix<double> Hessian_temp = M3DG->Sim_handler->Calculate_Hessian_E() + M3DG->Sim_handler->Calculate_Hessian_Constraints();
+    Eigen::SparseMatrix<double> Hessian_temp = M3DG->Sim_handler->Calculate_Hessian_E_Verts() + M3DG->Sim_handler->Calculate_Hessian_Constraints_Verts();
     nnz_h_lag = (Hessian_temp.nonZeros() + n) / 2; // Conectivity + Diagonal terms for regularization
                                                    // nnz_h_lag = 144;
                                                    // std::cout<<"The number of nonzeros in the hessian are are " << nnz_h_lag<<"\n";
     // We use the standard fortran index style for row/col entries
     index_style = FORTRAN_STYLE;
     // std::cout<<"NLP info obtained \n";
+    // Hessian_temp.resize(0, 0);
+    // Hessian_temp.data().squeeze();
     return true;
 }
 
@@ -105,7 +96,8 @@ bool ShapeNLP::get_bounds_info(
     // here, the n and m we gave IPOPT in get_nlp_info are passed back to us.
     // If desired, we could assert to make sure they are what we think they are.
     //    std::cout<<"\t\tGetting bounds info\n";
-    assert(n == 3 * (M3DG->mesh->nVertices() + M3DG->Beads.size()));
+    // assert(n == 3 * (M3DG->mesh->nVertices() + M3DG->Beads.size()));
+    assert(n == 3 * (M3DG->mesh->nVertices()));
     assert(m == M3DG->Sim_handler->Constraints.size());
 
     // Set bounds for vertex positions (In theory no bounds, but we set large bounds to help numerical stability)
@@ -156,12 +148,12 @@ bool ShapeNLP::get_starting_point(
         x[idx++] = pos[1];
         x[idx++] = pos[2];
     }
-    for (auto bead : M3DG->Beads)
-    {
-        x[idx++] = bead->Pos[0];
-        x[idx++] = bead->Pos[1];
-        x[idx++] = bead->Pos[2];
-    }
+    // for (auto bead : M3DG->Beads)
+    // {
+    //     x[idx++] = bead->Pos[0];
+    //     x[idx++] = bead->Pos[1];
+    //     x[idx++] = bead->Pos[2];
+    // }
 
     // std::cout<<idx <<" variables well set \n";
     // std::cout<<"Starting point obtained \n";
@@ -175,14 +167,12 @@ bool ShapeNLP::eval_f(
     Number &obj_value)
 {
     // std::cout<<"Evaluating F\n";
-    if (new_x)
-        update_positions(x);
+    // if (new_x)
+    update_positions(x);
 
     double E = 0;
-
     M3DG->Sim_handler->Calculate_energies(&E);
     // std::cout<<"Current energy is "<< E << "\n";
-
     obj_value = E;
 
     // std::cout<<"F evaluated \n";
@@ -195,8 +185,8 @@ bool ShapeNLP::eval_grad_f(
     bool new_x,
     Number *grad_f)
 {
-    if (new_x)
-        update_positions(x);
+    // if (new_x)
+    update_positions(x);
     M3DG->Sim_handler->Calculate_gradient();
 
     VertexData<Vector3> Current_grad = M3DG->Sim_handler->Current_grad;
@@ -211,14 +201,14 @@ bool ShapeNLP::eval_grad_f(
         grad_f[idx++] = grad[2];
     }
     // Now the beads
-    Vector3 beadGrad;
-    for (size_t b = 0; b < M3DG->Beads.size(); b++)
-    {
-        beadGrad = -1 * M3DG->Beads[b]->Total_force;
-        grad_f[idx++] = beadGrad[0];
-        grad_f[idx++] = beadGrad[1];
-        grad_f[idx++] = beadGrad[2];
-    }
+    // Vector3 beadGrad;
+    // for (size_t b = 0; b < M3DG->Beads.size(); b++)
+    // {
+    //     beadGrad = -1 * M3DG->Beads[b]->Total_force;
+    //     grad_f[idx++] = beadGrad[0];
+    //     grad_f[idx++] = beadGrad[1];
+    //     grad_f[idx++] = beadGrad[2];
+    // }
 
     return true;
 }
@@ -231,8 +221,8 @@ bool ShapeNLP::eval_g(
     Number *g)
 {
     // std::cout<<"Evaluating g\n";
-    if (new_x)
-        update_positions(x);
+    // if (new_x)
+    update_positions(x);
 
     // Volume constraint
     g[0] = M3DG->geometry->totalVolume();
@@ -347,29 +337,41 @@ bool ShapeNLP::eval_h(
         // Eigen::SparseMatrix<double> Hessian_temp = M3DG->Sim_handler->Calculate_Hessian_E();
         Eigen::SparseMatrix<double> Hessian_temp;
 
+        // if (m == 1)
+        //     Hessian_temp = M3DG->Sim_handler->Calculate_Hessian_E() + M3DG->Sim_handler->H_Volume(std::vector<double>{1.0}); // + M3DG->Sim_handler->Beads[0]->Bead_I->Hessian();
+        // if (m == 2)
+        //     Hessian_temp = M3DG->Sim_handler->Calculate_Hessian_E() + M3DG->Sim_handler->H_Volume(std::vector<double>{1.0}) + M3DG->Sim_handler->H_SurfaceTension({1.0});
+
         if (m == 1)
-            Hessian_temp = M3DG->Sim_handler->Calculate_Hessian_E() + M3DG->Sim_handler->H_Volume(std::vector<double>{1.0}); // + M3DG->Sim_handler->Beads[0]->Bead_I->Hessian();
+            Hessian_temp = M3DG->Sim_handler->Calculate_Hessian_E_Verts() + M3DG->Sim_handler->H_Volume_Verts(std::vector<double>{1.0}); // + M3DG->Sim_handler->Beads[0]->Bead_I->Hessian();
         if (m == 2)
-            Hessian_temp = M3DG->Sim_handler->Calculate_Hessian_E() + M3DG->Sim_handler->H_Volume(std::vector<double>{1.0}) + M3DG->Sim_handler->H_SurfaceTension({1.0});
+            Hessian_temp = M3DG->Sim_handler->Calculate_Hessian_E_Verts() + M3DG->Sim_handler->H_Volume_Verts(std::vector<double>{1.0}) + M3DG->Sim_handler->H_SurfaceTension_Verts(std::vector<double>{1.0});
 
         // for(int i = 0; i < M3DG->Beads.size(); i++) Hessian_temp += M3DG->Beads[i]->Bead_I->Hessian_IP();
 
+        // std::cout << "The number of nonzeros in the pre hessian are " << (Hessian_temp.nonZeros() + Hessian_temp.outerSize()) / 2 << "\n";
         // Eigen::SparseMatrix<double> Hessian_temp = M3DG->Sim_handler->Calculate_Hessian_E() + M3DG->Sim_handler->H_Volume({1.0}) + M3DG->Sim_handler->H_SurfaceTension({1.0});
         Index idx = 0;
         // std::cout<<"Evaluating hessian of energy\n";
+
+        // std::ofstream outFile("../Results/Hessian_structure.txt", std::ios::app);
+
+        // outFile << "Hessian matrix structure (row, col):\n";
         for (int k = 0; k < Hessian_temp.outerSize(); ++k)
         {
             for (Eigen::SparseMatrix<double>::InnerIterator it(Hessian_temp, k); it; ++it)
             {
                 if (it.row() >= it.col())
-                {                                    // Lower triangle
-                    iRow[idx] = Index(it.row() + 1); // Fortran style
-                    jCol[idx] = Index(it.col() + 1); // Fortran style
-
+                {                             // Lower triangle
+                    iRow[idx] = it.row() + 1; // Fortran style
+                    jCol[idx] = it.col() + 1; // Fortran style
+                    // outFile << iRow[idx] << ", " << jCol[idx] << ", " << it.value() << " \n";
                     idx++;
                 }
             }
         }
+        // Hessian_temp.resize(0, 0); // Free memory
+        Hessian_temp.data().squeeze();
     }
     else
     {
@@ -377,25 +379,58 @@ bool ShapeNLP::eval_h(
             update_positions(x);
 
         Eigen::SparseMatrix<double> Hessian_temp;
-        if (m == 1)
-            Hessian_temp = obj_factor * M3DG->Sim_handler->Calculate_Hessian_E() + lambda[0] * M3DG->Sim_handler->H_Volume(std::vector<double>{1.0}); //+ obj_factor* M3DG->Sim_handler->Beads[0]->Bead_I->Hessian();
-        if (m == 2)
-            Hessian_temp = obj_factor * M3DG->Sim_handler->Calculate_Hessian_E() + lambda[0] * M3DG->Sim_handler->H_Volume(std::vector<double>{1.0}) + lambda[1] * M3DG->Sim_handler->H_SurfaceTension({1.0});
-        // for(int i = 0; i < M3DG->Beads.size(); i++) Hessian_temp += obj_factor * M3DG->Beads[i]->Bead_I->Hessian_IP();
+        // if (m == 1)
+        //     Hessian_temp = obj_factor * M3DG->Sim_handler->Calculate_Hessian_E() + lambda[0] * M3DG->Sim_handler->H_Volume(std::vector<double>{1.0}); //+ obj_factor* M3DG->Sim_handler->Beads[0]->Bead_I->Hessian();
+        // if (m == 2)
+        //     Hessian_temp = obj_factor * M3DG->Sim_handler->Calculate_Hessian_E() + lambda[0] * M3DG->Sim_handler->H_Volume(std::vector<double>{1.0}) + lambda[1] * M3DG->Sim_handler->H_SurfaceTension({1.0});
 
+        if (m == 1)
+            Hessian_temp = obj_factor * M3DG->Sim_handler->Calculate_Hessian_E_Verts() + lambda[0] * M3DG->Sim_handler->H_Volume_Verts(std::vector<double>{1.0}); //+ obj_factor* M3DG->Sim_handler->Beads[0]->Bead_I->Hessian();
+        if (m == 2)
+            Hessian_temp = obj_factor * M3DG->Sim_handler->Calculate_Hessian_E_Verts() + lambda[0] * M3DG->Sim_handler->H_Volume_Verts(std::vector<double>{1.0}) + lambda[1] * M3DG->Sim_handler->H_SurfaceTension_Verts(std::vector<double>{1.0});
+
+        // for(int i = 0; i < M3DG->Beads.size(); i++) Hessian_temp += obj_factor * M3DG->Beads[i]->Bead_I->Hessian_IP();
+        // std::cout << "The number of nonzeros in the hessian are " << (Hessian_temp.nonZeros() + Hessian_temp.outerSize()) / 2
+        //   << "\n";
+        if (nele_hess != (Hessian_temp.nonZeros() + Hessian_temp.outerSize()) / 2)
+        {
+            std::cout << "The number of nonzeros in the hessian does not match the expected number! Expected " << nele_hess << " but got " << (Hessian_temp.nonZeros() + Hessian_temp.outerSize()) / 2 << "\n";
+            // assert(false && "Number of nonzeros in hessian does not match expected number");
+            // We want to save the matrix
+            // std::ofstream outFile("../Results/hessian_debug.txt", std::ios::app);
+            {
+                // outFile << "Hessian matrix in triplet format (row, col, value):\n";
+                for (int k = 0; k < Hessian_temp.outerSize(); ++k)
+                {
+                    for (Eigen::SparseMatrix<double>::InnerIterator it(Hessian_temp, k); it; ++it)
+                    {
+                        if (it.row() >= it.col())
+                        { // Lower triangle
+                          // outFile << it.row() + 1 << ", " << it.col() + 1 << ", " << it.value() << " \n"; // Fortran style
+                        }
+                    }
+                }
+                // outFile.close();
+            }
+        }
         int idx = 0;
+
         for (int k = 0; k < Hessian_temp.outerSize(); ++k)
         {
+
             for (Eigen::SparseMatrix<double>::InnerIterator it(Hessian_temp, k); it; ++it)
             {
                 if (it.row() >= it.col())
                 { // Lower triangle
                     values[idx] = Number(it.value());
                     idx++;
+
                     // std::cout<<"The row is "<< it.row()+1 << " and the col is "<< it.col()+1 << "\n";
                 }
             }
         }
+        // Hessian_temp.resize(0, 0); // Free memory
+        Hessian_temp.data().squeeze();
     }
 
     return true;

@@ -435,14 +435,18 @@ SparseMatrix<double> Normal_dot_Interaction::Hessian()
 
 SparseMatrix<double> Normal_dot_Interaction::Hessian_IP()
 {
-    // std::cout<<"Calculating Hessian for Normal dot interaction\n";
+    // std::cout << "Calculating Hessian for Normal dot interaction\n";
     // This matrix should be a (3N+3) by (3N+3) matrix but we really dont need all those number
     double rc = Energy_constants[2];
     int N_vert = mesh->nVertices();
 
     int outside = 1;
+    // std::cout<<"Energy constants size is " << Energy_constants.size() << "\n";
     if (Energy_constants.size() > 3)
+    {
         outside = static_cast<int>(Energy_constants[3]);
+        // std::cout << "Outside is " << outside << "\n";
+    }
 
     // std::cout<<"Declaring the sparsematric\n";
     // std::cout<<"The number of total beads is " << Bead_1->Total_beads << "\n";
@@ -593,17 +597,24 @@ SparseMatrix<double> Normal_dot_Interaction::Hessian_IP()
 
     // We have all the nonzeroterms, now i need to add the zeros.
 
-    // for (Vertex v : mesh->vertices())
-    // {
-    //     tripletList.push_back(T(3 * v.getIndex(), 3 * (mesh->nVertices() + Bead_1->Bead_id), 1e-10));
-    //     tripletList.push_back(T(3 * v.getIndex() + 1, 3 * (mesh->nVertices() + Bead_1->Bead_id) + 1, 1e-10));
-    //     tripletList.push_back(T(3 * v.getIndex() + 2, 3 * (mesh->nVertices() + Bead_1->Bead_id) + 2, 1e-10));
+    for (Vertex v : mesh->vertices())
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            for (int j = 0; j < 3; j++)
+            {
 
-    //     tripletList.push_back(T(3 * (mesh->nVertices() + Bead_1->Bead_id), 3 * v.getIndex(), 1e-10));
-    //     tripletList.push_back(T(3 * (mesh->nVertices() + Bead_1->Bead_id) + 1, 3 * v.getIndex() + 1, 1e-10));
-    //     tripletList.push_back(T(3 * (mesh->nVertices() + Bead_1->Bead_id) + 2, 3 * v.getIndex() + 2, 1e-10));
-    // }
+                tripletList.push_back(T(3 * v.getIndex() + j, 3 * (mesh->nVertices() + Bead_1->Bead_id) + i, 0.0));
+                tripletList.push_back(T(3 * (mesh->nVertices() + Bead_1->Bead_id) + i, 3 * v.getIndex() + j, 0.0));
+            }
+        }
+    }
 
+    for (auto &t : tripletList)
+    {
+        assert(t.row() >= 0 && t.row() < 3 * (N_vert + Bead_1->Total_beads) && "Row index OOB Bead");
+        assert(t.col() >= 0 && t.col() < 3 * (N_vert + Bead_1->Total_beads) && "Col index OOB Bead");
+    }
     // std::cout<<"Setting from triplets\n";
     Hessian.setFromTriplets(tripletList.begin(), tripletList.end());
     // std::cout<<"Hessian calculated\n";
@@ -1006,13 +1017,15 @@ SparseMatrix<double> Integrated_Interaction::Hessian_IP()
 
     for (Vertex v : mesh->vertices())
     {
-        tripletList.push_back(T(3 * v.getIndex(), 3 * (mesh->nVertices() + Bead_1->Bead_id), 1e-10));
-        tripletList.push_back(T(3 * v.getIndex() + 1, 3 * (mesh->nVertices() + Bead_1->Bead_id) + 1, 1e-10));
-        tripletList.push_back(T(3 * v.getIndex() + 2, 3 * (mesh->nVertices() + Bead_1->Bead_id) + 2, 1e-10));
+        for (int i = 0; i < 3; i++)
+        {
+            for (int j = 0; j < 3; j++)
+            {
 
-        tripletList.push_back(T(3 * (mesh->nVertices() + Bead_1->Bead_id), 3 * v.getIndex(), 1e-10));
-        tripletList.push_back(T(3 * (mesh->nVertices() + Bead_1->Bead_id) + 1, 3 * v.getIndex() + 1, 1e-10));
-        tripletList.push_back(T(3 * (mesh->nVertices() + Bead_1->Bead_id) + 2, 3 * v.getIndex() + 2, 1e-10));
+                tripletList.push_back(T(3 * v.getIndex() + j, 3 * (mesh->nVertices() + Bead_1->Bead_id) + i, 0.0));
+                tripletList.push_back(T(3 * (mesh->nVertices() + Bead_1->Bead_id) + i, 3 * v.getIndex() + j, 0.0));
+            }
+        }
     }
 
     // Now we have all the terms, we just need to set the triplets

@@ -1,15 +1,16 @@
 {
     "version": "0.2.0",
     "configurations": [
-        
-        
         {
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
             // Resolved by CMake Tools:
             "program": "${workspaceFolder}/projects/geometric-flow/build_debug/bin/main_cluster",
-            "args": ["../Config_files/Wrapping_manual.json","1"],
+            "args": [
+                "../Config_files/Wrapping_manual.json",
+                "1"
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/projects/geometric-flow/build_debug/",
             "environment": [
@@ -19,11 +20,11 @@
                 },
                 {
                     "name": "CFLAGS",
-                    "value": "-fsanitize=address"
+                    "value": "-fsanitize=address -fno-omit-frame-pointer -g"
                 },
                 {
                     "name": "CXXFLAGS",
-                    "value": "-fsanitize=address"
+                    "value": "-fsanitize=address -fno-omit-frame-pointer -g"
                 }
             ],
             "externalConsole": false,
@@ -33,7 +34,7 @@
                     "description": "Enable pretty-printing for gdb",
                     "text": "-enable-pretty-printing",
                     "ignoreFailures": false
-                }    
+                }
             ]
         }
     ]

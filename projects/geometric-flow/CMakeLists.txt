@@ -102,6 +102,7 @@ set(SRCScluster
   src/Interaction.cpp
   ../../utils/src/colormap.cpp
   src/NormalNLP.cpp
+  src/ShapeNLP.cpp
 )
 
 set(SRCSvisualize 
