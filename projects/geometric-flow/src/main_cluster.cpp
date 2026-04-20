@@ -1225,10 +1225,10 @@ int main(int argc, char **argv)
 
     // Here
 
-    Bead_filenames.push_back(basic_name + "Simulation_timings.txt");
-    Bead_datas = std::ofstream(Bead_filenames[Beads.size()]);
-    Bead_datas << "Remeshing_time Gradients Backtracking  Construction compute Solve \n";
-    Bead_datas.close();
+    // Bead_filenames.push_back(basic_name + "Simulation_timings.txt");
+    // Bead_datas = std::ofstream(Bead_filenames[Beads.size()]);
+    // Bead_datas << "Remeshing_time Gradients Backtracking  Construction compute Solve \n";
+    // Bead_datas.close();
 
     std::string filename2 = basic_name + "Bead_data.txt";
 
@@ -1823,10 +1823,10 @@ int main(int argc, char **argv)
         }
         end_time_control = chrono::steady_clock::now();
         remeshing_elapsed_time += chrono::duration_cast<chrono::milliseconds>(end_time_control - start_time_control).count();
-        Bead_datas = std::ofstream(Bead_filenames[Beads.size()], std::ios_base::app);
+        // Bead_datas = std::ofstream(Bead_filenames[Beads.size()], std::ios_base::app);
 
-        Bead_datas << std::chrono::duration_cast<std::chrono::milliseconds>(end_time_control - start_time_control).count() << " ";
-        Bead_datas.close();
+        // Bead_datas << std::chrono::duration_cast<std::chrono::milliseconds>(end_time_control - start_time_control).count() << " ";
+        // Bead_datas.close();
 
         // if(current_t%save_interval == 0 || (Integration == "Newton" && current_t%save_interval == save_interval-1 )){
         if (current_t % save_interval == 0)
