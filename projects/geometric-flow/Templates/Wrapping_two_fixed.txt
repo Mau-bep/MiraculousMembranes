@@ -1,6 +1,6 @@
 {
     "init_file": "../../../input/Simplesphere.obj",
-    "save_interval": 100,
+    "save_interval": 200,
     "timesteps": 150000,
     "continue_sim": false,
     "resize_vol": false,
@@ -36,8 +36,8 @@
             "constants":[100000.0, -1.0]
         },
         {
-            "Name": "Area_constraint",
-            "constants":[100000.0, -1.0, -1.0]
+            "Name": "Surface_tension",
+            "constants":[{{KA}}, -1.0]
         }
         
     ],
@@ -52,8 +52,8 @@
                 {{ x1 }},0.0,0.0
             ],
             "mem_inter": "Frenkel_Normal_nopush",
-            "inter_str": 600,
-            "rc" : 0.24,
+            "inter_str": 1000,
+            "rc" : {{ rc }},
             "bonds": [],
             "bonds_constants": [],
             "Beads": [],
@@ -74,8 +74,8 @@
                 0.0
             ],
             "mem_inter": "Frenkel_Normal_nopush",
-            "inter_str": 600,
-            "rc" : 0.24,
+            "inter_str": 1000,
+            "rc" : {{ rc }},
             "bonds": [],
             "bonds_constants": [],
             "Beads": [],
