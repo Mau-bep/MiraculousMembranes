@@ -1500,6 +1500,18 @@ namespace geometrycentral
             Gradient << grad_1, grad_2;
             return Gradient;
         }
+        Eigen::Vector<double, 6> VertexPositionGeometry::gradient_edge_length(Eigen::Vector<double, 6> Positions, double Edge_length) const
+        {
+
+            Eigen::Vector3d p1 = {Positions[0], Positions[1], Positions[2]};
+            Eigen::Vector3d p2 = {Positions[3], Positions[4], Positions[5]};
+
+            Eigen::Vector3d grad_1 = -1.0 * (p2 - p1) / Edge_length;
+            Eigen::Vector3d grad_2 = (p2 - p1) / Edge_length;
+            Eigen::Vector<double, 6> Gradient;
+            Gradient << grad_1, grad_2;
+            return Gradient;
+        }
 
         Eigen::Matrix<double, 6, 6> VertexPositionGeometry::hessian_edge_length(Eigen::Vector<double, 6> Positions) const
         {

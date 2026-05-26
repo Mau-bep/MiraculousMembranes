@@ -1,6 +1,6 @@
 #include "geometrycentral/surface/intrinsic_geometry_interface.h"
 
-//#include "geometrycentral/surface/discrete_operators.h"
+// #include "geometrycentral/surface/discrete_operators.h"
 
 #include <fstream>
 #include <limits>

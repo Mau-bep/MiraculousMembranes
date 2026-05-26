@@ -6,7 +6,7 @@
 #include "geometrycentral/surface/vertex_position_geometry.h"
 
 #include <deque>
- 
+
 namespace geometrycentral {
 namespace surface {
 
@@ -21,19 +21,42 @@ struct RemeshOptions {
                                    // to 0 if you want lengths to be approximately targetEdgeLength everywhere
   double minRelativeLength = 0.05; // the minimum possible edge length allowed in the output mesh. Defined relative to
                                    // targetEdgeLength
-  bool remesh_list=false;
+  double min_absolute_length =
+      0.001; // the minimum possible edge length allowed in the output mesh, as an absolute number
+  double max_absolute_length =
+      0.2;                   // the maximum possible edge length allowed in the output mesh, as an absolute number
+  double refine_angle = 0.7; // THe maximum dihedral angle allowed in the output mesh, in radians
+  double aspect_min = 0.2;
+  bool no_remesh_list = false;
+  int numberOp = 0;
+  float angleThresh = 0.15;
+
+
+  std::vector<Edge> Remesh_list_e;   // list of edges to remesh. If empty, all edges are considered for remeshing
+  std::vector<Vertex> Remesh_list_v; // list of vertices to remesh. If empty, all vertices are considered for remeshing
+  std::vector<Face> Remesh_list_f;   // list of faces to remesh. If empty, all faces are considered for remeshing
+
   EdgeData<int> No_remesh_list;
   VertexData<int> No_remesh_list_v;
+
   RemeshSmoothStyle smoothStyle = RemeshSmoothStyle::Circumcentric; // smoothing function to use
   RemeshBoundaryCondition boundaryCondition =
-  RemeshBoundaryCondition::Tangential; // allowed movement of boundary vertices
+      RemeshBoundaryCondition::Tangential; // allowed movement of boundary vertices
 };
 extern const RemeshOptions defaultRemeshOptions;
 
 // Improve mesh using repeated rounds of edge flipping, vertex position smoothing, and edge splits/collapses
-void remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOptions options = defaultRemeshOptions);
-void remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
-            RemeshOptions options = defaultRemeshOptions);
+int remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOptions options = defaultRemeshOptions);
+int remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
+           RemeshOptions options = defaultRemeshOptions);
+void remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOptions options,
+            std::vector<Face> activeFaces);
+
+void dynamic_remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom,
+                    RemeshOptions options = defaultRemeshOptions);
+void dynamic_remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
+                    RemeshOptions options = defaultRemeshOptions);
+
 
 void remesh_smoothing(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOptions options);
 // Try to make all triangles Delaunay
@@ -60,6 +83,15 @@ bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom,
                        RemeshOptions options = defaultRemeshOptions);
 bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
                        RemeshOptions options = defaultRemeshOptions);
-
+std::vector<Face> splitSubset(std::vector<Face> activeFaces, ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom,
+                              MutationManager& mm, RemeshOptions options);
+bool collapseSubset(std::vector<Face> activeFaces, ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom,
+                    MutationManager& mm, RemeshOptions options);
+bool splitWorstEdges(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
+                     RemeshOptions options);
+bool improveFaces(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm, RemeshOptions options);
+int flipSubset(std::vector<Face> active, ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
+               RemeshOptions options);
+void remeshSmallAngles(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOptions options);
 } // namespace surface
 } // namespace geometrycentral

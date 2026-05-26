@@ -26,7 +26,7 @@ import numpy as np
 angle = sys.argv[1]
 outside1 = int(sys.argv[2])
 outside2 = int(sys.argv[3])
-ka = float(sys.argv[5])
+ka = sys.argv[5]
 Nsim = 1
 
 
@@ -165,6 +165,9 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
 
     disp = -1*np.sqrt(  (R_vesicle+r_bead)**2 -(float(dist)/2.0)**2)
     disp2 = 0.0
+
+    print("Disp is {}".format(disp))
+    return
 
     if(outside1<0 and outside2 <0 ):
         disp =-1*np.sqrt(  (R_vesicle-r_bead)**2 -(float(dist)/2.0)**2)

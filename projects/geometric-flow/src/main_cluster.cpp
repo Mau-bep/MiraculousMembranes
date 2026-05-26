@@ -497,11 +497,12 @@ int main(int argc, char **argv)
     }
 
     int remesh_every = 1;
+
     size_t last_remesh = 0;
+    int remesh_op = 0;
     int remesh_op_last = 0;
     int trgt_remesh_op = 100;
     double integral_error = 0;
-
     bool adapt_remesh = true;
 
     if (Data.contains("remesh_every"))
@@ -525,7 +526,11 @@ int main(int argc, char **argv)
         scale_factor = Data["rescale"];
     }
 
-    bool Saving_last_states = Data["saving_states"];
+    bool Saving_last_states = false;
+    if (Data.contains("saving_states"))
+    {
+        Saving_last_states = Data["saving_states"];
+    }
     size_t Final_t = Data["timesteps"];
 
     // Load the geometry
@@ -555,11 +560,8 @@ int main(int argc, char **argv)
         for (size_t z = 0; z < Constants.size(); z++)
             std::cout << Constants[z] << " ";
         std::cout << " \n";
-
-        // I want to add here something
         if (Energy["Name"] == "Volume_constraint" && Constants[1] < 0)
         {
-            // THe volume constraint wants the default volume
             Constants[1] = geometry->totalVolume();
             std::cout << "Setting the target volume to current volume \n";
         }
@@ -570,12 +572,10 @@ int main(int argc, char **argv)
             {
                 double nu = Constants[2];
                 A_bar = pow(36 * PI * V_bar * V_bar / (nu * nu), 1.0 / 3.0);
-
                 std::cout << "The target Area is " << A_bar << " from nu " << nu << "\n";
                 std::cout << "The current Area is " << geometry->totalArea() << "\n";
-
                 dA = Constants[3];
-                // First problem
+
                 Constants[1] = geometry->totalArea() + (dA / (fabs(dA))) * std::min(fabs(dA), fabs(A_bar - geometry->totalArea()));
             }
             else
@@ -594,7 +594,6 @@ int main(int argc, char **argv)
 
             std::cout << "The target area is " << A_bar << "\n";
             std::cout << "The current reduced volume is " << 3 * V_bar / (4 * PI * pow((geometry->totalArea() / (4 * PI)), 1.5)) << "\n";
-            // Ok but the thing is that we cannot do A_bar, because A_bar can be too different, so we need a A_bar_current
         }
 
         Energy_constants.push_back(Constants);
@@ -978,6 +977,15 @@ int main(int argc, char **argv)
         remeshing_params.size_min = Data["remesher"]["size_min"];
         remeshing_params.total_op = -1;
     }
+    RemeshOptions Options;
+    if (Data.contains("remesher"))
+    {
+        Options.max_absolute_length = Data["remesher"]["size_max"];
+        Options.min_absolute_length = Data["remesher"]["size_min"];
+        Options.refine_angle = Data["remesher"]["refine_angle"];
+        Options.aspect_min = Data["remesher"]["aspect_min"];
+        Options.maxIterations = 1;
+    }
 
     // return 1;
 
@@ -1058,7 +1066,8 @@ int main(int argc, char **argv)
     std::cout << "The max sizing is " << max_sizing << " and the min sizing is " << min_sizing << " \n";
     arcsim::Mesh remesher_mesh = translate_to_arcsim(mesh, geometry);
     Cloth_1.mesh = remesher_mesh;
-    Cloth_1.remeshing = remeshing_params;
+    if (arcsim)
+        Cloth_1.remeshing = remeshing_params;
     arcsim::compute_masses(Cloth_1);
     arcsim::compute_ws_data(Cloth_1.mesh);
 
@@ -1260,7 +1269,7 @@ int main(int argc, char **argv)
 
     Save_mesh(basic_name, 0);
 
-    std::cout << "Starting sim\n";
+    std::cout << "Starting sim m\n";
 
     if (arcsim)
     {
@@ -1276,16 +1285,31 @@ int main(int argc, char **argv)
         arcsim::delete_mesh(Cloth_1.mesh);
         mesh = mesh_uptr.release();
         geometry = geometry_uptr.release();
+        // remesh(*mesh, *geometry, Options);
+        // geometry->requireVertexPositions();
+        // geometry->inputVertexPositions = geometry->vertexPositions;
     }
 
+    // std::cout << "Here now\n";
     M3DG.mesh = mesh;
+    // std::cout << "Assigned mesh\n";
     M3DG.geometry = geometry;
+    // std::cout << "Assigned geometry\n";
     Sim_handler.mesh = mesh;
+    // std::cout << "Assigned mesh to sim handler\n";
     Sim_handler.geometry = geometry;
+    // std::cout << "Assigned geometry to sim handler\n";
+    // Maybe the beads need an updated mesh?
+    for (size_t bi = 0; bi < Beads.size(); bi++)
+    {
+        Beads[bi].Bead_I->mesh = mesh;
+        Beads[bi].Bead_I->geometry = geometry;
+    }
     M3DG.basic_name = basic_name;
 
     M3DG.BFGS_iter = 0;
 
+    std::cout << "The number of vertices is " << mesh->nVertices() << "\n";
     // Lets add noise here
     const int N_vert = mesh->nVertices();
     if (Data.contains("Initial_noise"))
@@ -1304,7 +1328,6 @@ int main(int argc, char **argv)
 
             geometry->inputVertexPositions[v] = geometry->inputVertexPositions[v] + noise(v.getIndex()) * V_Normals[v];
         }
-        geometry->refreshQuantities();
         Save_mesh(basic_name, 1);
         // std::cout<<"Adding noise of amplitude " << noise_amp << "\n";
     }
@@ -1327,9 +1350,6 @@ int main(int argc, char **argv)
             displacement = fabs(geometry->inputVertexPositions[v].z) / (radius);
             geometry->inputVertexPositions[v] = geometry->inputVertexPositions[v] + displacement * geometry->inputVertexPositions[v] * constant;
         }
-
-        // Save_mesh(basic_name,132);
-        geometry->refreshQuantities();
     }
 
     bool Count_remesh = false;
@@ -1435,8 +1455,7 @@ int main(int argc, char **argv)
     std::cout << "Starting sim\n";
     for (size_t current_t = 1; current_t <= Final_t; current_t++)
     {
-        // std::cout<<"THe target area is " <<
-
+        M3DG.discreteTs = current_t;
         for (int sw = 0; sw < Switches.size(); sw++)
         {
             Switch = Switches[sw];
@@ -1451,13 +1470,19 @@ int main(int argc, char **argv)
                 // save_interval = 0;
                 resize_vol = false;
             }
+            if (Switch == "Newton-Normal" && current_t == Switch_t)
+            {
+                Integration = "Newton-Normal";
+                remesh_every = -1;
+                // save_interval = 0;
+                resize_vol = false;
+            }
             if (Switch == "BFGS" && current_t == Switch_t)
             {
                 Integration = "BFGS";
                 M3DG.BFGS_iter = 0;
                 // remesh_every = Data["remesh_every"];
                 // save_interval = Data["save_interval"];
-                // resize_vol = true;
             }
             if (Switch == "IpOpt" && current_t == Switch_t)
             {
@@ -1475,7 +1500,7 @@ int main(int argc, char **argv)
                 M3DG.BFGS_iter = 0;
                 remesh_every = -1;
             }
-            if (Switch == "Freze beads" && current_t == Switch_t)
+            if (Switch == "Freeze_beads" && current_t == Switch_t)
             {
                 std::cout << "Switching the behavior of the beads\n";
                 for (size_t i = 0; i < Beads.size(); i++)
@@ -1555,7 +1580,7 @@ int main(int argc, char **argv)
         }
 
         //
-        // std::cout<<"dA is "<< dA <<" \n";
+        // std::cout << "dA is " << dA << " \n";
         if (fabs(dA) > 1e-15)
         {
             // std::cout<<"dA is "<< dA <<" \n";
@@ -1586,8 +1611,117 @@ int main(int argc, char **argv)
 
         start_time_control = chrono::steady_clock::now();
 
-        if (arcsim && ((current_t - last_remesh) > remesh_every && remesh_every > 0 || dt_sim == 0.0))
+        // FLAG THE SMALL TRIANGLES
+        bool flagSmallAngle = false;
+
+        if (arcsim)
         {
+            geometry->requireCornerAngles();
+            for (Corner c : mesh->corners())
+            {
+                if (geometry->cornerAngles[c] < 0.2)
+                {
+                    flagSmallAngle = true;
+                    break;
+                }
+            }
+            if (flagSmallAngle)
+            {
+                remeshSmallAngles(*mesh, *geometry, Options);
+                M3DG.BFGS_iter = 0;
+                mesh->compress();
+                geometry->refreshQuantities(); // i guess yes
+            }
+            geometry->unrequireCornerAngles();
+        }
+
+        if (arcsim && ((current_t - last_remesh) > remesh_every && remesh_every > 0 || dt_sim == 0.0 || (flagSmallAngle && remesh_every < 0)))
+        {
+
+            bool flagSmallAngle = false;
+            geometry->requireCornerAngles();
+            for (Corner c : mesh->corners())
+            {
+                if (geometry->cornerAngles[c] < Options.angleThresh)
+                {
+                    flagSmallAngle = true;
+                    break;
+                }
+            }
+            if (flagSmallAngle)
+            {
+                remeshSmallAngles(*mesh, *geometry, Options);
+                M3DG.BFGS_iter = 0;
+                mesh->compress();
+                geometry->refreshQuantities();
+            }
+            geometry->unrequireCornerAngles();
+            last_remesh = current_t;
+            // std::cout << "Remeshing w my own thingy at step " << current_t << " \n";
+            remesh_op = remesh(*mesh, *geometry, Options);
+            // std::cout << "THe number of remesh operations is" << remesh_op << " \n";
+            mesh->compress();
+            geometry->refreshQuantities();
+            double output = 0.0;
+            M3DG.BFGS_iter = 0;
+            if (adapt_remesh)
+            {
+                int error = remesh_op - trgt_remesh_op;
+                double proportional = error;
+                integral_error = integral_error + error * remesh_every;
+                double derivative = (error - (remesh_op_last - trgt_remesh_op)) / remesh_every;
+                output = 0.6 * proportional + 1.2 * integral_error / 10000 + (3.0 / 4.0) * derivative / 10000;
+                remesh_op_last = remesh_op;
+
+                if (remesh_op > 50)
+                {
+                    remesh_every = remesh_every / 2;
+                    if (remesh_every < 1)
+                        remesh_every = 1;
+                }
+                else if (remesh_op < 20)
+                {
+                    remesh_every = remesh_every + 10;
+                }
+                else
+                {
+                    remesh_every = remesh_every + 1;
+                }
+
+                if (remesh_every > 100)
+                {
+                    remesh_every = 100;
+                }
+            }
+            if (Count_remesh)
+            {
+                Remeshing_count = std::ofstream(basic_name + "Remeshing_count.txt", std::ios_base::app);
+                Remeshing_count << current_t << " " << remesh_op << " " << remesh_every << " " << output << "\n";
+                Remeshing_count.close();
+            }
+        }
+        if (arcsim && ((current_t - last_remesh) > remesh_every && remesh_every > 0 || dt_sim == 0.0) && false)
+        {
+            bool flagSmallAngle = false;
+            geometry->requireCornerAngles();
+            for (Corner c : mesh->corners())
+            {
+                if (geometry->cornerAngles[c] < 0.2)
+                {
+                    flagSmallAngle = true;
+                    break;
+                }
+            }
+            if (flagSmallAngle)
+            {
+                std::cout << "Remeshing small angles at step " << current_t << " \n";
+                remeshSmallAngles(*mesh, *geometry, Options);
+                M3DG.BFGS_iter = 0;
+                mesh->compress();
+                geometry->refreshQuantities();
+            }
+            geometry->unrequireCornerAngles();
+
             // std::cout<<"Remesh every is "<< remesh_every<<" \n";
             last_remesh = current_t;
             // if(dt_sim==0.0){ std::cout<<"wE ARE REMESHING CAUSE THINGS DONT MAKE SENSE\n";}
@@ -1737,8 +1871,7 @@ int main(int argc, char **argv)
                             geometry->inputVertexPositions[v] = geometry->inputVertexPositions[v] - 1e-6 * grad;
                             he = he.next();
                         }
-                        // We displaced the triangle so the area is a lil bit bigger
-                        geometry->refreshQuantities();
+
                         std::cout << "THe new face area is " << geometry->faceArea(f) << "\n";
                     }
                 }
@@ -1763,22 +1896,7 @@ int main(int argc, char **argv)
             for (size_t i = 0; i < Beads.size(); i++)
             {
                 Beads[i].Reasign_mesh(mesh, geometry);
-                // Beads[i].Bead_I->mesh = mesh;
-                // Beads[i].Bead_I->geometry = geometry;
-
-                // Beads[i].Bead_I = Bead_Interactions[i];
-                // std::cout<<"What happens here\n";
-                // std::cout<<"THis random E is "<< Beads[i].Bead_I->E_r(0.2,std::vector<double>{1.0,1.0,3.0}) <<"\n";
             }
-
-            // if( abs(n_vert_new-n_vert_old)>= 300){
-            //     std::cout<<"The change in the number of vertices is "<< n_vert_new-n_vert_old <<" \n";
-            //     std::cout<<"Which is clearly too big :P \n";
-            //     break;
-            // }
-
-            // Ok so here we have remeshed, and the idea is that everytime u remesh you have to recompute the lagrange multipliers
-
             if (Integration == "Newton")
             {
                 try
@@ -1787,10 +1905,7 @@ int main(int argc, char **argv)
                 }
                 catch (std::out_of_range e)
                 {
-                    // std::cout<<"There is no Newton switch \n";
                     Switch_t = -1;
-                    // This means that there is no switch
-                    // Switch_times_map["Newton"] = -1;
                 }
             }
             //     if(Integration == "Newton" && current_t >  Switch_t && Switch_t >=0){
@@ -1821,6 +1936,7 @@ int main(int argc, char **argv)
             //     std::cout<<"THe new  Lagrange multipliers were " << Sim_handler.Lagrange_mult.transpose() <<" \n";
             // }
         }
+
         end_time_control = chrono::steady_clock::now();
         remeshing_elapsed_time += chrono::duration_cast<chrono::milliseconds>(end_time_control - start_time_control).count();
         // Bead_datas = std::ofstream(Bead_filenames[Beads.size()], std::ios_base::app);
@@ -1831,7 +1947,6 @@ int main(int argc, char **argv)
         // if(current_t%save_interval == 0 || (Integration == "Newton" && current_t%save_interval == save_interval-1 )){
         if (current_t % save_interval == 0)
         {
-
             // Bead_data.close();
             // Sim_data.close();
             // std::cout<<"Saving\n";
@@ -1847,10 +1962,8 @@ int main(int argc, char **argv)
             Save_output_data = true;
             Sim_data = std::ofstream(filename, std::ios_base::app);
         }
-
         if (current_t % 1000 == 0)
         {
-
             end = chrono::steady_clock::now();
             n_vert = mesh->nVertices();
             std::cout << "THe number of vertices is " << n_vert << "\n";
@@ -1903,12 +2016,6 @@ int main(int argc, char **argv)
         // std::cout<<"Bead_1 position changed? "<< Bead_1.Pos << " \n";
 
         start_time_control = chrono::steady_clock::now();
-        // std::cout<<"3\n";
-        // std::cout<<"Integrating\n";
-
-        // dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,sigma,Sim_data, time,Save_bead_data,Bead_filenames,Save_output_data,pulling);
-        geometry->refreshQuantities();
-        mesh->compress();
         // std::cout<<"We integrate\n";
         if (Integration == "Gradient_descent")
         {
@@ -2006,29 +2113,167 @@ int main(int argc, char **argv)
                     continue;
                 }
             }
+            // Constraints.push_back("CMx");
+            // Constraints.push_back("CMy");
+            // Constraints.push_back("CMz");
+            // Constraints.push_back("Rx");
+            // Constraints.push_back("Ry");
+            // Constraints.push_back("Rz");
 
             Sim_handler.Constraints = Constraints;
-
             std::vector<std::string> Data_filenames(0);
-
-            // Data_filenames.push_back(basic_name+"Data_backtracking.txt");
-            // std::cout<<"Integrating\n";
             dt_sim = M3DG.integrate_Newton(Sim_data, time, Bead_filenames, Save_output_data, Constraints, Data_filenames);
-            // std::cout<<"Iteration\n";
 
             if (M3DG.small_TS == true)
             {
-                // Then i will do gradient descent for a while
+                Integration = "Gradient_descent";
+                Switch_t = current_t + 1;
+                Switch_times_map["Newton-Normal"] = Switch_t;
+                remesh_every = 1;
+                arcsim = true;
+                Switch_times_map["No_remesh"] = current_t + 2;
+                resize_vol = false;
+                for (size_t i = 0; i < Energies.size(); i++)
+                {
+                    if (Energies[i] == "Volume_constraint")
+                    {
+                        Sim_handler.Energy_constants[i][0] = Energy_constants[i][0];
+                        continue;
+                    }
+                    if (Energies[i] == "Area_constraint")
+                    {
+                        Sim_handler.Energy_constants[i][0] = Energy_constants[i][0];
+                    }
+                    if (Energies[i] == "Edge_reg")
+                    {
+                        Sim_handler.Energy_constants[i][0] = 0.0;
+                    }
+                }
+            }
+        }
+        else if (Integration == "Newton-Normal")
+        {
+            std::cout << "We are doing Newton normal\n";
+            try
+            {
+                Switch_t = Switch_times_map.at("Newton-Normal");
+            }
+            catch (std::out_of_range e)
+            {
+                std::cout << "There is no Newton normal switch? \n";
+                Switch_t = -1;
+            }
+            if (current_t == 1 || current_t == Switch_t)
+            {
+                Sim_handler.update_vertex_normals();
+                std::cout << "defining lagrange mults\n";
+                if (!M3DG.boundary)
+                {
+                    Eigen::VectorXd Lagrange_mults;
+                    Lagrange_mults.resize(1);
+                    Lagrange_mults(0) = 0.0;
+
+                    double A_target = 0.0;
+                    for (size_t i = 0; i < Energies.size(); i++)
+                    {
+                        if (Energies[i] == "Area_constraint")
+                        {
+                            A_target = Energy_constants[i][1];
+                            Lagrange_mults.resize(8);
+                            Lagrange_mults(0) = 0.0;
+                            Lagrange_mults(1) = 0.0;
+                            Lagrange_mults(2) = 0.0;
+                            Lagrange_mults(3) = 0.0;
+                            Lagrange_mults(4) = 0.0;
+                            Lagrange_mults(5) = 0.0;
+                            Lagrange_mults(6) = 0.0;
+                            Lagrange_mults(7) = 0.0;
+                            break;
+                        }
+                    }
+                    std::cout << "The current area is " << geometry->totalArea() << " and the target area is " << A_target << "\n";
+                    if (Beads.size() > 0)
+                    {
+                        std::cout << "The current area is " << geometry->totalArea() << "\n";
+                        std::cout << "The target area is " << A_target * 1.05 << "\n";
+                        Sim_handler.Trgt_area = A_target;
+                        // Sim_handler.Trgt_area = A_target * 1.025;
+                    }
+                    else
+                    {
+                        Sim_handler.Trgt_area = A_target;
+                    }
+                    Sim_handler.Lagrange_mult = Lagrange_mults;
+
+                    Sim_handler.Trgt_vol = V_bar;
+                    std::cout << "DOne definining\n";
+                }
+                else
+                {
+                    Eigen::VectorXd Lagrange_mults(7);
+                    Lagrange_mults(0) = 0.0;
+                    Lagrange_mults(1) = 0.0;
+                    Lagrange_mults(2) = 0.0;
+                    Lagrange_mults(3) = 0.0;
+                    Lagrange_mults(4) = 0.0;
+                    Lagrange_mults(5) = 0.0;
+                    Lagrange_mults(6) = 0.0;
+                    Sim_handler.Lagrange_mult = Lagrange_mults;
+                }
+                Switch_times_map["Newton-Normal"] = -1;
+            }
+
+            std::vector<std::string> Constraints(0);
+            if (!M3DG.boundary)
+                Constraints = std::vector<std::string>{"Volume"};
+
+            for (size_t i = 0; i < Energies.size(); i++)
+            {
+                if (Energies[i] == "Area_constraint")
+                {
+                    Constraints.push_back("Area");
+                    Sim_handler.Energy_constants[i][0] = 0.0;
+                    continue;
+                }
+                if (Energies[i] == "Volume_constraint")
+                {
+                    Sim_handler.Energy_constants[i][0] = 0.0;
+                    continue;
+                }
+            }
+
+            Constraints.push_back("CMx");
+            Constraints.push_back("CMy");
+            Constraints.push_back("CMz");
+            Constraints.push_back("Rx");
+            Constraints.push_back("Ry");
+            Constraints.push_back("Rz");
+
+            if (Constraints.size() > Sim_handler.Lagrange_mult.size())
+            {
+                Sim_handler.Lagrange_mult.resize(Constraints.size());
+                for (size_t i = 0; i < Sim_handler.Lagrange_mult.size(); i++)
+                {
+                    Sim_handler.Lagrange_mult(i) = 0.0;
+                }
+            }
+            Sim_handler.Constraints = Constraints;
+
+            std::vector<std::string> Data_filenames(0);
+            // Data_filenames.push_back(basic_name+"Data_backtracking.txt");
+            // std::cout << "Integrating\n";
+            dt_sim = M3DG.integrate_Newton_Normal(Sim_data, time, Bead_filenames, Save_output_data, Constraints, Data_filenames);
+            // std::cout << "Iteration\n";
+            if (M3DG.small_TS == true)
+            {
                 std::cout << "We will do GD for the next 100 steps\n";
                 Integration = "Gradient_descent";
                 Switch_t = current_t + 100;
-                Switch_times_map["Newton"] = Switch_t;
+                Switch_times_map["Newton-Normal"] = Switch_t;
                 remesh_every = 1;
                 arcsim = true;
                 Switch_times_map["No_remesh"] = current_t + 50;
-
                 resize_vol = false;
-                // save_interval = Data["save_interval"];
                 for (size_t i = 0; i < Energies.size(); i++)
                 {
                     if (Energies[i] == "Volume_constraint")
@@ -2049,7 +2294,6 @@ int main(int argc, char **argv)
         }
         else if (Integration == "IpOpt")
         {
-
             try
             {
                 Switch_t = Switch_times_map.at("IpOpt");
@@ -2070,9 +2314,6 @@ int main(int argc, char **argv)
 
             if (!M3DG.boundary)
                 Constraints = std::vector<std::string>{"Volume"};
-
-            // I need to check if there is Area_constraint.
-            // I also want the Energy gradients of the constraints to be multiplied by 0.
 
             double A_target;
 
@@ -2189,15 +2430,9 @@ int main(int argc, char **argv)
 
             std::cout << "THe original target volume is " << V_bar << "\n";
 
-            // M3DG.Sim_handler->Trgt_vol = (4.0 / 3.0) * PI * 8.0;
-            // std::cout << "THew new target volume is " << M3DG.Sim_handler->Trgt_vol << "\n";
-            // M3DG.Sim_handler->Trgt_area = geometry->totalArea();
-
-            // Here lets compute the other area candidate, which is the sum of the areas of 2 spheres
-            // double A_bar_new_candidate = 4 * PI * 4 + 4 * PI * M3DG.Beads[0]->sigma * M3DG.Beads[0]->sigma;
-            // std::cout << "THe current area  is " << geometry->totalArea() << " \n and the estimation for the new area is " << A_bar_new_candidate << "\n";
-            // std::cout << "THe target area is" << A_target << " and it should be " << A_bar << " \n";
-            // M3DG.Sim_handler->Trgt_area = A_target * 1.05;
+            std::cout << "The current area is " << geometry->totalArea() << " \n and the target area is " << A_target << "\n And 1.05 times the target area is " << A_target * 1.05 << "\n and the area of a sphere plus the area of the bead is " << 4 * PI * 4 + 4 * PI * M3DG.Beads[0]->sigma * M3DG.Beads[0]->sigma << "\n";
+            std::cout << " The current volume is " << geometry->totalVolume() << " and the target volume is " << V_bar << "\n";
+            M3DG.Sim_handler->Trgt_area = A_target * 1.05;
 
             app->Initialize();
 
@@ -2270,41 +2505,14 @@ int main(int argc, char **argv)
             // std::cout<<"Adding time\n";
             time += dt_sim;
             M3DG.system_time += 1;
-            // std::cout<<"SUccesfully\n";
         }
-
-        // if(time>10 && Beads.size()>1 ){
-        //     Beads[1].state="froze";
-        // }
-
-        // nanvertex = false;
-        // for(Vertex v : mesh->vertices()) if(isnan(geometry->inputVertexPositions[v].x+ geometry->inputVertexPositions[v].y  + geometry->inputVertexPositions[v].z )) nanvertex = true;
-
-        // if(nanvertex) std::cout<< "After integrating one vertex is nan :( also the value of alpha is"<< dt_sim << " \n";
 
         Bead_data.close();
         Sim_data.close();
 
-        // Then i need to multiply all the vertices by this value
-        if (resize_vol)
-        {
-            // std::cout<<"are we resizing?\n";
-            double k;
-
-            double V;
-            V = geometry->totalVolume();
-
-            k = pow(V_bar / V, 1.0 / 3.0);
-
-            geometry->rescale(k);
-            // geometry->inputVertexPositions *=k;
-            geometry->refreshQuantities();
-        }
-        // std::cout<<"The current volume is " << geometry->totalVolume() << " \n";
-
         end_time_control = chrono::steady_clock::now();
-        // std::cout<<"5\n";
 
+        // geometry->refreshQuantities();
         integrate_elapsed_time += chrono::duration_cast<chrono::milliseconds>(end_time_control - start_time_control).count();
         Save_output_data = false;
         Save_bead_data = false;
@@ -2321,15 +2529,22 @@ int main(int argc, char **argv)
             }
         }
     }
+    std::cout << "The simulation is finished\n";
     end_full = chrono::steady_clock::now();
+
     Sim_data.close();
-    Bead_data.close();
 
-    Bead_data = std::ofstream(Bead_filenames[Beads.size()], std::ios_base::app);
+    // std::cout << "Saving the beads\n";
+    if (Beads.size() > 0)
+    {
+        Bead_data.close();
 
-    Bead_data << (chrono::duration_cast<chrono::milliseconds>(end_full - start_full).count()) << " 0 0 0 0 0 \n";
-    Bead_data.close();
+        Bead_data = std::ofstream(Bead_filenames[Beads.size()], std::ios_base::app);
 
+        Bead_data << (chrono::duration_cast<chrono::milliseconds>(end_full - start_full).count()) << " 0 0 0 0 0 \n";
+        Bead_data.close();
+    }
+    std::cout << "Saving the final state\n";
     if (Saving_last_states)
     {
         std::ofstream beads_saved(basic_name + "Saved_bead_info.txt");
@@ -2352,6 +2567,7 @@ int main(int argc, char **argv)
             saved_mesh_idx = (saved_mesh_idx - 1 + 6) % 6;
         }
     }
+
     Vector3 Pos;
     std::ofstream o(basic_name + "Final_state.obj");
     o << "#This is a meshfile from a saved state\n";

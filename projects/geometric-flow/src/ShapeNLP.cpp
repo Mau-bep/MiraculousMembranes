@@ -35,7 +35,7 @@ void ShapeNLP::update_positions(
         Pos.z = x[3 * i + 2];
         M3DG->geometry->inputVertexPositions[i] = Pos;
     }
-    M3DG->geometry->refreshQuantities();
+    // M3DG->geometry->refreshQuantities();
 
     size_t N_vert = M3DG->mesh->nVertices();
 
@@ -293,7 +293,7 @@ bool ShapeNLP::eval_jac_g(
         }
         if (m == 2)
         {
-            VertexData<Vector3> areaGrad = M3DG->Sim_handler->F_SurfaceTension_2(std::vector<double>{1.0});
+            VertexData<Vector3> areaGrad = M3DG->Sim_handler->F_SurfaceTension(std::vector<double>{1.0});
 
             for (size_t v = 0; v < M3DG->mesh->nVertices(); v++)
             {

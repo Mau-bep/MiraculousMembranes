@@ -48,33 +48,44 @@ public:
     SparseMatrix<double> H1_operator(bool CM, bool Vol_const, bool Area_const);
     SparseMatrix<double> H2_operator(bool CM, bool Vol_const, bool Area_const);
 
-    void update_face_reference();
-    void update_vertex_normals();
+    virtual void update_face_reference();
+    virtual void update_vertex_normals();
 
     virtual double E_Volume_constraint(std::vector<double> Constants) const;
     virtual double E_Area_constraint(std::vector<double> Constants) const;
     virtual double E_SurfaceTension(std::vector<double> Constants) const;
     virtual double E_Bending(std::vector<double> Constants) const;
     virtual double E_Bending_tan(std::vector<double> Constants) const;
-    virtual double E_Bending_2(std::vector<double> Constants) const;
+    // virtual double E_Bending_2(std::vector<double> Constants) const;
     virtual double E_Laplace(std::vector<double> Constants) const;
     virtual double E_Edge_reg(std::vector<double> Constants) const;
     virtual double E_Edge_reg_2(std::vector<double> Constants) const;
     virtual double E_Face_reg(std::vector<double> Constants) const;
+
+    // We do the precomputed ones now
+    virtual double E_Area_constraint_precomp(std::vector<double> Constants) const;
+    virtual double E_SurfaceTension_precomp(std::vector<double> Constants) const;
+    virtual double E_Bending_precomp(std::vector<double> Constants) const;
+    virtual double E_Edge_reg_precomp(std::vector<double> Constants) const;
 
     virtual VertexData<Vector3> F_Volume_constraint(std::vector<double> Constants) const;
     virtual VertexData<Vector3> F_SurfaceTension(std::vector<double> Constants) const;
     virtual VertexData<Vector3> F_Area_constraint(std::vector<double> Constants) const;
     virtual VertexData<Vector3> F_Bending(std::vector<double> Constants) const;
     virtual VertexData<Vector3> F_Bending_tan(std::vector<double> Constants) const;
-    virtual VertexData<Vector3> F_SurfaceTension_2(std::vector<double> Constants) const;
-    virtual VertexData<Vector3> F_Bending_2(std::vector<double> Constants) const;
+    // virtual VertexData<Vector3> F_Bending_2(std::vector<double> Constants) const;
     virtual VertexData<Vector3> F_Volume_constraint_2(std::vector<double> Constants) const;
     virtual VertexData<Vector3> F_Volume(std::vector<double> Constants) const;
     virtual VertexData<Vector3> F_Laplace(std::vector<double> Constants) const;
     virtual VertexData<Vector3> F_Edge_reg(std::vector<double> Constants) const;
     virtual VertexData<Vector3> F_Edge_reg_2(std::vector<double> Constants) const;
     virtual VertexData<Vector3> F_Face_reg(std::vector<double> Constants) const;
+
+    virtual VertexData<Vector3> F_Volume_constraint_precomp(std::vector<double> Constants) const;
+    virtual VertexData<Vector3> F_Bending_precomp(std::vector<double> Constants) const;
+    virtual VertexData<Vector3> F_Edge_reg_precomp(std::vector<double> Constants) const;
+
+    // virtual VertexData<Vector3> F_SurfaceTension_precomp(std::vector<double> Constants) const;
 
     virtual SparseMatrix<double> H_SurfaceTension(std::vector<double> Constants);
     virtual SparseMatrix<double> H_SurfaceTension_Verts(std::vector<double> Constants);
@@ -93,11 +104,19 @@ public:
 
     virtual void Calculate_energies(double *E);
     virtual void Calculate_Lag_norm(double *Norm);
+    virtual void Calculate_Lag_norm_Normal(double *Norm);
+
     // THis function saves the value of the gradient to current gradient but before saves current gradient to previous gradient
     virtual void Calculate_gradient();
     virtual void Calculate_Jacobian();
+    virtual void Calculate_Jacobian_Normal();
+
+    virtual void Calculate_energies_precomp(double *E);
+    virtual void Calculate_gradient_precomp();
+    // virtual void Calculate_Jacobian_precomp();
 
     virtual SparseMatrix<double> Calculate_Hessian();
+    virtual SparseMatrix<double> Calculate_Hessian_Normal();
     virtual SparseMatrix<double> Calculate_Hessian_E();
     virtual SparseMatrix<double> Calculate_Hessian_E_Verts();
     virtual SparseMatrix<double> Calculate_Hessian_Constraints();

@@ -10,12 +10,14 @@
 # foreach v ( 1.0 )
 # foreach Init_cond ( 2 )
 set radius = 0.30
-# set KA = 4
+set KA = 4
 # set KB = 20
 # foreach Strg ( `seq 20 5 140`)
 # foreach Strg ( 225.0  )
-foreach KA ( `seq 0 5 20` )
-foreach theta ( 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0 2.1 2.2 2.3 2.4 2.5 )
+# foreach KA ( `seq 0 5 20` )
+# foreach theta ( 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0 2.1 2.2 2.3 2.4 2.5 )
+foreach theta ( 2.6  )
+
 #python3 Create_subjob.py ${v} ${c0} ${KA} ${KB}
 
 # python3 Create_subjob_two_beads.py ${theta} ${Strg} ${radius} ${KA} ${KB} ${Nsim}
@@ -27,8 +29,8 @@ foreach theta ( 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0 2.1 
 # python3 Create_subjob_two_beads.py ${theta} -1 1 ${radius}
 # sbatch ../Subjobs/subjob_two_bead_r_${radius}_theta_${theta}_inside_outside_BFGS_Fixed_3
 
-python3 Create_subjob_two_beads.py ${theta} 1 1 ${radius}
-sbatch ../Subjobs/subjob_two_bead_r_${radius}_theta_${theta}_outside_outside_BFGS_Fixed_3
+python3 Create_subjob_two_beads.py ${theta} 1 1 ${radius} ${KA}
+sbatch ../Subjobs/subjob_two_bead_r_${radius}_theta_${theta}_outside_outside_BFGS_ST_${KA}
 
 
 end

@@ -67,6 +67,7 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd")
   set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
+  # add_definitions(-std=c++17)
   add_definitions(/D "_CRT_SECURE_NO_WARNINGS")
   add_definitions(-DNOMINMAX)
   add_definitions(-D_USE_MATH_DEFINES)

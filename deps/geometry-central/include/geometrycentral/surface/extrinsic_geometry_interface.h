@@ -24,7 +24,7 @@ public:
   EdgeData<double> edgeDihedralAngles;
   void requireEdgeDihedralAngles();
   void unrequireEdgeDihedralAngles();
-  
+
   // Vertex mean curvature
   VertexData<double> vertexMeanCurvatures;
   void requireVertexMeanCurvatures();
@@ -50,7 +50,15 @@ public:
   void requireFacePrincipalCurvatureDirections();
   void unrequireFacePrincipalCurvatureDirections();
 
+  // Face sizing for adaptive remeshing
+  FaceData<double> faceSizing;
+  void requireFaceSizing();
+  void unrequireFaceSizing();
 
+  // Vertex sizing for adaptative remeshing
+  VertexData<double> vertexSizing;
+  void requireVertexSizing();
+  void unrequireVertexSizing();
 
 
 protected:
@@ -70,7 +78,7 @@ protected:
   DependentQuantityD<VertexData<double>> vertexMaxPrincipalCurvaturesQ;
   virtual void computeVertexMaxPrincipalCurvatures();
 
-  virtual void computePrincipalCurvatures( int whichCurvature, VertexData<double>& kappa );
+  virtual void computePrincipalCurvatures(int whichCurvature, VertexData<double>& kappa);
 
   // Vertex principal curvature direction
   DependentQuantityD<VertexData<Vector2>> vertexPrincipalCurvatureDirectionsQ;
@@ -80,14 +88,15 @@ protected:
   DependentQuantityD<FaceData<Vector2>> facePrincipalCurvatureDirectionsQ;
   virtual void computeFacePrincipalCurvatureDirections();
 
+  // Face sizing
+  DependentQuantityD<FaceData<double>> faceSizingQ;
+  virtual void computeFaceSizing();
 
-
-
-
-
-
-
+  // Vertex sizing
+  DependentQuantityD<VertexData<double>> vertexSizingQ;
+  virtual void computeVertexSizing();
 };
+
 
 } // namespace surface
 } // namespace geometrycentral

@@ -938,7 +938,7 @@ int main(int argc, char **argv)
 
     std::cout << "\n\n We start testing on a mesh now \n\n";
 
-    std::string filepath = "../../../input/4_tetrahedron.obj";
+    std::string filepath = "../../../input/Simple_cil_regular.obj";
     // std::string filepath = "../Results/Mem3DG_Cell_Shape_KB_evol_flip/nu_0.625_c0_0.000_KA_10.000_KB_0.010000_init_cond_2_Nsim_11/Membrane_2067500.obj";
     // std::string filepath = "../../../input/20_icosahedron.obj";
 
@@ -948,13 +948,84 @@ int main(int argc, char **argv)
     geometry = geometry_uptr.release();
     std::vector<std::string> Energies(0);
     std::vector<std::vector<double>> Energy_constants(0);
-    Energies.push_back("Surface_Tension");
-    Energy_constants.push_back({1.0, 1.0}); // just a dummy value for the surface tension
+
+    // Energies.push_back("Surface_Tension");
+    // Energy_constants.push_back({1.0, 1.0}); // just a dummy value for the surface tension
+
+    // Here i will add volume constraint, area constraint and bending
+    Energies.push_back("Bending");
+    Energy_constants.push_back({1.0, 1.0, 1.0}); // just a dummy
+    Energies.push_back("Volume_constraint");
+    Energy_constants.push_back({1.0, 1.0, 1.0}); // just a dummy
+    Energies.push_back("Area_constraint");
+    Energy_constants.push_back({1.0, 1.0, 1.0}); // just a dummy
 
     E_Handler Sim_handler;
     Sim_handler = E_Handler(mesh, geometry, Energies, Energy_constants);
 
     Sim_handler.boundary = false;
+
+    // Ok i am here then time to measure the time
+    VertexData<Vector3> TotalForce1(*mesh);
+    VertexData<Vector3> TotalForce2(*mesh);
+    TotalForce1 = Sim_handler.Current_grad;
+
+    // NOw i need to time it
+    start = chrono::steady_clock::now();
+    double E1 = 0.0;
+    Sim_handler.Calculate_energies(&E1);
+    Sim_handler.Calculate_gradient();
+    TotalForce1 = Sim_handler.Current_grad;
+
+    end = chrono::steady_clock::now();
+
+    std::cout << "The time no precomp " << chrono::duration_cast<chrono::microseconds>(end - start).count() << " microseconds\n";
+    std::cout << "THe total energy is " << E1 << "\n";
+
+    start = chrono::steady_clock::now();
+    double E2 = 0.0;
+    Sim_handler.Calculate_energies_precomp(&E2);
+    Sim_handler.Calculate_gradient_precomp();
+    TotalForce2 = Sim_handler.Current_grad;
+    end = chrono::steady_clock::now();
+
+    std::cout << "The time with precomp " << chrono::duration_cast<chrono::microseconds>(end - start).count() << " microseconds\n";
+    std::cout << "THe total energy is " << E2 << "\n";
+
+    std::cout << "Lets explore the forces now\n";
+    double force_diff = 0.0;
+    bool flagprob = false;
+    for (Vertex v : mesh->vertices())
+    {
+        force_diff = (TotalForce1[v] - TotalForce2[v]).norm();
+        if (force_diff > 1e-7)
+        {
+            flagprob = true;
+            std::cout << "The force at vertex " << v << " is different by " << force_diff << "\n";
+            std::cout << "The force without precomp is " << TotalForce1[v] << " and the force with precomp is " << TotalForce2[v] << "\n";
+        }
+    }
+    if (!flagprob)
+        std::cout << "The forces are the same for all vertices! \n";
+
+    // Now can we time the two volume constraints foces
+    start = chrono::steady_clock::now();
+    TotalForce1 = Sim_handler.F_Volume_constraint(Energy_constants[0]);
+    end = chrono::steady_clock::now();
+    start2 = chrono::steady_clock::now();
+    TotalForce2 = Sim_handler.F_Volume_constraint_2(Energy_constants[0]);
+    end2 = chrono::steady_clock::now();
+    std::cout << "The time for the original volume constraint method is " << chrono::duration_cast<chrono::microseconds>(end - start).count() << " microseconds\n";
+    std::cout << "The time for the new volume constraint method is " << chrono::duration_cast<chrono::microseconds>(end2 - start2).count() << " microseconds\n";
+    // Now are they different?
+
+    for (Vertex v : mesh->vertices())
+    {
+        if ((TotalForce1[v] - TotalForce2[v]).norm() > 1e-5)
+            std::cout << "At vertex " << v.getIndex() << " the force difference is " << TotalForce1[v] - TotalForce2[v] << " \n";
+    }
+
+    return 1;
 
     VertexData<Vector3> Force1(*mesh);
     VertexData<Vector3> Force2(*mesh);
@@ -963,7 +1034,7 @@ int main(int argc, char **argv)
     Force1 = Sim_handler.F_SurfaceTension(Energy_constants[0]);
     end = chrono::steady_clock::now();
     start2 = chrono::steady_clock::now();
-    Force2 = Sim_handler.F_SurfaceTension_2(Energy_constants[0]);
+    Force2 = Sim_handler.F_SurfaceTension(Energy_constants[0]);
     end2 = chrono::steady_clock::now();
 
     std::cout << "The time for the original method is " << chrono::duration_cast<chrono::microseconds>(end - start).count() << " microseconds\n";
@@ -982,7 +1053,7 @@ int main(int argc, char **argv)
     end = chrono::steady_clock::now();
 
     start2 = chrono::steady_clock::now();
-    Force2 = Sim_handler.F_Bending_2(Energy_constants[0]);
+    Force2 = Sim_handler.F_Bending(Energy_constants[0]);
     end2 = chrono::steady_clock::now();
 
     std::cout << "The time for the original bending method is " << chrono::duration_cast<chrono::microseconds>(end - start).count() << " microseconds\n";
@@ -1975,7 +2046,7 @@ int main(int argc, char **argv)
 
     geometry->inputVertexPositions = geometry->inputVertexPositions + grad_vol * 1e-3;
 
-    VertexData<Vector3> grad_area = Sim_handler.F_SurfaceTension_2(std::vector<double>{-1.0});
+    VertexData<Vector3> grad_area = Sim_handler.F_SurfaceTension(std::vector<double>{-1.0});
     std::cout << "The current area is " << geometry->totalArea() << " ";
     geometry->inputVertexPositions = geometry->inputVertexPositions + grad_area * 1e-3;
     geometry->refreshQuantities();

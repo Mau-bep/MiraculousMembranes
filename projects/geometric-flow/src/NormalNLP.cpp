@@ -310,7 +310,7 @@ bool NormalNLP::eval_jac_g(
 
         if (m == 2)
         {
-            VertexData<Vector3> areaGrad = M3DG->Sim_handler->F_SurfaceTension_2(std::vector<double>{1.0});
+            VertexData<Vector3> areaGrad = M3DG->Sim_handler->F_SurfaceTension(std::vector<double>{1.0});
 
             for (size_t i = 0; i < M3DG->mesh->nVertices(); i++)
             {

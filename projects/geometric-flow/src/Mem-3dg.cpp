@@ -14,277 +14,267 @@
  * Input: The surface mesh <inputMesh> and geometry <inputGeo>.
  */
 using namespace std;
-Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo) {
+Mem3DG::Mem3DG(ManifoldSurfaceMesh *inputMesh, VertexPositionGeometry *inputGeo)
+{
 
-    // Build member variables: mesh, geometry
-    mesh = inputMesh;
-    geometry = inputGeo;
-    // velocity = VertexData<Vector3>(*mesh,{0,0,0});
-    Old_norm2=0;
-    Current_norm2=0;
-    H_Vector_0 = VertexData<double>(*mesh,0.0);
-    dH_Vector = VertexData<double> (*mesh,0.0);
-    // H_target = VertexData<double> (*mesh,0.0);
-    system_time=0; 
-    grad_norm=0.0;
-    is_test=false;
-    pulling=false;
-    Area_evol_steps=100000;
-    stop_increasing = false;
-    small_TS = false;
-    recentering = true;
-    boundary = false;
-    Field="None";
-    Field_vals.resize(0);
+  // Build member variables: mesh, geometry
+  mesh = inputMesh;
+  geometry = inputGeo;
+  // velocity = VertexData<Vector3>(*mesh,{0,0,0});
+  Old_norm2 = 0;
+  Current_norm2 = 0;
+  H_Vector_0 = VertexData<double>(*mesh, 0.0);
+  dH_Vector = VertexData<double>(*mesh, 0.0);
+  // H_target = VertexData<double> (*mesh,0.0);
+  system_time = 0;
+  grad_norm = 0.0;
+  is_test = false;
+  pulling = false;
+  Area_evol_steps = 100000;
+  stop_increasing = false;
+  small_TS = false;
+  recentering = true;
+  boundary = false;
+  Field = "None";
+  Field_vals.resize(0);
 
-    momentum = false;
-    learn_rate = 0.5;
+  momentum = false;
+  learn_rate = 0.5;
 
-    BFGS_iter =0;
-    N_data = 0;
-    mean_E = 0;
-    var_E = 0;
-    mean_Grad = 0;
-    var_Grad = 0;
-    Turn_normal_iter = false;
+  BFGS_iter = 0;
+  N_data = 0;
+  mean_E = 0;
+  var_E = 0;
+  mean_Grad = 0;
+  var_Grad = 0;
+  Turn_normal_iter = false;
 }
-Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, Bead input_Bead) {
+Mem3DG::Mem3DG(ManifoldSurfaceMesh *inputMesh, VertexPositionGeometry *inputGeo, Bead input_Bead)
+{
 
-    // Build member variables: mesh, geometry
-    mesh = inputMesh;
-    geometry = inputGeo;
-    // velocity = VertexData<Vector3>(*mesh,{0,0,0});
-    Old_norm2=0;
-    Current_norm2=0;
-    H_Vector_0 = VertexData<double>(*mesh,0.0);
-    dH_Vector = VertexData<double> (*mesh,0.0);
-    // H_target = VertexData<double> (*mesh,0.0);
-    system_time=0;
-    grad_norm=0.0;
-    is_test=false;
-    Bead_1=input_Bead;
-    // Beads.push_back(input_Bead);
-    pulling=false;
-    Save_SS = false;
-    stop_increasing = false;
-    small_TS = false;
-    remesh_flag = false;
-}
-
-
-
-Mem3DG::Mem3DG(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,bool test) {
-
-    // Build member variables: mesh, geometry
-    mesh = inputMesh;
-    geometry = inputGeo;
-    // velocity = VertexData<Vector3>(*mesh,{0,0,0});
-    Old_norm2=0;
-    Current_norm2=0;
-    H_Vector_0 = VertexData<double>(*mesh,0.0);
-    dH_Vector = VertexData<double> (*mesh,0.0);
-    // H_target = VertexData<double> (*mesh,0.0);
-    system_time=0;
-    grad_norm=0.0;
-    is_test=test;
-    pulling=false;
-    stop_increasing = false;
-    small_TS = false;
-    remesh_flag = false;
+  // Build member variables: mesh, geometry
+  mesh = inputMesh;
+  geometry = inputGeo;
+  // velocity = VertexData<Vector3>(*mesh,{0,0,0});
+  Old_norm2 = 0;
+  Current_norm2 = 0;
+  H_Vector_0 = VertexData<double>(*mesh, 0.0);
+  dH_Vector = VertexData<double>(*mesh, 0.0);
+  // H_target = VertexData<double> (*mesh,0.0);
+  system_time = 0;
+  grad_norm = 0.0;
+  is_test = false;
+  Bead_1 = input_Bead;
+  // Beads.push_back(input_Bead);
+  pulling = false;
+  Save_SS = false;
+  stop_increasing = false;
+  small_TS = false;
+  remesh_flag = false;
 }
 
+Mem3DG::Mem3DG(ManifoldSurfaceMesh *inputMesh, VertexPositionGeometry *inputGeo, bool test)
+{
 
-void Mem3DG::Add_bead(Bead *bead){
+  // Build member variables: mesh, geometry
+  mesh = inputMesh;
+  geometry = inputGeo;
+  // velocity = VertexData<Vector3>(*mesh,{0,0,0});
+  Old_norm2 = 0;
+  Current_norm2 = 0;
+  H_Vector_0 = VertexData<double>(*mesh, 0.0);
+  dH_Vector = VertexData<double>(*mesh, 0.0);
+  // H_target = VertexData<double> (*mesh,0.0);
+  system_time = 0;
+  grad_norm = 0.0;
+  is_test = test;
+  pulling = false;
+  stop_increasing = false;
+  small_TS = false;
+  remesh_flag = false;
+}
 
+void Mem3DG::Add_bead(Bead *bead)
+{
 
   Beads.push_back(bead);
-  Beads[Beads.size()-1]->Reasign_mesh(mesh,geometry);
+  Beads[Beads.size() - 1]->Reasign_mesh(mesh, geometry);
   // std::cout<<"Rpoi"
   // Beads[Beads.size()-1]->Bead_I = bead->Bead_I;
   // std::cout<<"Moving pointers\n";
   // std::cout<<"The directino of the I is "<< Beads[Beads.size()-1]->Bead_I << "MEDG \n";
-
-
 }
-/* 
+/*
  * Build the mean curvature flow operator.
  *
  * Input: The mass matrix <M> of the mesh, and the timestep <h>.
  * Returns: A sparse matrix representing the mean curvature flow operator.
  */
-VertexData<Vector3> Mem3DG::buildFlowOperator(double h, double V_bar, double nu, double c0,double P0,double KA,double KB, double Kd)  {
+VertexData<Vector3> Mem3DG::buildFlowOperator(double h, double V_bar, double nu, double c0, double P0, double KA, double KB, double Kd)
+{
 
-    // Lets get our target area and curvature
-    
-    double V=geometry->totalVolume();
-    double D_P=-P0*(V-V_bar)/(V_bar*V_bar);
-    
-    double A_bar=4*PI*pow(3*V_bar/(4*PI*nu),2.0/3.0);
-    double H_bar=sqrt(4*PI/A_bar)*c0/2.0; //Coment this with another comment
-    double A=geometry->totalArea();
-    double lambda=KA*(A-A_bar )/(A_bar*A_bar);
-    
-    
-    // This lines are for the bunny i need to delete them later
-    // lambda=KA;
-    // KB=0;
-    // return (SurfaceTension(lambda)+OsmoticPressure(D_P));
+  // Lets get our target area and curvature
 
+  double V = geometry->totalVolume();
+  double D_P = -P0 * (V - V_bar) / (V_bar * V_bar);
 
-    return (KB*Bending(H_bar)+D_P*OsmoticPressure()+lambda*SurfaceTension());
-    // return (Bending(H_bar,KB)+SurfaceTension(lambda));
-    
-    // 
-    // +SurfaceTension(lambda)
+  double A_bar = 4 * PI * pow(3 * V_bar / (4 * PI * nu), 2.0 / 3.0);
+  double H_bar = sqrt(4 * PI / A_bar) * c0 / 2.0; // Coment this with another comment
+  double A = geometry->totalArea();
+  double lambda = KA * (A - A_bar) / (A_bar * A_bar);
+
+  // This lines are for the bunny i need to delete them later
+  // lambda=KA;
+  // KB=0;
+  // return (SurfaceTension(lambda)+OsmoticPressure(D_P));
+
+  return (KB * Bending(H_bar) + D_P * OsmoticPressure() + lambda * SurfaceTension());
+  // return (Bending(H_bar,KB)+SurfaceTension(lambda));
+
+  //
+  // +SurfaceTension(lambda)
 }
-VertexData<Vector3> Mem3DG::buildFlowOperator(double V_bar, double P0,double KA,double KB, double h)  {
+VertexData<Vector3> Mem3DG::buildFlowOperator(double V_bar, double P0, double KA, double KB, double h)
+{
 
-    // Lets get our target area and curvature
-    
-    double V=geometry->totalVolume();
-    double D_P=-P0*(V-V_bar)/V_bar/V_bar;
-    
-    // double A_bar=4*PI*pow(3*V_bar/(4*PI*nu),2.0/3.0);
-    double H_bar=0.0; //Coment this with another comment
-    double A=geometry->totalArea();
-    double lambda=KA;
-    
-    
-    // This lines are for the bunny i need to delete them later
-    // lambda=KA;
-    // KB=0;
-    // return (SurfaceTension(lambda)+OsmoticPressure(D_P));
-    // return (Bending(H_bar,KB)+lambda*SurfaceTension());
+  // Lets get our target area and curvature
 
-    return (KB*Bending(H_bar)+D_P*OsmoticPressure()+lambda*SurfaceTension());
-    // return (Bending(H_bar,KB)+SurfaceTension(lambda));
-    
-    // 
-    // +SurfaceTension(lambda)
-}
+  double V = geometry->totalVolume();
+  double D_P = -P0 * (V - V_bar) / V_bar / V_bar;
 
-VertexData<Vector3> Mem3DG::buildFlowOperator(double h, double V_bar,double P0,double KA)  {
+  // double A_bar=4*PI*pow(3*V_bar/(4*PI*nu),2.0/3.0);
+  double H_bar = 0.0; // Coment this with another comment
+  double A = geometry->totalArea();
+  double lambda = KA;
 
-    // Lets get our target area and curvature
-    
-    double V=geometry->totalVolume();
-    double D_P=-P0*(V-V_bar)/V_bar/V_bar;
- 
-    
-  
+  // This lines are for the bunny i need to delete them later
+  // lambda=KA;
+  // KB=0;
+  // return (SurfaceTension(lambda)+OsmoticPressure(D_P));
+  // return (Bending(H_bar,KB)+lambda*SurfaceTension());
 
-    return (D_P*OsmoticPressure()+KA*SurfaceTension());
-    // return (Bending(H_bar,KB)+SurfaceTension(lambda));
-    
-    // 
-    // +SurfaceTension(lambda)
+  return (KB * Bending(H_bar) + D_P * OsmoticPressure() + lambda * SurfaceTension());
+  // return (Bending(H_bar,KB)+SurfaceTension(lambda));
+
+  //
+  // +SurfaceTension(lambda)
 }
 
+VertexData<Vector3> Mem3DG::buildFlowOperator(double h, double V_bar, double P0, double KA)
+{
 
-VertexData<Vector3> Mem3DG::OsmoticPressure() const {
+  // Lets get our target area and curvature
 
-    // You have the face normals
-    
-    size_t index;
-    Vector3 Normal;
-    size_t N_vert=mesh->nVertices();
+  double V = geometry->totalVolume();
+  double D_P = -P0 * (V - V_bar) / V_bar / V_bar;
 
-    VertexData<Vector3> Force(*mesh);
-    for(Vertex v : mesh->vertices()) {
-     // do science here
-        index=v.getIndex();
-        Normal={0,0,0};
-        for(Face f : v.adjacentFaces()) {
-            Normal+=geometry->faceArea(f)*geometry->faceNormal(f);
+  return (D_P * OsmoticPressure() + KA * SurfaceTension());
+  // return (Bending(H_bar,KB)+SurfaceTension(lambda));
 
-        }
-        // Force[v.getIndex()]=D_P*Normal/3.0;
-        Force[v.getIndex()]=Normal/3.0;
+  //
+  // +SurfaceTension(lambda)
+}
+
+VertexData<Vector3> Mem3DG::OsmoticPressure() const
+{
+
+  // You have the face normals
+
+  size_t index;
+  Vector3 Normal;
+  size_t N_vert = mesh->nVertices();
+
+  VertexData<Vector3> Force(*mesh);
+  for (Vertex v : mesh->vertices())
+  {
+    // do science here
+    index = v.getIndex();
+    Normal = {0, 0, 0};
+    for (Face f : v.adjacentFaces())
+    {
+      Normal += geometry->faceArea(f) * geometry->faceNormal(f);
     }
-
-    // std::cout<< "THe osmotic pressure force in magnitude is: "<< D_P*sqrt(Force.transpose()*Force) <<"\n";
-    return Force;
-}
-
-
-VertexData<Vector3> Mem3DG::SurfaceTension() const {
-
-    size_t index;
-    Vector3 Normal;
-    size_t N_vert=mesh->nVertices();
-    VertexData<Vector3> Force(*mesh);
-    
-
-        
-    for(Vertex v : mesh->vertices()) {
-            Normal={0,0,0};
-            // for(Halfedge he: v.outgoingHalfedges()){
-            //   Normal+=2*computeHalfedgeMeanCurvatureVector(he);
-            // }
-            // index=v.getIndex();
-
-            Normal=2*geometry->vertexNormalMeanCurvature(v);
-            Force[v]=Normal;
-        }
-
-    // std::cout<< "THe surface tension force in magnitude is: "<< -1*lambda*sqrt(Force.transpose()*Force) <<"\n";
-    return -1*Force;
-}
-Vector3 Mem3DG::computeHalfedgeMeanCurvatureVector(Halfedge he) const {
-   size_t fID = he.face().getIndex();
-   size_t fID_he_twin = he.twin().face().getIndex();
-   Vector3 areaGrad{0,0,0};
-  
-   Vector3 EdgeVector = geometry->inputVertexPositions[he.next().next().vertex()] - geometry->inputVertexPositions[he.next().vertex()];
-   Vector3 EdgeVector2 = geometry->inputVertexPositions[he.twin().vertex()] - geometry->inputVertexPositions[he.twin().next().next().vertex()];
-   
-    areaGrad +=
-        0.25 * cross(geometry->faceNormal(he.face()), EdgeVector );
-  
-    areaGrad += 0.25 * cross(geometry->faceNormal(he.twin().face()),
-                                 EdgeVector2);
-  
-  return areaGrad/2 ;
-}
-
-
-
-
-VertexData<Vector3> Mem3DG::SurfaceGrad() const {
-
-    size_t index;
-    Vector3 Normal;
-    size_t N_vert=mesh->nVertices();
-    VertexData<Vector3> Force(*mesh);
-    Vector3 u;
-    Halfedge he_grad;
-        
-    for(Vertex v : mesh->vertices()) {
-            Normal={0,0,0};
-            Force[v]={0,0,0};
-            Force[v]=-1*2*geometry->vertexNormalMeanCurvature(v);
-            
-        }
-
-    // std::cout<< "THe surface tension force in magnitude is: "<< -1*lambda*sqrt(Force.transpose()*Force) <<"\n";
-    return Force;
-}
-
-
-
-
-
-
-
-
-Vector3 Mem3DG::computeHalfedgeGaussianCurvatureVector(Halfedge he) const {
-  Vector3 gaussVec{0, 0, 0};
-  if (!he.edge().isBoundary()) {
-    // gc::Vector3 eji{} = -vecFromHalfedge(he, *vpg);
-    gaussVec = 0.5 * geometry->dihedralAngle(he)*( -1* geometry->inputVertexPositions[he.next().vertex()]+geometry->inputVertexPositions[he.vertex()] ).unit();
+    // Force[v.getIndex()]=D_P*Normal/3.0;
+    Force[v.getIndex()] = Normal / 3.0;
   }
-  else{
-    gaussVec = 0.5 * geometry->dihedralAngle(he)*( -1* geometry->inputVertexPositions[he.next().vertex()]+geometry->inputVertexPositions[he.vertex()] ).unit();
+
+  // std::cout<< "THe osmotic pressure force in magnitude is: "<< D_P*sqrt(Force.transpose()*Force) <<"\n";
+  return Force;
+}
+
+VertexData<Vector3> Mem3DG::SurfaceTension() const
+{
+
+  size_t index;
+  Vector3 Normal;
+  size_t N_vert = mesh->nVertices();
+  VertexData<Vector3> Force(*mesh);
+
+  for (Vertex v : mesh->vertices())
+  {
+    Normal = {0, 0, 0};
+    // for(Halfedge he: v.outgoingHalfedges()){
+    //   Normal+=2*computeHalfedgeMeanCurvatureVector(he);
+    // }
+    // index=v.getIndex();
+
+    Normal = 2 * geometry->vertexNormalMeanCurvature(v);
+    Force[v] = Normal;
+  }
+
+  // std::cout<< "THe surface tension force in magnitude is: "<< -1*lambda*sqrt(Force.transpose()*Force) <<"\n";
+  return -1 * Force;
+}
+Vector3 Mem3DG::computeHalfedgeMeanCurvatureVector(Halfedge he) const
+{
+  size_t fID = he.face().getIndex();
+  size_t fID_he_twin = he.twin().face().getIndex();
+  Vector3 areaGrad{0, 0, 0};
+
+  Vector3 EdgeVector = geometry->inputVertexPositions[he.next().next().vertex()] - geometry->inputVertexPositions[he.next().vertex()];
+  Vector3 EdgeVector2 = geometry->inputVertexPositions[he.twin().vertex()] - geometry->inputVertexPositions[he.twin().next().next().vertex()];
+
+  areaGrad +=
+      0.25 * cross(geometry->faceNormal(he.face()), EdgeVector);
+
+  areaGrad += 0.25 * cross(geometry->faceNormal(he.twin().face()),
+                           EdgeVector2);
+
+  return areaGrad / 2;
+}
+
+VertexData<Vector3> Mem3DG::SurfaceGrad() const
+{
+
+  size_t index;
+  Vector3 Normal;
+  size_t N_vert = mesh->nVertices();
+  VertexData<Vector3> Force(*mesh);
+  Vector3 u;
+  Halfedge he_grad;
+
+  for (Vertex v : mesh->vertices())
+  {
+    Normal = {0, 0, 0};
+    Force[v] = {0, 0, 0};
+    Force[v] = -1 * 2 * geometry->vertexNormalMeanCurvature(v);
+  }
+
+  // std::cout<< "THe surface tension force in magnitude is: "<< -1*lambda*sqrt(Force.transpose()*Force) <<"\n";
+  return Force;
+}
+
+Vector3 Mem3DG::computeHalfedgeGaussianCurvatureVector(Halfedge he) const
+{
+  Vector3 gaussVec{0, 0, 0};
+  if (!he.edge().isBoundary())
+  {
+    // gc::Vector3 eji{} = -vecFromHalfedge(he, *vpg);
+    gaussVec = 0.5 * geometry->dihedralAngle(he) * (-1 * geometry->inputVertexPositions[he.next().vertex()] + geometry->inputVertexPositions[he.vertex()]).unit();
+  }
+  else
+  {
+    gaussVec = 0.5 * geometry->dihedralAngle(he) * (-1 * geometry->inputVertexPositions[he.next().vertex()] + geometry->inputVertexPositions[he.vertex()]).unit();
     // std::cout<< "Dihedral angle "<<0.5 * geometry->dihedralAngle(he)<<"\n";
     // std::cout<<" Unit vector of an edge"<< ( -1* geometry->inputVertexPositions[he.next().vertex()]+geometry->inputVertexPositions[he.vertex()] ).unit()<<"\n";
     // std::cout<<"This mean gaussian curvature shouldnt work";
@@ -292,553 +282,525 @@ Vector3 Mem3DG::computeHalfedgeGaussianCurvatureVector(Halfedge he) const {
   return gaussVec;
 }
 
+Vector3 Mem3DG::dihedralAngleGradient(Halfedge he, Vertex v) const
+{
+  // std::cout<< he.edge().isBoundary();
 
+  double l = geometry->edgeLength(he.edge());
 
-
-Vector3 Mem3DG::dihedralAngleGradient(Halfedge he, Vertex v) const {
-    // std::cout<< he.edge().isBoundary();
-
-
-    double l = geometry->edgeLength(he.edge());
-
-
-
-    if (he.edge().isBoundary()) {
+  if (he.edge().isBoundary())
+  {
     return Vector3{0, 0, 0};
-  } else if (he.vertex() == v) { //This is only used for the SIJ_1
+  }
+  else if (he.vertex() == v)
+  { // This is only used for the SIJ_1
     return (geometry->cotan(he.next().next()) *
                 geometry->faceNormal(he.face()) +
             geometry->cotan(he.twin().next()) *
-                geometry->faceNormal(he.twin().face())) /l;
-  } else if (he.next().vertex() == v) { //This is for the firt s term
+                geometry->faceNormal(he.twin().face())) /
+           l;
+  }
+  else if (he.next().vertex() == v)
+  { // This is for the firt s term
     return (geometry->cotan(he.twin().next().next()) *
                 geometry->faceNormal(he.twin().face()) +
             geometry->cotan(he.next()) *
                 geometry->faceNormal(he.face())) /
            l;
-  } else if (he.next().next().vertex() == v) { //Este ocurre para el segundo termino
+  }
+  else if (he.next().next().vertex() == v)
+  { // Este ocurre para el segundo termino
     return (-(geometry->cotan(he.next().next()) +
               geometry->cotan(he.next())) *
             geometry->faceNormal(he.face())) /
            l;
-  } else {
+  }
+  else
+  {
     // mem3dg_runtime_error("Unexpected combination of halfedge and vertex!");
-    std::cout<< "THe dihedral angle gradient is not working\n";
+    std::cout << "THe dihedral angle gradient is not working\n";
     return Vector3{0, 0, 0};
   }
-std::cout<< "THis is impossible to print\n";
-return Vector3{0, 0, 0};
+  std::cout << "THis is impossible to print\n";
+  return Vector3{0, 0, 0};
 }
 
-
-
-
-
-VertexData<Vector3> Mem3DG::Bending(double H0) const {
-
-    
-    size_t neigh_index;
-    size_t N_vert=mesh->nVertices();
-
-    Vector3 Hij;
-    Vector3 Kij;
-    Vector3 Sij_1;
-    Vector3 Sij_2;
-
-    Vector3 F1={0,0,0};
-    Vector3 F2={0,0,0};
-    Vector3 F3={0,0,0};
-    Vector3 F4={0,0,0};
-
-
-    Vector3 Position_1;
-    Vector3 Position_2;
-
-
-    VertexData<Vector3> Force(*mesh);
-
-
-
-
-    VertexData<double> Scalar_MC(*mesh,0.0);
-    double factor;
-    size_t index1;
-    for(Vertex v1 : mesh->vertices()) {
-        index1=v1.getIndex();
-        Scalar_MC[index1]=geometry->scalarMeanCurvature(v1)/geometry->barycentricDualArea(v1);
-        }   
-    
-
-    
-    auto start = chrono::steady_clock::now();
-    double H0i;
-    double H0j;
-    size_t index;
-    for(Vertex v: mesh->vertices()){
-        F1={0,0,0};
-        F2={0,0,0};
-        F3={0,0,0};
-        F4={0,0,0};
-        index=v.getIndex();
-        // H0i= (system_time<50? (H_Vector_0[index]+H0)/2.0: H0);
-        H0i=H0;
-        Position_1=geometry->inputVertexPositions[v];
-        for(Halfedge he: v.outgoingHalfedges()){
-
-            
-            neigh_index=he.tipVertex().getIndex();
-            // H0j= (system_time<50? (H_Vector_0[neigh_index]+H0)/2: H0);
-            H0j=H0;
-
-            Position_2=geometry->inputVertexPositions[neigh_index];
-      
-            
-
-
-            Kij=computeHalfedgeGaussianCurvatureVector(he);
-            // factor=-1*(Scalar_MC[index]-(system_time<50? H_Vector_0[index]+dH_Vector[index]*system_time: H0))-1*(Scalar_MC[neigh_index]-(system_time<50? H_Vector_0[neigh_index]+dH_Vector[neigh_index]*system_time: H0));
-            factor=-1*(Scalar_MC[index]-H0i)-1*(Scalar_MC[neigh_index]-H0j);
-            
-            F1=F1+factor*Kij;
-
-
-            Hij=2*computeHalfedgeMeanCurvatureVector(he);
-
-            // factor=(1/3.0)*(Scalar_MC[index]*Scalar_MC[index] -(system_time<50? H_Vector_0[index]+dH_Vector[index]*system_time: H0)*(system_time<50? H_Vector_0[index]+dH_Vector[index]*system_time: H0))+(2.0/3.0)*(Scalar_MC[neigh_index]*Scalar_MC[neigh_index]-(system_time<50? H_Vector_0[neigh_index]+dH_Vector[neigh_index]*system_time: H0)*(system_time<50? H_Vector_0[neigh_index]+dH_Vector[neigh_index]*system_time: H0));
-            factor=(1/3.0)*(Scalar_MC[index]*Scalar_MC[index] -H0i*H0i)+(2.0/3.0)*(Scalar_MC[neigh_index]*Scalar_MC[neigh_index]-H0j*H0j);
-
-            F2=F2+factor*Hij;
-
-
-            Sij_1 =  geometry->edgeLength(he.edge()) * dihedralAngleGradient(he,he.vertex());
-
-            // factor=-1*(Scalar_MC[index]-(system_time<50? H_Vector_0[index]+dH_Vector[index]*system_time: H0));
-            factor=-1*(Scalar_MC[index]-H0i);
-
-
-            F3=F3+factor*Sij_1;
-
-            Sij_2=(geometry->edgeLength(he.twin().edge())*dihedralAngleGradient(he.twin(),he.vertex())+ geometry->edgeLength(he.next().edge())*dihedralAngleGradient(he.next(),he.vertex()) + geometry->edgeLength(he.twin().next().next().edge())*dihedralAngleGradient(he.twin().next().next(), he.vertex()));
-            
-            // Sij_2=-1*( geometry->cotan(he.next().next())*geometry->faceNormal(he.face()) + geometry->cotan(he.twin())*geometry->faceNormal(he.twin().face()));
-
-            // factor= -1*(Scalar_MC[neigh_index]-(system_time<50? H_Vector_0[neigh_index]+dH_Vector[neigh_index]*system_time: H0));
-            factor= -1*(Scalar_MC[neigh_index]-H0j);
-            
-            F4=F4+factor*Sij_2;
-
-    }
-    
-
-
-
-    Force[index]=F1+F2+F3+F4;
-
-    }
-
- 
-
- 
-    return Force;
-}
-
-
-// 
-double Mem3DG::E_Volume_constraint(double KV, double V, double V_bar) const {
-  return 0.5*KV*(V-V_bar)*(V-V_bar)/(V_bar*V_bar);
-}
-
-
-double Mem3DG::E_Pressure(double P0,double V, double V_bar) const {
-
-
-    // double V = geometry->totalVolume();
-      
-    return -1*0.5*P0*(V-V_bar);
-}
-
-double Mem3DG::E_Area_constraint(double KA, double A, double A_bar) const{
-
-  return 0.5*KA*(A-A_bar)*(A-A_bar)/(A_bar*A_bar);
-}
-double Mem3DG::E_Surface(double KA,double A, double A_bar) const {
-
-    // return 0.5*KA*A*A;
-    return 0.5*KA*(A-A_bar)*(A-A_bar)/(A_bar*A_bar);
-}
-
-
-double Mem3DG::E_Bending(double H0,double KB) const{
-    size_t index;
-    double Eb=0;
-    double H;
-    double r_eff2;
-    Vector3 Pos;
-    for(Vertex v : mesh->vertices()) {
-        //boundary_fix
-        if(v.isBoundary()) continue;
-        index=v.getIndex();
-        // Scalar_MC.coeffRef(index)
-        Pos = geometry->inputVertexPositions[v];
-        r_eff2 = Pos.z*Pos.z + Pos.y*Pos.y ;      
-        if(r_eff2 > 1.6 && boundary ) continue;
-        
-        H=abs(geometry->scalarMeanCurvature(v)/geometry->barycentricDualArea(v));
-        
-        if(std::isnan(H)){
-          continue;
-          std::cout<<"Dual area: "<< geometry->barycentricDualArea(v);
-          std::cout<<"Scalar mean Curv"<< geometry->scalarMeanCurvature(v);
-          std::cout<<"One of the H is not a number\n";
-        }
-
-        
-        
-
-        Eb+=KB*H*H*geometry->barycentricDualArea(v);
-        
-        }   
-    
-    return Eb;
-}
-
-
-
-
-
-SparseMatrix<double> Mem3DG::H2_operator(bool CM, bool Vol_const, bool Area_const) {
-
-
-    // Ok so i have the gradient i want to calculate
-
-    // std::cout<<"We are doing the sobolev operator ! \n";
-    // std::cout<<"THe constraints are CM: "<< CM << " Volume " <<  Vol_const <<" and area " << Area_const <<" \n";
-    SparseMatrix<double> L = geometry->laplaceMatrix();
-    SparseMatrix<double> M = geometry->massMatrix();
-    SparseMatrix<double> Inv_M(mesh->nVertices(),mesh->nVertices());
-    for(size_t index= 0; index<mesh->nVertices();index++)
-    {
-        Inv_M.coeffRef(index,index)= 1.0/(M.coeff(index,index));
-       
-    }
-
-    SparseMatrix<double> J = L.transpose()*Inv_M*L;
-    // I need the constraint gradientsx
-    VertexData<Vector3> grad_sur = SurfaceGrad();
-    VertexData<Vector3> grad_vol = OsmoticPressure();
-    // VertexData<Vector3> grad_ben = Bending(0.0);
-
-    // i CAN MAYBE MULTIPLY BY THE SURFACE AREAS 
-    
-
-    // std::cout<<"Grad ben \n";
-
-    // std::cout<<"We are debugginggg \n";
-    size_t N_vert=mesh->nVertices();
-
-
-    int Num_constraints = 0;
-    if(CM ) Num_constraints+=3;
-    if(Vol_const) Num_constraints+=1;
-    if(Area_const) Num_constraints+=1;
-
-    // std::cout<<"THe number of constraints is "<< Num_constraints<<" \n";
-
-    SparseMatrix<double> S(N_vert*3+Num_constraints,N_vert*3+Num_constraints);
-
-    typedef Eigen::Triplet<double> T;
-    std::vector<T> tripletList;
-    int highest_row = 0;
-    int highest_col = 0;
-    // We add the constraints first
-
-    int Constraint_number = 0;
-
-
-    for(size_t index = 0; index<mesh->nVertices();index++)
+VertexData<Vector3> Mem3DG::Bending(double H0) const
+{
+
+  size_t neigh_index;
+  size_t N_vert = mesh->nVertices();
+
+  Vector3 Hij;
+  Vector3 Kij;
+  Vector3 Sij_1;
+  Vector3 Sij_2;
+
+  Vector3 F1 = {0, 0, 0};
+  Vector3 F2 = {0, 0, 0};
+  Vector3 F3 = {0, 0, 0};
+  Vector3 F4 = {0, 0, 0};
+
+  Vector3 Position_1;
+  Vector3 Position_2;
+
+  VertexData<Vector3> Force(*mesh);
+
+  VertexData<double> Scalar_MC(*mesh, 0.0);
+  double factor;
+  size_t index1;
+  for (Vertex v1 : mesh->vertices())
+  {
+    index1 = v1.getIndex();
+    Scalar_MC[index1] = geometry->scalarMeanCurvature(v1) / geometry->barycentricDualArea(v1);
+  }
+
+  auto start = chrono::steady_clock::now();
+  double H0i;
+  double H0j;
+  size_t index;
+  for (Vertex v : mesh->vertices())
+  {
+    F1 = {0, 0, 0};
+    F2 = {0, 0, 0};
+    F3 = {0, 0, 0};
+    F4 = {0, 0, 0};
+    index = v.getIndex();
+    // H0i= (system_time<50? (H_Vector_0[index]+H0)/2.0: H0);
+    H0i = H0;
+    Position_1 = geometry->inputVertexPositions[v];
+    for (Halfedge he : v.outgoingHalfedges())
     {
 
-        Constraint_number = 0;
-    //  Area constraint 
-        if(Area_const){
-          // std::cout<<"Area constraint on \n";
-        tripletList.push_back(T(3*index,3*N_vert+Constraint_number, grad_sur[index].x ) );
-        tripletList.push_back(T(3*index+1, 3*N_vert+Constraint_number, grad_sur[index].y ) );
-        tripletList.push_back(T(3*index+2, 3*N_vert+Constraint_number, grad_sur[index].z ) );
-        tripletList.push_back(T(3*N_vert+Constraint_number,3*index, grad_sur[index].x ) );
-        tripletList.push_back(T(3*N_vert+Constraint_number, 3*index+1, grad_sur[index].y ) );
-        tripletList.push_back(T(3*N_vert+Constraint_number,3*index+2, grad_sur[index].z ) );
-        
-        Constraint_number++;
-        }
-        
+      neigh_index = he.tipVertex().getIndex();
+      // H0j= (system_time<50? (H_Vector_0[neigh_index]+H0)/2: H0);
+      H0j = H0;
+
+      Position_2 = geometry->inputVertexPositions[neigh_index];
+
+      Kij = computeHalfedgeGaussianCurvatureVector(he);
+      // factor=-1*(Scalar_MC[index]-(system_time<50? H_Vector_0[index]+dH_Vector[index]*system_time: H0))-1*(Scalar_MC[neigh_index]-(system_time<50? H_Vector_0[neigh_index]+dH_Vector[neigh_index]*system_time: H0));
+      factor = -1 * (Scalar_MC[index] - H0i) - 1 * (Scalar_MC[neigh_index] - H0j);
+
+      F1 = F1 + factor * Kij;
+
+      Hij = 2 * computeHalfedgeMeanCurvatureVector(he);
+
+      // factor=(1/3.0)*(Scalar_MC[index]*Scalar_MC[index] -(system_time<50? H_Vector_0[index]+dH_Vector[index]*system_time: H0)*(system_time<50? H_Vector_0[index]+dH_Vector[index]*system_time: H0))+(2.0/3.0)*(Scalar_MC[neigh_index]*Scalar_MC[neigh_index]-(system_time<50? H_Vector_0[neigh_index]+dH_Vector[neigh_index]*system_time: H0)*(system_time<50? H_Vector_0[neigh_index]+dH_Vector[neigh_index]*system_time: H0));
+      factor = (1 / 3.0) * (Scalar_MC[index] * Scalar_MC[index] - H0i * H0i) + (2.0 / 3.0) * (Scalar_MC[neigh_index] * Scalar_MC[neigh_index] - H0j * H0j);
+
+      F2 = F2 + factor * Hij;
+
+      Sij_1 = geometry->edgeLength(he.edge()) * dihedralAngleGradient(he, he.vertex());
+
+      // factor=-1*(Scalar_MC[index]-(system_time<50? H_Vector_0[index]+dH_Vector[index]*system_time: H0));
+      factor = -1 * (Scalar_MC[index] - H0i);
+
+      F3 = F3 + factor * Sij_1;
+
+      Sij_2 = (geometry->edgeLength(he.twin().edge()) * dihedralAngleGradient(he.twin(), he.vertex()) + geometry->edgeLength(he.next().edge()) * dihedralAngleGradient(he.next(), he.vertex()) + geometry->edgeLength(he.twin().next().next().edge()) * dihedralAngleGradient(he.twin().next().next(), he.vertex()));
+
+      // Sij_2=-1*( geometry->cotan(he.next().next())*geometry->faceNormal(he.face()) + geometry->cotan(he.twin())*geometry->faceNormal(he.twin().face()));
+
+      // factor= -1*(Scalar_MC[neigh_index]-(system_time<50? H_Vector_0[neigh_index]+dH_Vector[neigh_index]*system_time: H0));
+      factor = -1 * (Scalar_MC[neigh_index] - H0j);
+
+      F4 = F4 + factor * Sij_2;
+    }
+
+    Force[index] = F1 + F2 + F3 + F4;
+  }
+
+  return Force;
+}
+
+//
+double Mem3DG::E_Volume_constraint(double KV, double V, double V_bar) const
+{
+  return 0.5 * KV * (V - V_bar) * (V - V_bar) / (V_bar * V_bar);
+}
+
+double Mem3DG::E_Pressure(double P0, double V, double V_bar) const
+{
+
+  // double V = geometry->totalVolume();
+
+  return -1 * 0.5 * P0 * (V - V_bar);
+}
+
+double Mem3DG::E_Area_constraint(double KA, double A, double A_bar) const
+{
+
+  return 0.5 * KA * (A - A_bar) * (A - A_bar) / (A_bar * A_bar);
+}
+double Mem3DG::E_Surface(double KA, double A, double A_bar) const
+{
+
+  // return 0.5*KA*A*A;
+  return 0.5 * KA * (A - A_bar) * (A - A_bar) / (A_bar * A_bar);
+}
+
+double Mem3DG::E_Bending(double H0, double KB) const
+{
+  size_t index;
+  double Eb = 0;
+  double H;
+  double r_eff2;
+  Vector3 Pos;
+  for (Vertex v : mesh->vertices())
+  {
+    // boundary_fix
+    if (v.isBoundary())
+      continue;
+    index = v.getIndex();
+    // Scalar_MC.coeffRef(index)
+    Pos = geometry->inputVertexPositions[v];
+    r_eff2 = Pos.z * Pos.z + Pos.y * Pos.y;
+    if (r_eff2 > 1.6 && boundary)
+      continue;
+
+    H = abs(geometry->scalarMeanCurvature(v) / geometry->barycentricDualArea(v));
+
+    if (std::isnan(H))
+    {
+      continue;
+      std::cout << "Dual area: " << geometry->barycentricDualArea(v);
+      std::cout << "Scalar mean Curv" << geometry->scalarMeanCurvature(v);
+      std::cout << "One of the H is not a number\n";
+    }
+
+    Eb += KB * H * H * geometry->barycentricDualArea(v);
+  }
+
+  return Eb;
+}
+
+SparseMatrix<double> Mem3DG::H2_operator(bool CM, bool Vol_const, bool Area_const)
+{
+
+  // Ok so i have the gradient i want to calculate
+
+  // std::cout<<"We are doing the sobolev operator ! \n";
+  // std::cout<<"THe constraints are CM: "<< CM << " Volume " <<  Vol_const <<" and area " << Area_const <<" \n";
+  SparseMatrix<double> L = geometry->laplaceMatrix();
+  SparseMatrix<double> M = geometry->massMatrix();
+  SparseMatrix<double> Inv_M(mesh->nVertices(), mesh->nVertices());
+  for (size_t index = 0; index < mesh->nVertices(); index++)
+  {
+    Inv_M.coeffRef(index, index) = 1.0 / (M.coeff(index, index));
+  }
+
+  SparseMatrix<double> J = L.transpose() * Inv_M * L;
+  // I need the constraint gradientsx
+  VertexData<Vector3> grad_sur = SurfaceGrad();
+  VertexData<Vector3> grad_vol = OsmoticPressure();
+  // VertexData<Vector3> grad_ben = Bending(0.0);
+
+  // i CAN MAYBE MULTIPLY BY THE SURFACE AREAS
+
+  // std::cout<<"Grad ben \n";
+
+  // std::cout<<"We are debugginggg \n";
+  size_t N_vert = mesh->nVertices();
+
+  int Num_constraints = 0;
+  if (CM)
+    Num_constraints += 3;
+  if (Vol_const)
+    Num_constraints += 1;
+  if (Area_const)
+    Num_constraints += 1;
+
+  // std::cout<<"THe number of constraints is "<< Num_constraints<<" \n";
+
+  SparseMatrix<double> S(N_vert * 3 + Num_constraints, N_vert * 3 + Num_constraints);
+
+  typedef Eigen::Triplet<double> T;
+  std::vector<T> tripletList;
+  int highest_row = 0;
+  int highest_col = 0;
+  // We add the constraints first
+
+  int Constraint_number = 0;
+
+  for (size_t index = 0; index < mesh->nVertices(); index++)
+  {
+
+    Constraint_number = 0;
+    //  Area constraint
+    if (Area_const)
+    {
+      // std::cout<<"Area constraint on \n";
+      tripletList.push_back(T(3 * index, 3 * N_vert + Constraint_number, grad_sur[index].x));
+      tripletList.push_back(T(3 * index + 1, 3 * N_vert + Constraint_number, grad_sur[index].y));
+      tripletList.push_back(T(3 * index + 2, 3 * N_vert + Constraint_number, grad_sur[index].z));
+      tripletList.push_back(T(3 * N_vert + Constraint_number, 3 * index, grad_sur[index].x));
+      tripletList.push_back(T(3 * N_vert + Constraint_number, 3 * index + 1, grad_sur[index].y));
+      tripletList.push_back(T(3 * N_vert + Constraint_number, 3 * index + 2, grad_sur[index].z));
+
+      Constraint_number++;
+    }
+
     // Volume Constraint
-        if(Vol_const){
-          // std::cout<<"Vol const on\n";
-        tripletList.push_back(T(3*index, 3*N_vert+Constraint_number, grad_vol[index].x ) );
-        tripletList.push_back(T(3*index+1, 3*N_vert+Constraint_number, grad_vol[index].y ) );
-        tripletList.push_back(T(3*index+2, 3*N_vert+Constraint_number, grad_vol[index].z ) );
-        tripletList.push_back(T(3*N_vert+Constraint_number, 3*index, grad_vol[index].x ) );
-        tripletList.push_back(T(3*N_vert+Constraint_number, 3*index+1, grad_vol[index].y ) );
-        tripletList.push_back(T(3*N_vert+Constraint_number, 3*index+2, grad_vol[index].z ) );
-        
-        Constraint_number++;
-        }
-    // Position Constraint I
-        
-        if(CM){
-          // std::cout<<"POs constraint on \n";
-        tripletList.push_back(T(3*index, 3*N_vert +Constraint_number, 1 ) );
-        tripletList.push_back(T(3*N_vert +Constraint_number, 3*index, 1 ) );
-        Constraint_number++;
-        
-        tripletList.push_back(T(3*index + 1, 3*N_vert +Constraint_number, 1 ) );
-        tripletList.push_back(T(3*N_vert +Constraint_number, 3*index +1, 1 ) );
-        Constraint_number++;
-        
-        tripletList.push_back(T(3*index + 2 , 3*N_vert+Constraint_number, 1 ) );
-        tripletList.push_back(T(3*N_vert+Constraint_number, 3*index + 2, 1 ) );
-        Constraint_number++;
-        }
-
-
-    }
-
-    //  std::cout<<"Before setting from tripplets\n";
-    // std::cout<<"THe number of vertices is " << N_vert <<"\n";
-    // std::cout<<"THe highest expected col is " << 3*N_vert+2 <<" \n";
-    // std::cout<<"THe calculated col is " << highest_col <<" \n";
-    // std::cout<<"THe highest expected row is " << 3*N_vert+2 <<" \n";
-    // std::cout<<"THe calculated row is " << highest_row <<" \n";
-    // Now we iterate over the Laplacian
-    int row;
-    int col;
-    double value;
-
-    for( long int k = 0; k < J.outerSize(); ++k ) {
-        for( SparseMatrix<double>::InnerIterator it(J,k); it; ++it ) {
-            value = it.value();
-            row = it.row();
-            col = it.col();
-            tripletList.push_back(T(3*row,3*col,value));
-            tripletList.push_back(T(3*row+1,3*col+1,value));
-            tripletList.push_back(T(3*row+2,3*col+2,value));
-            // if( 3*row > highest_row) highest_row = 3*row;
-            // if( 3*col > highest_col) highest_col = 3*col;
-        
-        }
-    }
-
-    // std::cout<<"Before setting from tripplets\n";
-    // std::cout<<"THe number of vertices is " << N_vert <<"\n";
-    // std::cout<<"THe highest expected col is " << 3*N_vert+2 <<" \n";
-    // std::cout<<"THe calculated col is " << highest_col <<" \n";
-    // std::cout<<"THe highest expected row is " << 3*N_vert+2 <<" \n";
-    // std::cout<<"THe calculated row is " << highest_row <<" \n";
-    S.setFromTriplets(tripletList.begin(),tripletList.end());
-    // std::cout<<"THe matrix has been formed\n";
-
-    return S;
-
-
-    // std::cout<<"AFTER setting from tripplets\n";
-    // // We need to create the vector of the RHS
-
-    // Vector<double> RHS(N_vert*3+Num_constraints);
-    // int highest_idx = 0;
-    // for(size_t index; index<mesh->nVertices();index++)
-    // {
-    //     RHS.coeffRef(3*index)=grad_ben[index].x;
-    //     RHS.coeffRef(3*index+1)=grad_ben[index].y;
-    //     RHS.coeffRef(3*index+2)=grad_ben[index].z;
-    //     if( 3*index +2 > highest_idx) highest_idx = 3*index+2;
-    // }
-
-    // // std::cout<<"The highest index is " << highest_idx <<"\n";
-    // // std::cout<<"CREATING RHS\n";
-    // for(size_t index = 0; index<Num_constraints;index++)
-    // {
-    //     RHS.coeffRef(3*N_vert+index)=0;
-    // }
-    // // RHS.coeffRef(3*N_vert)=0;
-    // // RHS.coeffRef(3*N_vert+1)=0;
-    // // RHS.coeffRef(3*N_vert+2)=0;
-    // // RHS.coeffRef(3*N_vert+3)=0;
-    // // RHS.coeffRef(3*N_vert+4)=0;
-
-    // // std::cout<<"RHS IMPLEMENTED\n";
-
-    // // std::cout<<"The RHS is " << RHS << "\n";
-    // // We have The RHS and the matrix, its tiiiime 
-    // // std::cout<<"Lets solve \n";
-    // Eigen::SparseLU<SparseMatrix<double>> solver;
-    // // std::cout<<"Solver defined \n";
-    
-    // solver.compute(S);
-
-
-
-    
-    // Vector<double> result = solver.solve(RHS);
-    // // std::cout<<"Result retrieved\n";
-    // VertexData<Vector3> Final_Force(*mesh);
-    // for(size_t index; index<mesh->nVertices();index++)
-    // {
-    //     Final_Force[index]=Vector3{result.coeff(3*index),result.coeff(3*index+1),result.coeff(3*index+2)};
-    // } 
-
-    // // std::cout<<"The two lambda for the constraints are "<< result[N_vert] << " and "<< result[N_vert+1] <<"\n";
-    // // return Final_Force;
-    
-
-
-
-}
-SparseMatrix<double> Mem3DG::H1_operator(bool CM, bool Vol_const, bool Area_const) {
-
-
-    // Ok so i have the gradient i want to calculate
-
-    // std::cout<<"We are doing the sobolev operator ! \n";
-    // std::cout<<"THe constraints are CM: "<< CM << " Volume " <<  Vol_const <<" and area " << Area_const <<" \n";
-    SparseMatrix<double> L = geometry->laplaceMatrix();
-    // SparseMatrix<double> M = geometry->massMatrix();
-    // SparseMatrix<double> Inv_M(mesh->nVertices(),mesh->nVertices());
-    // for(size_t index= 0; index<mesh->nVertices();index++)
-    // {
-    //     Inv_M.coeffRef(index,index)= 1.0/(M.coeff(index,index));
-       
-    // }
-
-    SparseMatrix<double> J = L;
-    // I need the constraint gradientsx
-    VertexData<Vector3> grad_sur = SurfaceGrad();
-    VertexData<Vector3> grad_vol = OsmoticPressure();
-    // VertexData<Vector3> grad_ben = Bending(0.0);
-
-    // i CAN MAYBE MULTIPLY BY THE SURFACE AREAS 
-    
-
-    // std::cout<<"Grad ben \n";
-
-    // std::cout<<"We are debugginggg \n";
-    size_t N_vert=mesh->nVertices();
-
-
-    int Num_constraints = 0;
-    if(CM ) Num_constraints+=3;
-    if(Vol_const) Num_constraints+=1;
-    if(Area_const) Num_constraints+=1;
-
-    // std::cout<<"THe number of constraints is "<< Num_constraints<<" \n";
-
-    SparseMatrix<double> S(N_vert*3+Num_constraints,N_vert*3+Num_constraints);
-
-    typedef Eigen::Triplet<double> T;
-    std::vector<T> tripletList;
-    int highest_row = 0;
-    int highest_col = 0;
-    // We add the constraints first
-
-    int Constraint_number = 0;
-
-
-    for(size_t index = 0; index<mesh->nVertices();index++)
+    if (Vol_const)
     {
+      // std::cout<<"Vol const on\n";
+      tripletList.push_back(T(3 * index, 3 * N_vert + Constraint_number, grad_vol[index].x));
+      tripletList.push_back(T(3 * index + 1, 3 * N_vert + Constraint_number, grad_vol[index].y));
+      tripletList.push_back(T(3 * index + 2, 3 * N_vert + Constraint_number, grad_vol[index].z));
+      tripletList.push_back(T(3 * N_vert + Constraint_number, 3 * index, grad_vol[index].x));
+      tripletList.push_back(T(3 * N_vert + Constraint_number, 3 * index + 1, grad_vol[index].y));
+      tripletList.push_back(T(3 * N_vert + Constraint_number, 3 * index + 2, grad_vol[index].z));
 
-        Constraint_number = 0;
-    //  Area constraint 
-        if(Area_const){
-          // std::cout<<"Area constraint on \n";
-        tripletList.push_back(T(3*index,3*N_vert+Constraint_number, grad_sur[index].x ) );
-        tripletList.push_back(T(3*index+1, 3*N_vert+Constraint_number, grad_sur[index].y ) );
-        tripletList.push_back(T(3*index+2, 3*N_vert+Constraint_number, grad_sur[index].z ) );
-        tripletList.push_back(T(3*N_vert+Constraint_number,3*index, grad_sur[index].x ) );
-        tripletList.push_back(T(3*N_vert+Constraint_number, 3*index+1, grad_sur[index].y ) );
-        tripletList.push_back(T(3*N_vert+Constraint_number,3*index+2, grad_sur[index].z ) );
-        
-        Constraint_number++;
-        }
-        
-    // Volume Constraint
-        if(Vol_const){
-          // std::cout<<"Vol const on\n";
-        tripletList.push_back(T(3*index, 3*N_vert+Constraint_number, grad_vol[index].x ) );
-        tripletList.push_back(T(3*index+1, 3*N_vert+Constraint_number, grad_vol[index].y ) );
-        tripletList.push_back(T(3*index+2, 3*N_vert+Constraint_number, grad_vol[index].z ) );
-        tripletList.push_back(T(3*N_vert+Constraint_number, 3*index, grad_vol[index].x ) );
-        tripletList.push_back(T(3*N_vert+Constraint_number, 3*index+1, grad_vol[index].y ) );
-        tripletList.push_back(T(3*N_vert+Constraint_number, 3*index+2, grad_vol[index].z ) );
-        
-        Constraint_number++;
-        }
+      Constraint_number++;
+    }
     // Position Constraint I
-        
-        if(CM){
-          // std::cout<<"POs constraint on \n";
-        tripletList.push_back(T(3*index, 3*N_vert +Constraint_number, 1 ) );
-        tripletList.push_back(T(3*N_vert +Constraint_number, 3*index, 1 ) );
-        Constraint_number++;
-        
-        tripletList.push_back(T(3*index + 1, 3*N_vert +Constraint_number, 1 ) );
-        tripletList.push_back(T(3*N_vert +Constraint_number, 3*index +1, 1 ) );
-        Constraint_number++;
-        
-        tripletList.push_back(T(3*index + 2 , 3*N_vert+Constraint_number, 1 ) );
-        tripletList.push_back(T(3*N_vert+Constraint_number, 3*index + 2, 1 ) );
-        Constraint_number++;
-        }
 
+    if (CM)
+    {
+      // std::cout<<"POs constraint on \n";
+      tripletList.push_back(T(3 * index, 3 * N_vert + Constraint_number, 1));
+      tripletList.push_back(T(3 * N_vert + Constraint_number, 3 * index, 1));
+      Constraint_number++;
 
+      tripletList.push_back(T(3 * index + 1, 3 * N_vert + Constraint_number, 1));
+      tripletList.push_back(T(3 * N_vert + Constraint_number, 3 * index + 1, 1));
+      Constraint_number++;
+
+      tripletList.push_back(T(3 * index + 2, 3 * N_vert + Constraint_number, 1));
+      tripletList.push_back(T(3 * N_vert + Constraint_number, 3 * index + 2, 1));
+      Constraint_number++;
+    }
+  }
+
+  //  std::cout<<"Before setting from tripplets\n";
+  // std::cout<<"THe number of vertices is " << N_vert <<"\n";
+  // std::cout<<"THe highest expected col is " << 3*N_vert+2 <<" \n";
+  // std::cout<<"THe calculated col is " << highest_col <<" \n";
+  // std::cout<<"THe highest expected row is " << 3*N_vert+2 <<" \n";
+  // std::cout<<"THe calculated row is " << highest_row <<" \n";
+  // Now we iterate over the Laplacian
+  int row;
+  int col;
+  double value;
+
+  for (long int k = 0; k < J.outerSize(); ++k)
+  {
+    for (SparseMatrix<double>::InnerIterator it(J, k); it; ++it)
+    {
+      value = it.value();
+      row = it.row();
+      col = it.col();
+      tripletList.push_back(T(3 * row, 3 * col, value));
+      tripletList.push_back(T(3 * row + 1, 3 * col + 1, value));
+      tripletList.push_back(T(3 * row + 2, 3 * col + 2, value));
+      // if( 3*row > highest_row) highest_row = 3*row;
+      // if( 3*col > highest_col) highest_col = 3*col;
+    }
+  }
+
+  // std::cout<<"Before setting from tripplets\n";
+  // std::cout<<"THe number of vertices is " << N_vert <<"\n";
+  // std::cout<<"THe highest expected col is " << 3*N_vert+2 <<" \n";
+  // std::cout<<"THe calculated col is " << highest_col <<" \n";
+  // std::cout<<"THe highest expected row is " << 3*N_vert+2 <<" \n";
+  // std::cout<<"THe calculated row is " << highest_row <<" \n";
+  S.setFromTriplets(tripletList.begin(), tripletList.end());
+  // std::cout<<"THe matrix has been formed\n";
+
+  return S;
+
+  // std::cout<<"AFTER setting from tripplets\n";
+  // // We need to create the vector of the RHS
+
+  // Vector<double> RHS(N_vert*3+Num_constraints);
+  // int highest_idx = 0;
+  // for(size_t index; index<mesh->nVertices();index++)
+  // {
+  //     RHS.coeffRef(3*index)=grad_ben[index].x;
+  //     RHS.coeffRef(3*index+1)=grad_ben[index].y;
+  //     RHS.coeffRef(3*index+2)=grad_ben[index].z;
+  //     if( 3*index +2 > highest_idx) highest_idx = 3*index+2;
+  // }
+
+  // // std::cout<<"The highest index is " << highest_idx <<"\n";
+  // // std::cout<<"CREATING RHS\n";
+  // for(size_t index = 0; index<Num_constraints;index++)
+  // {
+  //     RHS.coeffRef(3*N_vert+index)=0;
+  // }
+  // // RHS.coeffRef(3*N_vert)=0;
+  // // RHS.coeffRef(3*N_vert+1)=0;
+  // // RHS.coeffRef(3*N_vert+2)=0;
+  // // RHS.coeffRef(3*N_vert+3)=0;
+  // // RHS.coeffRef(3*N_vert+4)=0;
+
+  // // std::cout<<"RHS IMPLEMENTED\n";
+
+  // // std::cout<<"The RHS is " << RHS << "\n";
+  // // We have The RHS and the matrix, its tiiiime
+  // // std::cout<<"Lets solve \n";
+  // Eigen::SparseLU<SparseMatrix<double>> solver;
+  // // std::cout<<"Solver defined \n";
+
+  // solver.compute(S);
+
+  // Vector<double> result = solver.solve(RHS);
+  // // std::cout<<"Result retrieved\n";
+  // VertexData<Vector3> Final_Force(*mesh);
+  // for(size_t index; index<mesh->nVertices();index++)
+  // {
+  //     Final_Force[index]=Vector3{result.coeff(3*index),result.coeff(3*index+1),result.coeff(3*index+2)};
+  // }
+
+  // // std::cout<<"The two lambda for the constraints are "<< result[N_vert] << " and "<< result[N_vert+1] <<"\n";
+  // // return Final_Force;
+}
+SparseMatrix<double> Mem3DG::H1_operator(bool CM, bool Vol_const, bool Area_const)
+{
+
+  // Ok so i have the gradient i want to calculate
+
+  // std::cout<<"We are doing the sobolev operator ! \n";
+  // std::cout<<"THe constraints are CM: "<< CM << " Volume " <<  Vol_const <<" and area " << Area_const <<" \n";
+  SparseMatrix<double> L = geometry->laplaceMatrix();
+  // SparseMatrix<double> M = geometry->massMatrix();
+  // SparseMatrix<double> Inv_M(mesh->nVertices(),mesh->nVertices());
+  // for(size_t index= 0; index<mesh->nVertices();index++)
+  // {
+  //     Inv_M.coeffRef(index,index)= 1.0/(M.coeff(index,index));
+
+  // }
+
+  SparseMatrix<double> J = L;
+  // I need the constraint gradientsx
+  VertexData<Vector3> grad_sur = SurfaceGrad();
+  VertexData<Vector3> grad_vol = OsmoticPressure();
+  // VertexData<Vector3> grad_ben = Bending(0.0);
+
+  // i CAN MAYBE MULTIPLY BY THE SURFACE AREAS
+
+  // std::cout<<"Grad ben \n";
+
+  // std::cout<<"We are debugginggg \n";
+  size_t N_vert = mesh->nVertices();
+
+  int Num_constraints = 0;
+  if (CM)
+    Num_constraints += 3;
+  if (Vol_const)
+    Num_constraints += 1;
+  if (Area_const)
+    Num_constraints += 1;
+
+  // std::cout<<"THe number of constraints is "<< Num_constraints<<" \n";
+
+  SparseMatrix<double> S(N_vert * 3 + Num_constraints, N_vert * 3 + Num_constraints);
+
+  typedef Eigen::Triplet<double> T;
+  std::vector<T> tripletList;
+  int highest_row = 0;
+  int highest_col = 0;
+  // We add the constraints first
+
+  int Constraint_number = 0;
+
+  for (size_t index = 0; index < mesh->nVertices(); index++)
+  {
+
+    Constraint_number = 0;
+    //  Area constraint
+    if (Area_const)
+    {
+      // std::cout<<"Area constraint on \n";
+      tripletList.push_back(T(3 * index, 3 * N_vert + Constraint_number, grad_sur[index].x));
+      tripletList.push_back(T(3 * index + 1, 3 * N_vert + Constraint_number, grad_sur[index].y));
+      tripletList.push_back(T(3 * index + 2, 3 * N_vert + Constraint_number, grad_sur[index].z));
+      tripletList.push_back(T(3 * N_vert + Constraint_number, 3 * index, grad_sur[index].x));
+      tripletList.push_back(T(3 * N_vert + Constraint_number, 3 * index + 1, grad_sur[index].y));
+      tripletList.push_back(T(3 * N_vert + Constraint_number, 3 * index + 2, grad_sur[index].z));
+
+      Constraint_number++;
     }
 
-    //  std::cout<<"Before setting from tripplets\n";
-    // std::cout<<"THe number of vertices is " << N_vert <<"\n";
-    // std::cout<<"THe highest expected col is " << 3*N_vert+2 <<" \n";
-    // std::cout<<"THe calculated col is " << highest_col <<" \n";
-    // std::cout<<"THe highest expected row is " << 3*N_vert+2 <<" \n";
-    // std::cout<<"THe calculated row is " << highest_row <<" \n";
-    // Now we iterate over the Laplacian
-    int row;
-    int col;
-    double value;
+    // Volume Constraint
+    if (Vol_const)
+    {
+      // std::cout<<"Vol const on\n";
+      tripletList.push_back(T(3 * index, 3 * N_vert + Constraint_number, grad_vol[index].x));
+      tripletList.push_back(T(3 * index + 1, 3 * N_vert + Constraint_number, grad_vol[index].y));
+      tripletList.push_back(T(3 * index + 2, 3 * N_vert + Constraint_number, grad_vol[index].z));
+      tripletList.push_back(T(3 * N_vert + Constraint_number, 3 * index, grad_vol[index].x));
+      tripletList.push_back(T(3 * N_vert + Constraint_number, 3 * index + 1, grad_vol[index].y));
+      tripletList.push_back(T(3 * N_vert + Constraint_number, 3 * index + 2, grad_vol[index].z));
 
-    for( long int  k = 0; k < J.outerSize(); ++k ) {
-        for( SparseMatrix<double>::InnerIterator it(J,k); it; ++it ) {
-            value = it.value();
-            row = it.row();
-            col = it.col();
-            tripletList.push_back(T(3*row,3*col,value));
-            tripletList.push_back(T(3*row+1,3*col+1,value));
-            tripletList.push_back(T(3*row+2,3*col+2,value));
-            // if( 3*row > highest_row) highest_row = 3*row;
-            // if( 3*col > highest_col) highest_col = 3*col;
-        
-        }
+      Constraint_number++;
     }
+    // Position Constraint I
 
-    S.setFromTriplets(tripletList.begin(),tripletList.end());
+    if (CM)
+    {
+      // std::cout<<"POs constraint on \n";
+      tripletList.push_back(T(3 * index, 3 * N_vert + Constraint_number, 1));
+      tripletList.push_back(T(3 * N_vert + Constraint_number, 3 * index, 1));
+      Constraint_number++;
 
-    return S;
+      tripletList.push_back(T(3 * index + 1, 3 * N_vert + Constraint_number, 1));
+      tripletList.push_back(T(3 * N_vert + Constraint_number, 3 * index + 1, 1));
+      Constraint_number++;
 
+      tripletList.push_back(T(3 * index + 2, 3 * N_vert + Constraint_number, 1));
+      tripletList.push_back(T(3 * N_vert + Constraint_number, 3 * index + 2, 1));
+      Constraint_number++;
+    }
+  }
 
+  //  std::cout<<"Before setting from tripplets\n";
+  // std::cout<<"THe number of vertices is " << N_vert <<"\n";
+  // std::cout<<"THe highest expected col is " << 3*N_vert+2 <<" \n";
+  // std::cout<<"THe calculated col is " << highest_col <<" \n";
+  // std::cout<<"THe highest expected row is " << 3*N_vert+2 <<" \n";
+  // std::cout<<"THe calculated row is " << highest_row <<" \n";
+  // Now we iterate over the Laplacian
+  int row;
+  int col;
+  double value;
+
+  for (long int k = 0; k < J.outerSize(); ++k)
+  {
+    for (SparseMatrix<double>::InnerIterator it(J, k); it; ++it)
+    {
+      value = it.value();
+      row = it.row();
+      col = it.col();
+      tripletList.push_back(T(3 * row, 3 * col, value));
+      tripletList.push_back(T(3 * row + 1, 3 * col + 1, value));
+      tripletList.push_back(T(3 * row + 2, 3 * col + 2, value));
+      // if( 3*row > highest_row) highest_row = 3*row;
+      // if( 3*col > highest_col) highest_col = 3*col;
+    }
+  }
+
+  S.setFromTriplets(tripletList.begin(), tripletList.end());
+
+  return S;
 }
 
-
-
-VertexData<Vector3> Mem3DG::Linear_force_field(double x0,double slope) const{
+VertexData<Vector3> Mem3DG::Linear_force_field(double x0, double slope) const
+{
   // Can i make it volume preserving?
 
-  VertexData<Vector3> FField(*mesh,Vector3({0,0,0}));
-  VertexData<Vector3> FField_correction(*mesh,Vector3({0,0,0}));
+  VertexData<Vector3> FField(*mesh, Vector3({0, 0, 0}));
+  VertexData<Vector3> FField_correction(*mesh, Vector3({0, 0, 0}));
   Vector3 Normal;
   double mag = 0;
   double tot_mag = 0;
-  for( Vertex v : mesh->vertices()){
+  for (Vertex v : mesh->vertices())
+  {
     // I want to iterate over all vertices
     Normal = geometry->vertexNormalAreaWeighted(v);
-    mag = abs(geometry->inputVertexPositions[v].x-x0)*slope;
-    FField[v] = mag*Normal;
+    mag = abs(geometry->inputVertexPositions[v].x - x0) * slope;
+    FField[v] = mag * Normal;
     tot_mag += mag;
     FField_correction[v] = Normal;
   }
@@ -858,26 +820,18 @@ VertexData<Vector3> Mem3DG::Linear_force_field(double x0,double slope) const{
   //       FField[v.getIndex()]=mag*Normal/3.0;
   //   }
 
+  tot_mag = -1 * tot_mag / mesh->nVertices();
 
-  tot_mag = -1*tot_mag/mesh->nVertices();
-
-  // Now that i have the area average of this magnitude we can add it 
-  for(Vertex v : mesh->vertices()){
-    FField_correction[v]*=tot_mag;
+  // Now that i have the area average of this magnitude we can add it
+  for (Vertex v : mesh->vertices())
+  {
+    FField_correction[v] *= tot_mag;
   }
-
 
   // FField_correction = OsmoticPressure(tot_mag);
   // return FField;
-  return FField+FField_correction;
-  
+  return FField + FField_correction;
 }
-
-
-
-
-
-
 
 /*
 Performs backtracking
@@ -899,360 +853,285 @@ void Mem3DG::Smooth_vertices(){
 
 */
 
-void Mem3DG::Smooth_vertices(){
-
+void Mem3DG::Smooth_vertices()
+{
 
   size_t N_vert = mesh->nVertices();
-  SparseMatrix<double> L(N_vert,N_vert);
+  SparseMatrix<double> L(N_vert, N_vert);
 
   L = geometry->uniformlaplacianMatrix();
 
   // Ok i have the matrix now what
   Vector<double> xpos = Vector<double>(N_vert);
   Vector<double> ypos = Vector<double>(N_vert);
-  Vector<double> zpos =Vector<double>(N_vert);
+  Vector<double> zpos = Vector<double>(N_vert);
   Vector3 Pos;
-  for(size_t i = 0; i < N_vert; i++){
+  for (size_t i = 0; i < N_vert; i++)
+  {
     Pos = geometry->inputVertexPositions[i];
     xpos[i] = Pos.x;
     ypos[i] = Pos.y;
     zpos[i] = Pos.z;
-
   }
-  xpos = xpos + L*xpos;
-  ypos = ypos + L*ypos;
-  zpos = zpos + L*zpos;
+  xpos = xpos + L * xpos;
+  ypos = ypos + L * ypos;
+  zpos = zpos + L * zpos;
 
-  for(size_t i = 0; i <N_vert; i++){
-    geometry->inputVertexPositions[i] = Vector3({xpos[i],ypos[i],zpos[i]});
+  for (size_t i = 0; i < N_vert; i++)
+  {
+    geometry->inputVertexPositions[i] = Vector3({xpos[i], ypos[i], zpos[i]});
   }
-
 
   return;
 }
 
-
 /**
  * @brief Performs the backtracking algorithm for the Mem3DG class.
  *
- * 
+ *
  * @return The optimal step size for the backtracking algorithm.
  */
-double Mem3DG::Backtracking(){
+double Mem3DG::Backtracking()
+{
 
   double c1 = 0.5;
   double rho = 0.5;
   double alpha = 1;
-  // alpha = 5e-4;
   double position_Projeection = 0;
   double X_pos;
 
   // We calculate the dot product between the 2 gradients
-  if(momentum && system_time > 0 && Sim_handler->Previous_grad.size() >0) {
-    // std::cout<<"THe number of vertices is " << mesh->nVertices() << "\n";
-    // std::cout<<"The number of entries in the previous grad is"<< Sim_handler->Previous_grad.size() << "\n";
-    
-
+  if (momentum && system_time > 0 && Sim_handler->Previous_grad.size() > 0)
+  {
     double product = 0;
-    for(Vertex v: mesh->vertices()){
-      product+= dot(Sim_handler->Current_grad[v],Sim_handler->Previous_grad[v]);
+    for (Vertex v : mesh->vertices())
+    {
+      product += dot(Sim_handler->Current_grad[v], Sim_handler->Previous_grad[v]);
     }
-    // 
-    if(product > 0) {
-      // std::cout<<"The product IS ALIGNED (:\n";
-      // The two gradients are somewhat aligned
-      Sim_handler->Current_grad = Sim_handler->Current_grad + Sim_handler->Previous_grad*learn_rate;
-      for(Bead* b : Beads) b->Total_force = b->Total_force + b->Prev_Total_force*learn_rate; //This line needs to be tested still
+    if (product > 0)
+    {
+      Sim_handler->Current_grad = Sim_handler->Current_grad + Sim_handler->Previous_grad * learn_rate;
+      for (Bead *b : Beads)
+        b->Total_force = b->Total_force + b->Prev_Total_force * learn_rate; // This line needs to be tested still
     }
   }
-
-
-
-  // if(system_time>10) std::cout<<"Printing this as system time is " << system_time <<" \n";
-  // Sim_handler.Calculate_energies(previousE);
   double previousE = 0;
-  Sim_handler->Calculate_energies(&previousE);
-  for(size_t i = 0; i < Sim_handler->Energies.size(); i++) {
-    if(isnan(Sim_handler->Energy_values[i])) std::cout<<"Energy " << Sim_handler->Energies[i] << " is nan\n";
+  Sim_handler->Calculate_energies_precomp(&previousE);
+  for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
+  {
+    if (isnan(Sim_handler->Energy_values[i]))
+      std::cout << "Energy " << Sim_handler->Energies[i] << " is nan\n";
   }
 
   double NewE;
   VertexData<Vector3> initial_pos(*mesh);
-  if(recentering){
-    if(Field != "None"){
-      // std::cout<<"THere is a field\n";
-      Vector3 leftmost = Vector3({1e10,1e10,1e10});
-      for(Vertex v: mesh->vertices()){
-      if(geometry->inputVertexPositions[v].x < leftmost.x) leftmost = geometry->inputVertexPositions[v];
+  if (recentering)
+  {
+    if (Field != "None")
+    {
+      Vector3 leftmost = Vector3({1e10, 1e10, 1e10});
+      for (Vertex v : mesh->vertices())
+      {
+        if (geometry->inputVertexPositions[v].x < leftmost.x)
+          leftmost = geometry->inputVertexPositions[v];
       }
-      // I have the leftmost vertex, the position of this vertex should be P 
-      leftmost = Vector3({-1.0,0.0,0.0})-leftmost;
-      VertexData<Vector3> Displacement(*mesh,leftmost);
-      geometry->inputVertexPositions+=Displacement;
-
+      leftmost = Vector3({-1.0, 0.0, 0.0}) - leftmost;
+      VertexData<Vector3> Displacement(*mesh, leftmost);
+      geometry->inputVertexPositions += Displacement;
     }
-    else{
-    // Ok so if there is a field the way we normalize is different.
-    // 
+    else
+    {
       Vector3 CoM = geometry->centerOfMass();
-
-      geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+      geometry->normalize(Vector3({0.0, 0.0, 0.0}), false);
     }
   }
   Vector3 CoM = geometry->centerOfMass();
-    
+
   initial_pos = geometry->inputVertexPositions;
 
   std::vector<Vector3> Bead_init;
 
-  for( size_t i = 0 ; i < Beads.size() ; i++) Bead_init.push_back( Beads[i]->Pos);
+  for (size_t i = 0; i < Beads.size(); i++)
+    Bead_init.push_back(Beads[i]->Pos);
 
   double Projection = 0;
-  Vector3 center;  
+  Vector3 center;
 
-
-  // We start the evolution
-  // We move the vertices
-  // std::cout<<" checking for nan grads\n";
-  for(Vertex v : mesh->vertices()){
-    if(isnan(Sim_handler->Current_grad[v].x || Sim_handler->Current_grad[v].y || Sim_handler->Current_grad[v].z)) std::cout<<" Is this force nan at vertex but norm2 is " << Sim_handler->Current_grad[v.getIndex()].norm2() <<"\n";
-  
+  for (Vertex v : mesh->vertices())
+  {
+    if (isnan(Sim_handler->Current_grad[v].x || Sim_handler->Current_grad[v].y || Sim_handler->Current_grad[v].z))
+      std::cout << " Is this force nan at vertex but norm2 is " << Sim_handler->Current_grad[v.getIndex()].norm2() << "\n";
   }
 
-  // std::cout<<"doing the stepping \n";
-  geometry->inputVertexPositions+=alpha * Sim_handler->Current_grad;
+  geometry->inputVertexPositions += alpha * Sim_handler->Current_grad;
   bool nanflag = false;
-  for(Vertex v : mesh->vertices()){
-    if(isnan( geometry->inputVertexPositions[v].norm2()))  nanflag = true;
+  for (Vertex v : mesh->vertices())
+  {
+    if (isnan(geometry->inputVertexPositions[v].norm2()))
+      nanflag = true;
   }
 
-  if(nanflag) std::cout<<"At least one vertex has nan position\n";
+  if (nanflag)
+    std::cout << "At least one vertex has nan position\n";
 
-  geometry->refreshQuantities();
+  // geometry->refreshQuantities();
   center = geometry->centerOfMass();
   Vector3 Vertex_pos;
-  
+
   // We move the beads;
-  for(size_t i = 0 ; i < Beads.size(); i++) Beads[i]->Move_bead(alpha,Vector3({0,0,0})); 
+  for (size_t i = 0; i < Beads.size(); i++)
+    Beads[i]->Move_bead(alpha, Vector3({0, 0, 0}));
 
   Projection = Sim_handler->Gradient_norms[Sim_handler->Energies.size()];
 
   size_t bead_count = 0;
   NewE = 0.0;
-  // std::cout<<" calculating energies again\n";
   Sim_handler->Calculate_energies(&NewE);
-  // std::cout<<"New E is " << NewE << "\n";
-  // std::cout<<"The projection is " << Projection << "\n";
   size_t counter = 0;
-  
   bool displacement_cond = true;
 
-  // std::cout<<"THe projection is " << Projection <<" \n";
-  // std::cout<<"The number of beads is " << Beads.size() << " \n";
-  
-  if(Projection < 1e-7) {
+  if (Projection < 1e-7)
+  {
     small_TS = true;
-      std::cout<<"The energy diff is quite small and so is the gradient\n";
-      std::cout<<"The energy diff is"<< abs(NewE-previousE)/previousE<<"\n";
-      std::cout<<"The projection is"<< Projection<<"\n";
-      return -1.0;
+    std::cout << "The energy diff is quite small and so is the gradient\n";
+    std::cout << "The energy diff is" << abs(NewE - previousE) / previousE << "\n";
+    std::cout << "The projection is" << Projection << "\n";
+    return -1.0;
   }
 
-  while(true) {
+  while (true)
+  {
     displacement_cond = true;
-    
-    for(size_t i = 0 ; i< Beads.size() ; i++) displacement_cond = displacement_cond && Beads[i]->Total_force.norm()*alpha<0.1*Beads[i]->sigma;
-    // if(!displacement_cond) std::cout<<"The displacement condition is not satisfied\n";
 
-      // std::cout<<"THe relative energy diff in this step is "<< fabs((NewE-previousE)/previousE) <<" \n"; 
-      // std::cout<<"THe new E is "<< NewE <<" the previous is "<< previousE <<" and the expected decrease is "<< c1 * alpha * Projection<< "\n";
-      if(NewE <= previousE - c1 * alpha * Projection && displacement_cond  && fabs(NewE-previousE)<1e2 ) {
-    
-        if(fabs(NewE-previousE) > 5e1  && false){
-          
-      
-          std::cout<<"The energies are ";
-          for(size_t i = 0; i < Sim_handler->Energies.size(); i++) std::cout<< Sim_handler->Energies[i] << " is " << Sim_handler->Energy_values[i] << " ";
-          std::cout<<" \n";
-          std::cout<<"The projection is " << Projection <<" \n";
+    for (size_t i = 0; i < Beads.size(); i++)
+      displacement_cond = displacement_cond && Beads[i]->Total_force.norm() * alpha < 0.1 * Beads[i]->sigma;
 
-          double Max_projection = 0.0;
-          int maxproj_index = 0;
-
-          double maxDisplacement = 0.0;
-          std::cout<<"Finding breaking point\n";
-          for (Vertex v : mesh->vertices()) {
-            if(Sim_handler->Current_grad[v].norm() > Max_projection) {
-              Max_projection = Sim_handler->Current_grad[v].norm();
-              maxproj_index = v.getIndex();
-              }
-            double displacement = (geometry->inputVertexPositions[v] - initial_pos[v]).norm();
-            if (displacement > maxDisplacement) {
-              maxDisplacement = displacement;
-            }
-          }
-          std::cout<<"The max displacement is " << maxDisplacement <<" \n";
-          std::cout<<"The value of alpha is " << alpha <<" \n";
-          std::cout<<"We will recalculate the energies, lets go back one step for now\n";
-          geometry->inputVertexPositions = initial_pos;
-          geometry->refreshQuantities();
-          mesh->compress();
-          // I want something else 
-        
-        alpha = 0.0;
-
-        // Lets troubleshoot this hehe
-        std::cout<<"The previous energy was" << previousE <<" \n";
-        std::cout<<"The projection of the bigges vertex is " << Max_projection <<" \n";
-        std::cout<<"This vertex is located at " << geometry->inputVertexPositions[maxproj_index] <<" \n";
-        std::cout<<"This vertex in init pos is  at " << initial_pos[maxproj_index] <<" \n";
-      
-        // Lets explore the sorroundings
-        Vertex v = mesh->vertex(maxproj_index);
-        for(Face f : v.adjacentFaces()){
-          std::cout<<"The adjacent faces are " << f.getIndex() <<" \n";
-          std::cout<<"With area " << geometry->faceArea(f) <<" \n";
-        }
-        for(Halfedge he : v.outgoingHalfedges()){
-          std::cout<<"The adjacent halfedges are " << he.getIndex() <<" \n";
-          std::cout<<"With cotan " << geometry->cotan(he) <<" \n";
-        }
-
-        }
+    if (NewE <= previousE - c1 * alpha * Projection && displacement_cond && fabs(NewE - previousE) < 1e2)
+    {
       break;
     }
-    
 
-    if(std::isnan(NewE)){
+    if (std::isnan(NewE))
+    {
       alpha = -1.0;
       break;
-
     }
-    
-    alpha *=rho;
-    
 
-    if( (fabs((NewE-previousE)/previousE) < 1e-4 && Projection < 0.5) || Projection < 1e-5){
+    alpha *= rho;
+
+    if ((fabs((NewE - previousE) / previousE) < 1e-4 && Projection < 0.05) || Projection < 1e-5)
+    {
       small_TS = true;
-      std::cout<<"The energy diff is quite small and so is the gradient\n";
-      std::cout<<"The energy diff is"<< abs(NewE-previousE)<<"\n";
-      std::cout<<"The projection is"<< Projection<<"\n";
+      std::cout << "The energy diff is quite small and so is the gradient\n";
+      std::cout << "The energy diff is" << abs(NewE - previousE) << "\n";
+      std::cout << "The projection is" << Projection << "\n";
       return -1.0;
     }
 
-    if(alpha<1e-10){
+    if (alpha < 1e-10)
+    {
       BFGS_iter = 0;
       remesh_flag = true;
-      std::cout<<"The remesh flag is true\n";
-      std::cout<<"THe timestep got small so the simulation would end \n";
-      std::cout<<"THe timestep is "<< alpha <<" \n";
-      std::cout<<"The energy diff is"<< abs(NewE-previousE)<<"\n";
-      std::cout<<"THe relative energy diff  is"<<abs((NewE-previousE)/previousE)<<"\n";
-      std::cout<<"The projection is"<< Projection<<"\n";
-      std::cout<<"The projection is too big "<< (Projection>1.0e8) <<" \n";
-      if(Projection>1.0e8){
-      // return alpha;
-      std::cout<<"The gradient got crazy\n";
-      std::cout<<"The projection is "<< Projection<<"\n";
-      // geometry->inputVertexPositions = initial_pos;
-      return -1;
+      std::cout << "The remesh flag is true\n";
+      std::cout << "THe timestep got small so the simulation would end \n";
+      std::cout << "THe timestep is " << alpha << " \n";
+      std::cout << "The energy diff is" << abs(NewE - previousE) << "\n";
+      std::cout << "THe relative energy diff  is" << abs((NewE - previousE) / previousE) << "\n";
+      std::cout << "The projection is" << Projection << "\n";
+      std::cout << "The projection is too big " << (Projection > 1.0e8) << " \n";
+      if (Projection > 1.0e8)
+      {
+        // return alpha;
+        std::cout << "The gradient got crazy\n";
+        std::cout << "The projection is " << Projection << "\n";
+        // geometry->inputVertexPositions = initial_pos;
+        return -1;
       }
-
       small_TS = true;
-      if(Projection>=5000) small_TS = false;
+      if (Projection >= 5000)
+        small_TS = false;
 
       break;
-
     }
-    else if(small_TS) small_TS = false;
-    // std::cout<<"System time is" << system_time <<" \n";
-    if(alpha>0) {
-      geometry->inputVertexPositions = initial_pos + alpha*Sim_handler->Current_grad;
-    
-      for(size_t i = 0; i<Beads.size(); i++){
+    else if (small_TS)
+      small_TS = false;
+    if (alpha > 0)
+    {
+      geometry->inputVertexPositions = initial_pos + alpha * Sim_handler->Current_grad;
+
+      for (size_t i = 0; i < Beads.size(); i++)
+      {
         Beads[i]->Reset_bead(Bead_init[i]);
-        Beads[i]->Move_bead(alpha, Vector3({0,0,0}));
+        Beads[i]->Move_bead(alpha, Vector3({0, 0, 0}));
       }
     }
-    else {
-    for(size_t i = 0; i<Beads.size(); i++){
-      Beads[i]->Reset_bead(Bead_init[i]);
-      // Beads[i]->Move_bead(alpha, Vector3({0,0,0}));
+    else
+    {
+      for (size_t i = 0; i < Beads.size(); i++)
+      {
+        Beads[i]->Reset_bead(Bead_init[i]);
+      }
+      geometry->inputVertexPositions = initial_pos;
     }
-    geometry->inputVertexPositions = initial_pos;
-
-    }
-    
-    geometry->refreshQuantities();
-
     bead_count = 0;
-
     NewE = 0.0;
     Sim_handler->Calculate_energies(&NewE);
-   
-  
   }
-
 
   nanflag = false;
 
-  for(Vertex v : mesh->vertices()) if(isnan(geometry->inputVertexPositions[v].x+ geometry->inputVertexPositions[v].y  + geometry->inputVertexPositions[v].z )) nanflag = true;  
+  for (Vertex v : mesh->vertices())
+    if (isnan(geometry->inputVertexPositions[v].x + geometry->inputVertexPositions[v].y + geometry->inputVertexPositions[v].z))
+      nanflag = true;
 
-  if(nanflag) std::cout<< "After backtracking one vertex is nan :( also the value of alpha is"<< alpha << " \n";
-  if(alpha<=0.0){ 
-  // std::cout<<"Repositioning\n";
-  geometry->inputVertexPositions = initial_pos;
+  if (nanflag)
+    std::cout << "After backtracking one vertex is nan :( also the value of alpha is" << alpha << " \n";
+  if (alpha <= 0.0)
+  {
+    geometry->inputVertexPositions = initial_pos;
   }
-  if(recentering) {
+  if (recentering)
+  {
 
-    if(alpha<=0.0){
-      std::cout<<"NotRecentering after crisis\n";
+    if (alpha <= 0.0)
+    {
+      std::cout << "NotRecentering after crisis\n";
     }
-    else{
-    // std::cout<<"rENORMALIZING\n";
-    CoM = geometry->centerOfMass();
+    else
+    {
+      CoM = geometry->centerOfMass();
 
-    if(Field != "None"){
-      // std::cout<<"THere is a field\n";
-      Vector3 leftmost = Vector3({1e10,1e10,1e10});
-      for(Vertex v: mesh->vertices()){
-      if(geometry->inputVertexPositions[v].x < leftmost.x) leftmost = geometry->inputVertexPositions[v];
+      if (Field != "None")
+      {
+        Vector3 leftmost = Vector3({1e10, 1e10, 1e10});
+        for (Vertex v : mesh->vertices())
+        {
+          if (geometry->inputVertexPositions[v].x < leftmost.x)
+            leftmost = geometry->inputVertexPositions[v];
+        }
+        // I have the leftmost vertex, the position of this vertex should be P
+        leftmost = Vector3({-1.0, 0.0, 0.0}) - leftmost;
+        CoM = leftmost;
+        VertexData<Vector3> Displacement(*mesh, leftmost);
+        geometry->inputVertexPositions += Displacement;
       }
-      // I have the leftmost vertex, the position of this vertex should be P 
-      leftmost = Vector3({-1.0,0.0,0.0})-leftmost;
-      CoM = leftmost;
-      VertexData<Vector3> Displacement(*mesh,leftmost);
-      geometry->inputVertexPositions+=Displacement;
+      else
+      {
+        geometry->normalize(Vector3({0.0, 0.0, 0.0}), false);
+      }
 
+      for (size_t i = 0; i < Beads.size(); i++)
+      {
+        Beads[i]->Pos -= CoM;
+      }
     }
-    else{
-    geometry->normalize(Vector3({0.0,0.0,0.0}),false);
-    }
-  // CoM = geometry->centerOfMass();
-    
-  for(size_t i = 0; i < Beads.size(); i++){
-
-    // Here i need to move the bead
-    // if(Beads[i]->state!= "froze"){
-      Beads[i]->Pos -= CoM;
-    // }
-
   }
-  // }
-  // 
-    }
-  geometry->refreshQuantities();
-  }
-
-
-  // std::cout<<"The difference in energy is " << fabs(NewE-previousE) <<"(: \n";
 
   return alpha;
 }
 
-
-
-double Mem3DG::Backtracking_grad(Eigen::VectorXd p_lambda, double Projection, double Current_grad_norm){
+double Mem3DG::Backtracking_grad_Normal(Eigen::VectorXd p_lambda, double Projection, double Current_grad_norm)
+{
 
   double c1 = 0.2;
   double rho = 0.5;
@@ -1267,281 +1146,650 @@ double Mem3DG::Backtracking_grad(Eigen::VectorXd p_lambda, double Projection, do
   VertexData<Vector3> Step_newton = Sim_handler->Current_grad;
   std::vector<Vector3> Step_beads(0);
 
-  for(size_t bi = 0; bi < N_beads; bi++) Step_beads.push_back(Beads[bi]->Total_force);
-
+  for (size_t bi = 0; bi < N_beads; bi++)
+    Step_beads.push_back(Beads[bi]->Total_force);
 
   double PrevNorm = Current_grad_norm;
 
   double NewNorm;
-  
+
   VertexData<Vector3> initial_pos(*mesh);
   Eigen::VectorXd initial_lag;
   std::vector<Vector3> initial_bead_pos(0);
-  
+
   // We will open a file to log the backtracking process
   std::ofstream backtrack_log;
 
-  backtrack_log.open(basic_name+"backtrack_log.txt",std::ios::app);
+  backtrack_log.open(basic_name + "backtrack_log.txt", std::ios::app);
   // So the order will be : Prevnorm Projection NEWNORM NEWNORM NEWNORM ...
 
-  backtrack_log << PrevNorm <<" " << Projection <<" ";
+  backtrack_log << PrevNorm << " ";
 
-
-  if(recentering){
-    if(Field != "None"){
+  if (recentering)
+  {
+    if (Field != "None")
+    {
       // std::cout<<"THere is a field\n";
-      Vector3 leftmost = Vector3({1e10,1e10,1e10});
-      for(Vertex v: mesh->vertices()){
-      if(geometry->inputVertexPositions[v].x < leftmost.x) leftmost = geometry->inputVertexPositions[v];
+      Vector3 leftmost = Vector3({1e10, 1e10, 1e10});
+      for (Vertex v : mesh->vertices())
+      {
+        if (geometry->inputVertexPositions[v].x < leftmost.x)
+          leftmost = geometry->inputVertexPositions[v];
       }
-      // I have the leftmost vertex, the position of this vertex should be P 
-      leftmost = Vector3({-1.0,0.0,0.0})-leftmost;
-      VertexData<Vector3> Displacement(*mesh,leftmost);
-      geometry->inputVertexPositions+=Displacement;
-
+      // I have the leftmost vertex, the position of this vertex should be P
+      leftmost = Vector3({-1.0, 0.0, 0.0}) - leftmost;
+      VertexData<Vector3> Displacement(*mesh, leftmost);
+      geometry->inputVertexPositions += Displacement;
     }
-    else{
-    // Ok so if there is a field the way we normalize is different.
-    // 
+    else
+    {
+      // Ok so if there is a field the way we normalize is different.
+      //
       Vector3 CoM = geometry->centerOfMass();
 
-      geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+      geometry->normalize(Vector3({0.0, 0.0, 0.0}), false);
     }
   }
   Vector3 CoM = geometry->centerOfMass();
 
-
-  
-  // std::cout<<"Saving initial condition \n";
-  
   initial_pos = geometry->inputVertexPositions;
   initial_lag = Sim_handler->Lagrange_mult;
 
-  for(int bi = 0; bi < N_beads; bi++){
+  for (int bi = 0; bi < N_beads; bi++)
+  {
     initial_bead_pos.push_back(Beads[bi]->Pos);
   }
 
   std::vector<Vector3> Bead_init;
 
-  for( size_t i = 0 ; i < N_beads ; i++) Bead_init.push_back( Beads[i]->Pos);
+  for (size_t i = 0; i < N_beads; i++)
+    Bead_init.push_back(Beads[i]->Pos);
+
+  Vector3 center;
+  geometry->inputVertexPositions += alpha * Step_newton;
+  // We move the beads;
+  for (size_t i = 0; i < Beads.size(); i++)
+    Beads[i]->Move_bead(alpha, Vector3({0, 0, 0}));
+
+  for (int i = 0; i < Sim_handler->N_constraints; i++)
+  {
+    if (Sim_handler->Constraints[i] == "Volume" || Sim_handler->Constraints[i] == "Area")
+    {
+      Sim_handler->Lagrange_mult[i] -= alpha * p_lambda[i];
+    }
+  }
+
+  bool nanflag = false;
+  for (Vertex v : mesh->vertices())
+  {
+    if (isnan(geometry->inputVertexPositions[v].norm2()))
+      nanflag = true;
+  }
+
+  if (nanflag)
+    std::cout << "At least one vertex has nan position\n";
+
+  center = geometry->centerOfMass();
+  Vector3 Vertex_pos;
+
+  size_t bead_count = 0;
+  NewNorm = 0.0;
+  Sim_handler->Calculate_Lag_norm_Normal(&NewNorm);
+  size_t counter = 0;
+  bool displacement_cond = true;
+
+  if (Projection < 1e-7)
+  {
+    small_TS = true;
+    std::cout << "The norm  diff is quite small and so is the gradient\n";
+    std::cout << "The norm diff is" << abs(NewNorm - PrevNorm) / PrevNorm << "\n";
+    std::cout << "The projection is" << Projection << "\n";
+    return -1.0;
+  }
+
+  while (true)
+  {
+    displacement_cond = true;
+    backtrack_log << NewNorm << " ";
+
+    for (size_t i = 0; i < Beads.size(); i++)
+      displacement_cond = displacement_cond && Beads[i]->Total_force.norm() * alpha < 0.1 * Beads[i]->sigma;
+
+    // if( fabs(PrevNorm-NewNorm) <= alpha * Projection && NewNorm < PrevNorm  ) {
+    if (NewNorm < PrevNorm)
+    {
+
+      if (fabs(NewNorm - PrevNorm) > 5e1 && false)
+      {
+
+        std::cout << "The energies are ";
+        for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
+          std::cout << Sim_handler->Energies[i] << " is " << Sim_handler->Energy_values[i] << " ";
+        std::cout << " \n";
+        std::cout << "The projection is " << Projection << " \n";
+
+        double Max_projection = 0.0;
+        int maxproj_index = 0;
+
+        double maxDisplacement = 0.0;
+        std::cout << "Finding breaking point\n";
+        for (Vertex v : mesh->vertices())
+        {
+          if (Sim_handler->Current_grad[v].norm() > Max_projection)
+          {
+            Max_projection = Sim_handler->Current_grad[v].norm();
+            maxproj_index = v.getIndex();
+          }
+          double displacement = (geometry->inputVertexPositions[v] - initial_pos[v]).norm();
+          if (displacement > maxDisplacement)
+          {
+            maxDisplacement = displacement;
+          }
+        }
+        std::cout << "The max displacement is " << maxDisplacement << " \n";
+        std::cout << "The value of alpha is " << alpha << " \n";
+        std::cout << "We will recalculate the energies, lets go back one step for now\n";
+        geometry->inputVertexPositions = initial_pos;
+
+        Sim_handler->Lagrange_mult = initial_lag;
+
+        // geometry->refreshQuantities();
+        mesh->compress();
+        // I want something else
+
+        alpha = 0.0;
+
+        // Lets troubleshoot this hehe
+        std::cout << "The previous energy was" << PrevNorm << " \n";
+        std::cout << "The projection of the bigges vertex is " << Max_projection << " \n";
+        std::cout << "This vertex is located at " << geometry->inputVertexPositions[maxproj_index] << " \n";
+        std::cout << "This vertex in init pos is  at " << initial_pos[maxproj_index] << " \n";
+
+        // Lets explore the sorroundings
+        Vertex v = mesh->vertex(maxproj_index);
+        for (Face f : v.adjacentFaces())
+        {
+          std::cout << "The adjacent faces are " << f.getIndex() << " \n";
+          std::cout << "With area " << geometry->faceArea(f) << " \n";
+        }
+        for (Halfedge he : v.outgoingHalfedges())
+        {
+          std::cout << "The adjacent halfedges are " << he.getIndex() << " \n";
+          std::cout << "With cotan " << geometry->cotan(he) << " \n";
+        }
+      }
+      backtrack_log << "\n";
+      backtrack_log.close();
+      break;
+    }
+
+    if (std::isnan(NewNorm))
+    {
+      std::cout << "Grad norm is nan \n";
+      backtrack_log << "\n";
+      backtrack_log.close();
+      alpha = -1.0;
+      break;
+    }
+
+    alpha *= rho;
+    if ((abs((NewNorm - PrevNorm) / PrevNorm) < 1e-7 && Projection < 0.5) || Projection < 1e-5)
+    {
+      small_TS = true;
+      std::cout << "The energy diff is quite small and so is the gradient\n";
+      std::cout << "The energy diff is" << abs(NewNorm - PrevNorm) / PrevNorm << "\n";
+      std::cout << "The projection is" << Projection << "\n";
+      backtrack_log << "\n";
+      backtrack_log.close();
+      return -1.0;
+    }
+
+    if (alpha < 1e-10)
+    {
+      std::cout << "THe timestep got small so the simulation would end \n";
+      std::cout << "THe timestep is " << alpha << " \n";
+      std::cout << "The NORM diff is" << abs(NewNorm - PrevNorm) << "\n";
+      std::cout << "THe relative energy diff  is" << abs((NewNorm - PrevNorm) / PrevNorm) << "\n";
+      std::cout << "The projection is" << Projection << "\n";
+      std::cout << "The projection is too big " << (Projection > 1.0e8) << " \n";
+      if (Projection > 1.0e8)
+      {
+        // return alpha;
+        std::cout << "The gradient got crazy\n";
+        std::cout << "The projections is " << Projection << "\n";
+        geometry->inputVertexPositions = initial_pos;
+        Sim_handler->Lagrange_mult = initial_lag;
+        backtrack_log << "\n";
+        backtrack_log.close();
+        return -1;
+      }
+      if (Projection < 100)
+      {
+        small_TS = true;
+      }
+
+      break;
+
+      // LEts try to step when it get super small
+    }
+
+    else if (small_TS)
+      small_TS = false;
+    // std::cout<<"System time is" << system_time <<" \n";
+    if (alpha > 0)
+    {
+      // std::cout<<"UPDATING POSITIONS\n";
+      geometry->inputVertexPositions = initial_pos + alpha * Step_newton;
+
+      for (int i = 0; i < Sim_handler->N_constraints; i++)
+      {
+        if (Sim_handler->Constraints[i] == "Volume" || Sim_handler->Constraints[i] == "Area")
+        {
+          // std::cout<<"Updating lagrange multipliers\n";
+          Sim_handler->Lagrange_mult[i] = initial_lag[i] - alpha * p_lambda[i];
+        }
+      }
+      // std::cout<<"The lagrange multipliers are " << Sim_handler->Lagrange_mult.transpose() << "\n";
+
+      for (size_t i = 0; i < Beads.size(); i++)
+      {
+        Beads[i]->Reset_bead(Bead_init[i]);
+        Beads[i]->Total_force = Step_beads[i];
+        Beads[i]->Move_bead(alpha, Vector3({0, 0, 0}));
+      }
+    }
+    else
+    {
+      for (size_t i = 0; i < Beads.size(); i++)
+      {
+        Beads[i]->Reset_bead(Bead_init[i]);
+        // Beads[i]->Move_bead(alpha, Vector3({0,0,0}));
+      }
+      geometry->inputVertexPositions = initial_pos;
+      Sim_handler->Lagrange_mult = initial_lag;
+    }
+
+    // geometry->refreshQuantities();
+
+    bead_count = 0;
+
+    // NewE = 0.0;
+    // Sim_handler->Calculate_energies(&NewE);
+    NewNorm = 0.0;
+    Sim_handler->Calculate_Lag_norm_Normal(&NewNorm);
+    // Sim_handler->Calculate_Lag_norm(&NewNorm);
+    // NewNorm = NewNorm;
+  }
+
+  backtrack_log << "\n";
+  backtrack_log.close();
+
+  nanflag = false;
+
+  for (Vertex v : mesh->vertices())
+    if (isnan(geometry->inputVertexPositions[v].x + geometry->inputVertexPositions[v].y + geometry->inputVertexPositions[v].z))
+      nanflag = true;
+
+  if (nanflag)
+    std::cout << "After backtracking one vertex is nan :( also the value of alpha is" << alpha << " \n";
+  if (alpha <= 0.0)
+  {
+    // std::cout<<"Repositioning\n";
+    geometry->inputVertexPositions = initial_pos;
+  }
+  if (recentering)
+  {
+
+    if (alpha <= 0.0)
+    {
+      std::cout << "NotRecentering after crisis\n";
+    }
+    else
+    {
+      // std::cout<<"rENORMALIZING\n";
+      CoM = geometry->centerOfMass();
+
+      if (Field != "None")
+      {
+        // std::cout<<"THere is a field\n";
+        Vector3 leftmost = Vector3({1e10, 1e10, 1e10});
+        for (Vertex v : mesh->vertices())
+        {
+          if (geometry->inputVertexPositions[v].x < leftmost.x)
+            leftmost = geometry->inputVertexPositions[v];
+        }
+        // I have the leftmost vertex, the position of this vertex should be P
+        leftmost = Vector3({-1.0, 0.0, 0.0}) - leftmost;
+        CoM = leftmost;
+        VertexData<Vector3> Displacement(*mesh, leftmost);
+        geometry->inputVertexPositions += Displacement;
+      }
+      else
+      {
+        geometry->normalize(Vector3({0.0, 0.0, 0.0}), false);
+      }
+      // CoM = geometry->centerOfMass();
+
+      for (size_t i = 0; i < Beads.size(); i++)
+      {
+
+        // Here i need to move the bead
+        // if(Beads[i]->state!= "froze"){
+        Beads[i]->Pos -= CoM;
+        // }
+      }
+      // }
+      //
+    }
+    // geometry->refreshQuantities();
+  }
+
+  // std::cout<<"The difference in energy is " << fabs(NewE-previousE) <<"(: \n";
+  // std::cout<<"The new norm is " << NewNorm << "\n";
+  return alpha;
+}
+
+double Mem3DG::Backtracking_grad(Eigen::VectorXd p_lambda, double Projection, double Current_grad_norm)
+{
+
+  double c1 = 0.2;
+  double rho = 0.5;
+  double alpha = 1;
+  // alpha = 5e-4;
+  double position_Projeection = 0;
+  double X_pos;
+
+  int N_vert = mesh->nVertices();
+  int N_beads = Beads.size();
+
+  VertexData<Vector3> Step_newton = Sim_handler->Current_grad;
+  std::vector<Vector3> Step_beads(0);
+
+  for (size_t bi = 0; bi < N_beads; bi++)
+    Step_beads.push_back(Beads[bi]->Total_force);
+
+  double PrevNorm = Current_grad_norm;
+
+  double NewNorm;
+
+  VertexData<Vector3> initial_pos(*mesh);
+  Eigen::VectorXd initial_lag;
+  std::vector<Vector3> initial_bead_pos(0);
+
+  // We will open a file to log the backtracking process
+  std::ofstream backtrack_log;
+
+  backtrack_log.open(basic_name + "backtrack_log.txt", std::ios::app);
+  // So the order will be : Prevnorm Projection NEWNORM NEWNORM NEWNORM ...
+
+  backtrack_log << PrevNorm << " " << Projection << " ";
+
+  if (recentering)
+  {
+    if (Field != "None")
+    {
+      // std::cout<<"THere is a field\n";
+      Vector3 leftmost = Vector3({1e10, 1e10, 1e10});
+      for (Vertex v : mesh->vertices())
+      {
+        if (geometry->inputVertexPositions[v].x < leftmost.x)
+          leftmost = geometry->inputVertexPositions[v];
+      }
+      // I have the leftmost vertex, the position of this vertex should be P
+      leftmost = Vector3({-1.0, 0.0, 0.0}) - leftmost;
+      VertexData<Vector3> Displacement(*mesh, leftmost);
+      geometry->inputVertexPositions += Displacement;
+    }
+    else
+    {
+      // Ok so if there is a field the way we normalize is different.
+      //
+      Vector3 CoM = geometry->centerOfMass();
+
+      geometry->normalize(Vector3({0.0, 0.0, 0.0}), false);
+    }
+  }
+  Vector3 CoM = geometry->centerOfMass();
+
+  // std::cout<<"Saving initial condition \n";
+
+  initial_pos = geometry->inputVertexPositions;
+  initial_lag = Sim_handler->Lagrange_mult;
+
+  for (int bi = 0; bi < N_beads; bi++)
+  {
+    initial_bead_pos.push_back(Beads[bi]->Pos);
+  }
+
+  std::vector<Vector3> Bead_init;
+
+  for (size_t i = 0; i < N_beads; i++)
+    Bead_init.push_back(Beads[i]->Pos);
 
   // double Projection = 0;
-  Vector3 center;  
-
+  Vector3 center;
 
   // std::cout<<"stepping\n";
-  
-  geometry->inputVertexPositions+=alpha * Step_newton;
-    // We move the beads;
-  for(size_t i = 0 ; i < Beads.size(); i++) Beads[i]->Move_bead(alpha,Vector3({0,0,0})); 
+
+  geometry->inputVertexPositions += alpha * Step_newton;
+  // We move the beads;
+  for (size_t i = 0; i < Beads.size(); i++)
+    Beads[i]->Move_bead(alpha, Vector3({0, 0, 0}));
 
   // for(int bi = 0; bi < N_beads; bi++) Beads
-  
 
-  // We only change the lagrange multipliers of the constraint of volume and area 
+  // We only change the lagrange multipliers of the constraint of volume and area
 
-  for(int i = 0; i < Sim_handler->N_constraints; i++) {
-    if(Sim_handler->Constraints[i]=="Volume" || Sim_handler->Constraints[i]=="Area"){
-    Sim_handler->Lagrange_mult[i] -= alpha * p_lambda[i];
+  for (int i = 0; i < Sim_handler->N_constraints; i++)
+  {
+    if (Sim_handler->Constraints[i] == "Volume" || Sim_handler->Constraints[i] == "Area")
+    {
+      Sim_handler->Lagrange_mult[i] -= alpha * p_lambda[i];
     }
   }
 
   // std::cout<<"Done stepping\n";
-  
-
-
-  
-
 
   bool nanflag = false;
-  for(Vertex v : mesh->vertices()){
-    if(isnan( geometry->inputVertexPositions[v].norm2()))  nanflag = true;
+  for (Vertex v : mesh->vertices())
+  {
+    if (isnan(geometry->inputVertexPositions[v].norm2()))
+      nanflag = true;
   }
 
-  if(nanflag) std::cout<<"At least one vertex has nan position\n";
+  if (nanflag)
+    std::cout << "At least one vertex has nan position\n";
 
-  geometry->refreshQuantities();
+  // geometry->refreshQuantities();
   center = geometry->centerOfMass();
   Vector3 Vertex_pos;
-  
 
-  
   size_t bead_count = 0;
   NewNorm = 0.0;
   Sim_handler->Calculate_Lag_norm(&NewNorm);
-  NewNorm = 0.5*NewNorm;
+  NewNorm = 0.5 * NewNorm;
 
   size_t counter = 0;
 
-  
   bool displacement_cond = true;
 
   // std::cout<<"THe projection is " << Projection <<" \n";
   // std::cout<<"The number of beads is " << Beads.size() << " \n";
-  
-  if(Projection < 1e-7) {
+
+  if (Projection < 1e-7)
+  {
     small_TS = true;
-      std::cout<<"The norm  diff is quite small and so is the gradient\n";
-      std::cout<<"The norm diff is"<< abs(NewNorm-PrevNorm)/PrevNorm<<"\n";
-      std::cout<<"The projection is"<< Projection<<"\n";
-      return -1.0;
+    std::cout << "The norm  diff is quite small and so is the gradient\n";
+    std::cout << "The norm diff is" << abs(NewNorm - PrevNorm) / PrevNorm << "\n";
+    std::cout << "The projection is" << Projection << "\n";
+    return -1.0;
   }
 
-  
-
-  while(true) {
+  while (true)
+  {
     displacement_cond = true;
-    // std::cout<<"The Norms are Prev: " << PrevNorm << " New: " << NewNorm << "\n";  
+    // std::cout<<"The Norms are Prev: " << PrevNorm << " New: " << NewNorm << "\n";
 
-    backtrack_log << NewNorm <<" ";
+    backtrack_log << NewNorm << " ";
 
-    for(size_t i = 0 ; i< Beads.size() ; i++) displacement_cond = displacement_cond && Beads[i]->Total_force.norm()*alpha<0.1*Beads[i]->sigma;
-    
-  
-      // if( fabs(PrevNorm-NewNorm) <= alpha * Projection && NewNorm < PrevNorm  ) {
-      if( NewNorm < PrevNorm  ) {
+    for (size_t i = 0; i < Beads.size(); i++)
+      displacement_cond = displacement_cond && Beads[i]->Total_force.norm() * alpha < 0.1 * Beads[i]->sigma;
 
-        if(fabs(NewNorm-PrevNorm) > 5e1  && false){
-          
-      
-          std::cout<<"The energies are ";
-          for(size_t i = 0; i < Sim_handler->Energies.size(); i++) std::cout<< Sim_handler->Energies[i] << " is " << Sim_handler->Energy_values[i] << " ";
-          std::cout<<" \n";
-          std::cout<<"The projection is " << Projection <<" \n";
+    // if( fabs(PrevNorm-NewNorm) <= alpha * Projection && NewNorm < PrevNorm  ) {
+    if (NewNorm < PrevNorm)
+    {
 
-          double Max_projection = 0.0;
-          int maxproj_index = 0;
+      if (fabs(NewNorm - PrevNorm) > 5e1 && false)
+      {
 
-          double maxDisplacement = 0.0;
-          std::cout<<"Finding breaking point\n";
-          for (Vertex v : mesh->vertices()) {
-            if(Sim_handler->Current_grad[v].norm() > Max_projection) {
-              Max_projection = Sim_handler->Current_grad[v].norm();
-              maxproj_index = v.getIndex();
-              }
-            double displacement = (geometry->inputVertexPositions[v] - initial_pos[v]).norm();
-            if (displacement > maxDisplacement) {
-              maxDisplacement = displacement;
-            }
+        std::cout << "The energies are ";
+        for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
+          std::cout << Sim_handler->Energies[i] << " is " << Sim_handler->Energy_values[i] << " ";
+        std::cout << " \n";
+        std::cout << "The projection is " << Projection << " \n";
+
+        double Max_projection = 0.0;
+        int maxproj_index = 0;
+
+        double maxDisplacement = 0.0;
+        std::cout << "Finding breaking point\n";
+        for (Vertex v : mesh->vertices())
+        {
+          if (Sim_handler->Current_grad[v].norm() > Max_projection)
+          {
+            Max_projection = Sim_handler->Current_grad[v].norm();
+            maxproj_index = v.getIndex();
           }
-          std::cout<<"The max displacement is " << maxDisplacement <<" \n";
-          std::cout<<"The value of alpha is " << alpha <<" \n";
-          std::cout<<"We will recalculate the energies, lets go back one step for now\n";
-          geometry->inputVertexPositions = initial_pos;
+          double displacement = (geometry->inputVertexPositions[v] - initial_pos[v]).norm();
+          if (displacement > maxDisplacement)
+          {
+            maxDisplacement = displacement;
+          }
+        }
+        std::cout << "The max displacement is " << maxDisplacement << " \n";
+        std::cout << "The value of alpha is " << alpha << " \n";
+        std::cout << "We will recalculate the energies, lets go back one step for now\n";
+        geometry->inputVertexPositions = initial_pos;
 
-          Sim_handler->Lagrange_mult = initial_lag;
-          
-          geometry->refreshQuantities();
-          mesh->compress();
-          // I want something else 
-        
+        Sim_handler->Lagrange_mult = initial_lag;
+
+        // geometry->refreshQuantities();
+        mesh->compress();
+        // I want something else
+
         alpha = 0.0;
 
         // Lets troubleshoot this hehe
-        std::cout<<"The previous energy was" << PrevNorm <<" \n";
-        std::cout<<"The projection of the bigges vertex is " << Max_projection <<" \n";
-        std::cout<<"This vertex is located at " << geometry->inputVertexPositions[maxproj_index] <<" \n";
-        std::cout<<"This vertex in init pos is  at " << initial_pos[maxproj_index] <<" \n";
-      
+        std::cout << "The previous energy was" << PrevNorm << " \n";
+        std::cout << "The projection of the bigges vertex is " << Max_projection << " \n";
+        std::cout << "This vertex is located at " << geometry->inputVertexPositions[maxproj_index] << " \n";
+        std::cout << "This vertex in init pos is  at " << initial_pos[maxproj_index] << " \n";
+
         // Lets explore the sorroundings
         Vertex v = mesh->vertex(maxproj_index);
-        for(Face f : v.adjacentFaces()){
-          std::cout<<"The adjacent faces are " << f.getIndex() <<" \n";
-          std::cout<<"With area " << geometry->faceArea(f) <<" \n";
+        for (Face f : v.adjacentFaces())
+        {
+          std::cout << "The adjacent faces are " << f.getIndex() << " \n";
+          std::cout << "With area " << geometry->faceArea(f) << " \n";
         }
-        for(Halfedge he : v.outgoingHalfedges()){
-          std::cout<<"The adjacent halfedges are " << he.getIndex() <<" \n";
-          std::cout<<"With cotan " << geometry->cotan(he) <<" \n";
+        for (Halfedge he : v.outgoingHalfedges())
+        {
+          std::cout << "The adjacent halfedges are " << he.getIndex() << " \n";
+          std::cout << "With cotan " << geometry->cotan(he) << " \n";
         }
-
-        }
+      }
+      backtrack_log << "\n";
+      backtrack_log.close();
       break;
     }
-    
 
-    if(std::isnan(NewNorm)){
-      std::cout<<"Grad norm is nan \n";
-      backtrack_log <<"\n";
+    if (std::isnan(NewNorm))
+    {
+      std::cout << "Grad norm is nan \n";
+      backtrack_log << "\n";
       backtrack_log.close();
       alpha = -1.0;
       break;
-
     }
-    
-    alpha *=rho;
-    if( (abs((NewNorm-PrevNorm)/PrevNorm) < 1e-7 && Projection < 0.5) || Projection < 1e-5){
+
+    alpha *= rho;
+    if ((abs((NewNorm - PrevNorm) / PrevNorm) < 1e-7 && Projection < 0.5) || Projection < 1e-5)
+    {
       small_TS = true;
-      std::cout<<"The energy diff is quite small and so is the gradient\n";
-      std::cout<<"The energy diff is"<< abs(NewNorm-PrevNorm)/PrevNorm<<"\n";
-      std::cout<<"The projection is"<< Projection<<"\n";
-      backtrack_log <<"\n";
+      std::cout << "The energy diff is quite small and so is the gradient\n";
+      std::cout << "The energy diff is" << abs(NewNorm - PrevNorm) / PrevNorm << "\n";
+      std::cout << "The projection is" << Projection << "\n";
+      backtrack_log << "\n";
       backtrack_log.close();
       return -1.0;
     }
 
-    if(alpha<1e-10){
-      std::cout<<"THe timestep got small so the simulation would end \n";
-      std::cout<<"THe timestep is "<< alpha <<" \n";
-      std::cout<<"The NORM diff is"<< abs(NewNorm-PrevNorm)<<"\n";
-      std::cout<<"THe relative energy diff  is"<<abs((NewNorm-PrevNorm)/PrevNorm)<<"\n";
-      std::cout<<"The projection is"<< Projection<<"\n";
-      std::cout<<"The projection is too big "<< (Projection>1.0e8) <<" \n";
-      if(Projection>1.0e8){
-      // return alpha;
-      std::cout<<"The gradient got crazy\n";
-      std::cout<<"The projections is "<< Projection<<"\n";
-      geometry->inputVertexPositions = initial_pos;
-      Sim_handler->Lagrange_mult = initial_lag;
-      backtrack_log <<"\n";
-      backtrack_log.close();
-      return -1;
+    if (alpha < 1e-10)
+    {
+      std::cout << "THe timestep got small so the simulation would end \n";
+      std::cout << "THe timestep is " << alpha << " \n";
+      std::cout << "The NORM diff is" << abs(NewNorm - PrevNorm) << "\n";
+      std::cout << "THe relative energy diff  is" << abs((NewNorm - PrevNorm) / PrevNorm) << "\n";
+      std::cout << "The projection is" << Projection << "\n";
+      std::cout << "The projection is too big " << (Projection > 1.0e8) << " \n";
+      if (Projection > 1.0e8)
+      {
+        // return alpha;
+        std::cout << "The gradient got crazy\n";
+        std::cout << "The projections is " << Projection << "\n";
+        geometry->inputVertexPositions = initial_pos;
+        Sim_handler->Lagrange_mult = initial_lag;
+        backtrack_log << "\n";
+        backtrack_log.close();
+        return -1;
       }
-      if(Projection <100){
+      if (Projection < 100)
+      {
         small_TS = true;
       }
-      
 
-    
-    
       break;
 
       // LEts try to step when it get super small
-
-
-
-
     }
 
-    else if(small_TS) small_TS = false;
+    else if (small_TS)
+      small_TS = false;
     // std::cout<<"System time is" << system_time <<" \n";
-    if(alpha>0) {
+    if (alpha > 0)
+    {
       // std::cout<<"UPDATING POSITIONS\n";
-      geometry->inputVertexPositions = initial_pos + alpha*Step_newton;
+      geometry->inputVertexPositions = initial_pos + alpha * Step_newton;
 
-      for(int i = 0; i < Sim_handler->N_constraints; i++) {
-      if(Sim_handler->Constraints[i]=="Volume" || Sim_handler->Constraints[i]=="Area"){
-      // std::cout<<"Updating lagrange multipliers\n";
-        Sim_handler->Lagrange_mult[i] = initial_lag(i) - alpha * p_lambda[i];
-      }
+      for (int i = 0; i < Sim_handler->N_constraints; i++)
+      {
+        if (Sim_handler->Constraints[i] == "Volume" || Sim_handler->Constraints[i] == "Area")
+        {
+          // std::cout<<"Updating lagrange multipliers\n";
+          Sim_handler->Lagrange_mult[i] = initial_lag[i] - alpha * p_lambda[i];
+        }
       }
       // std::cout<<"The lagrange multipliers are " << Sim_handler->Lagrange_mult.transpose() << "\n";
 
-    for(size_t i = 0; i<Beads.size(); i++){
-      Beads[i]->Reset_bead(Bead_init[i]);
-      Beads[i]->Total_force = Step_beads[i];
-      Beads[i]->Move_bead(alpha, Vector3({0,0,0}));
+      for (size_t i = 0; i < Beads.size(); i++)
+      {
+        Beads[i]->Reset_bead(Bead_init[i]);
+        Beads[i]->Total_force = Step_beads[i];
+        Beads[i]->Move_bead(alpha, Vector3({0, 0, 0}));
+      }
     }
+    else
+    {
+      for (size_t i = 0; i < Beads.size(); i++)
+      {
+        Beads[i]->Reset_bead(Bead_init[i]);
+        // Beads[i]->Move_bead(alpha, Vector3({0,0,0}));
+      }
+      geometry->inputVertexPositions = initial_pos;
+      Sim_handler->Lagrange_mult = initial_lag;
     }
-    else {
-    for(size_t i = 0; i<Beads.size(); i++){
-      Beads[i]->Reset_bead(Bead_init[i]);
-      // Beads[i]->Move_bead(alpha, Vector3({0,0,0}));
-    }
-    geometry->inputVertexPositions = initial_pos;
-    Sim_handler->Lagrange_mult = initial_lag;
-    }
-    
-    geometry->refreshQuantities();
+
+    // // geometry->refreshQuantities();
 
     bead_count = 0;
 
@@ -1549,67 +1797,71 @@ double Mem3DG::Backtracking_grad(Eigen::VectorXd p_lambda, double Projection, do
     // Sim_handler->Calculate_energies(&NewE);
     NewNorm = 0.0;
     Sim_handler->Calculate_Lag_norm(&NewNorm);
-    NewNorm = 0.5*NewNorm;
-
-   
-    
-   
-  
+    NewNorm = 0.5 * NewNorm;
   }
 
-  backtrack_log <<"\n";
+  backtrack_log << "\n";
   backtrack_log.close();
 
   nanflag = false;
 
-  for(Vertex v : mesh->vertices()) if(isnan(geometry->inputVertexPositions[v].x+ geometry->inputVertexPositions[v].y  + geometry->inputVertexPositions[v].z )) nanflag = true;  
+  for (Vertex v : mesh->vertices())
+    if (isnan(geometry->inputVertexPositions[v].x + geometry->inputVertexPositions[v].y + geometry->inputVertexPositions[v].z))
+      nanflag = true;
 
-  if(nanflag) std::cout<< "After backtracking one vertex is nan :( also the value of alpha is"<< alpha << " \n";
-  if(alpha<=0.0){ 
-  // std::cout<<"Repositioning\n";
-  geometry->inputVertexPositions = initial_pos;
+  if (nanflag)
+    std::cout << "After backtracking one vertex is nan :( also the value of alpha is" << alpha << " \n";
+  if (alpha <= 0.0)
+  {
+    // std::cout<<"Repositioning\n";
+    geometry->inputVertexPositions = initial_pos;
   }
-  if(recentering) {
+  if (recentering)
+  {
 
-    if(alpha<=0.0){
-      std::cout<<"NotRecentering after crisis\n";
+    if (alpha <= 0.0)
+    {
+      std::cout << "NotRecentering after crisis\n";
     }
-    else{
-    // std::cout<<"rENORMALIZING\n";
-    CoM = geometry->centerOfMass();
+    else
+    {
+      // std::cout<<"rENORMALIZING\n";
+      CoM = geometry->centerOfMass();
 
-    if(Field != "None"){
-      // std::cout<<"THere is a field\n";
-      Vector3 leftmost = Vector3({1e10,1e10,1e10});
-      for(Vertex v: mesh->vertices()){
-      if(geometry->inputVertexPositions[v].x < leftmost.x) leftmost = geometry->inputVertexPositions[v];
+      if (Field != "None")
+      {
+        // std::cout<<"THere is a field\n";
+        Vector3 leftmost = Vector3({1e10, 1e10, 1e10});
+        for (Vertex v : mesh->vertices())
+        {
+          if (geometry->inputVertexPositions[v].x < leftmost.x)
+            leftmost = geometry->inputVertexPositions[v];
+        }
+        // I have the leftmost vertex, the position of this vertex should be P
+        leftmost = Vector3({-1.0, 0.0, 0.0}) - leftmost;
+        CoM = leftmost;
+        VertexData<Vector3> Displacement(*mesh, leftmost);
+        geometry->inputVertexPositions += Displacement;
       }
-      // I have the leftmost vertex, the position of this vertex should be P 
-      leftmost = Vector3({-1.0,0.0,0.0})-leftmost;
-      CoM = leftmost;
-      VertexData<Vector3> Displacement(*mesh,leftmost);
-      geometry->inputVertexPositions+=Displacement;
+      else
+      {
+        geometry->normalize(Vector3({0.0, 0.0, 0.0}), false);
+      }
+      // CoM = geometry->centerOfMass();
 
+      for (size_t i = 0; i < Beads.size(); i++)
+      {
+
+        // Here i need to move the bead
+        // if(Beads[i]->state!= "froze"){
+        Beads[i]->Pos -= CoM;
+        // }
+      }
+      // }
+      //
     }
-    else{
-    geometry->normalize(Vector3({0.0,0.0,0.0}),false);
-    }
-  // CoM = geometry->centerOfMass();
-    
-  for(size_t i = 0; i < Beads.size(); i++){
-
-    // Here i need to move the bead
-    // if(Beads[i]->state!= "froze"){
-      Beads[i]->Pos -= CoM;
-    // }
-
+    // geometry->refreshQuantities();
   }
-  // }
-  // 
-    }
-  geometry->refreshQuantities();
-  }
-
 
   // std::cout<<"The difference in energy is " << fabs(NewE-previousE) <<"(: \n";
   // std::cout<<"The new norm is " << NewNorm << "\n";
@@ -1626,7 +1878,8 @@ double Mem3DG::Backtracking_grad(Eigen::VectorXd p_lambda, double Projection, do
  * @param Energy_constants A matrix of energy constants.
  * @return The optimal step size for the backtracking algorithm.
  */
-double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3> Bead_forces){
+double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3> Bead_forces)
+{
 
   double c1 = 1e-4;
   double rho = 0.5;
@@ -1637,51 +1890,60 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
   double previousE = 0;
   Sim_handler->Calculate_energies(&previousE);
 
-  for(size_t i = 0; i < Sim_handler->Energies.size(); i++) {
-    if(isnan(Sim_handler->Energy_values[i])) std::cout<<"Energy " << Sim_handler->Energies[i] << " is nan\n";
+  for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
+  {
+    if (isnan(Sim_handler->Energy_values[i]))
+      std::cout << "Energy " << Sim_handler->Energies[i] << " is nan\n";
   }
 
   double NewE;
   VertexData<Vector3> initial_pos(*mesh);
-  if(recentering){
-  geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+  if (recentering)
+  {
+    geometry->normalize(Vector3({0.0, 0.0, 0.0}), false);
   }
   Vector3 CoM = geometry->centerOfMass();
-    
+
   initial_pos = geometry->inputVertexPositions;
 
   std::vector<Vector3> Bead_init;
 
-  for( size_t i = 0 ; i < Beads.size() ; i++) Bead_init.push_back( Beads[i]->Pos);
+  for (size_t i = 0; i < Beads.size(); i++)
+    Bead_init.push_back(Beads[i]->Pos);
 
   double Projection = 0;
-  Vector3 center;  
+  Vector3 center;
 
-
-  for(Vertex v : mesh->vertices()){
-    if(isnan(Force[v].x || Force[v].y || Force[v].z)) std::cout<<" Is this force nan at vertex but norm2 is " << Force[v.getIndex()].norm2() <<"\n";
-  
+  for (Vertex v : mesh->vertices())
+  {
+    if (isnan(Force[v].x || Force[v].y || Force[v].z))
+      std::cout << " Is this force nan at vertex but norm2 is " << Force[v.getIndex()].norm2() << "\n";
   }
 
   // std::cout<<"doing the stepping \n";
-  geometry->inputVertexPositions+=alpha * Force;
+  geometry->inputVertexPositions += alpha * Force;
   bool nanflag = false;
-  for(Vertex v : mesh->vertices()){
-    if(isnan( geometry->inputVertexPositions[v].norm2()))  nanflag = true;
+  for (Vertex v : mesh->vertices())
+  {
+    if (isnan(geometry->inputVertexPositions[v].norm2()))
+      nanflag = true;
   }
 
-  if(nanflag) std::cout<<"At least one vertex has nan position\n";
+  if (nanflag)
+    std::cout << "At least one vertex has nan position\n";
 
-  geometry->refreshQuantities();
+  // geometry->refreshQuantities();
   center = geometry->centerOfMass();
   Vector3 Vertex_pos;
-  
+
   // We move the beads;
   // std::cout<<"Moving beads\n";
-  for(size_t i = 0 ; i < Beads.size(); i++) Beads[i]->Move_bead(alpha,Vector3({0,0,0}),Bead_forces[i]); 
+  for (size_t i = 0; i < Beads.size(); i++)
+    Beads[i]->Move_bead(alpha, Vector3({0, 0, 0}), Bead_forces[i]);
   Projection = 0.0;
   // std::cout<<"Calculating projection\n";
-  for(Vertex v: mesh->vertices()){
+  for (Vertex v : mesh->vertices())
+  {
     Projection += Force[v].norm2();
   }
 
@@ -1694,331 +1956,355 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
   // std::cout<<"New E is " << NewE << "\n";
   // std::cout<<"The projection is " << Projection << "\n";
   size_t counter = 0;
-  
+
   bool displacement_cond = true;
 
   // std::cout<<"THe projection is " << Projection <<" \n";
   // std::cout<<"The number of beads is " << Beads.size() << " \n";
-  
-  if(Projection < 1e-5) {
+
+  if (Projection < 1e-5)
+  {
     small_TS = true;
-      std::cout<<"The energy diff is quite small and so is the gradieeent\n";
-      std::cout<<"The energy diff is"<< abs(NewE-previousE)/previousE<<"\n";
-      std::cout<<"The projection is"<< Projection<<"\n";
-      return -1.0;
+    std::cout << "The energy diff is quite small and so is the gradieeent\n";
+    std::cout << "The energy diff is" << abs(NewE - previousE) / previousE << "\n";
+    std::cout << "The projection is" << Projection << "\n";
+    return -1.0;
   }
   // std::cout<<"Backtracking\n";
-  while(true) {
+  while (true)
+  {
     displacement_cond = true;
-    
-    for(size_t i = 0 ; i< Beads.size() ; i++) displacement_cond = displacement_cond && Beads[i]->Total_force.norm()*alpha<0.1*Beads[i]->sigma;
-    
-      if(NewE <= previousE - c1 * alpha * Projection && displacement_cond  && fabs(NewE-previousE)<1e2 ) {
-    
-        if(fabs(NewE-previousE) > 5e1 && false){
-          
-      
-          std::cout<<"The energies are ";
-          for(size_t i = 0; i < Sim_handler->Energies.size(); i++) std::cout<< Sim_handler->Energies[i] << " is " << Sim_handler->Energy_values[i] << " ";
-          std::cout<<" \n";
-          std::cout<<"The projection is " << Projection <<" \n";
 
-          double Max_projection = 0.0;
-          int maxproj_index = 0;
+    for (size_t i = 0; i < Beads.size(); i++)
+      displacement_cond = displacement_cond && Beads[i]->Total_force.norm() * alpha < 0.1 * Beads[i]->sigma;
 
-          double maxDisplacement = 0.0;
-          std::cout<<"Finding breaking point\n";
-          for (Vertex v : mesh->vertices()) {
-            if(Sim_handler->Current_grad[v].norm() > Max_projection) {
-              Max_projection = Sim_handler->Current_grad[v].norm();
-              maxproj_index = v.getIndex();
-              }
-            double displacement = (geometry->inputVertexPositions[v] - initial_pos[v]).norm();
-            if (displacement > maxDisplacement) {
-              maxDisplacement = displacement;
-            }
+    if (NewE <= previousE - c1 * alpha * Projection && displacement_cond && fabs(NewE - previousE) < 1e2)
+    {
+
+      if (fabs(NewE - previousE) > 5e1 && false)
+      {
+
+        std::cout << "The energies are ";
+        for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
+          std::cout << Sim_handler->Energies[i] << " is " << Sim_handler->Energy_values[i] << " ";
+        std::cout << " \n";
+        std::cout << "The projection is " << Projection << " \n";
+
+        double Max_projection = 0.0;
+        int maxproj_index = 0;
+
+        double maxDisplacement = 0.0;
+        std::cout << "Finding breaking point\n";
+        for (Vertex v : mesh->vertices())
+        {
+          if (Sim_handler->Current_grad[v].norm() > Max_projection)
+          {
+            Max_projection = Sim_handler->Current_grad[v].norm();
+            maxproj_index = v.getIndex();
           }
-          std::cout<<"The max displacement is " << maxDisplacement <<" \n";
-          std::cout<<"The value of alpha is " << alpha <<" \n";
-          std::cout<<"We will recalculate the energies, lets go back one step for now\n";
-          geometry->inputVertexPositions = initial_pos;
-          geometry->refreshQuantities();
-          mesh->compress();
-          // I want something else 
-        
+          double displacement = (geometry->inputVertexPositions[v] - initial_pos[v]).norm();
+          if (displacement > maxDisplacement)
+          {
+            maxDisplacement = displacement;
+          }
+        }
+        std::cout << "The max displacement is " << maxDisplacement << " \n";
+        std::cout << "The value of alpha is " << alpha << " \n";
+        std::cout << "We will recalculate the energies, lets go back one step for now\n";
+        geometry->inputVertexPositions = initial_pos;
+        // geometry->refreshQuantities();
+        mesh->compress();
+        // I want something else
+
         alpha = 0.0;
 
         // Lets troubleshoot this hehe
-        std::cout<<"The previous energy was" << previousE <<" \n";
-        std::cout<<"The projection of the bigges vertex is " << Max_projection <<" \n";
-        std::cout<<"This vertex is located at " << geometry->inputVertexPositions[maxproj_index] <<" \n";
-        std::cout<<"This vertex in init pos is  at " << initial_pos[maxproj_index] <<" \n";
-      
+        std::cout << "The previous energy was" << previousE << " \n";
+        std::cout << "The projection of the bigges vertex is " << Max_projection << " \n";
+        std::cout << "This vertex is located at " << geometry->inputVertexPositions[maxproj_index] << " \n";
+        std::cout << "This vertex in init pos is  at " << initial_pos[maxproj_index] << " \n";
+
         // Lets explore the sorroundings
         Vertex v = mesh->vertex(maxproj_index);
-        for(Face f : v.adjacentFaces()){
-          std::cout<<"The adjacent faces are " << f.getIndex() <<" \n";
-          std::cout<<"With area " << geometry->faceArea(f) <<" \n";
+        for (Face f : v.adjacentFaces())
+        {
+          std::cout << "The adjacent faces are " << f.getIndex() << " \n";
+          std::cout << "With area " << geometry->faceArea(f) << " \n";
         }
-        for(Halfedge he : v.outgoingHalfedges()){
-          std::cout<<"The adjacent halfedges are " << he.getIndex() <<" \n";
-          std::cout<<"With cotan " << geometry->cotan(he) <<" \n";
+        for (Halfedge he : v.outgoingHalfedges())
+        {
+          std::cout << "The adjacent halfedges are " << he.getIndex() << " \n";
+          std::cout << "With cotan " << geometry->cotan(he) << " \n";
         }
-
-        }
+      }
       break;
     }
-    
 
-    if(std::isnan(NewE)){
+    if (std::isnan(NewE))
+    {
       alpha = -1.0;
       break;
-
     }
-    
-    alpha *=rho;
+
+    alpha *= rho;
     // if(Projection<1) std::cout<<"THe projection is " << Projection <<" at iter "<< BFGS_iter << "\n";
-    if( (abs((NewE-previousE)/previousE) < 1e-5 && Projection < 1e-2) || Projection < 1e-4){
+    if ((abs((NewE - previousE) / previousE) < 1e-5 && Projection < 1e-2) || Projection < 1e-4)
+    {
       small_TS = true;
-      std::cout<<"The energy diff is quite small and so is the gradient\n";
-      std::cout<<"The energy diff is"<< abs((NewE-previousE)/previousE)<<"\n";
-      std::cout<<"The projection is"<< Projection<<"\n";
-      std::cout<<"Finishing sim\n";
+      std::cout << "The energy diff is quite small and so is the gradient\n";
+      std::cout << "The energy diff is" << abs((NewE - previousE) / previousE) << "\n";
+      std::cout << "The projection is" << Projection << "\n";
+      std::cout << "Finishing sim\n";
       return -1.0;
     }
 
-    if(alpha<1e-10){
+    if (alpha < 1e-10)
+    {
       BFGS_iter = 0;
-      
-      std::cout<<"THe timestep got small so the simulation would end \n";
-      std::cout<<"THe timestep is "<< alpha <<" \n";
-      std::cout<<"The energy diff is"<< abs(NewE-previousE)<<"\n";
-      std::cout<<"THe relative energy diff  is"<<abs((NewE-previousE)/previousE)<<"\n";
-      std::cout<<"The projection is"<< Projection<<"\n";
-      std::cout<<"The projection is too big "<< (Projection>1.0e8) <<" \n";
-      if(Projection>1.0e5){
-      remesh_flag = true;
-      // return alpha;
-      std::cout<<"The gradient got crazy\n";
-      std::cout<<"The projections is "<< Projection<<"\n";
-      geometry->inputVertexPositions = initial_pos;
-      // return -1; //I may need to change this later
+
+      std::cout << "THe timestep got small so the simulation would end \n";
+      std::cout << "THe timestep is " << alpha << " \n";
+      std::cout << "The energy diff is" << abs(NewE - previousE) << "\n";
+      std::cout << "THe relative energy diff  is" << abs((NewE - previousE) / previousE) << "\n";
+      std::cout << "The projection is" << Projection << "\n";
+      std::cout << "The projection is too big " << (Projection > 1.0e8) << " \n";
+      if (Projection > 1.0e5)
+      {
+        remesh_flag = true;
+        // return alpha;
+        std::cout << "The gradient got crazy\n";
+        std::cout << "The projections is " << Projection << "\n";
+        geometry->inputVertexPositions = initial_pos;
+        // return -1; //I may need to change this later
       }
       // small_TS = true;
 
       break;
-
     }
-    else if(small_TS) small_TS = false;
+    else if (small_TS)
+      small_TS = false;
     // std::cout<<"System time is" << system_time <<" \n";
-    if(alpha>0) {geometry->inputVertexPositions = initial_pos + alpha*Force;
-    
-    for(size_t i = 0; i<Beads.size(); i++){
-      Beads[i]->Reset_bead(Bead_init[i]);
-      Beads[i]->Move_bead(alpha, Vector3({0,0,0}),Bead_forces[i]);
+    if (alpha > 0)
+    {
+      geometry->inputVertexPositions = initial_pos + alpha * Force;
+
+      for (size_t i = 0; i < Beads.size(); i++)
+      {
+        Beads[i]->Reset_bead(Bead_init[i]);
+        Beads[i]->Move_bead(alpha, Vector3({0, 0, 0}), Bead_forces[i]);
+      }
     }
+    else
+    {
+      for (size_t i = 0; i < Beads.size(); i++)
+      {
+        Beads[i]->Reset_bead(Bead_init[i]);
+        // Beads[i]->Move_bead(alpha, Vector3({0,0,0}));
+      }
+      geometry->inputVertexPositions = initial_pos;
     }
-    else {
-    for(size_t i = 0; i<Beads.size(); i++){
-      Beads[i]->Reset_bead(Bead_init[i]);
-      // Beads[i]->Move_bead(alpha, Vector3({0,0,0}));
-    }
-    geometry->inputVertexPositions = initial_pos;
-    }
-    
-    geometry->refreshQuantities();
+
+    // geometry->refreshQuantities();
 
     bead_count = 0;
 
     NewE = 0.0;
     Sim_handler->Calculate_energies(&NewE);
-   
-  
   }
 
   // std::cout<<"The energy final is" << NewE <<" \n";
 
   nanflag = false;
 
-  for(Vertex v : mesh->vertices()) if(isnan(geometry->inputVertexPositions[v].x+ geometry->inputVertexPositions[v].y  + geometry->inputVertexPositions[v].z )) nanflag = true;  
+  for (Vertex v : mesh->vertices())
+    if (isnan(geometry->inputVertexPositions[v].x + geometry->inputVertexPositions[v].y + geometry->inputVertexPositions[v].z))
+      nanflag = true;
 
-  if(nanflag) std::cout<< "After backtracking one vertex is nan :( also the value of alpha is"<< alpha << " \n";
-  if(alpha<=0.0){ 
-  // std::cout<<"Repositioning\n";
-  geometry->inputVertexPositions = initial_pos;
+  if (nanflag)
+    std::cout << "After backtracking one vertex is nan :( also the value of alpha is" << alpha << " \n";
+  if (alpha <= 0.0)
+  {
+    // std::cout<<"Repositioning\n";
+    geometry->inputVertexPositions = initial_pos;
   }
-  if(recentering) {
+  if (recentering)
+  {
 
-    if(alpha<=0.0){
-      std::cout<<"NotRecentering after crisis\n";
+    if (alpha <= 0.0)
+    {
+      std::cout << "NotRecentering after crisis\n";
     }
-    else{
-    // std::cout<<"rENORMALIZING\n";
-  CoM = geometry->centerOfMass();
-  // if(recentering){
-  geometry->normalize(Vector3({0.0,0.0,0.0}),false);
-  
-  // CoM = geometry->centerOfMass();
-    
-  for(size_t i = 0; i < Beads.size(); i++){
+    else
+    {
+      // std::cout<<"rENORMALIZING\n";
+      CoM = geometry->centerOfMass();
+      // if(recentering){
+      geometry->normalize(Vector3({0.0, 0.0, 0.0}), false);
 
-    // Here i need to move the bead
-    // if(Beads[i]->state!= "froze"){
-      Beads[i]->Pos -= CoM;
-    // }
+      // CoM = geometry->centerOfMass();
 
-  }
-  
-  // }
-  // 
+      for (size_t i = 0; i < Beads.size(); i++)
+      {
+
+        // Here i need to move the bead
+        // if(Beads[i]->state!= "froze"){
+        Beads[i]->Pos -= CoM;
+        // }
+      }
+
+      // }
+      //
     }
-  geometry->refreshQuantities();
+    // geometry->refreshQuantities();
   }
 
-  // 
-
-
+  //
 
   // std::cout<<"The difference in energy is " << fabs(NewE-previousE) <<"(: \n";
 
   return alpha;
 }
 
+double Mem3DG::Backtracking(VertexData<Vector3> Force, double P0, double V_bar, double A_bar, double KA, double KB, double H_bar, bool bead, bool pulling)
+{
 
-double Mem3DG::Backtracking(VertexData<Vector3> Force,double P0,double V_bar,double A_bar,double KA,double KB,double H_bar,bool bead, bool pulling) {
+  // std::cout<<"Backtracking\n";
+  bool other_pulling = false;
+  bool two_bead_pulling = true;
+  double Bead_force_prev = -12;
+  double Bead_force_new = -15;
+  double c1 = 1e-4;
+  double rho = 0.5;
+  double alpha = 1e-3;
+  double positionProjection = 0;
+  double X_pos;
 
-// std::cout<<"Backtracking\n";
-bool other_pulling=false;
-bool two_bead_pulling = true;
-double Bead_force_prev=-12;
-double Bead_force_new=-15;
-double c1=1e-4;
-double rho=0.5;
-double alpha=1e-3;
-double positionProjection = 0;
-double X_pos;
+  // A=geometry->totalArea();
+  // V=geometry->totalVolume();
+  // E_Vol = E_Pressure(D_P,V,V_bar);
+  // E_Sur = E_Surface(KA,A,A_bar);
+  // E_Ben = E_Bending(H_bar,KB);
+  // E_Bead = Bead_1.Energy();
+  double previousE = E_Vol + E_Sur + E_Ben + E_Bead;
+  double NewE;
+  VertexData<Vector3> initial_pos(*mesh);
+  if (recentering)
+  {
+    geometry->normalize(Vector3({0.0, 0.0, 0.0}), false);
+  }
+  initial_pos = geometry->inputVertexPositions;
 
-// A=geometry->totalArea();
-// V=geometry->totalVolume();
-// E_Vol = E_Pressure(D_P,V,V_bar);
-// E_Sur = E_Surface(KA,A,A_bar);
-// E_Ben = E_Bending(H_bar,KB);
-// E_Bead = Bead_1.Energy();
-double previousE=E_Vol+E_Sur+E_Ben+E_Bead;
-double NewE;
-VertexData<Vector3> initial_pos(*mesh);
-if(recentering){
-geometry->normalize(Vector3({0.0,0.0,0.0}),false);
-}
-initial_pos= geometry->inputVertexPositions;
+  std::vector<Vector3> Bead_init;
 
-std::vector<Vector3> Bead_init;
+  for (size_t i = 0; i < Beads.size(); i++)
+    Bead_init.push_back(Beads[i]->Pos);
 
-for( size_t i = 0 ; i < Beads.size() ; i++) Bead_init.push_back( Beads[i]->Pos);
+  // std::cout<<"THe current energy is "<<previousE <<"Is this awful?\n";
+  // Zeroth iteration
+  double Projection = 0;
+  Vector3 center;
 
-// std::cout<<"THe current energy is "<<previousE <<"Is this awful?\n";
-// Zeroth iteration
-double Projection=0;
-Vector3 center; 
-    
+  geometry->inputVertexPositions += alpha * Force;
+  // geometry->refreshQuantities();
 
+  center = geometry->centerOfMass();
+  Vector3 Vertex_pos;
 
+  if (!pulling)
+  {
+    for (size_t i = 0; i < Beads.size(); i++)
+      Beads[i]->Move_bead(alpha, Vector3({0, 0, 0}));
+    // this->Bead_1.Move_bead(alpha,Vector3({0,0,0}));
+  }
 
-geometry->inputVertexPositions+=alpha * Force;
-geometry->refreshQuantities();
+  Total_force = Vector3({0, 0, 0});
+  for (Vertex v : mesh->vertices())
+  {
+    Projection += Force[v.getIndex()].norm2();
+    Total_force += Force[v.getIndex()];
+  }
 
-center = geometry->centerOfMass();
-Vector3 Vertex_pos;
+  grad_norm = Projection;
 
+  A = geometry->totalArea();
+  V = geometry->totalVolume();
+  double D_P = -1 * P0 * (V - V_bar) / (V_bar * V_bar);
+  E_Vol = E_Pressure(D_P, V, V_bar);
+  E_Sur = E_Surface(KA, A, A_bar);
+  E_Ben = E_Bending(H_bar, KB);
+  E_Bead = 0;
+  for (size_t i = 0; i < Beads.size(); i++)
+    E_Bead += Beads[i]->Energy();
+  // E_Bead=Bead_1.Energy();
+  NewE = E_Vol + E_Sur + E_Ben + E_Bead;
 
+  if (std::isnan(E_Vol))
+  {
+    std::cout << "E vol is nan\n";
+  }
+  if (std::isnan(E_Sur))
+  {
+    std::cout << "E sur is nan\n";
+  }
+  if (std::isnan(E_Ben))
+  {
+    std::cout << "E ben is nan\n";
+  }
 
-if(!pulling){
-  for(size_t i = 0 ; i < Beads.size(); i++) Beads[i]->Move_bead(alpha,Vector3({0,0,0})); 
-  // this->Bead_1.Move_bead(alpha,Vector3({0,0,0}));
-}
+  size_t counter = 0;
 
+  bool displacement_cond = true;
 
-
-Total_force = Vector3({0,0,0});
-for(Vertex v : mesh->vertices()) {
-  Projection+=Force[v.getIndex()].norm2();
-  Total_force+=Force[v.getIndex()];
-  } 
-
-
-grad_norm=Projection;
-
-
-A=geometry->totalArea();
-V=geometry->totalVolume();
-double D_P = -1*P0*(V-V_bar)/(V_bar*V_bar);
-E_Vol=E_Pressure(D_P,V,V_bar);
-E_Sur=E_Surface(KA,A,A_bar);
-E_Ben=E_Bending(H_bar,KB);
-E_Bead = 0;
-for(size_t i =0 ; i < Beads.size(); i++) E_Bead+=Beads[i]->Energy();
-// E_Bead=Bead_1.Energy();
-NewE=E_Vol+E_Sur+E_Ben+E_Bead;
-
-if(std::isnan(E_Vol)){
-  std::cout<<"E vol is nan\n";
-}
-if(std::isnan(E_Sur)){
-  std::cout<<"E sur is nan\n";
-}
-if(std::isnan(E_Ben)){
-  std::cout<<"E ben is nan\n";
-}
-
-
-size_t counter=0;
-
-bool displacement_cond = true;
-
-// std::cout<<"starting while\n";
-while(true){
-  // if(true){
-  displacement_cond = true;
-  for(size_t i = 0 ; i < Beads.size() ; i++) displacement_cond = displacement_cond && Beads[i]->Total_force.norm()*alpha<0.1;
-  // std::cout<<"Displacement cond is"<< displacement_cond <<"\n";
-  if( NewE<= previousE - c1 * alpha * Projection && ( displacement_cond ) && abs(NewE-previousE)<10  ) {
-    // std::cout<<Bead_1.Total_force.norm()*alpha<<" Displacement of the bead\n";
-    break;
-
+  // std::cout<<"starting while\n";
+  while (true)
+  {
+    // if(true){
+    displacement_cond = true;
+    for (size_t i = 0; i < Beads.size(); i++)
+      displacement_cond = displacement_cond && Beads[i]->Total_force.norm() * alpha < 0.1;
+    // std::cout<<"Displacement cond is"<< displacement_cond <<"\n";
+    if (NewE <= previousE - c1 * alpha * Projection && (displacement_cond) && abs(NewE - previousE) < 10)
+    {
+      // std::cout<<Bead_1.Total_force.norm()*alpha<<" Displacement of the bead\n";
+      break;
     }
-  // if(abs(NewE-previousE)>100 && Projection>1e6){
-  //   std::cout<<"The energy diff is"<< abs(NewE-previousE)<<"\n";
-  //   std::cout<<"THe relative energy diff  is"<<abs((NewE-previousE)/previousE)<<"\n";
-  //   std::cout<<"The projection is"<< Projection<<"\n";
-  //   std::cout<<"Peak in energy variation, will stop out of safety\n";
-  //   alpha=-1;
-  //   break;
-  // }
-  
-  if(std::isnan(E_Vol)){
-      std::cout<<"E vol is nan\n";
+    // if(abs(NewE-previousE)>100 && Projection>1e6){
+    //   std::cout<<"The energy diff is"<< abs(NewE-previousE)<<"\n";
+    //   std::cout<<"THe relative energy diff  is"<<abs((NewE-previousE)/previousE)<<"\n";
+    //   std::cout<<"The projection is"<< Projection<<"\n";
+    //   std::cout<<"Peak in energy variation, will stop out of safety\n";
+    //   alpha=-1;
+    //   break;
+    // }
+
+    if (std::isnan(E_Vol))
+    {
+      std::cout << "E vol is nan\n";
     }
-  if(std::isnan(E_Sur)){
-      std::cout<<"E sur is nan\n";
+    if (std::isnan(E_Sur))
+    {
+      std::cout << "E sur is nan\n";
     }
-  if(std::isnan(E_Ben)){
-      std::cout<<"E ben is nan\n";
+    if (std::isnan(E_Ben))
+    {
+      std::cout << "E ben is nan\n";
     }
-  if(std::isnan(E_Bead)){
-      std::cout<<"E bead is nan\n";
+    if (std::isnan(E_Bead))
+    {
+      std::cout << "E bead is nan\n";
     }
 
-  if(std::isnan(NewE)){
-      
-      alpha=-1.0;
+    if (std::isnan(NewE))
+    {
+
+      alpha = -1.0;
       break;
     }
 
-  
-  alpha*=rho;
-  
+    alpha *= rho;
+
     // if(pulling){
-      
+
     //   double current_force=Bead_1.Total_force.norm2();
     //   std::cout<<"The force relative dif is "<< abs((current_force-Bead_1.prev_force)/current_force) <<" \n";
     //   std::cout<<"The bead prev force is"<< Bead_1.prev_force<<"\n";
@@ -2026,14 +2312,14 @@ while(true){
     //   if(abs((current_force-Bead_1.prev_force)/current_force)<1e-4){
     //   // std::cout<<"\t \t Reseting bead position\n";
     //   // geometry->normalize(Vector3({0.0,0.0,0.0}),false);
-    //   // geometry->refreshQuantities();
-    
+    //   // // geometry->refreshQuantities();
+
     //   // X_pos=0.0;
     //   // for(Vertex v : mesh->vertices()){
     //   //   Vertex_pos=geometry->inputVertexPositions[v];
     //   //   if(Vertex_pos.x>X_pos){
     //   //     X_pos=Vertex_pos.x;
-    //   //   }  
+    //   //   }
     //   // }
     //   // std::cout<<" The difference in distance after a step is "<< abs(Bead_1.Pos.x -(X_pos+1.4)) <<" \n";
     //   // if(abs(Bead_1.Pos.x -(X_pos+1.4))<1e-4 ){ //|| Bead_1.Pos.x>X_pos+1.4
@@ -2050,343 +2336,343 @@ while(true){
     // }
     // }
 
+    if (alpha < 1e-10)
+    {
 
-  if(alpha<1e-10){
+      std::cout << "THe timestep got small so the simulation would end \n";
+      std::cout << "THe timestep is " << alpha << " \n";
+      std::cout << "The energy diff is" << abs(NewE - previousE) << "\n";
+      std::cout << "THe relative energy diff  is" << abs((NewE - previousE) / previousE) << "\n";
+      std::cout << "The projection is" << Projection << "\n";
+      std::cout << "The projection is too big " << (Projection > 1.0e10) << " \n";
+      if (Projection > 1.0e10)
+      {
+        // return alpha;
+        std::cout << "The gradient got crazy\n";
+        std::cout << "The projections is " << Projection << "\n";
+        geometry->inputVertexPositions = initial_pos;
+        return -1;
+      }
 
+      if (!pulling)
+      {
+        // if(small_TS==true){
+        //   alpha=-1.0;
 
-    std::cout<<"THe timestep got small so the simulation would end \n";
-    std::cout<<"THe timestep is "<< alpha <<" \n";
-    std::cout<<"The energy diff is"<< abs(NewE-previousE)<<"\n";
-    std::cout<<"THe relative energy diff  is"<<abs((NewE-previousE)/previousE)<<"\n";
-    std::cout<<"The projection is"<< Projection<<"\n";
-    std::cout<<"The projection is too big "<< (Projection>1.0e10) <<" \n";
-    if(Projection>1.0e10){
-    // return alpha;
-    std::cout<<"The gradient got crazy\n";
-    std::cout<<"The projections is "<< Projection<<"\n";
-    geometry->inputVertexPositions = initial_pos;
-    return -1;
-    }
+        // }
+        if (system_time > 999)
+        {
+          small_TS = true;
+          std::cout << "small timestep\n";
+          break;
+        }
+      }
 
-    if(!pulling){
-    // if(small_TS==true){
-    //   alpha=-1.0;
-      
-    // }
-    if(system_time>999 ){
-    small_TS = true;
-    std::cout<<"small timestep\n";
-    break;
-    }
-    
-
-    }
-    
-    // if(Projection>1e10){
-    //   std::cout<<"Not moving forward\n";
-    //   alpha=0.0;
+      // if(Projection>1e10){
+      //   std::cout<<"Not moving forward\n";
+      //   alpha=0.0;
       // return -1;
-    // }
-    // continue;
-    break;
-    
+      // }
+      // continue;
+      break;
+    }
 
-  }
-  
+    geometry->inputVertexPositions = initial_pos + alpha * Force;
 
+    if (pulling && two_bead_pulling)
+    {
+      // I want to move the beads
+      for (size_t i = 0; i < Beads.size(); i++)
+      {
 
-
-  
-
-  geometry->inputVertexPositions = initial_pos+alpha*Force;
-
-  if(pulling && two_bead_pulling){
-    // I want to move the beads
-      for( size_t i = 0; i < Beads.size(); i++){
-        
-        if(Beads[i]->state == "default" || Beads[i]->state == "froze") {
+        if (Beads[i]->state == "default" || Beads[i]->state == "froze")
+        {
           // std::cout<<"TWo here\n";
-          Beads[i]->Move_bead(alpha,Vector3({0,0,0}));
+          Beads[i]->Move_bead(alpha, Vector3({0, 0, 0}));
           Beads[i]->Reset_bead(Bead_init[i]);
         }
       }
-
-
-
-  }
-  // geometry->normalize(Vector3({0.0,0.0,0.0}),false);
-  
-  // center = geometry->centerOfMass();
-
-  if(!pulling){
-    for(size_t i = 0 ; i < Beads.size() ; i++){
-      Beads[i]->Reset_bead(Bead_init[i]);
-      Beads[i]->Move_bead(alpha, Vector3({0,0,0}));
-    
     }
-  // std::cout<<"pulling is false\n";
-  }
-  geometry->refreshQuantities();
+    // geometry->normalize(Vector3({0.0,0.0,0.0}),false);
 
-  
-  A=geometry->totalArea();
-  V=geometry->totalVolume();
-  D_P = -1*P0*(V-V_bar)/(V_bar*V_bar);
-  E_Vol=E_Pressure(D_P,V,V_bar);
-  E_Sur=E_Surface(KA,A,A_bar);
-  E_Ben=E_Bending(H_bar,KB);
-  E_Bead = 0;
-  for(size_t i =0 ; i < Beads.size(); i++) E_Bead+=Beads[i]->Energy();
-  NewE=E_Vol+E_Sur+E_Ben+E_Bead;
-  // std::cout<<"THe old energy is "<< previousE <<"\n";
-  // std::cout<<"Alpha is "<< alpha<<"and the new energy is"<< NewE << "\n";
-  // std::cout<<"The projection is :"<<Projection<<"\n";
-  // // std::cout<<"THe energy changed to"<<NewE<<"\n";
-  // std::cout<< "Volume E"<<E_Vol <<"Surface E" << E_Sur <<"\n";
+    // center = geometry->centerOfMass();
 
-
-
-}
-
-
-if(pulling && other_pulling && !two_bead_pulling){
-  std::cout<<"pulling is true\n";
-      
-      // 
-      double current_force = Beads[0]->Total_force.norm2();
-      // double current_force=Bead_1.Total_force.norm2();
-      geometry->normalize(Vector3({0.0,0.0,0.0}),false);
-      geometry->refreshQuantities();
-      X_pos=0.0;
-      for(Vertex v : mesh->vertices()){
-        Vertex_pos=geometry->inputVertexPositions[v];
-        if(Vertex_pos.x>X_pos){
-          X_pos=Vertex_pos.x;
-          }  
-        }
-        // std::cout<<"The system time is"<<system_time<<"\n";
-      // if(system_time >2e4){
-        std::cout<<"The force difference is "<<abs((current_force-Bead_1.prev_force)/current_force)<<"\n";
-      // }
-      if(abs((current_force-Beads[0]->prev_force)/current_force)<1e-5 || alpha<1e-10){
-        // std::cout<<" The difference in distance after a step is "<< abs(Bead_1.Pos.x -(X_pos+1.4)) <<" \n";
-        
-        std::cout<<"Some form of steady state was reached\n";
-        if(Beads[0]->Pos.x -X_pos<1.4){
-          // Just reset the bead
-          std::cout<<"\t\t Moving bead\n"; 
-          std::cout<<"It is moving "<< abs(Beads[0]->Pos.x -(X_pos+1.4)) <<" \n";
-          
-          if(abs(Beads[0]->Pos.x-(X_pos+1.4)) <1e-6){
-            
-            Save_SS = true;
-            std::cout<<"\t\t Also increasing interaction strength\n";
-            Beads[0]->strength = Beads[0]->strength + 0.1;
-          }
-          Beads[0]->Reset_bead(Vector3({X_pos+1.4,0,0}));
-        
-        }
-        else{
-          // if(abs(Bead_1.Pos.x -(X_pos+1.4))<1e-4 ){
-          Save_SS = true;
-          std::cout<<"\t\tIncreasing interaction strength because it is going back\n";
-          Beads[0]->strength = Beads[0]->strength+0.1;
-          }
-          
-          Beads[0]->prev_E_stationary = E_Bead;
-
-      if(X_pos>40){
-        return -1.0;
-      }
-    //  Bead_1.Reset_bead(Vector3(Bead_1.Pos+Vector3({alpha,0,0})));
-    return alpha;
-    }
-    
-    // Bead_1.Reset_bead(Vector3({X_pos+1.4,0,0}));
-
-
-
-}
-
-if(pulling && !other_pulling && !two_bead_pulling){
-    // std::cout<<"pulling is true\n";
-      
-      double current_force=Bead_1.Total_force.norm2();
-      // std::cout<<"\t \t Reseting bead position\n";
-      geometry->normalize(Vector3({0.0,0.0,0.0}),false);
-      geometry->refreshQuantities();
-      X_pos=0.0;
-      for(Vertex v : mesh->vertices()){
-        Vertex_pos=geometry->inputVertexPositions[v];
-        if(Vertex_pos.x>X_pos){
-          X_pos=Vertex_pos.x;
-          }  
-        }
-      if(abs((current_force-Bead_1.prev_force)/current_force)<1e-6 || alpha<1e-10){
-        // std::cout<<" The difference in distance after a step is "<< abs(Bead_1.Pos.x -(X_pos+1.4)) <<" \n";
-        std::cout<<"It is moving "<< abs(Bead_1.Pos.x -(X_pos+1.4)) <<" \n";
-        // if(abs(Bead_1.Pos.x -(X_pos+1.4))<1e-4 ){
-          std::cout<<"Increasing strength\n";
-          Save_SS = true;
-          std::cout<<"The energy difference is "<< abs(E_Bead-Bead_1.prev_E_stationary)<<" \n"; 
-          if(abs(E_Bead-Bead_1.prev_E_stationary)<1e-3 && !stop_increasing && Bead_1.strength>10.0){
-            stop_increasing = true;
-            std::cout<<"\t \t Stopped increasing potential energy\n";
-          }
-          if(!stop_increasing) Bead_1.strength = Bead_1.strength+0.1;
-
-          Bead_1.prev_E_stationary = E_Bead;
-
-        // }
-      Bead_1.Reset_bead(Vector3({X_pos+1.4,0,0}));
-      if(X_pos>40){
-        return -1.0;
-      }
-    //  Bead_1.Reset_bead(Vector3(Bead_1.Pos+Vector3({alpha,0,0})));
-    return alpha;
-    }
-    
-    Bead_1.Reset_bead(Vector3({X_pos+1.4,0,0}));
-
-
-    }
-  if(pulling && two_bead_pulling){
-
-    for( size_t i = 0 ; i < Beads.size(); i++){        
-      if(Beads[i]->state == "manual") {
+    if (!pulling)
+    {
+      for (size_t i = 0; i < Beads.size(); i++)
+      {
         Beads[i]->Reset_bead(Bead_init[i]);
-        Beads[i]->Move_bead(alpha,Vector3({0,0,0}));
-        
+        Beads[i]->Move_bead(alpha, Vector3({0, 0, 0}));
       }
-      
-  }
+      // std::cout<<"pulling is false\n";
+    }
+    // geometry->refreshQuantities();
+
+    A = geometry->totalArea();
+    V = geometry->totalVolume();
+    D_P = -1 * P0 * (V - V_bar) / (V_bar * V_bar);
+    E_Vol = E_Pressure(D_P, V, V_bar);
+    E_Sur = E_Surface(KA, A, A_bar);
+    E_Ben = E_Bending(H_bar, KB);
+    E_Bead = 0;
+    for (size_t i = 0; i < Beads.size(); i++)
+      E_Bead += Beads[i]->Energy();
+    NewE = E_Vol + E_Sur + E_Ben + E_Bead;
+    // std::cout<<"THe old energy is "<< previousE <<"\n";
+    // std::cout<<"Alpha is "<< alpha<<"and the new energy is"<< NewE << "\n";
+    // std::cout<<"The projection is :"<<Projection<<"\n";
+    // // std::cout<<"THe energy changed to"<<NewE<<"\n";
+    // std::cout<< "Volume E"<<E_Vol <<"Surface E" << E_Sur <<"\n";
   }
 
-// std::cout<<"finished while\n";
-if(alpha<0.0){
-    
+  if (pulling && other_pulling && !two_bead_pulling)
+  {
+    std::cout << "pulling is true\n";
+
+    //
+    double current_force = Beads[0]->Total_force.norm2();
+    // double current_force=Bead_1.Total_force.norm2();
+    geometry->normalize(Vector3({0.0, 0.0, 0.0}), false);
+    // geometry->refreshQuantities();
+    X_pos = 0.0;
+    for (Vertex v : mesh->vertices())
+    {
+      Vertex_pos = geometry->inputVertexPositions[v];
+      if (Vertex_pos.x > X_pos)
+      {
+        X_pos = Vertex_pos.x;
+      }
+    }
+    // std::cout<<"The system time is"<<system_time<<"\n";
+    // if(system_time >2e4){
+    std::cout << "The force difference is " << abs((current_force - Bead_1.prev_force) / current_force) << "\n";
+    // }
+    if (abs((current_force - Beads[0]->prev_force) / current_force) < 1e-5 || alpha < 1e-10)
+    {
+      // std::cout<<" The difference in distance after a step is "<< abs(Bead_1.Pos.x -(X_pos+1.4)) <<" \n";
+
+      std::cout << "Some form of steady state was reached\n";
+      if (Beads[0]->Pos.x - X_pos < 1.4)
+      {
+        // Just reset the bead
+        std::cout << "\t\t Moving bead\n";
+        std::cout << "It is moving " << abs(Beads[0]->Pos.x - (X_pos + 1.4)) << " \n";
+
+        if (abs(Beads[0]->Pos.x - (X_pos + 1.4)) < 1e-6)
+        {
+
+          Save_SS = true;
+          std::cout << "\t\t Also increasing interaction strength\n";
+          Beads[0]->strength = Beads[0]->strength + 0.1;
+        }
+        Beads[0]->Reset_bead(Vector3({X_pos + 1.4, 0, 0}));
+      }
+      else
+      {
+        // if(abs(Bead_1.Pos.x -(X_pos+1.4))<1e-4 ){
+        Save_SS = true;
+        std::cout << "\t\tIncreasing interaction strength because it is going back\n";
+        Beads[0]->strength = Beads[0]->strength + 0.1;
+      }
+
+      Beads[0]->prev_E_stationary = E_Bead;
+
+      if (X_pos > 40)
+      {
+        return -1.0;
+      }
+      //  Bead_1.Reset_bead(Vector3(Bead_1.Pos+Vector3({alpha,0,0})));
+      return alpha;
+    }
+
+    // Bead_1.Reset_bead(Vector3({X_pos+1.4,0,0}));
+  }
+
+  if (pulling && !other_pulling && !two_bead_pulling)
+  {
+    // std::cout<<"pulling is true\n";
+
+    double current_force = Bead_1.Total_force.norm2();
+    // std::cout<<"\t \t Reseting bead position\n";
+    geometry->normalize(Vector3({0.0, 0.0, 0.0}), false);
+    // geometry->refreshQuantities();
+    X_pos = 0.0;
+    for (Vertex v : mesh->vertices())
+    {
+      Vertex_pos = geometry->inputVertexPositions[v];
+      if (Vertex_pos.x > X_pos)
+      {
+        X_pos = Vertex_pos.x;
+      }
+    }
+    if (abs((current_force - Bead_1.prev_force) / current_force) < 1e-6 || alpha < 1e-10)
+    {
+      // std::cout<<" The difference in distance after a step is "<< abs(Bead_1.Pos.x -(X_pos+1.4)) <<" \n";
+      std::cout << "It is moving " << abs(Bead_1.Pos.x - (X_pos + 1.4)) << " \n";
+      // if(abs(Bead_1.Pos.x -(X_pos+1.4))<1e-4 ){
+      std::cout << "Increasing strength\n";
+      Save_SS = true;
+      std::cout << "The energy difference is " << abs(E_Bead - Bead_1.prev_E_stationary) << " \n";
+      if (abs(E_Bead - Bead_1.prev_E_stationary) < 1e-3 && !stop_increasing && Bead_1.strength > 10.0)
+      {
+        stop_increasing = true;
+        std::cout << "\t \t Stopped increasing potential energy\n";
+      }
+      if (!stop_increasing)
+        Bead_1.strength = Bead_1.strength + 0.1;
+
+      Bead_1.prev_E_stationary = E_Bead;
+
+      // }
+      Bead_1.Reset_bead(Vector3({X_pos + 1.4, 0, 0}));
+      if (X_pos > 40)
+      {
+        return -1.0;
+      }
+      //  Bead_1.Reset_bead(Vector3(Bead_1.Pos+Vector3({alpha,0,0})));
+      return alpha;
+    }
+
+    Bead_1.Reset_bead(Vector3({X_pos + 1.4, 0, 0}));
+  }
+  if (pulling && two_bead_pulling)
+  {
+
+    for (size_t i = 0; i < Beads.size(); i++)
+    {
+      if (Beads[i]->state == "manual")
+      {
+        Beads[i]->Reset_bead(Bead_init[i]);
+        Beads[i]->Move_bead(alpha, Vector3({0, 0, 0}));
+      }
+    }
+  }
+
+  // std::cout<<"finished while\n";
+  if (alpha < 0.0)
+  {
+
     geometry->inputVertexPositions = initial_pos;
-}
-geometry->normalize(Vector3({0.0,0.0,0.0}),false);
-geometry->refreshQuantities();
+  }
+  geometry->normalize(Vector3({0.0, 0.0, 0.0}), false);
+  // geometry->refreshQuantities();
 
-
-return alpha;
-
+  return alpha;
 }
 
+double Mem3DG::Backtracking_field(VertexData<Vector3> Force, double D_P, double V_bar, double A_bar, double KA, double KB, double H_bar)
+{
 
-double Mem3DG::Backtracking_field(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB, double H_bar) {
+  // std::cout<<"Backtracking\n";
+  bool other_pulling = true;
+  // double Bead_force_prev=-12;
+  // double Bead_force_new=-15;
+  double c1 = 1e-4;
+  double rho = 0.5;
+  double alpha = 1e-3;
+  double positionProjection = 0;
+  double X_pos;
 
-// std::cout<<"Backtracking\n";
-bool other_pulling=true;
-// double Bead_force_prev=-12;
-// double Bead_force_new=-15;
-double c1=1e-4;
-double rho=0.5;
-double alpha=1e-3;
-double positionProjection = 0;
-double X_pos;
+  // A=geometry->totalArea();
+  // V=geometry->totalVolume();
+  // E_Vol = E_Pressure(D_P,V,V_bar);
+  // E_Sur = E_Surface(KA,A,A_bar);
+  // E_Ben = E_Bending(H_bar,KB);
+  // E_Bead = Bead_1.Energy();
+  double previousE = E_Vol + E_Sur + E_Ben;
+  double NewE;
+  VertexData<Vector3> initial_pos(*mesh);
 
-// A=geometry->totalArea();
-// V=geometry->totalVolume();
-// E_Vol = E_Pressure(D_P,V,V_bar);
-// E_Sur = E_Surface(KA,A,A_bar);
-// E_Ben = E_Bending(H_bar,KB);
-// E_Bead = Bead_1.Energy();
-double previousE=E_Vol+E_Sur+E_Ben;
-double NewE;
-VertexData<Vector3> initial_pos(*mesh);
+  geometry->normalize(Vector3({0.0, 0.0, 0.0}), false);
 
-geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+  initial_pos = geometry->inputVertexPositions;
+  // Vector3 Bead_init = this->Bead_1.Pos;
+  // std::cout<<"THe current energy is "<<previousE <<"Is this awful?\n";
+  // Zeroth iteration
+  double Projection = 0;
+  Vector3 center;
 
-initial_pos= geometry->inputVertexPositions;
-// Vector3 Bead_init = this->Bead_1.Pos;
-// std::cout<<"THe current energy is "<<previousE <<"Is this awful?\n";
-// Zeroth iteration
-double Projection=0;
-Vector3 center; 
-    
+  geometry->inputVertexPositions += alpha * Force;
+  // geometry->refreshQuantities();
 
+  center = geometry->centerOfMass();
+  Vector3 Vertex_pos;
 
+  Total_force = Vector3({0, 0, 0});
+  for (Vertex v : mesh->vertices())
+  {
+    Projection += Force[v.getIndex()].norm2();
+    Total_force += Force[v.getIndex()];
+  }
 
-geometry->inputVertexPositions+=alpha * Force;
-geometry->refreshQuantities();
+  grad_norm = Projection;
 
-center = geometry->centerOfMass();
-Vector3 Vertex_pos;
+  A = geometry->totalArea();
+  V = geometry->totalVolume();
+  E_Vol = E_Pressure(D_P, V, V_bar);
+  E_Sur = E_Surface(KA, A, A_bar);
+  E_Ben = E_Bending(H_bar, KB);
+  // E_Bead=Bead_1.Energy();
+  NewE = E_Vol + E_Sur + E_Ben;
 
+  if (std::isnan(E_Vol))
+  {
+    std::cout << "E vol is nan\n";
+  }
+  if (std::isnan(E_Sur))
+  {
+    std::cout << "E sur is nan\n";
+  }
+  if (std::isnan(E_Ben))
+  {
+    std::cout << "E ben is nan\n";
+  }
 
-Total_force = Vector3({0,0,0});
-for(Vertex v : mesh->vertices()) {
-  Projection+=Force[v.getIndex()].norm2();
-  Total_force+=Force[v.getIndex()];
-  } 
+  size_t counter = 0;
 
+  // std::cout<<"starting while\n";
+  while (true)
+  {
+    // if(true){
 
-grad_norm=Projection;
-
-
-A=geometry->totalArea();
-V=geometry->totalVolume();
-E_Vol=E_Pressure(D_P,V,V_bar);
-E_Sur=E_Surface(KA,A,A_bar);
-E_Ben=E_Bending(H_bar,KB);
-// E_Bead=Bead_1.Energy();
-NewE=E_Vol+E_Sur+E_Ben;
-
-if(std::isnan(E_Vol)){
-  std::cout<<"E vol is nan\n";
-}
-if(std::isnan(E_Sur)){
-  std::cout<<"E sur is nan\n";
-}
-if(std::isnan(E_Ben)){
-  std::cout<<"E ben is nan\n";
-}
-
-
-size_t counter=0;
-
-// std::cout<<"starting while\n";
-while(true){
-  // if(true){
-  
-  if( NewE<= previousE - c1 * alpha * Projection &&  abs(NewE-previousE)<10  ) {
-    // std::cout<<Bead_1.Total_force.norm()*alpha<<" Displacement of the bead\n";
-    break;
-
+    if (NewE <= previousE - c1 * alpha * Projection && abs(NewE - previousE) < 10)
+    {
+      // std::cout<<Bead_1.Total_force.norm()*alpha<<" Displacement of the bead\n";
+      break;
     }
-  // if(abs(NewE-previousE)>100 && Projection>1e6){
-  //   std::cout<<"The energy diff is"<< abs(NewE-previousE)<<"\n";
-  //   std::cout<<"THe relative energy diff  is"<<abs((NewE-previousE)/previousE)<<"\n";
-  //   std::cout<<"The projection is"<< Projection<<"\n";
-  //   std::cout<<"Peak in energy variation, will stop out of safety\n";
-  //   alpha=-1;
-  //   break;
-  // }
-  
-  if(std::isnan(E_Vol)){
-      std::cout<<"E vol is nan\n";
+    // if(abs(NewE-previousE)>100 && Projection>1e6){
+    //   std::cout<<"The energy diff is"<< abs(NewE-previousE)<<"\n";
+    //   std::cout<<"THe relative energy diff  is"<<abs((NewE-previousE)/previousE)<<"\n";
+    //   std::cout<<"The projection is"<< Projection<<"\n";
+    //   std::cout<<"Peak in energy variation, will stop out of safety\n";
+    //   alpha=-1;
+    //   break;
+    // }
+
+    if (std::isnan(E_Vol))
+    {
+      std::cout << "E vol is nan\n";
     }
-  if(std::isnan(E_Sur)){
-      std::cout<<"E sur is nan\n";
+    if (std::isnan(E_Sur))
+    {
+      std::cout << "E sur is nan\n";
     }
-  if(std::isnan(E_Ben)){
-      std::cout<<"E ben is nan\n";
+    if (std::isnan(E_Ben))
+    {
+      std::cout << "E ben is nan\n";
     }
 
-  if(std::isnan(NewE)){
-      
-      alpha=-1.0;
+    if (std::isnan(NewE))
+    {
+
+      alpha = -1.0;
       break;
     }
 
-  
-  alpha*=rho;
-  
+    alpha *= rho;
+
     // if(pulling){
-      
+
     //   double current_force=Bead_1.Total_force.norm2();
     //   std::cout<<"The force relative dif is "<< abs((current_force-Bead_1.prev_force)/current_force) <<" \n";
     //   std::cout<<"The bead prev force is"<< Bead_1.prev_force<<"\n";
@@ -2394,14 +2680,14 @@ while(true){
     //   if(abs((current_force-Bead_1.prev_force)/current_force)<1e-4){
     //   // std::cout<<"\t \t Reseting bead position\n";
     //   // geometry->normalize(Vector3({0.0,0.0,0.0}),false);
-    //   // geometry->refreshQuantities();
-    
+    //   // // geometry->refreshQuantities();
+
     //   // X_pos=0.0;
     //   // for(Vertex v : mesh->vertices()){
     //   //   Vertex_pos=geometry->inputVertexPositions[v];
     //   //   if(Vertex_pos.x>X_pos){
     //   //     X_pos=Vertex_pos.x;
-    //   //   }  
+    //   //   }
     //   // }
     //   // std::cout<<" The difference in distance after a step is "<< abs(Bead_1.Pos.x -(X_pos+1.4)) <<" \n";
     //   // if(abs(Bead_1.Pos.x -(X_pos+1.4))<1e-4 ){ //|| Bead_1.Pos.x>X_pos+1.4
@@ -2418,348 +2704,332 @@ while(true){
     // }
     // }
 
+    if (alpha < 1e-10)
+    {
 
-  if(alpha<1e-10){
+      std::cout << "THe timestep got small so the simulation would end \n";
+      std::cout << "THe timestep is " << alpha << " \n";
+      std::cout << "The energy diff is" << abs(NewE - previousE) << "\n";
+      std::cout << "THe relative energy diff  is" << abs((NewE - previousE) / previousE) << "\n";
+      std::cout << "The projection is" << Projection << "\n";
 
-
-    std::cout<<"THe timestep got small so the simulation would end \n";
-    std::cout<<"THe timestep is "<< alpha <<" \n";
-    std::cout<<"The energy diff is"<< abs(NewE-previousE)<<"\n";
-    std::cout<<"THe relative energy diff  is"<<abs((NewE-previousE)/previousE)<<"\n";
-    std::cout<<"The projection is"<< Projection<<"\n";
-    
-
-    // if(Projection>1e10){
-    //   std::cout<<"Not moving forward\n";
-    //   alpha=0.0;
+      // if(Projection>1e10){
+      //   std::cout<<"Not moving forward\n";
+      //   alpha=0.0;
       // return -1;
-    // }
-    // continue;
-    break;
-    
+      // }
+      // continue;
+      break;
+    }
 
+    // geometry->inputVertexPositions = initial_pos+alpha*Force;
+    // geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+    // // geometry->refreshQuantities();
+    // center = geometry->centerOfMass();
+
+    A = geometry->totalArea();
+    V = geometry->totalVolume();
+    E_Vol = E_Pressure(D_P, V, V_bar);
+    E_Sur = E_Surface(KA, A, A_bar);
+    E_Ben = E_Bending(H_bar, KB);
+    NewE = E_Vol + E_Sur + E_Ben;
+    // std::cout<<"THe old energy is "<< previousE <<"\n";
+    // std::cout<<"Alpha is "<< alpha<<"and the new energy is"<< NewE << "\n";
+    // std::cout<<"The projection is :"<<Projection<<"\n";
+    // // std::cout<<"THe energy changed to"<<NewE<<"\n";
+    // std::cout<< "Volume E"<<E_Vol <<"Surface E" << E_Sur <<"\n";
   }
 
-  // geometry->inputVertexPositions = initial_pos+alpha*Force;
-  // geometry->normalize(Vector3({0.0,0.0,0.0}),false);
-  // geometry->refreshQuantities();
-  // center = geometry->centerOfMass();
+  // std::cout<<"finished while\n";
+  if (alpha < 0.0)
+  {
 
-  
-
-  
-  A=geometry->totalArea();
-  V=geometry->totalVolume();
-  E_Vol=E_Pressure(D_P,V,V_bar);
-  E_Sur=E_Surface(KA,A,A_bar);
-  E_Ben=E_Bending(H_bar,KB);
-  NewE=E_Vol+E_Sur+E_Ben;
-  // std::cout<<"THe old energy is "<< previousE <<"\n";
-  // std::cout<<"Alpha is "<< alpha<<"and the new energy is"<< NewE << "\n";
-  // std::cout<<"The projection is :"<<Projection<<"\n";
-  // // std::cout<<"THe energy changed to"<<NewE<<"\n";
-  // std::cout<< "Volume E"<<E_Vol <<"Surface E" << E_Sur <<"\n";
-
-
-
-}
-
-
-
-
-
-// std::cout<<"finished while\n";
-if(alpha<0.0){
-    
     geometry->inputVertexPositions = initial_pos;
-}
-// geometry->normalize(Vector3({0.0,0.0,0.0}),false);
-// geometry->refreshQuantities();
+  }
+  // geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+  // // geometry->refreshQuantities();
 
-
-return alpha;
-
+  return alpha;
 }
 
 // THis is for the membrane flow
 
-double Mem3DG::Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double A_bar,double KA,double KB,double H_bar) {
-double c1=1e-4;
-double rho=0.7;
-double alpha=1e-3;
-double positionProjection = 0;
-double A=geometry->totalArea();
-double V=geometry->totalVolume();
-double E_Vol=E_Pressure(D_P,V,V_bar);
-double E_Sur=E_Surface(KA,A,A_bar);
-double E_Ben=E_Bending(H_bar,KB);
+double Mem3DG::Backtracking(VertexData<Vector3> Force, double D_P, double V_bar, double A_bar, double KA, double KB, double H_bar)
+{
+  double c1 = 1e-4;
+  double rho = 0.7;
+  double alpha = 1e-3;
+  double positionProjection = 0;
+  double A = geometry->totalArea();
+  double V = geometry->totalVolume();
+  double E_Vol = E_Pressure(D_P, V, V_bar);
+  double E_Sur = E_Surface(KA, A, A_bar);
+  double E_Ben = E_Bending(H_bar, KB);
 
-// double previousE=E_Vol+E_Sur+E_Ben;
-double previousE=E_Vol+E_Sur+E_Ben;
-double NewE;
-VertexData<Vector3> initial_pos(*mesh);
-initial_pos= geometry->inputVertexPositions;
-// Zeroth iteration
-double Projection=0;
+  // double previousE=E_Vol+E_Sur+E_Ben;
+  double previousE = E_Vol + E_Sur + E_Ben;
+  double NewE;
+  VertexData<Vector3> initial_pos(*mesh);
+  initial_pos = geometry->inputVertexPositions;
+  // Zeroth iteration
+  double Projection = 0;
 
-// std::cout<<"THe initial E is "<<previousE<<"\n";
-geometry->inputVertexPositions+=alpha * Force;
-// std::cout<< geometry->inputVertexPositions[0]<<"and the other "<< initial_pos[0]<<"\n";
+  // std::cout<<"THe initial E is "<<previousE<<"\n";
+  geometry->inputVertexPositions += alpha * Force;
+  // std::cout<< geometry->inputVertexPositions[0]<<"and the other "<< initial_pos[0]<<"\n";
 
-for(Vertex v : mesh->vertices()) {
-  Projection+=Force[v.getIndex()].norm2();
-  } 
+  for (Vertex v : mesh->vertices())
+  {
+    Projection += Force[v.getIndex()].norm2();
+  }
 
+  grad_norm = Projection;
 
-grad_norm=Projection;
+  // geometry->refreshQuantities();
 
-geometry->refreshQuantities();
+  A = geometry->totalArea();
+  V = geometry->totalVolume();
+  E_Vol = E_Pressure(D_P, V, V_bar);
+  E_Sur = E_Surface(KA, A, A_bar);
+  E_Ben = E_Bending(H_bar, KB);
 
-A=geometry->totalArea();
-V=geometry->totalVolume();
-E_Vol=E_Pressure(D_P,V,V_bar);
-E_Sur=E_Surface(KA,A,A_bar);
-E_Ben=E_Bending(H_bar,KB);
-
-NewE=E_Vol+E_Sur+E_Ben;
-// NewE=E_Sur+E_Ben;
-// if(std::isnan(E_Vol)){
-//   std::cout<<"E vol is nan\n";
-// }
-if(std::isnan(E_Sur)){
-  std::cout<<"E sur is nan\n";
-}
-if(std::isnan(E_Ben)){
-  std::cout<<"E ben is nan\n";
-}
-
-
-size_t counter=0;
-while(true){
-  // if(true){
-  // std::cout<<"THe new energy is "<<NewE <<"\n";
-  if( NewE<= previousE - c1*alpha*Projection ) {
-    break;
-
-    }
+  NewE = E_Vol + E_Sur + E_Ben;
+  // NewE=E_Sur+E_Ben;
   // if(std::isnan(E_Vol)){
-  // std::cout<<"E vol is nan\n";
-  //   }
-if(std::isnan(E_Sur)){
-  std::cout<<"E sur is nan\n";
-    }
-if(std::isnan(E_Ben)){
-  std::cout<<"E ben is nan\n";
-    }
+  //   std::cout<<"E vol is nan\n";
+  // }
+  if (std::isnan(E_Sur))
+  {
+    std::cout << "E sur is nan\n";
+  }
+  if (std::isnan(E_Ben))
+  {
+    std::cout << "E ben is nan\n";
+  }
 
-  
-
-  alpha*=rho;
-  if(alpha<1e-8){
-    // std::cout<<"THe timestep got small\n";
-    if(system_time<2*Area_evol_steps){
-      // std::cout<<"But the area evolution is not complete yet\n";
+  size_t counter = 0;
+  while (true)
+  {
+    // if(true){
+    // std::cout<<"THe new energy is "<<NewE <<"\n";
+    if (NewE <= previousE - c1 * alpha * Projection)
+    {
       break;
     }
-    else{
-    std::cout<<"THe simulation will stop because the timestep got smaller than 1e-8 \n";
-    alpha=-1.0;
-    // continue;
-    break;
+    // if(std::isnan(E_Vol)){
+    // std::cout<<"E vol is nan\n";
+    //   }
+    if (std::isnan(E_Sur))
+    {
+      std::cout << "E sur is nan\n";
+    }
+    if (std::isnan(E_Ben))
+    {
+      std::cout << "E ben is nan\n";
+    }
+
+    alpha *= rho;
+    if (alpha < 1e-8)
+    {
+      // std::cout<<"THe timestep got small\n";
+      if (system_time < 2 * Area_evol_steps)
+      {
+        // std::cout<<"But the area evolution is not complete yet\n";
+        break;
+      }
+      else
+      {
+        std::cout << "THe simulation will stop because the timestep got smaller than 1e-8 \n";
+        alpha = -1.0;
+        // continue;
+        break;
+      }
+    }
+    // for(Vertex vi : mesh->vertices()){
+    //   geometry->inputVertexPositions[vi.getIndex()]= initial_pos[vi.getIndex()]+alpha*Force[vi.getIndex()];
+    // }
+    geometry->inputVertexPositions = initial_pos + alpha * Force;
+    // geometry->refreshQuantities();
+    // std::cout<<"THe old energy is "<< previousE <<"\n";
+    // std::cout<<"Alpha is "<< alpha<<"and the new energy is"<< NewE << "\n";
+    // std::cout<<"The projection is :"<<Projection<<"\n";
+    // // std::cout<<"THe energy changed to"<<NewE<<"\n";
+    // std::cout<< "Volume E"<<E_Vol <<"Surface E" << E_Sur <<"\n";
+
+    A = geometry->totalArea();
+    V = geometry->totalVolume();
+    E_Vol = E_Pressure(D_P, V, V_bar);
+    E_Sur = E_Surface(KA, A, A_bar);
+    E_Ben = E_Bending(H_bar, KB);
+    // NewE=E_Sur+E_Ben;
+    NewE = E_Vol + E_Sur + E_Ben;
+
+    if (std::isnan(NewE))
+    {
+      std::cout << "The energy got Nan\n";
+
+      alpha = -1.0;
+      break;
     }
   }
-  // for(Vertex vi : mesh->vertices()){
-  //   geometry->inputVertexPositions[vi.getIndex()]= initial_pos[vi.getIndex()]+alpha*Force[vi.getIndex()];
+
+  // for (Edge e : mesh->edges()){
+  //   std::cout<< e.remesh;
+
   // }
-  geometry->inputVertexPositions = initial_pos+alpha*Force;
-  geometry->refreshQuantities();  
-  // std::cout<<"THe old energy is "<< previousE <<"\n";
-  // std::cout<<"Alpha is "<< alpha<<"and the new energy is"<< NewE << "\n";
-  // std::cout<<"The projection is :"<<Projection<<"\n";
-  // // std::cout<<"THe energy changed to"<<NewE<<"\n";
-  // std::cout<< "Volume E"<<E_Vol <<"Surface E" << E_Sur <<"\n";
-
-  
-
- 
-  
-  A=geometry->totalArea();
-  V=geometry->totalVolume();
-  E_Vol=E_Pressure(D_P,V,V_bar);
-  E_Sur=E_Surface(KA,A,A_bar);
-  E_Ben=E_Bending(H_bar,KB);
-  // NewE=E_Sur+E_Ben;
-  NewE=E_Vol+E_Sur+E_Ben;
-  
-  if(std::isnan(NewE)){
-    std::cout<<"The energy got Nan\n";
-    
-    alpha=-1.0;
-    break;
-  }
-
-
-
-
-}
-
-// for (Edge e : mesh->edges()){
-//   std::cout<< e.remesh;
-
-// }
-// std::cout<<"\n";
-  if(pulling){
+  // std::cout<<"\n";
+  if (pulling)
+  {
     // std::cout<<"THere is pulling right?\n";
-  VertexData<Vector3> Horizontal_pull(*mesh,Vector3({1.0,0.0,0.0}));
-  
-    // std::cout<<"\n";
-  geometry->inputVertexPositions+=alpha*pulling_force*No_remesh_list_v*Horizontal_pull;
-  geometry->refreshQuantities();
-  }
-return alpha;
+    VertexData<Vector3> Horizontal_pull(*mesh, Vector3({1.0, 0.0, 0.0}));
 
+    // std::cout<<"\n";
+    geometry->inputVertexPositions += alpha * pulling_force * No_remesh_list_v * Horizontal_pull;
+    // geometry->refreshQuantities();
+  }
+  return alpha;
 }
 
+VertexData<Vector3> Mem3DG::Project_force(VertexData<Vector3> Force) const
+{
 
-VertexData<Vector3> Mem3DG::Project_force(VertexData<Vector3> Force) const{
-
-  VertexData<Vector3> Projected_Force(*mesh,Vector3({0,0,0}));
+  VertexData<Vector3> Projected_Force(*mesh, Vector3({0, 0, 0}));
   Vector3 Normal_v;
-  double projection=0;
-  for (Vertex v : mesh->vertices()){
-    Normal_v=geometry->vertexNormalAreaWeighted(v);
-    projection=dot(Force[v],Normal_v);
+  double projection = 0;
+  for (Vertex v : mesh->vertices())
+  {
+    Normal_v = geometry->vertexNormalAreaWeighted(v);
+    projection = dot(Force[v], Normal_v);
     // std::cout<<"The projection is negative?"<< (projection<0) <<" \n";
-    Projected_Force[v]= (projection>0)*projection*Normal_v;
-
+    Projected_Force[v] = (projection > 0) * projection * Normal_v;
   }
   return Force;
   // return Projected_Force;
 }
 
-
 // THis is backtracking for volume preserving mean curvature flow
-double Mem3DG::Backtracking(VertexData<Vector3> Force,double D_P,double V_bar,double KA) {
-double c1=1e-4;
-double rho=0.7;
-double alpha=1e-3;
-double positionProjection = 0;
-double A=geometry->totalArea();
-double V=geometry->totalVolume();
-double E_Vol=E_Pressure(D_P,V,V_bar);
-double E_Sur=A*KA;
+double Mem3DG::Backtracking(VertexData<Vector3> Force, double D_P, double V_bar, double KA)
+{
+  double c1 = 1e-4;
+  double rho = 0.7;
+  double alpha = 1e-3;
+  double positionProjection = 0;
+  double A = geometry->totalArea();
+  double V = geometry->totalVolume();
+  double E_Vol = E_Pressure(D_P, V, V_bar);
+  double E_Sur = A * KA;
 
-// double previousE=E_Vol+E_Sur+E_Ben;
-double previousE=E_Vol+E_Sur;
-double NewE;
-VertexData<Vector3> initial_pos(*mesh);
-initial_pos= geometry->inputVertexPositions;
-// Zeroth iteration
-double Projection=0;
+  // double previousE=E_Vol+E_Sur+E_Ben;
+  double previousE = E_Vol + E_Sur;
+  double NewE;
+  VertexData<Vector3> initial_pos(*mesh);
+  initial_pos = geometry->inputVertexPositions;
+  // Zeroth iteration
+  double Projection = 0;
 
-// std::cout<<"THe initial E is "<<previousE<<"\n";
-geometry->inputVertexPositions+=alpha * Force;
-// std::cout<< geometry->inputVertexPositions[0]<<"and the other "<< initial_pos[0]<<"\n";
+  // std::cout<<"THe initial E is "<<previousE<<"\n";
+  geometry->inputVertexPositions += alpha * Force;
+  // std::cout<< geometry->inputVertexPositions[0]<<"and the other "<< initial_pos[0]<<"\n";
 
-for(Vertex v : mesh->vertices()) {
-  Projection+=Force[v.getIndex()].norm2();
-  } 
-
-
-grad_norm=Projection;
-
-geometry->refreshQuantities();
-
-A=geometry->totalArea();
-V=geometry->totalVolume();
-E_Vol=E_Pressure(D_P,V,V_bar);
-E_Sur=A*KA;
-NewE=E_Vol+E_Sur;
-// NewE=E_Sur+E_Ben;
-// if(std::isnan(E_Vol)){
-//   std::cout<<"E vol is nan\n";
-// }
-if(std::isnan(E_Sur)){
-  std::cout<<"E sur is nan\n";
-}
-
-
-
-size_t counter=0;
-while(true){
-  // if(true){
-  // std::cout<<"THe new energy is "<<NewE <<"\n";
-  if( NewE<= previousE - c1*alpha*Projection ) {
-    break;
-
-    }
-  // if(std::isnan(E_Vol)){
-  // std::cout<<"E vol is nan\n";
-  //   }
-if(std::isnan(E_Sur)){
-  std::cout<<"E sur is nan\n";
-    }
-
-  if(std::isnan(NewE)){
-    std::cout<<"The energy got Nan\n";
-    
-    alpha=-1.0;
-    break;
+  for (Vertex v : mesh->vertices())
+  {
+    Projection += Force[v.getIndex()].norm2();
   }
 
+  grad_norm = Projection;
 
-  alpha*=rho;
-  if(alpha<1e-8){
-    // std::cout<<"THe timestep got small\n";
-    if(system_time<2*Area_evol_steps){
-      // std::cout<<"But the area evolution is not complete yet\n";
+  // geometry->refreshQuantities();
+
+  A = geometry->totalArea();
+  V = geometry->totalVolume();
+  E_Vol = E_Pressure(D_P, V, V_bar);
+  E_Sur = A * KA;
+  NewE = E_Vol + E_Sur;
+  // NewE=E_Sur+E_Ben;
+  // if(std::isnan(E_Vol)){
+  //   std::cout<<"E vol is nan\n";
+  // }
+  if (std::isnan(E_Sur))
+  {
+    std::cout << "E sur is nan\n";
+  }
+
+  size_t counter = 0;
+  while (true)
+  {
+    // if(true){
+    // std::cout<<"THe new energy is "<<NewE <<"\n";
+    if (NewE <= previousE - c1 * alpha * Projection)
+    {
       break;
     }
-    else{
-    std::cout<<"THe simulation will stop because the timestep got smaller than 1e-8 \n";
-    alpha=-1.0;
-    // continue;
-    break;
+    // if(std::isnan(E_Vol)){
+    // std::cout<<"E vol is nan\n";
+    //   }
+    if (std::isnan(E_Sur))
+    {
+      std::cout << "E sur is nan\n";
     }
+
+    if (std::isnan(NewE))
+    {
+      std::cout << "The energy got Nan\n";
+
+      alpha = -1.0;
+      break;
+    }
+
+    alpha *= rho;
+    if (alpha < 1e-8)
+    {
+      // std::cout<<"THe timestep got small\n";
+      if (system_time < 2 * Area_evol_steps)
+      {
+        // std::cout<<"But the area evolution is not complete yet\n";
+        break;
+      }
+      else
+      {
+        std::cout << "THe simulation will stop because the timestep got smaller than 1e-8 \n";
+        alpha = -1.0;
+        // continue;
+        break;
+      }
+    }
+    // for(Vertex vi : mesh->vertices()){
+    //   geometry->inputVertexPositions[vi.getIndex()]= initial_pos[vi.getIndex()]+alpha*Force[vi.getIndex()];
+    // }
+    geometry->inputVertexPositions = initial_pos + alpha * Force;
+    // geometry->refreshQuantities();
+    // std::cout<<"THe old energy is "<< previousE <<"\n";
+    // std::cout<<"Alpha is "<< alpha<<"and the new energy is"<< NewE << "\n";
+    // std::cout<<"The projection is :"<<Projection<<"\n";
+    // // std::cout<<"THe energy changed to"<<NewE<<"\n";
+    // std::cout<< "Volume E"<<E_Vol <<"Surface E" << E_Sur <<"\n";
+
+    A = geometry->totalArea();
+    V = geometry->totalVolume();
+    E_Vol = E_Pressure(D_P, V, V_bar);
+    E_Sur = A * KA;
+    NewE = E_Vol + E_Sur;
   }
-  // for(Vertex vi : mesh->vertices()){
-  //   geometry->inputVertexPositions[vi.getIndex()]= initial_pos[vi.getIndex()]+alpha*Force[vi.getIndex()];
+
+  // for (Edge e : mesh->edges()){
+  //   std::cout<< e.remesh;
+
   // }
-  geometry->inputVertexPositions = initial_pos+alpha*Force;
-  geometry->refreshQuantities();  
-  // std::cout<<"THe old energy is "<< previousE <<"\n";
-  // std::cout<<"Alpha is "<< alpha<<"and the new energy is"<< NewE << "\n";
-  // std::cout<<"The projection is :"<<Projection<<"\n";
-  // // std::cout<<"THe energy changed to"<<NewE<<"\n";
-  // std::cout<< "Volume E"<<E_Vol <<"Surface E" << E_Sur <<"\n";
-
-    
-  A=geometry->totalArea();
-  V=geometry->totalVolume();
-  E_Vol=E_Pressure(D_P,V,V_bar);
-  E_Sur=A*KA;
-  NewE=E_Vol+E_Sur;  
-  
-
-}
-
-// for (Edge e : mesh->edges()){
-//   std::cout<< e.remesh;
-
-// }
-// std::cout<<"\n";
-  if(pulling){
+  // std::cout<<"\n";
+  if (pulling)
+  {
     // std::cout<<"THere is pulling right?\n";
-  VertexData<Vector3> Horizontal_pull(*mesh,Vector3({1.0,0.0,0.0}));
-  
+    VertexData<Vector3> Horizontal_pull(*mesh, Vector3({1.0, 0.0, 0.0}));
+
     // std::cout<<"\n";
-  geometry->inputVertexPositions+=alpha*pulling_force*No_remesh_list_v*Horizontal_pull;
-  geometry->refreshQuantities();
+    geometry->inputVertexPositions += alpha * pulling_force * No_remesh_list_v * Horizontal_pull;
+    // geometry->refreshQuantities();
   }
-return alpha;
-
+  return alpha;
 }
-
 
 // void Mem3DG::Get_Energies(std::vector<std::string>Energies, std::vector<std::vector<double>> Energy_constants, double* NewE){
 
@@ -2782,7 +3052,7 @@ return alpha;
 //       continue;
 //     }
 //     if(Energies[i]=="Area_constraint"){
-      
+
 //       double A = geometry->totalArea();
 //       double A_bar = Energy_constants[i][1];
 //       double KA = Energy_constants[i][0];
@@ -2805,35 +3075,32 @@ return alpha;
 //     if(Energies[i]=="Bead" || Energies[i]=="H1_Bead" || Energies[i]=="H2_Bead"){
 
 //       // The energy
-//       Energy_vals[i] = Beads[bead_count]->Energy(); 
+//       Energy_vals[i] = Beads[bead_count]->Energy();
 
 //       bead_count +=1;
 //       *NewE += Energy_vals[i];
 //       continue;
 
-
 //     }
 //     if(Energies[i]=="Surface_tension"|| Energies[i] == "H1_Surface_tension" || Energies[i] == "H2_Surface_tension"){
-//       // What if the energy is surface tension 
+//       // What if the energy is surface tension
 //       double sigma = Energy_constants[i][0];
 //       // I need to add an energy term here;
 //       // std::cout<<"Calculating old energy\n";
 //       A  = geometry->totalArea();
-//       Energy_vals[i] = sigma*A; 
+//       Energy_vals[i] = sigma*A;
 //       *NewE += Energy_vals[i];
 //       continue;
 
 //     }
-
 
 //   }
 
 //   return;
 // }
 
-
-
-double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data){
+double Mem3DG::integrate(std::ofstream &Sim_data, double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data)
+{
 
   auto start = chrono::steady_clock::now();
   auto end = chrono::steady_clock::now();
@@ -2842,185 +3109,110 @@ double Mem3DG::integrate(std::ofstream& Sim_data , double time, std::vector<std:
   auto solve_start = chrono::steady_clock::now();
   auto solve_end = chrono::steady_clock::now();
 
-  
   // std::cout<<"Got to integrating\n";
-
   double time_construct = 0;
   double time_solve = 0;
   double time_compute = 0;
   double time_gradients = 0;
   double time_backtracking = 0;
 
+  A = 0;
+  V = 0;
 
-  size_t bead_count = 0;
-  // std::cout<<"Bead data\n";
-  if(Bead_data_filenames.size()!=0 && Save_output_data){
-    // std::cout<<"Not here right?\n";
-    std::ofstream Bead_data;
-    for(size_t i = 0; i < Beads.size(); i++){
-      
-      Bead_data = std::ofstream(Bead_data_filenames[i],std::ios_base::app);
-      Bead_data<<Beads[i]->Pos.x <<" "<< Beads[i]->Pos.y << " "<< Beads[i]->Pos.z<< " "<< Beads[i]->Total_force.x <<" "<< Beads[i]->Total_force.y << " "<< Beads[i]->Total_force.z <<" \n";
-      // std::cout<<Bead_1.Pos.x << " "<< Bead_1.Pos.y << " "<< Bead_1.Pos.z<<" \n";
-      // std::cout<<"The total force is "<<Bead_1.Total_force <<"\n";
-      Bead_data.close();
-      }
-
-  }
-
-
-  // I need to get the force and their gradients
-
-
-  // std::vector<double> Gradient_norms;
-  // double grad_value;
-  // VertexData<Vector3> Force(*mesh,Vector3({0.0,0.0,0.0}));
-  // VertexData<Vector3> Force_temp(*mesh);
-  // if(Energy_vals.size()==0) Energy_vals.resize(Energies.size());
-  
-  // double A_bar = 4.0*3.1415926535;
-  // double V_bar = 4.0*3.14115926535/3.0;
-  // double V;
-  // double A = 0;
-
-  // Lets calculate the areas of every vertex
-
-  // std::cout<<"Barycentric area??\n";
-  Vector<double> Barycentric_area(mesh->nVertices());
-
-  for(size_t index = 0; index < mesh->nVertices(); index++) {
-    Barycentric_area[index] = geometry->barycentricDualArea(mesh->vertex(index));
-    A += Barycentric_area[index];
-    // Barycentric_area[index] = 1.0;
-  }
-
-
-  bool H2_grad = false;
-  bool H1_grad = false;
-  size_t N_vert = mesh->nVertices();
-  int N_constraints = 4;
-  SparseMatrix<double> H2_mat;//(N_vert*3+N_constraints,N_vert*3+N_constraints);
-  SparseMatrix<double> H1_mat;
-  Eigen::SparseLU<SparseMatrix<double>> solverH2;
-  Eigen::SparseLU<SparseMatrix<double>> solverH1;
-  // int N_vert = mesh->nVertices();
-
-  // We will calculate the gradients here
   start = chrono::steady_clock::now();
-  // std::cout<<"Calling simulation handler for gradiebts\n";
-  // std::cout<<"Calling sim handler for gradient\n";
-
-
-  Sim_handler->Calculate_gradient();
-
-
-
-  // std::cout<<"Got the gradient\n";
-  // std::cout<<"Sucesfully calculated\n";
-  // Sim_handler->Do_nothing();
-  // Sim_handler->mesh->nVertices();
-  // Sim_handler->Do_nothing();
-  
-  // Sim_handler->Add_Bead(Beads[0]);
-
+  Sim_handler->Calculate_gradient_precomp();
   end = chrono::steady_clock::now();
 
   time_gradients = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-  
-  
+
   double alpha = 1e-3;
   double backtrackstep;
-  Total_force = Vector3({0.0, 0.0, 0.0});
-  double Grad_tot_norm  = 0;
- 
-  V = geometry->totalVolume();
+  double Grad_tot_norm = 0;
   double r_eff = 0;
-
 
   start = chrono::steady_clock::now();
   // std::cout<<"Backtracking?\n";
-  if(backtrack){ 
+  if (backtrack)
+  {
     backtrackstep = Backtracking();
   }
-  else {
+  else
+  {
     double some_E;
     Sim_handler->Calculate_energies(&some_E);
-    std::cout<<"The energy is "<< some_E << "\n"; 
-     backtrackstep = timestep;
+    backtrackstep = timestep;
+    geometry->inputVertexPositions += backtrackstep * Sim_handler->Current_grad;
 
-     geometry->inputVertexPositions += backtrackstep*Sim_handler->Current_grad;
-    
-      for(size_t i = 0; i<Beads.size(); i++){
-        Beads[i]->Move_bead(backtrackstep, Vector3({0,0,0}));
-      }
-    // geometry->inputVertexPositions+= timestep*Sim_handler->Total_Force;
-
-
+    for (size_t i = 0; i < Beads.size(); i++)
+    {
+      Beads[i]->Move_bead(backtrackstep, Vector3({0, 0, 0}));
+    }
   }
 
-
-  // std::cout<<"The backtrackstep is" << backtrackstep << " \n";
-  
   end = chrono::steady_clock::now();
-  time_backtracking = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
+  time_backtracking = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-  if(Field !="None" && false){
-    // std::cout<<"We doing field\n";
-    VertexData<Vector3> Field(*mesh,Vector3({0.0,0.0,0.0}));
-    Field = Linear_force_field(Field_vals[0],Field_vals[1]);
-    geometry->inputVertexPositions+=backtrackstep*Field;
-  }
-
-  A = geometry->totalArea();
-
-  // Maybe the handler hasnt calcualted much??
-  // std::cout<<"Is it related to saving?\n";
-  if(Save_output_data || backtrackstep <0 ){
-  double tot_E=0;
-  Sim_data << time <<" "<< V<<" " << A<<" ";
-  for(size_t i = 0; i < Sim_handler->Energies.size(); i++){
-    // std::cout<<"Printing " << Energies[i] << " ";
-
-    Sim_data << Sim_handler->Energy_values[i] << " ";
-    // std::cout<<"the val is " << Energy_vals[i] << " ";
-    tot_E += Sim_handler->Energy_values[i];
-  }
-  // std::cout<<" \n";
-  Sim_data<< tot_E <<" ";
-  for(size_t i = 0; i < Sim_handler->Gradient_norms.size(); i++){
-    Sim_data << Sim_handler->Gradient_norms[i]<< " ";
-  }
-  // Sim_data << Grad_tot_norm << " ";
-  Sim_data<< backtrackstep<<" \n";
-  
+  geometry->refreshQuantities();
+  // Here we will refres the quantities. So the area calculation is a lil bit less expensive
+  if (Save_output_data || backtrackstep < 0)
+  {
+    // Ok lets say that after backtracking you should recompute
+    geometry->requireFaceAreas();
+    A = 0.0;
+    for (Face f : mesh->faces())
+    {
+      A += geometry->faceArea(f);
     }
+    geometry->unrequireFaceAreas();
+    V = geometry->totalVolume();
 
-  // std::cout<<"IS is related to beads?\n";
-    // Ok so here there will be a special thing? 
-    // In the next update i should change the switch times to actually be switch parameters and then 
-    // check that a bead in the manual state reached the position that it should have taken before the turning off time
-    // This has to be done after we are done with the backtracking or it could lead to some problems.
-    for(size_t bi = 0; bi < Beads.size(); bi++){
-      if(Beads[bi]->state == "manual"){
-        Vector3 Bpos = Beads[bi]->Pos;
-        if( (Bpos.norm2()< 4.0  && dot(Bpos,Beads[bi]->Velocity)<0 ) || (Bpos.norm2()> 4.0  && dot(Bpos,Beads[bi]->Velocity)>0 )   ) //The 2.0 here is hardcoded and it means the radius of the vesicle
-        
-        {
-          std::cout<<"\t\t Manual bead because it moved too much\n";
-          std::cout<<"The bead positions 2 is"<< sqrt(Bpos.norm2()) <<" \n";
-          
-          Beads[bi]->state = "default";
-        
-        }
+    double tot_E = 0;
+    Sim_data << time << " " << discreteTs << " " << V << " " << A << " ";
+    for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
+    {
+      Sim_data << Sim_handler->Energy_values[i] << " ";
+      tot_E += Sim_handler->Energy_values[i];
+    }
+    Sim_data << tot_E << " ";
+    for (size_t i = 0; i < Sim_handler->Gradient_norms.size(); i++)
+    {
+      Sim_data << Sim_handler->Gradient_norms[i] << " ";
+    }
+    Sim_data << backtrackstep << " \n";
+  }
+  if (Bead_data_filenames.size() != 0 && Save_output_data)
+  {
+    // std::cout<<"Not here right?\n";
+    std::ofstream Bead_data;
+    for (size_t i = 0; i < Beads.size(); i++)
+    {
+      // Does this now the timestep
+      Bead_data = std::ofstream(Bead_data_filenames[i], std::ios_base::app);
+      Bead_data << discreteTs << " " << Beads[i]->Pos.x << " " << Beads[i]->Pos.y << " " << Beads[i]->Pos.z << " " << Beads[i]->Total_force.x << " " << Beads[i]->Total_force.y << " " << Beads[i]->Total_force.z << " \n";
+      Bead_data.close();
+    }
+  }
+
+  for (size_t bi = 0; bi < Beads.size(); bi++)
+  {
+    if (Beads[bi]->state == "manual")
+    {
+      Vector3 Bpos = Beads[bi]->Pos;
+      if ((Bpos.norm2() < 4.0 && dot(Bpos, Beads[bi]->Velocity) < 0) || (Bpos.norm2() > 4.0 && dot(Bpos, Beads[bi]->Velocity) > 0)) // The 2.0 here is hardcoded and it means the radius of the vesicle
+
+      {
+        std::cout << "\t\t Manual bead because it moved too much\n";
+        std::cout << "The bead positions 2 is" << sqrt(Bpos.norm2()) << " \n";
+        Beads[bi]->state = "default";
       }
-
     }
+  }
 
-  // std::cout<<"Done integrating\n";
   return backtrackstep;
 }
 
-double Mem3DG::integrate_BFGS_Normal(std::ofstream& Sim_data, double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data, VertexData<Vector3> Vertex_Normals){
+double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data, VertexData<Vector3> Vertex_Normals)
+{
   auto start = chrono::steady_clock::now();
   auto end = chrono::steady_clock::now();
   auto construction_start = chrono::steady_clock::now();
@@ -3038,46 +3230,33 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream& Sim_data, double time, std::
 
   size_t bead_count = 0;
 
-  if(Bead_data_filenames.size()!=0 && Save_output_data){
-    std::ofstream Bead_data;
-    for(size_t i = 0; i < Beads.size(); i++){
-      
-      Bead_data = std::ofstream(Bead_data_filenames[i],std::ios_base::app);
-      Bead_data<<Beads[i]->Pos.x <<" "<< Beads[i]->Pos.y << " "<< Beads[i]->Pos.z<< " "<< Beads[i]->Total_force.x <<" "<< Beads[i]->Total_force.y << " "<< Beads[i]->Total_force.z <<" \n";
-      // std::cout<<Bead_1.Pos.x << " "<< Bead_1.Pos.y << " "<< Bead_1.Pos.z<<" \n";
-      // std::cout<<"The total force is "<<Bead_1.Total_force <<"\n";
-      Bead_data.close();
-      }
-
-  }
   start = chrono::steady_clock::now();
-
-  // std::cout<<"iteration begins\n";
   std::vector<Vector3> Bead_forces(Beads.size());
+  if (BFGS_iter == 0)
+  {
+    Sim_handler->Calculate_gradient_precomp();
 
-  if(BFGS_iter == 0){
-    // 
-    Sim_handler->Calculate_gradient();
+    VertexData<double> Grad_E = VertexData<double>(*mesh, 0.0);
+    for (Vertex v : mesh->vertices())
+    {
+      Grad_E[v] = dot(Sim_handler->Current_grad[v], Vertex_Normals[v]);
+    }
+    VertexData<Vector3> Force(*mesh, Vector3{0.0, 0.0, 0.0});
+    for (Vertex v : mesh->vertices())
+    {
+      Force[v] = Grad_E[v] * Vertex_Normals[v];
+    }
+    for (size_t bi = 0; bi < Beads.size(); bi++)
+    {
+      Bead_forces[bi] = Vector3{0.0, 0.0, 0.0};
+    }
 
-    VertexData<double> Grad_E = VertexData<double>(*mesh,0.0);
-    for(Vertex v : mesh->vertices()){
-      Grad_E[v] = dot(Sim_handler->Current_grad[v],Vertex_Normals[v]);
-    }
-    VertexData<Vector3> Force(*mesh,Vector3{0.0,0.0,0.0});
-    for(Vertex v: mesh->vertices()){
-      Force[v] = Grad_E[v]*Vertex_Normals[v];
-    }
-    for(size_t bi = 0; bi < Beads.size(); bi++){
-      Bead_forces[bi] = Vector3{0.0,0.0,0.0};
-    }
-    
-    // std::cout<<"Calling backtracker\n";
-    backtrackstep = Backtracking_BFGS(Force,Bead_forces);
-
+    backtrackstep = Backtracking_BFGS(Force, Bead_forces);
 
     Eigen::VectorXd Aux_vector = Eigen::VectorXd::Zero((mesh->nVertices()));
 
-    for(Vertex v : mesh->vertices()){
+    for (Vertex v : mesh->vertices())
+    {
       Aux_vector[v.getIndex()] = backtrackstep * Grad_E[v];
     }
 
@@ -3086,148 +3265,156 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream& Sim_data, double time, std::
     rho_list.resize(0);
 
     s_list.push_back(Aux_vector);
-    Sim_handler->Calculate_gradient();
+    // here the vertices are alreay updated no?
 
-    for(Vertex v:mesh->vertices()){
-      Aux_vector[v.getIndex()] = dot(Sim_handler->Current_grad[v],Vertex_Normals[v]) - dot(Sim_handler->Previous_grad[v],Vertex_Normals[v]);
+    geometry->refreshQuantities();
+    Sim_handler->Calculate_gradient_precomp();
+
+    for (Vertex v : mesh->vertices())
+    {
+      Aux_vector[v.getIndex()] = dot(Sim_handler->Current_grad[v], Vertex_Normals[v]) - dot(Sim_handler->Previous_grad[v], Vertex_Normals[v]);
     }
     y_list.push_back(Aux_vector);
 
-    double rho_i = 1.0/(s_list[0].dot(y_list[0]));
+    double rho_i = 1.0 / (s_list[0].dot(y_list[0]));
     rho_list.push_back(rho_i);
-
-
   }
-  else{
-
+  else
+  {
+    // FOr some reason i am not calculating the gradient here?
     Eigen::VectorXd Grad_E = Eigen::VectorXd::Zero(mesh->nVertices());
 
-    for(Vertex v : mesh->vertices()){
-      Grad_E[v.getIndex()] = dot(Sim_handler->Current_grad[v],Vertex_Normals[v]);
+    for (Vertex v : mesh->vertices())
+    {
+      Grad_E[v.getIndex()] = dot(Sim_handler->Current_grad[v], Vertex_Normals[v]);
     }
 
     double alpha_i;
     std::vector<double> alpha_list(m);
-    for( int i = BFGS_iter-1; i>=0 && BFGS_iter-i <m; i--){
-      alpha_i = rho_list[i%m]*s_list[i%m].dot(Grad_E);
-      alpha_list[i%m] = alpha_i;
-      Grad_E = Grad_E - alpha_i*y_list[i%m];
+    for (int i = BFGS_iter - 1; i >= 0 && BFGS_iter - i < m; i--)
+    {
+      alpha_i = rho_list[i % m] * s_list[i % m].dot(Grad_E);
+      alpha_list[i % m] = alpha_i;
+      Grad_E = Grad_E - alpha_i * y_list[i % m];
     }
-  Eigen::VectorXd r = Grad_E;
+    Eigen::VectorXd r = Grad_E;
 
-  for(int i = std::max(0,BFGS_iter-m); i<BFGS_iter; i++){
-    // std::cout<<"The value of i is "<< i <<" at iteration " << BFGS_iter<<" \n";
-    double beta_i = rho_list[i%m]*y_list[i%m].dot(r);
-    r = r + s_list[i%m]*(alpha_list[i%m]-beta_i);
-  }
-  VertexData<Vector3> Force(*mesh,Vector3({0.0,0.0,0.0}));
-  for(Vertex v : mesh->vertices()){
-    Force[v] = r[v.getIndex()]*Vertex_Normals[v];
-  }
-  for(size_t bi = 0; bi < Beads.size(); bi++){
-    Bead_forces[bi] = Vector3{0.0,0.0,0.0};
-  }
+    for (int i = std::max(0, BFGS_iter - m); i < BFGS_iter; i++)
+    {
+      // std::cout<<"The value of i is "<< i <<" at iteration " << BFGS_iter<<" \n";
+      double beta_i = rho_list[i % m] * y_list[i % m].dot(r);
+      r = r + s_list[i % m] * (alpha_list[i % m] - beta_i);
+    }
+    VertexData<Vector3> Force(*mesh, Vector3({0.0, 0.0, 0.0}));
+    for (Vertex v : mesh->vertices())
+    {
+      Force[v] = r[v.getIndex()] * Vertex_Normals[v];
+    }
+    for (size_t bi = 0; bi < Beads.size(); bi++)
+    {
+      Bead_forces[bi] = Vector3{0.0, 0.0, 0.0};
+    }
 
-  backtrackstep = Backtracking_BFGS(Force,Bead_forces);
+    backtrackstep = Backtracking_BFGS(Force, Bead_forces);
 
-  Eigen::VectorXd s_k = backtrackstep*r;
-  Sim_handler->Calculate_gradient();
-  for(Vertex v: mesh->vertices()){
-    Grad_E[v.getIndex()] = dot((Sim_handler->Current_grad[v]-Sim_handler->Previous_grad[v]),Vertex_Normals[v]);
+    Eigen::VectorXd s_k = backtrackstep * r;
 
-  }
+    geometry->refreshQuantities();
+    Sim_handler->Calculate_gradient_precomp();
+    for (Vertex v : mesh->vertices())
+    {
+      Grad_E[v.getIndex()] = dot((Sim_handler->Current_grad[v] - Sim_handler->Previous_grad[v]), Vertex_Normals[v]);
+    }
 
-  if(BFGS_iter<m){
-    s_list.push_back(s_k);
-    y_list.push_back(Grad_E);
-    rho_list.push_back(1.0/(s_k.dot(Grad_E)));
-  }
-  else{
-    s_list[BFGS_iter%m]= s_k;
-    y_list[BFGS_iter%m] = Grad_E;
-    rho_list[BFGS_iter%m] = 1.0/(s_k.dot(Grad_E));
-  }
-
-
-
-
+    if (BFGS_iter < m)
+    {
+      s_list.push_back(s_k);
+      y_list.push_back(Grad_E);
+      rho_list.push_back(1.0 / (s_k.dot(Grad_E)));
+    }
+    else
+    {
+      s_list[BFGS_iter % m] = s_k;
+      y_list[BFGS_iter % m] = Grad_E;
+      rho_list[BFGS_iter % m] = 1.0 / (s_k.dot(Grad_E));
+    }
   }
   // std::cout<<"DOne with iteration\n";
-  BFGS_iter +=1;
+  BFGS_iter += 1;
 
-  V = geometry->totalVolume();
-  A = geometry->totalArea();
   double r_eff = 0;
 
-  // std::cout<<"N data is" << N_data<<"\n";
-  
   end = chrono::steady_clock::now();
-  time_backtracking = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
+  time_backtracking = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
+  double tot_E = 0;
+  Sim_handler->Calculate_energies_precomp(&tot_E);
 
-
-
-
-  // 
-  
-  double tot_E=0;
-  Sim_handler->Calculate_energies(&tot_E);
-
-
-
-    // Ok so at this point we will evaluate the evolution of the  energy
-    N_data += 1;
-    mean_E = mean_E + (tot_E-mean_E)/N_data;
-    // var_E = var_E*(N_data-1)/(N_data)  + (tot_E-mean_E)*(tot_E-mean_E)/(N_data-1);
-    if(N_data == 1){
-        var_E = 0;
-      }
-      else{
-        var_E = var_E*(N_data-1)/(N_data)  + (tot_E-mean_E)*(tot_E-mean_E)/(N_data-1);
-      }
-
-    if( N_data % 200==0 ){
-      
-      // In this case we will print the value of this quantity
-      std::cout<<"After" << N_data << "steps of iterations the mean Energy is " << mean_E <<" and the variance is " << var_E << "\n";
-      if(var_E < 1e-8){
-        std::cout<<"We would end the simulation because the variance of the energy is very small\n";
-        // backtrackstep= -1;
-      }
-      N_data = 0;
-      mean_E = 0;
-      var_E = 0;
-    }
-
-  if(Save_output_data || backtrackstep <0.0 ){
-
-    Sim_data << time <<" "<< V<<" " << A<<" ";
-    for(size_t i = 0; i < Sim_handler->Energies.size(); i++){
-      // std::cout<<"Printing " << Energies[i] << " ";
-
-      Sim_data << Sim_handler->Energy_values[i] << " ";
-      // std::cout<<"the val is " << Energy_vals[i] << " ";
-      // tot_E += Sim_handler->Energy_values[i];
-    }
-    // std::cout<<" \n";
-    Sim_data<< tot_E <<" ";
-    for(size_t i = 0; i < Sim_handler->Gradient_norms.size(); i++){
-      Sim_data << Sim_handler->Gradient_norms[i]<< " ";
-    }
-    // Sim_data << Grad_tot_norm << " ";
-    Sim_data<< backtrackstep<<" \n";
-  
+  N_data += 1;
+  mean_E = mean_E + (tot_E - mean_E) / N_data;
+  if (N_data == 1)
+  {
+    var_E = 0;
+  }
+  else
+  {
+    var_E = var_E * (N_data - 1) / (N_data) + (tot_E - mean_E) * (tot_E - mean_E) / (N_data - 1);
   }
 
+  if (N_data % 200 == 0)
+  {
 
+    // In this case we will print the value of this quantity
+    std::cout << "After" << N_data << "steps of iterations the mean Energy is " << mean_E << " and the variance is " << var_E << "\n";
+    if (var_E < 1e-8)
+    {
+      std::cout << "We would end the simulation because the variance of the energy is very small\n";
+      // backtrackstep= -1;
+    }
+    N_data = 0;
+    mean_E = 0;
+    var_E = 0;
+  }
 
+  if (Save_output_data || backtrackstep < 0.0)
+  {
+
+    V = geometry->totalVolume();
+    A = 0.0;
+    geometry->requireFaceAreas();
+    for (Face f : mesh->faces())
+      A += geometry->faceAreas[f];
+    geometry->unrequireFaceAreas();
+    Sim_data << time << " " << discreteTs << " " << V << " " << A << " ";
+    for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
+    {
+      Sim_data << Sim_handler->Energy_values[i] << " ";
+    }
+    Sim_data << tot_E << " ";
+    for (size_t i = 0; i < Sim_handler->Gradient_norms.size(); i++)
+    {
+      Sim_data << Sim_handler->Gradient_norms[i] << " ";
+    }
+    Sim_data << backtrackstep << " \n";
+  }
+
+  if (Bead_data_filenames.size() != 0 && Save_output_data)
+  {
+    std::ofstream Bead_data;
+    for (size_t i = 0; i < Beads.size(); i++)
+    {
+
+      Bead_data = std::ofstream(Bead_data_filenames[i], std::ios_base::app);
+      Bead_data << discreteTs << " " << Beads[i]->Pos.x << " " << Beads[i]->Pos.y << " " << Beads[i]->Pos.z << " " << Beads[i]->Total_force.x << " " << Beads[i]->Total_force.y << " " << Beads[i]->Total_force.z << " \n";
+      Bead_data.close();
+    }
+  }
 
   return backtrackstep;
-
 }
 
-
-double Mem3DG::integrate_BFGS(std::ofstream& Sim_data , double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data){
+double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data)
+{
 
   // We need to store the Hessian somewhere, maybe it should be received as a pointer
   auto start = chrono::steady_clock::now();
@@ -3247,226 +3434,223 @@ double Mem3DG::integrate_BFGS(std::ofstream& Sim_data , double time, std::vector
   Turn_normal_iter = false;
 
   size_t bead_count = 0;
-  // std::cout<<"Bead data\n";
-  if(Bead_data_filenames.size()!=0 && Save_output_data){
-    std::ofstream Bead_data;
-    for(size_t i = 0; i < Beads.size(); i++){
-      
-      Bead_data = std::ofstream(Bead_data_filenames[i],std::ios_base::app);
-      Bead_data<<Beads[i]->Pos.x <<" "<< Beads[i]->Pos.y << " "<< Beads[i]->Pos.z<< " "<< Beads[i]->Total_force.x <<" "<< Beads[i]->Total_force.y << " "<< Beads[i]->Total_force.z <<" \n";
-      // std::cout<<Bead_1.Pos.x << " "<< Bead_1.Pos.y << " "<< Bead_1.Pos.z<<" \n";
-      // std::cout<<"The total force is "<<Bead_1.Total_force <<"\n";
-      Bead_data.close();
-      }
 
-  }
- 
   start = chrono::steady_clock::now();
 
-
-  
-  SparseMatrix<double> HK0(3*mesh->nVertices(),3*mesh->nVertices());
+  SparseMatrix<double> HK0(3 * mesh->nVertices(), 3 * mesh->nVertices());
   HK0.setIdentity();
-  
+
   std::vector<Vector3> Bead_forces(Beads.size());
 
-  // std::cout<<"Identity set\n";
-  if(BFGS_iter==0){
-    // std::cout<<"BFGS Started/Restarted\n";
-    Sim_handler->Calculate_gradient();
-
-    for(size_t bi = 0; bi < Beads.size(); bi++){
+  if (BFGS_iter == 0)
+  {
+    Sim_handler->Calculate_gradient_precomp();
+    for (size_t bi = 0; bi < Beads.size(); bi++)
+    {
       Bead_forces[bi] = Beads[bi]->Total_force;
     }
-
-    backtrackstep = Backtracking_BFGS(Sim_handler->Current_grad,Bead_forces);
-    // std::cout<<"\n\n First iteration with the normal gradient\n";
-    
-    Eigen::VectorXd Aux_vector = Eigen::VectorXd::Zero(3*(mesh->nVertices()+Beads.size()));
-    for(Vertex v : mesh->vertices()){
-      Aux_vector[3*v.getIndex()] = backtrackstep*Sim_handler->Current_grad[v].x;
-      Aux_vector[3*v.getIndex()+1] = backtrackstep*Sim_handler->Current_grad[v].y;
-      Aux_vector[3*v.getIndex()+2] = backtrackstep*Sim_handler->Current_grad[v].z;
+    backtrackstep = Backtracking_BFGS(Sim_handler->Current_grad, Bead_forces);
+    Eigen::VectorXd Aux_vector = Eigen::VectorXd::Zero(3 * (mesh->nVertices() + Beads.size()));
+    for (Vertex v : mesh->vertices())
+    {
+      Aux_vector[3 * v.getIndex()] = backtrackstep * Sim_handler->Current_grad[v].x;
+      Aux_vector[3 * v.getIndex() + 1] = backtrackstep * Sim_handler->Current_grad[v].y;
+      Aux_vector[3 * v.getIndex() + 2] = backtrackstep * Sim_handler->Current_grad[v].z;
     }
     int N_vert = mesh->nVertices();
-    for(size_t bi = 0; bi < Beads.size(); bi++){
-      Aux_vector[3*N_vert+3*bi] = backtrackstep*Beads[bi]->Total_force.x;
-      Aux_vector[3*N_vert+3*bi+1] = backtrackstep*Beads[bi]->Total_force.y;
-      Aux_vector[3*N_vert+3*bi+2] = backtrackstep*Beads[bi]->Total_force.z;
+    for (size_t bi = 0; bi < Beads.size(); bi++)
+    {
+      Aux_vector[3 * N_vert + 3 * bi] = backtrackstep * Beads[bi]->Total_force.x;
+      Aux_vector[3 * N_vert + 3 * bi + 1] = backtrackstep * Beads[bi]->Total_force.y;
+      Aux_vector[3 * N_vert + 3 * bi + 2] = backtrackstep * Beads[bi]->Total_force.z;
     }
-
     s_list.resize(0);
     y_list.resize(0);
     rho_list.resize(0);
 
     s_list.push_back(Aux_vector);
+    geometry->refreshQuantities();
+    Sim_handler->Calculate_gradient_precomp();
 
-    Sim_handler->Calculate_gradient();
     Vector3 Diff;
-    for(Vertex v:mesh->vertices()){
+    for (Vertex v : mesh->vertices())
+    {
       Diff = Sim_handler->Current_grad[v] - Sim_handler->Previous_grad[v];
-      Aux_vector[3*v.getIndex()] = Diff.x;
-      Aux_vector[3*v.getIndex()+1] = Diff.y;
-      Aux_vector[3*v.getIndex()+2] = Diff.z;
+      Aux_vector[3 * v.getIndex()] = Diff.x;
+      Aux_vector[3 * v.getIndex() + 1] = Diff.y;
+      Aux_vector[3 * v.getIndex() + 2] = Diff.z;
     }
-    for(size_t bi = 0; bi < Beads.size(); bi++){
+    for (size_t bi = 0; bi < Beads.size(); bi++)
+    {
       Diff = Beads[bi]->Total_force - Beads[bi]->Prev_Total_force;
-      Aux_vector[3*N_vert+3*bi] = Diff.x;
-      Aux_vector[3*N_vert+3*bi+1] = Diff.y;
-      Aux_vector[3*N_vert+3*bi+2] = Diff.z;
+      Aux_vector[3 * N_vert + 3 * bi] = Diff.x;
+      Aux_vector[3 * N_vert + 3 * bi + 1] = Diff.y;
+      Aux_vector[3 * N_vert + 3 * bi + 2] = Diff.z;
     }
     y_list.push_back(Aux_vector);
 
-
-    double rho_i = 1.0/(s_list[0].dot(y_list[0]));
+    double rho_i = 1.0 / (s_list[0].dot(y_list[0]));
     rho_list.push_back(rho_i);
-  
   }
-  else{
-    // IF this is not 0 we need to call the BFGS UPDATE FOR THE HESSIAN 
-    // std::cout<<"Standard iteration happening\n";
-    Eigen::VectorXd Grad_vec = Eigen::VectorXd::Zero(3*(mesh->nVertices()+Beads.size()));
-    for(Vertex v : mesh->vertices()){
-      Grad_vec[3*v.getIndex()] = Sim_handler->Current_grad[v].x;
-      Grad_vec[3*v.getIndex()+1] = Sim_handler->Current_grad[v].y;
-      Grad_vec[3*v.getIndex()+2] = Sim_handler->Current_grad[v].z;
-      }
+  else
+  {
+
+    // IF this is not 0 we need to call the BFGS UPDATE FOR THE HESSIAN
+    Eigen::VectorXd Grad_vec = Eigen::VectorXd::Zero(3 * (mesh->nVertices() + Beads.size()));
+    for (Vertex v : mesh->vertices())
+    {
+      Grad_vec[3 * v.getIndex()] = Sim_handler->Current_grad[v].x;
+      Grad_vec[3 * v.getIndex() + 1] = Sim_handler->Current_grad[v].y;
+      Grad_vec[3 * v.getIndex() + 2] = Sim_handler->Current_grad[v].z;
+    }
     int N_vert = mesh->nVertices();
-    for(size_t bi = 0; bi < Beads.size(); bi++){
-      Grad_vec[3*N_vert+3*bi] = Beads[bi]->Total_force.x;
-      Grad_vec[3*N_vert+3*bi+1] = Beads[bi]->Total_force.y;
-      Grad_vec[3*N_vert+3*bi+2] = Beads[bi]->Total_force.z;
+    for (size_t bi = 0; bi < Beads.size(); bi++)
+    {
+      Grad_vec[3 * N_vert + 3 * bi] = Beads[bi]->Total_force.x;
+      Grad_vec[3 * N_vert + 3 * bi + 1] = Beads[bi]->Total_force.y;
+      Grad_vec[3 * N_vert + 3 * bi + 2] = Beads[bi]->Total_force.z;
     }
 
     // We have the gradient vector
     double alpha_i;
     std::vector<double> alpha_list(m);
-    // oK 
-    for(int i = BFGS_iter-1; i>=0 && BFGS_iter-i<m ; i--){
-      // std::cout<<"i has value"<< i <<"\n";
-      alpha_i = rho_list[i%m]*s_list[i%m].dot(Grad_vec);
-      alpha_list[i%m] = alpha_i;
-      Grad_vec = Grad_vec - alpha_i*y_list[i%m];
+    // oK
+    for (int i = BFGS_iter - 1; i >= 0 && BFGS_iter - i < m; i--)
+    {
+      alpha_i = rho_list[i % m] * s_list[i % m].dot(Grad_vec);
+      alpha_list[i % m] = alpha_i;
+      Grad_vec = Grad_vec - alpha_i * y_list[i % m];
     }
 
-    Eigen::VectorXd r = Grad_vec;  
-    // std::cout<<"The vector r is"
-    for(int i = std::max(0,BFGS_iter-m); i<BFGS_iter; i++){
-      // std::cout<<"The value of i is "<< i <<" at iteration " << BFGS_iter<<" \n";
-      double beta_i = rho_list[i%m]*y_list[i%m].dot(r);
-      r = r + s_list[i%m]*(alpha_list[i%m]-beta_i);
+    Eigen::VectorXd r = Grad_vec;
+    for (int i = std::max(0, BFGS_iter - m); i < BFGS_iter; i++)
+    {
+      double beta_i = rho_list[i % m] * y_list[i % m].dot(r);
+      r = r + s_list[i % m] * (alpha_list[i % m] - beta_i);
     }
 
     // So here we have r which is the product of the inverse Hessian with the gradient, we just need to do the backtracking and then update the lists
-    VertexData<Vector3> Force(*mesh,Vector3({0.0,0.0,0.0}));
-    for(Vertex v : mesh->vertices()){
-      Force[v].x = r[3*v.getIndex()];
-      Force[v].y = r[3*v.getIndex()+1];
-      Force[v].z = r[3*v.getIndex()+2];
+    VertexData<Vector3> Force(*mesh, Vector3({0.0, 0.0, 0.0}));
+    for (Vertex v : mesh->vertices())
+    {
+      Force[v].x = r[3 * v.getIndex()];
+      Force[v].y = r[3 * v.getIndex() + 1];
+      Force[v].z = r[3 * v.getIndex() + 2];
     }
-    for(size_t bi = 0; bi < Beads.size(); bi++){
-      Bead_forces[bi] = Vector3{r[3*N_vert+3*bi],r[3*N_vert+3*bi+1],r[3*N_vert+3*bi+2]};
-    }
-
-
-    backtrackstep = Backtracking_BFGS(Force,Bead_forces);
-
-    Eigen::VectorXd s_k = backtrackstep*r;
-    Sim_handler->Calculate_gradient();
-    for(Vertex v:mesh->vertices()){
-      Grad_vec[3*v.getIndex()] = Sim_handler->Current_grad[v].x - Sim_handler->Previous_grad[v].x;
-      Grad_vec[3*v.getIndex()+1] = Sim_handler->Current_grad[v].y- Sim_handler->Previous_grad[v].y;
-      Grad_vec[3*v.getIndex()+2] = Sim_handler->Current_grad[v].z- Sim_handler->Previous_grad[v].z;
-    }
-    for(size_t bi = 0; bi < Beads.size(); bi++){
-      Grad_vec[3*N_vert+3*bi] = Beads[bi]->Total_force.x - Beads[bi]->Prev_Total_force.x;
-      Grad_vec[3*N_vert+3*bi+1] = Beads[bi]->Total_force.y - Beads[bi]->Prev_Total_force.y;
-      Grad_vec[3*N_vert+3*bi+2] = Beads[bi]->Total_force.z - Beads[bi]->Prev_Total_force.z;
+    for (size_t bi = 0; bi < Beads.size(); bi++)
+    {
+      Bead_forces[bi] = Vector3{r[3 * N_vert + 3 * bi], r[3 * N_vert + 3 * bi + 1], r[3 * N_vert + 3 * bi + 2]};
     }
 
-    if(BFGS_iter<m){
+    backtrackstep = Backtracking_BFGS(Force, Bead_forces);
+
+    Eigen::VectorXd s_k = backtrackstep * r;
+
+    geometry->refreshQuantities();
+    Sim_handler->Calculate_gradient_precomp();
+    for (Vertex v : mesh->vertices())
+    {
+      Grad_vec[3 * v.getIndex()] = Sim_handler->Current_grad[v].x - Sim_handler->Previous_grad[v].x;
+      Grad_vec[3 * v.getIndex() + 1] = Sim_handler->Current_grad[v].y - Sim_handler->Previous_grad[v].y;
+      Grad_vec[3 * v.getIndex() + 2] = Sim_handler->Current_grad[v].z - Sim_handler->Previous_grad[v].z;
+    }
+    for (size_t bi = 0; bi < Beads.size(); bi++)
+    {
+      Grad_vec[3 * N_vert + 3 * bi] = Beads[bi]->Total_force.x - Beads[bi]->Prev_Total_force.x;
+      Grad_vec[3 * N_vert + 3 * bi + 1] = Beads[bi]->Total_force.y - Beads[bi]->Prev_Total_force.y;
+      Grad_vec[3 * N_vert + 3 * bi + 2] = Beads[bi]->Total_force.z - Beads[bi]->Prev_Total_force.z;
+    }
+
+    if (BFGS_iter < m)
+    {
       s_list.push_back(s_k);
-      y_list.push_back(Grad_vec);  
-      rho_list.push_back(1.0/(s_k.dot(Grad_vec)));
+      y_list.push_back(Grad_vec);
+      rho_list.push_back(1.0 / (s_k.dot(Grad_vec)));
     }
-    else{
-      // In case this is not the case we do 
-      s_list[BFGS_iter%m] = s_k;
-      y_list[BFGS_iter%m] = Grad_vec;
-      rho_list[BFGS_iter%m] = 1.0/(s_k.dot(Grad_vec));
-      }
-
+    else
+    {
+      // In case this is not the case we do
+      s_list[BFGS_iter % m] = s_k;
+      y_list[BFGS_iter % m] = Grad_vec;
+      rho_list[BFGS_iter % m] = 1.0 / (s_k.dot(Grad_vec));
+    }
   }
 
-  BFGS_iter +=1;
-
-  // std::cout<<"We got gere? impressive\n";
- 
-  V = geometry->totalVolume();
-  A = geometry->totalArea();
+  BFGS_iter += 1;
   double r_eff = 0;
 
-  
   end = chrono::steady_clock::now();
-  time_backtracking = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
+  time_backtracking = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
+  double tot_E = 0;
+  Sim_handler->Calculate_energies_precomp(&tot_E);
 
-  // 
-
-  double tot_E=0;
-  Sim_handler->Calculate_energies(&tot_E);
-
-  N_data+=1;
-  mean_E = mean_E + (tot_E-mean_E)/N_data;
+  N_data += 1;
+  mean_E = mean_E + (tot_E - mean_E) / N_data;
 
   // var_E = var_E*(N_data-1)/(N_data)  + (tot_E-mean_E)*(tot_E-mean_E)/(N_data-1);
-    
+
   // double grad_norm = Sim_handler->Gradient_norms[Sim_handler->Gradient_norms.size()-1];
   // mean_Grad = mean_Grad + (grad_norm - mean_Grad)/N_data;
-
-  if(N_data == 1){
+  if (N_data == 1)
+  {
     var_E = 0;
-  }else{
-    var_E = var_E*(N_data-1)/(N_data)  + (tot_E-mean_E)*(tot_E-mean_E)/(N_data-1);
+  }
+  else
+  {
+    var_E = var_E * (N_data - 1) / (N_data) + (tot_E - mean_E) * (tot_E - mean_E) / (N_data - 1);
     // var_Grad = var_Grad*(N_data-1)/(N_data)  + (grad_norm - mean_Grad)*(grad_norm - mean_Grad)/(N_data-1);
-    }
-  
-  if( N_data % 100==0){
-    
+  }
+
+  if (N_data % 100 == 0)
+  {
+
     // // In this case we will print the value of this quantity
-    std::cout<<"After" << N_data << "steps of iterations the mean Energy is " << mean_E <<" and the variance is " << var_E << "\n";
+    std::cout << "After" << N_data << "steps of iterations the mean Energy is " << mean_E << " and the variance is " << var_E << "\n";
     // std::cout<<"After" << N_data << "steps of iterations the mean Energy is " << mean_Grad <<" and the variance is " << var_Grad << "\n";
-    
-    if(var_E<0.06) Turn_normal_iter = true;
+
+    if (var_E < 0.06)
+      Turn_normal_iter = true;
     N_data = 0;
     mean_E = 0;
     var_E = 0;
   }
-  
-  if(Save_output_data ){
-  Sim_data << time <<" "<< V<<" " << A<<" ";
-  for(size_t i = 0; i < Sim_handler->Energies.size(); i++){
-    // std::cout<<"Printing " << Energies[i] << " ";
 
-    Sim_data << Sim_handler->Energy_values[i] << " ";
-    // std::cout<<"the val is " << Energy_vals[i] << " ";
-    // tot_E += Sim_handler->Energy_values[i];
-  }
-  // std::cout<<" \n";
-  Sim_data<< tot_E <<" ";
-  for(size_t i = 0; i < Sim_handler->Gradient_norms.size(); i++){
-    Sim_data << Sim_handler->Gradient_norms[i]<< " ";
-  }
-  // Sim_data << Grad_tot_norm << " ";
-  Sim_data<< backtrackstep<<" \n";
-  
+  if (Save_output_data)
+  {
+    V = geometry->totalVolume();
+    A = 0.0;
+    geometry->requireFaceAreas();
+    for (Face f : mesh->faces())
+      A += geometry->faceAreas[f];
+    geometry->unrequireFaceAreas();
+    Sim_data << time << " " << discreteTs << " " << V << " " << A << " ";
+    for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
+    {
+      Sim_data << Sim_handler->Energy_values[i] << " ";
     }
-
-
+    Sim_data << tot_E << " ";
+    for (size_t i = 0; i < Sim_handler->Gradient_norms.size(); i++)
+    {
+      Sim_data << Sim_handler->Gradient_norms[i] << " ";
+    }
+    Sim_data << backtrackstep << " \n";
+  }
+  if (Bead_data_filenames.size() != 0 && Save_output_data)
+  {
+    std::ofstream Bead_data;
+    for (size_t i = 0; i < Beads.size(); i++)
+    {
+      Bead_data = std::ofstream(Bead_data_filenames[i], std::ios_base::app);
+      Bead_data << discreteTs << " " << Beads[i]->Pos.x << " " << Beads[i]->Pos.y << " " << Beads[i]->Pos.z << " " << Beads[i]->Total_force.x << " " << Beads[i]->Total_force.y << " " << Beads[i]->Total_force.z << " \n";
+      Bead_data.close();
+    }
+  }
   return backtrackstep;
 }
 
-double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data, std::vector<std::string> Constraints,std::vector<std::string> Data_filenames){
+double Mem3DG::integrate_Newton(std::ofstream &Sim_data, double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data, std::vector<std::string> Constraints, std::vector<std::string> Data_filenames)
+{
 
   auto start = chrono::steady_clock::now();
   auto end = chrono::steady_clock::now();
@@ -3484,52 +3668,37 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
   double time_gradients = 0;
   double time_backtracking = 0;
 
-
   size_t bead_count = 0;
-  // std::cout<<"Bead data\n";
-  if(Bead_data_filenames.size()!=0 && Save_output_data){
-    // std::cout<<"\t\t Saving data\n";
-    std::ofstream Bead_data;
-    for(size_t i = 0; i < Beads.size(); i++){
-      
-      Bead_data = std::ofstream(Bead_data_filenames[i],std::ios_base::app);
-      Bead_data<<Beads[i]->Pos.x <<" "<< Beads[i]->Pos.y << " "<< Beads[i]->Pos.z<< " "<< Beads[i]->Total_force.x <<" "<< Beads[i]->Total_force.y << " "<< Beads[i]->Total_force.z <<" \n";
-      // std::cout<<Bead_1.Pos.x << " "<< Bead_1.Pos.y << " "<< Bead_1.Pos.z<<" \n";
-      // std::cout<<"The total force is "<<Bead_1.Total_force <<"\n";
-      Bead_data.close();
-      }
-
-  }
-
-
-  // for(size_t index = 0; index < mesh->nVertices(); index++) {
-  //   // Barycentric_area[index] = geometry->barycentricDualArea(mesh->vertex(index));
-  //   A += Barycentric_area[index];
-  //   Barycentric_area[index] = 1.0;
-  // }
-  
-  A = geometry->totalArea();
+  A = 0;
+  geometry->requireFaceAreas();
+  for (Face f : mesh->faces())
+    A += geometry->faceAreas[f];
 
   // std::cout<<"AREA CALCULATED\n";
 
-  
   size_t N_vert = mesh->nVertices();
   int N_beads = Beads.size();
   int N_constraints = 0;
 
-
-  for(size_t i = 0; i < Constraints.size(); i++){
-    if(Constraints[i]=="Volume") N_constraints +=1;
-    if(Constraints[i]=="Area") N_constraints +=1;
-    if(Constraints[i]=="CMx") N_constraints +=1;
-    if(Constraints[i]=="CMy") N_constraints +=1;
-    if(Constraints[i]=="CMz") N_constraints +=1;
-    if(Constraints[i]=="Rx") N_constraints +=1;
-    if(Constraints[i]=="Ry") N_constraints +=1;
-    if(Constraints[i]=="Rz") N_constraints +=1;
-
+  for (size_t i = 0; i < Constraints.size(); i++)
+  {
+    if (Constraints[i] == "Volume")
+      N_constraints += 1;
+    if (Constraints[i] == "Area")
+      N_constraints += 1;
+    if (Constraints[i] == "CMx")
+      N_constraints += 1;
+    if (Constraints[i] == "CMy")
+      N_constraints += 1;
+    if (Constraints[i] == "CMz")
+      N_constraints += 1;
+    if (Constraints[i] == "Rx")
+      N_constraints += 1;
+    if (Constraints[i] == "Ry")
+      N_constraints += 1;
+    if (Constraints[i] == "Rz")
+      N_constraints += 1;
   }
-  
 
   Sim_handler->N_constraints = N_constraints;
   // SparseMatrix<double> H2_mat;//(N_vert*3+N_constraints,N_vert*3+N_constraints);
@@ -3537,32 +3706,304 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
   SparseMatrix<double> Hessian;
   SparseMatrix<double> Hessian_constraints;
 
- 
   Eigen::SimplicialLDLT<SparseMatrix<double>> solverHess;
 
   start = chrono::steady_clock::now();
-  Sim_handler->Calculate_gradient();
+  Sim_handler->Calculate_gradient_precomp();
   Sim_handler->Calculate_Jacobian();
   Hessian = Sim_handler->Calculate_Hessian();
 
-  // std::cout<<"The number of constraints are " << N_constraints << "\n";
-  // std::cout<<"The number of beads are " << N_beads << "\n";
-  SparseMatrix<double> LHS(3*(N_vert+N_beads)+ N_constraints,3*(N_vert+N_beads)+ N_constraints);
-  Eigen::VectorXd RHS(3*(N_vert+N_beads)+ N_constraints);
-  
-  // std::cout<<"THe size of LHS IS" << LHS.cols() << " and " << LHS.rows() << "\n";
-  // Ok now we do the fill
+  SparseMatrix<double> LHS(3 * (N_vert + N_beads) + N_constraints, 3 * (N_vert + N_beads) + N_constraints);
+  Eigen::VectorXd RHS(3 * (N_vert + N_beads) + N_constraints);
+
   typedef Eigen::Triplet<double> T;
   std::vector<T> tripletList;
-  
-  for(int row = 0; row < Sim_handler->Jacobian_constraints.rows(); row++ ){
-    for(int col = 0; col < Sim_handler->Jacobian_constraints.cols(); col++){
+
+  for (int row = 0; row < Sim_handler->Jacobian_constraints.rows(); row++)
+  {
+    for (int col = 0; col < Sim_handler->Jacobian_constraints.cols(); col++)
+    {
       // Ok so now we need to add this
-      tripletList.push_back(T(col,row+3*(N_vert+N_beads),Sim_handler->Jacobian_constraints(row,col) ));
-      tripletList.push_back(T(row+3*(N_vert+N_beads),col,Sim_handler->Jacobian_constraints(row,col) ));
+      tripletList.push_back(T(col, row + 3 * (N_vert + N_beads), Sim_handler->Jacobian_constraints(row, col)));
+      tripletList.push_back(T(row + 3 * (N_vert + N_beads), col, Sim_handler->Jacobian_constraints(row, col)));
     }
   }
 
+  int row;
+  int col;
+  double value;
+  int maxrow = 0;
+  int maxcol = 0;
+
+  int smol_counter = 0;
+  for (long int k = 0; k < Hessian.outerSize(); ++k)
+  {
+    for (SparseMatrix<double>::InnerIterator it(Hessian, k); it; ++it)
+    {
+      value = it.value();
+      row = it.row();
+      col = it.col();
+      if (value < 1e-8 && value > -1e-8)
+        smol_counter += 1;
+      tripletList.push_back(T(row, col, value));
+    }
+  }
+  // We regularize the Hessian by adding a diagonal
+  if (regularize)
+  {
+    for (size_t i = 0; i < 3 * (N_vert + N_beads); i++)
+    {
+      tripletList.push_back(T(i, i, 1e-6));
+    }
+  }
+
+  Eigen::VectorXd LambdaJ = Sim_handler->Jacobian_constraints.transpose() * Sim_handler->Lagrange_mult;
+
+  Vector3 Force;
+  double dual_area = 0.0;
+  for (size_t vi = 0; vi < mesh->nVertices(); vi++)
+  {
+    Force = Sim_handler->Current_grad[vi];
+    RHS(3 * vi) = LambdaJ(3 * vi) + Force.x;
+    RHS(3 * vi + 1) = LambdaJ(3 * vi + 1) + Force.y;
+    RHS(3 * vi + 2) = LambdaJ(3 * vi + 2) + Force.z;
+  }
+  // I need to add the force of the bead here
+  for (size_t bi = 0; bi < Sim_handler->Beads.size(); bi++)
+  {
+    Force = Sim_handler->Beads[bi]->Total_force;
+    RHS(3 * (N_vert + bi)) = LambdaJ(3 * (N_vert + bi)) + Force.x;
+    RHS(3 * (N_vert + bi) + 1) = LambdaJ(3 * (N_vert + bi) + 1) + Force.y;
+    RHS(3 * (N_vert + bi) + 2) = LambdaJ(3 * (N_vert + bi) + 2) + Force.z;
+  }
+
+  for (int Ci = 0; Ci < N_constraints; Ci++)
+  {
+    // We need to add the value of the constraint
+    if (Constraints[Ci] == "Volume")
+    {
+      RHS(3 * (N_vert + N_beads) + Ci) = -1 * (geometry->totalVolume() - Sim_handler->Trgt_vol);
+      // std::cout<<"The total volume is " << geometry->totalVolume() << " and the target is " << Sim_handler->Trgt_vol << "\n";
+    }
+    if (Constraints[Ci] == "Area")
+    {
+      RHS(3 * (N_vert + N_beads) + Ci) = -1 * (A - Sim_handler->Trgt_area);
+      // std::cout<<"The total area  is " << geometry->totalArea() << " and the target is " << Sim_handler->Trgt_area << "\n";
+    }
+    if (Constraints[Ci] == "CMx")
+      RHS(3 * (N_vert + N_beads) + Ci) = 0.0;
+    if (Constraints[Ci] == "CMy")
+      RHS(3 * (N_vert + N_beads) + Ci) = 0.0;
+    if (Constraints[Ci] == "CMz")
+      RHS(3 * (N_vert + N_beads) + Ci) = 0.0;
+    if (Constraints[Ci] == "Rx")
+      RHS(3 * (N_vert + N_beads) + Ci) = 0.0;
+    if (Constraints[Ci] == "Ry")
+      RHS(3 * (N_vert + N_beads) + Ci) = 0.0;
+    if (Constraints[Ci] == "Rz")
+      RHS(3 * (N_vert + N_beads) + Ci) = 0.0;
+  }
+
+  LHS.setFromTriplets(tripletList.begin(), tripletList.end());
+  solverHess.compute(LHS);
+
+  Eigen::VectorXd result = solverHess.solve(RHS);
+
+  // std::cout<<"Solved\n";
+  VertexData<Vector3> Force_result(*mesh, Vector3({0.0, 0.0, 0.0}));
+  // Eigen::VectorXd Grad_L = LambdaJ+ ;
+  bool flag = false;
+  for (size_t vi = 0; vi < mesh->nVertices(); vi++)
+  {
+    if (mesh->vertex(vi).isBoundary())
+    {
+      Force_result[vi] = Vector3({0.0, 0.0, 0.0});
+      result(3 * vi) = 0.0;
+      result(3 * vi + 1) = 0.0;
+      result(3 * vi + 2) = 0.0;
+      continue;
+    }
+    for (Vertex vj : mesh->vertex(vi).adjacentVertices())
+    {
+      if (vj.isBoundary())
+      {
+        Force_result[vi] = Vector3({0.0, 0.0, 0.0});
+        result(3 * vi) = 0.0;
+        result(3 * vi + 1) = 0.0;
+        result(3 * vi + 2) = 0.0;
+        flag = true;
+        break;
+      }
+    }
+    if (flag)
+    {
+      flag = false;
+      continue;
+    }
+    Force_result[vi].x = result(3 * vi);
+    Force_result[vi].y = result(3 * vi + 1);
+    Force_result[vi].z = result(3 * vi + 2);
+  }
+
+  Sim_handler->Previous_grad = Sim_handler->Current_grad;
+  Sim_handler->Current_grad = Force_result;
+
+  for (int bi = 0; bi < N_beads; bi++)
+  {
+    Force = Vector3{result(3 * (N_vert + bi)), result(3 * (N_vert + bi) + 1), result(3 * (N_vert + bi) + 2)};
+    Beads[bi]->Total_force = Force;
+  }
+
+  double Projection = result.transpose() * LHS * RHS;
+  double Current_grad_norm = 0.5 * RHS.dot(RHS);
+
+  double backtrackstep;
+  if (false)
+  {
+    // if(result.dot(RHS)<0 || Projection <0.0){
+    //
+    std::cout << "The result is not a descent direction, we will not backtrack\n";
+    small_TS = true;
+    backtrackstep = 0.0;
+    // backtrackstep = integrate(Sim_data,time,Bead_data_filenames,Save_output_data);
+  }
+  else
+  {
+
+    if (backtrack)
+    {
+      backtrackstep = Backtracking_grad(result.tail(N_constraints), Projection, Current_grad_norm);
+    }
+    else
+      backtrackstep = timestep;
+
+    // if(backtrackstep < 2e-6) small_TS = true;
+    geometry->refreshQuantities();
+    double TotE = 0.0;
+
+    Sim_handler->Calculate_energies_precomp(&TotE);
+    A = 0;
+    geometry->requireFaceAreas();
+    for (Face f : mesh->faces())
+      A += geometry->faceAreas[f];
+    geometry->unrequireFaceAreas();
+
+    Sim_data << time + backtrackstep << " " << discreteTs << " " << geometry->totalVolume() << " " << A << " ";
+    for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
+    {
+
+      Sim_data << Sim_handler->Energy_values[i] << " ";
+    }
+
+    Sim_data << TotE << " ";
+
+    // Sim_data << Current_grad_norm <<" " << backtrackstep <<" \n";
+    for (size_t i = 0; i < Sim_handler->Gradient_norms.size(); i++)
+    {
+      Sim_data << Sim_handler->Gradient_norms[i] << " ";
+    }
+    // Sim_data << Grad_tot_norm << " ";
+    Sim_data << backtrackstep << " \n";
+  }
+
+  if (Bead_data_filenames.size() != 0 && Save_output_data)
+  {
+    // std::cout<<"\t\t Saving data\n";
+    std::ofstream Bead_data;
+    for (size_t i = 0; i < Beads.size(); i++)
+    {
+
+      Bead_data = std::ofstream(Bead_data_filenames[i], std::ios_base::app);
+      Bead_data << discreteTs << " " << Beads[i]->Pos.x << " " << Beads[i]->Pos.y << " " << Beads[i]->Pos.z << " " << Beads[i]->Total_force.x << " " << Beads[i]->Total_force.y << " " << Beads[i]->Total_force.z << " \n";
+      // std::cout<<Bead_1.Pos.x << " "<< Bead_1.Pos.y << " "<< Bead_1.Pos.z<<" \n";
+      // std::cout<<"The total force is "<<Bead_1.Total_force <<"\n";
+      Bead_data.close();
+    }
+  }
+
+  return backtrackstep;
+}
+
+double Mem3DG::integrate_Newton_Normal(std::ofstream &Sim_data, double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data, std::vector<std::string> Constraints, std::vector<std::string> Data_filenames)
+{
+
+  std::cout << "THe lagrange multipliers are " << Sim_handler->Lagrange_mult.transpose() << "\n";
+  auto start = chrono::steady_clock::now();
+  auto end = chrono::steady_clock::now();
+  auto construction_start = chrono::steady_clock::now();
+  auto construction_end = chrono::steady_clock::now();
+  auto solve_start = chrono::steady_clock::now();
+  auto solve_end = chrono::steady_clock::now();
+
+  bool regularize = true;
+
+  double time_construct = 0;
+  double time_solve = 0;
+  double time_compute = 0;
+  double time_gradients = 0;
+  double time_backtracking = 0;
+
+  size_t bead_count = 0;
+  geometry->requireFaceAreas();
+  A = 0.0;
+  for (Face f : mesh->faces())
+    A += geometry->faceAreas[f];
+  geometry->unrequireFaceAreas();
+
+  size_t N_vert = mesh->nVertices();
+  int N_beads = Beads.size();
+  int N_constraints = 0;
+
+  for (size_t i = 0; i < Constraints.size(); i++)
+  {
+    if (Constraints[i] == "Volume")
+      N_constraints += 1;
+    if (Constraints[i] == "Area")
+      N_constraints += 1;
+    if (Constraints[i] == "CMx")
+      N_constraints += 1;
+    if (Constraints[i] == "CMy")
+      N_constraints += 1;
+    if (Constraints[i] == "CMz")
+      N_constraints += 1;
+    if (Constraints[i] == "Rx")
+      N_constraints += 1;
+    if (Constraints[i] == "Ry")
+      N_constraints += 1;
+    if (Constraints[i] == "Rz")
+      N_constraints += 1;
+  }
+
+  std::cout << "The number of constraints is " << N_constraints << "\n";
+  Sim_handler->N_constraints = N_constraints;
+  Sim_handler->Constraints = Constraints;
+  // SparseMatrix<double> H2_mat;//(N_vert*3+N_constraints,N_vert*3+N_constraints);
+  // SparseMatrix<double> H1_mat;
+  SparseMatrix<double> Hessian;
+  SparseMatrix<double> Hessian_constraints;
+
+  Eigen::SimplicialLDLT<SparseMatrix<double>> solverHess;
+
+  start = chrono::steady_clock::now();
+  // std::cout << "Calculating gradients\n";
+  Sim_handler->Calculate_gradient_precomp();
+  Hessian = Sim_handler->Calculate_Hessian_Normal();
+  Sim_handler->Calculate_Jacobian_Normal();
+
+  SparseMatrix<double> LHS((N_vert) + N_constraints, (N_vert) + N_constraints);
+  Eigen::VectorXd RHS((N_vert) + N_constraints);
+
+  typedef Eigen::Triplet<double> T;
+  std::vector<T> tripletList;
+
+  for (int row = 0; row < Sim_handler->Jacobian_constraints.rows(); row++)
+  {
+    for (int col = 0; col < Sim_handler->Jacobian_constraints.cols(); col++)
+    {
+      tripletList.push_back(T(col, row + (N_vert), Sim_handler->Jacobian_constraints(row, col)));
+      tripletList.push_back(T(row + (N_vert), col, Sim_handler->Jacobian_constraints(row, col)));
+    }
+  }
 
   int row;
   int col;
@@ -3570,197 +4011,203 @@ double Mem3DG::integrate_Newton(std::ofstream& Sim_data , double time, std::vect
 
   int maxrow = 0;
   int maxcol = 0;
-  
-  int smol_counter = 0;
-  for( long int k = 0; k < Hessian.outerSize(); ++k ) {
-        for( SparseMatrix<double>::InnerIterator it(Hessian,k); it; ++it ) {
-            value = it.value();
-            row = it.row();
-            col = it.col();
-            // if(row > maxrow) maxrow = row;
-            // if(col > maxcol) maxcol = col;
-            if(value < 1e-8 && value > -1e-8) smol_counter +=1;
-            tripletList.push_back(T(row,col,value));
-        }
-    }
 
-  // We regularize the Hessian by adding a diagonal
-  if(regularize){
-    // std::cout<<"Regularizing the Hessian\n";
-    for(size_t i = 0; i < 3*(N_vert+N_beads) ; i++){
-      tripletList.push_back(T(i,i,1e-6));
+  int smol_counter = 0;
+  for (long int k = 0; k < Hessian.outerSize(); ++k)
+  {
+    for (SparseMatrix<double>::InnerIterator it(Hessian, k); it; ++it)
+    {
+      value = it.value();
+      row = it.row();
+      col = it.col();
+      if (value < 1e-8 && value > -1e-8)
+        smol_counter += 1;
+      tripletList.push_back(T(row, col, value));
     }
   }
-  //  We added a diagonal to the LHS (For now you wont add it to the contraint part)
+  // We regularize the Hessian by adding a diagonal
+  if (regularize)
+  {
+    for (size_t i = 0; i < (N_vert + N_beads); i++)
+    {
+      tripletList.push_back(T(i, i, 1e-6));
+    }
+  }
+  Eigen::VectorXd LambdaJ = Sim_handler->Jacobian_constraints.transpose() * Sim_handler->Lagrange_mult;
 
-  // std::cout<<"Added diagonal\n";
+  std::cout << "The lagrange multipliers are " << Sim_handler->Lagrange_mult.transpose() << "\n";
+  std::cout << "The size of Jacobian constraints is " << Sim_handler->Jacobian_constraints.rows() << " and " << Sim_handler->Jacobian_constraints.cols() << "\n";
 
-
-  Eigen::VectorXd LambdaJ = Sim_handler->Jacobian_constraints.transpose()*Sim_handler->Lagrange_mult;
-  // std::cout<<"LAMBDA J ready\n";
-  // std::cout<<"THe size of Lambda J is " << LambdaJ.rows() <<" and " << LambdaJ.cols() << "\n";
+  std::cout << "THe size of Lambda J is " << LambdaJ.rows() << " and " << LambdaJ.cols() << "\n";
+  std::cout << "THe maximum value of Lambda J is " << LambdaJ.maxCoeff() << " and the minimum is " << LambdaJ.minCoeff() << "\n";
   Vector3 Force;
   double dual_area = 0.0;
-  for(size_t vi = 0; vi < mesh->nVertices(); vi++){
-    // Ok so the idea now is to 
+  for (size_t vi = 0; vi < mesh->nVertices(); vi++)
+  {
     Force = Sim_handler->Current_grad[vi];
-    // dual_area = geometry->barycentricDualArea(mesh->vertex(vi));
-    // std::cout<<"Force is " << Force <<" \n";
-    RHS(3*vi) = LambdaJ(3*vi) + Force.x;
-    RHS(3*vi+1) = LambdaJ(3*vi+1) + Force.y;
-    RHS(3*vi+2) = LambdaJ(3*vi+2) + Force.z;
-  
+    RHS(vi) = LambdaJ(vi) + dot(Force, Sim_handler->Vertex_normals[vi]);
   }
-  // I need to add the force of the bead here 
-  for(size_t bi = 0; bi < Sim_handler->Beads.size(); bi++){
-    Force = Sim_handler->Beads[bi]->Total_force;
-    // std::cout<<"Force is " << Force <<" \n";
-    RHS(3*(N_vert+bi)) = LambdaJ(3*(N_vert+bi)) + Force.x;
-    RHS(3*(N_vert+bi)+1) = LambdaJ(3*(N_vert+bi)+1) + Force.y;
-    RHS(3*(N_vert+bi)+2) = LambdaJ(3*(N_vert+bi)+2) + Force.z;
-  }
+  std::cout << "RHS force from vertices ready\n";
+  std::cout << "The size of RHS is " << RHS.rows() << " and " << RHS.cols() << "\n";
 
-
-  // std::cout<<"RHS  force ready\n";
-  // Now we need to add the constraints 
-  // std::cout<<"Te number of constraints is " << N_constraints <<" \n";
-  for(int Ci = 0; Ci < N_constraints; Ci++){
+  for (int Ci = 0; Ci < N_constraints; Ci++)
+  {
     // We need to add the value of the constraint
-    if(Constraints[Ci] =="Volume"){ 
-      RHS(3*(N_vert+N_beads)+Ci) = -1*(geometry->totalVolume() - Sim_handler->Trgt_vol);
-      // std::cout<<"The total volume is " << geometry->totalVolume() << " and the target is " << Sim_handler->Trgt_vol << "\n";
+    if (Constraints[Ci] == "Volume")
+    {
+      RHS((N_vert) + Ci) = -1 * (geometry->totalVolume() - Sim_handler->Trgt_vol);
+      // RHS((N_vert + N_beads) + Ci) = -1 * (geometry->totalVolume() - Sim_handler->Trgt_vol);
+
+      std::cout << "The total volume is " << geometry->totalVolume() << " and the target is " << Sim_handler->Trgt_vol << "\n";
     }
-    if(Constraints[Ci] =="Area") {
-      RHS(3*(N_vert+N_beads)+Ci) = -1*(geometry->totalArea()-Sim_handler->Trgt_area);
-      // std::cout<<"The total area  is " << geometry->totalArea() << " and the target is " << Sim_handler->Trgt_area << "\n";
+    if (Constraints[Ci] == "Area")
+    {
+      RHS((N_vert) + Ci) = -1 * (A - Sim_handler->Trgt_area);
+
+      std::cout << "The total area  is " << A << " and the target is " << Sim_handler->Trgt_area << "\n";
     }
-    if(Constraints[Ci]=="CMx") RHS(3*(N_vert+N_beads)+Ci) = 0.0;
-    if(Constraints[Ci]=="CMy") RHS(3*(N_vert+N_beads)+Ci) = 0.0;
-    if(Constraints[Ci]=="CMz") RHS(3*(N_vert+N_beads)+Ci) = 0.0;
-    if(Constraints[Ci]=="Rx") RHS(3*(N_vert+N_beads)+Ci) = 0.0;
-    if(Constraints[Ci]=="Ry") RHS(3*(N_vert+N_beads)+Ci) = 0.0;
-    if(Constraints[Ci]=="Rz") RHS(3*(N_vert+N_beads)+Ci) = 0.0;
-    
+    if (Constraints[Ci] == "CMx")
+      RHS((N_vert) + Ci) = 0.0; // Considering the beads should have +N_beads
+    if (Constraints[Ci] == "CMy")
+      RHS((N_vert) + Ci) = 0.0;
+    if (Constraints[Ci] == "CMz")
+      RHS((N_vert) + Ci) = 0.0;
+    if (Constraints[Ci] == "Rx")
+      RHS((N_vert) + Ci) = 0.0;
+    if (Constraints[Ci] == "Ry")
+      RHS((N_vert) + Ci) = 0.0;
+    if (Constraints[Ci] == "Rz")
+      RHS((N_vert) + Ci) = 0.0;
   }
-  // std::cout<<"The constraints are " << Constraints <<" \n";
-    // std::cout<<"RHS  constraints ready\n";
-  
-    LHS.setFromTriplets(tripletList.begin(),tripletList.end());
-    solverHess.compute(LHS);
+  std::cout << "THe maximum value of RHS is " << RHS.maxCoeff() << " and the minimum is " << RHS.minCoeff() << "\n";
 
-    Eigen::VectorXd result = solverHess.solve(RHS);
+  LHS.setFromTriplets(tripletList.begin(), tripletList.end());
+  solverHess.compute(LHS);
 
-    // std::cout<<"Solved\n";
-    VertexData<Vector3> Force_result(*mesh,Vector3({0.0,0.0,0.0}));
-    // Eigen::VectorXd Grad_L = LambdaJ+ ;
-    bool flag = false;
-    for(size_t vi = 0; vi < mesh->nVertices(); vi++){
-      if( mesh->vertex(vi).isBoundary() ){
-        Force_result[vi] = Vector3({0.0,0.0,0.0});
-        result(3*vi) = 0.0;
-        result(3*vi+1) = 0.0;
-        result(3*vi+2) = 0.0;
-        continue;
-      }
-      for(Vertex vj : mesh->vertex(vi).adjacentVertices()){
-          if( vj.isBoundary() ){
-            Force_result[vi] = Vector3({0.0,0.0,0.0});
-            result(3*vi) = 0.0;
-            result(3*vi+1) = 0.0;
-            result(3*vi+2) = 0.0;
-            flag = true;
-            break;
-          }
-      }
-      if(flag){
-        flag = false;
-        continue;
-      }
-      Force_result[vi].x = result(3*vi);
-      Force_result[vi].y = result(3*vi+1);
-      Force_result[vi].z = result(3*vi+2);
-    
+  Eigen::VectorXd result = solverHess.solve(RHS);
+
+  std::cout << "The size of result is " << result.rows() << " and " << result.cols() << "\n";
+  std::cout << "THe max value of result is " << result.maxCoeff() << " and the minimum is " << result.minCoeff() << "\n";
+
+  VertexData<Vector3> Force_result(*mesh, Vector3({0.0, 0.0, 0.0}));
+  // Eigen::VectorXd Grad_L = LambdaJ+ ;
+  bool flag = false;
+  for (size_t vi = 0; vi < mesh->nVertices(); vi++)
+  {
+    if (mesh->vertex(vi).isBoundary())
+    {
+      Force_result[vi] = Vector3({0.0, 0.0, 0.0});
+      result(vi) = 0.0;
+      continue;
     }
-
-    Sim_handler->Previous_grad = Sim_handler->Current_grad;
-    Sim_handler->Current_grad = Force_result;
-    
-    for(int bi = 0; bi < N_beads; bi++){
-      Force = Vector3{result(3*(N_vert+bi)),result(3*(N_vert+bi)+1),result(3*(N_vert+bi)+2 )};
-      Beads[bi]->Total_force = Force;
-    }
-
-    double Projection = result.transpose()*LHS*RHS;
-    double Current_grad_norm = 0.5*RHS.dot(RHS);
-
-    double backtrackstep;
-    if(false){
-    // if(result.dot(RHS)<0 || Projection <0.0){
-      // 
-      std::cout<<"The result is not a descent direction, we will not backtrack\n";
-      small_TS = true;
-      backtrackstep = 0.0;
-      // backtrackstep = integrate(Sim_data,time,Bead_data_filenames,Save_output_data);
-    }
-    else{
-
-      if(backtrack) 
+    for (Vertex vj : mesh->vertex(vi).adjacentVertices())
+    {
+      if (vj.isBoundary())
       {
-        backtrackstep = Backtracking_grad(result.tail(N_constraints),Projection,Current_grad_norm);
+        Force_result[vi] = Vector3({0.0, 0.0, 0.0});
+        result(vi) = 0.0;
+        flag = true;
+        break;
       }
-      else backtrackstep = timestep;
-
-    
-    if(backtrackstep < 2e-6) small_TS = true; 
-
-    double TotE = 0.0;
-    
-    Sim_handler->Calculate_energies(&TotE);
-
-    Sim_data << time+backtrackstep <<" "<< geometry->totalVolume()<<" " << geometry->totalArea()<<" ";
-    for(size_t i = 0; i < Sim_handler->Energies.size(); i++){
-      
-      Sim_data << Sim_handler->Energy_values[i] << " ";
-      
     }
- 
-    Sim_data << TotE <<" ";
+    if (flag)
+    {
+      flag = false;
+      continue;
+    }
+    Force_result[vi] = result(vi) * Sim_handler->Vertex_normals[vi];
+  }
+
+  for (int bi = 0; bi < N_beads; bi++)
+  {
+    Force = Vector3{0.0, 0.0, result((N_vert + bi))};
+
+    Beads[bi]->Total_force = Force;
+  }
+
+  //
+
+  double Projection = result.transpose() * LHS * RHS;
+  double Current_grad_norm = 0.0;
+
+  Sim_handler->Calculate_Lag_norm_Normal(&Current_grad_norm);
+
+  Sim_handler->Current_grad = Force_result;
+
+  // Current grad norm is
+
+  double backtrackstep;
+  if (false)
+  {
+    // if(result.dot(RHS)<0 || Projection <0.0){
+    //
+    std::cout << "The result is not a descent direction, we will not backtrack\n";
+    small_TS = true;
+    backtrackstep = 0.0;
+    // backtrackstep = integrate(Sim_data,time,Bead_data_filenames,Save_output_data);
+  }
+  else
+  {
+
+    if (backtrack)
+    {
+      std::cout << "Projection is " << Projection << " and the grad norm is " << Current_grad_norm << "\n";
+      backtrackstep = Backtracking_grad_Normal(result.tail(N_constraints), Projection, Current_grad_norm);
+    }
+    else
+      backtrackstep = timestep;
+
+    geometry->refreshQuantities();
+    double TotE = 0.0;
+
+    Sim_handler->Calculate_energies_precomp(&TotE);
+    A = 0.0;
+    geometry->requireFaceAreas();
+    for (Face f : mesh->faces())
+    {
+      A += geometry->faceArea(f);
+    }
+    Sim_data << time + backtrackstep << " " << discreteTs << " " << geometry->totalVolume() << " " << A << " ";
+    for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
+    {
+
+      Sim_data << Sim_handler->Energy_values[i] << " ";
+    }
+
+    Sim_data << TotE << " ";
 
     // Sim_data << Current_grad_norm <<" " << backtrackstep <<" \n";
-    for(size_t i = 0; i < Sim_handler->Gradient_norms.size(); i++){
-      Sim_data << Sim_handler->Gradient_norms[i]<< " ";
-      }
-    // Sim_data << Grad_tot_norm << " ";
-      Sim_data<< backtrackstep<<" \n";
+    for (size_t i = 0; i < Sim_handler->Gradient_norms.size(); i++)
+    {
+      Sim_data << Sim_handler->Gradient_norms[i] << " ";
     }
+    // Sim_data << Grad_tot_norm << " ";
+    Sim_data << backtrackstep << " \n";
+  }
 
-    // geometry->refreshQuantities();
+  if (Bead_data_filenames.size() != 0 && Save_output_data)
+  {
 
+    std::ofstream Bead_data;
+    for (size_t i = 0; i < Beads.size(); i++)
+    {
+      Bead_data = std::ofstream(Bead_data_filenames[i], std::ios_base::app);
+      Bead_data << discreteTs << " " << Beads[i]->Pos.x << " " << Beads[i]->Pos.y << " " << Beads[i]->Pos.z << " " << Beads[i]->Total_force.x << " " << Beads[i]->Total_force.y << " " << Beads[i]->Total_force.z << " \n";
+      Bead_data.close();
+    }
+  }
 
-    return backtrackstep;
-  
-
+  return backtrackstep;
   // Ok so we have everything i guess?
-
-  
-
 }
 
-
-
-
-double Mem3DG::integrate_implicit(std::vector<std::string> Energies,  std::vector<std::vector<double>> Energy_constants, std::ofstream& Sim_data , double time, std::vector<std::string>Bead_data_filenames, bool Save_output_data){
-
+double Mem3DG::integrate_implicit(std::vector<std::string> Energies, std::vector<std::vector<double>> Energy_constants, std::ofstream &Sim_data, double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data)
+{
 
   // Okok what now
 
-  
-
   return 0.0;
 }
-
-
-
 
 /*
  * Performs integration with the bead
@@ -3768,1265 +4215,1154 @@ double Mem3DG::integrate_implicit(std::vector<std::string> Energies,  std::vecto
  * Input: The timestep <h>.
  * Returns:
  */
-double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,double KA,double KB, double Kd,std::ofstream& Sim_data, double time, bool bead,std::vector<std::string> Bead_data_filenames,bool Save_output_data,bool pulling) {
-//, Beads Bead_1 
-    std::ofstream Bead_data;
-    // std::cout<<"1_2\n";
-    Bead *Active_bead;
-    if(bead ){
-      // std::cout<<"This is being called\n";
-      // std::cout<<"There are "<< Beads.size() <<" beads\n";
-      for(size_t i = 0; i < Beads.size(); i++){
-      
-      Bead_data = std::ofstream(Bead_data_filenames[i],std::ios_base::app);
-      Bead_data<<Beads[i]->Pos.x <<" "<< Beads[i]->Pos.y << " "<< Beads[i]->Pos.z<< " "<< Beads[i]->Total_force.x <<" "<< Beads[i]->Total_force.y << " "<< Beads[i]->Total_force.z <<" \n";
+double Mem3DG::integrate(double h, double V_bar, double nu, double c0, double P0, double KA, double KB, double Kd, std::ofstream &Sim_data, double time, bool bead, std::vector<std::string> Bead_data_filenames, bool Save_output_data, bool pulling)
+{
+  //, Beads Bead_1
+  std::ofstream Bead_data;
+  // std::cout<<"1_2\n";
+  Bead *Active_bead;
+  if (bead)
+  {
+    // std::cout<<"This is being called\n";
+    // std::cout<<"There are "<< Beads.size() <<" beads\n";
+    for (size_t i = 0; i < Beads.size(); i++)
+    {
+
+      Bead_data = std::ofstream(Bead_data_filenames[i], std::ios_base::app);
+      Bead_data << Beads[i]->Pos.x << " " << Beads[i]->Pos.y << " " << Beads[i]->Pos.z << " " << Beads[i]->Total_force.x << " " << Beads[i]->Total_force.y << " " << Beads[i]->Total_force.z << " \n";
       // std::cout<<Bead_1.Pos.x << " "<< Bead_1.Pos.y << " "<< Bead_1.Pos.z<<" \n";
       // std::cout<<"The total force is "<<Bead_1.Total_force <<"\n";
       Bead_data.close();
-      }
     }
+  }
 
-    // std::cout<<"2_2\n";
-    // Vector<double> Total_force=buildFlowOperator(h,V_bar,nu,c0,P0,KA,KB,Kd);
+  // std::cout<<"2_2\n";
+  // Vector<double> Total_force=buildFlowOperator(h,V_bar,nu,c0,P0,KA,KB,Kd);
 
-    
-    VertexData<Vector3> Force(*mesh);
-    
-    Force=buildFlowOperator(h,V_bar,nu,c0,P0,KA,KB,Kd);//+Bead_1.Gradient();
+  VertexData<Vector3> Force(*mesh);
 
+  Force = buildFlowOperator(h, V_bar, nu, c0, P0, KA, KB, Kd); //+Bead_1.Gradient();
 
-    // std::cout<<"3_2\n";
-    // std::cout<<"\t \tThe size of Beads is"<< Beads.size()<<"\n";
-    VertexData<Vector3> Bead_force;
-    for(size_t i = 0; i < Beads.size(); i++){
-      // std::cout<<"Iterating over bead number "<<i+1<<"\n";
-      Bead_force = Beads[i]->Gradient();
-      Beads[i]->Bead_interactions();
-      Force+=Bead_force;
-    }
-    // VertexData<Vector3> Bead_force = Bead_1.Gradient();
+  // std::cout<<"3_2\n";
+  // std::cout<<"\t \tThe size of Beads is"<< Beads.size()<<"\n";
+  VertexData<Vector3> Bead_force;
+  for (size_t i = 0; i < Beads.size(); i++)
+  {
+    // std::cout<<"Iterating over bead number "<<i+1<<"\n";
+    Bead_force = Beads[i]->Gradient();
+    Beads[i]->Bead_interactions();
+    Force += Bead_force;
+  }
+  // VertexData<Vector3> Bead_force = Bead_1.Gradient();
 
-    // VertexData<Vector3> Bead_force=Project_force(Bead_1.Gradient());
-    
-    // std::cout<<"4_2\n";
-    // Force+=Bead_force;
+  // VertexData<Vector3> Bead_force=Project_force(Bead_1.Gradient());
 
+  // std::cout<<"4_2\n";
+  // Force+=Bead_force;
 
-    // This force is the grdient basically
-    double alpha=h;
+  // This force is the grdient basically
+  double alpha = h;
 
-    // I have the forces for almost everything i just need the bead.
+  // I have the forces for almost everything i just need the bead.
 
-    size_t vindex;
-    size_t Nvert=mesh->nVertices();
+  size_t vindex;
+  size_t Nvert = mesh->nVertices();
 
+  // I want to print the Volume, the area, VOl_E, Area_E, Bending_E
+  V = geometry->totalVolume();
+  A = geometry->totalArea();
+  double A_bar = 4 * PI * pow(3 * V_bar / (4 * PI * nu), 2.0 / 3.0);
+  double H_bar = sqrt(4 * PI / A_bar) * c0 / 2.0; // Coment this with another comment
+  double D_P = -1 * P0 * (V - V_bar) / (V_bar * V_bar);
+  double lambda = KA * (A - A_bar) / (A_bar * A_bar);
 
-    // I want to print the Volume, the area, VOl_E, Area_E, Bending_E 
-    V = geometry->totalVolume();
-    A = geometry->totalArea();
-    double A_bar=4*PI*pow(3*V_bar/(4*PI*nu),2.0/3.0);
-    double H_bar=sqrt(4*PI/A_bar)*c0/2.0; //Coment this with another comment
-    double D_P=-1*P0*(V-V_bar)/(V_bar*V_bar);
-    double lambda=KA*(A-A_bar )/(A_bar*A_bar);    
+  E_Vol = E_Pressure(D_P, V, V_bar);
+  E_Sur = E_Surface(KA, A, A_bar);
+  E_Ben = E_Bending(H_bar, KB);
+  E_Bead = 0.0;
 
-
-
-    E_Vol = E_Pressure(D_P,V,V_bar);
-    E_Sur = E_Surface(KA,A,A_bar);
-    E_Ben = E_Bending(H_bar,KB);
-    E_Bead= 0.0;
-
-    for( size_t i = 0; i < Beads.size(); i++){
+  for (size_t i = 0; i < Beads.size(); i++)
+  {
 
     E_Bead += Beads[i]->Energy();
-    }
+  }
 
-    double backtrackstep;
+  double backtrackstep;
 
-    // std::cout<<" The position of vertex 120 is "<<geometry->inputVertexPositions[120].x<<" "<<geometry->inputVertexPositions[120].y<< " "<<geometry->inputVertexPositions[120].z<<" \n"; 
+  // std::cout<<" The position of vertex 120 is "<<geometry->inputVertexPositions[120].x<<" "<<geometry->inputVertexPositions[120].y<< " "<<geometry->inputVertexPositions[120].z<<" \n";
 
-    // if(system_time< 50){
-    //   backtrackstep=h;
-    // }
-    // else{
-      // std::cout<<"Backtracking is being called\n";
-    Total_force = Vector3({0,0,0});
-    backtrackstep=Backtracking(Force,P0,V_bar,A_bar,KA,KB,H_bar,bead,pulling);
-    // Total_force*=backtrackstep;
-    // I need to find the stop increasing bt
-    // }
-    // std::cout<<" The position of vertex 120 is "<<geometry->inputVertexPositions[120].x<<" "<<geometry->inputVertexPositions[120].y<< " "<<geometry->inputVertexPositions[120].z<<" \n";
-    
-        
-    // geometry->inputVertexPositions=geometry->inputVertexPositions+backtrackstep*Force;
+  // if(system_time< 50){
+  //   backtrackstep=h;
+  // }
+  // else{
+  // std::cout<<"Backtracking is being called\n";
+  Total_force = Vector3({0, 0, 0});
+  backtrackstep = Backtracking(Force, P0, V_bar, A_bar, KA, KB, H_bar, bead, pulling);
+  // Total_force*=backtrackstep;
+  // I need to find the stop increasing bt
+  // }
+  // std::cout<<" The position of vertex 120 is "<<geometry->inputVertexPositions[120].x<<" "<<geometry->inputVertexPositions[120].y<< " "<<geometry->inputVertexPositions[120].z<<" \n";
 
-    // Bead_1.Move_bead(backtrackstep,center);
+  // geometry->inputVertexPositions=geometry->inputVertexPositions+backtrackstep*Force;
 
-    if((Save_output_data ) || backtrackstep<0  ){
-    Sim_data << V_bar<<" "<< A_bar<<" "<< time <<" "<< V<<" " << A<<" " << E_Vol << " " << E_Sur << " " << E_Ben <<" " << E_Bead << " "<< grad_norm<<" " << backtrackstep << " \n";
-    }
-    system_time+=1;
-    
-    
-  
-  return backtrackstep;
-} 
+  // Bead_1.Move_bead(backtrackstep,center);
 
-   
+  if ((Save_output_data) || backtrackstep < 0)
+  {
+    Sim_data << V_bar << " " << A_bar << " " << time << " " << discreteTs << " " << V << " " << A << " " << E_Vol << " " << E_Sur << " " << E_Ben << " " << E_Bead << " " << grad_norm << " " << backtrackstep << " \n";
+  }
+  system_time += 1;
 
-double Mem3DG::integrate_field(double h, double V_bar, double nu, double P0,double KA,double KB, double slope,double x0 ,std::ofstream& Sim_data, double time,bool Save) {
-//, Beads Bead_1 
-
-
-    // std::cout<<"2_2\n";
-    // Vector<double> Total_force=buildFlowOperator(h,V_bar,nu,c0,P0,KA,KB,Kd);
-    VertexData<Vector3> Force(*mesh);
-    VertexData<Vector3> Field(*mesh);
-    double c0 = 0.0;
-    double Kd = 0.0;
-    Force=buildFlowOperator(V_bar,P0,KA,KB,h);//+Bead_1.Gradient();
-    
-
-
-    // This force is the grdient basically
-    double alpha=h;
-
-    // I have the forces for almost everything i just need the bead.
-
-    size_t vindex;
-    size_t Nvert=mesh->nVertices();
-
-
-    // I want to print the Volume, the area, VOl_E, Area_E, Bending_E 
-    V = geometry->totalVolume();
-    A = geometry->totalArea();
-    double A_bar=4*PI*pow(3*V_bar/(4*PI*nu),2.0/3.0);
-    double H_bar=sqrt(4*PI/A_bar)*c0/2.0; //Coment this with another comment
-    double D_P=-1*P0*(V-V_bar)/(V_bar*V_bar);
-    double lambda=KA*(A-A_bar )/(A_bar*A_bar);    
-
-
-
-    E_Vol = E_Pressure(D_P,V,V_bar);
-    E_Sur = E_Surface(KA,A,A_bar);
-    E_Ben = E_Bending(H_bar,KB);
-    E_Bead = Bead_1.Energy();
-    
-    // double backtrackstep;
-
-    // std::cout<<" The position of vertex 120 is "<<geometry->inputVertexPositions[120].x<<" "<<geometry->inputVertexPositions[120].y<< " "<<geometry->inputVertexPositions[120].z<<" \n"; 
-
-    // if(system_time< 50){
-    //   backtrackstep=h;
-    // }
-    // else{
-      // std::cout<<"Backtracking is being called\n";
-    Total_force = Vector3({0,0,0});
-    // backtrackstep=Backtracking(Force,D_P,V_bar,A_bar,KA,KB,H_bar,bead,pulling);
-    // Total_force*=backtrackstep;
-    // I need to find the stop increasing bt
-    // }
-    // std::cout<<" The position of vertex 120 is "<<geometry->inputVertexPositions[120].x<<" "<<geometry->inputVertexPositions[120].y<< " "<<geometry->inputVertexPositions[120].z<<" \n";
-    // double backtrackstep = Backtracking_field(Force,D_P,V_bar,A_bar,KA,KB,H_bar);    
-    double backtrackstep = 1e-4; //lowest 5e-7
-    // I need to calculate the force field
-
-
-    Field = Linear_force_field(x0,slope); 
-    // I want to make it volume preserving
-
-
-
-    Force += Field;
-    geometry->inputVertexPositions=geometry->inputVertexPositions+backtrackstep*Force;
-    
-    
-    
-    
-    // I want to find the leftmost particle
-    
-    Vector3 Leftmost({0,0,0});
-    Vector3 Rightmost({0,0,0});
-    
-    int rightmost;
-    int leftmost;
-    for(Vertex v: mesh->vertices()){
-      if(geometry->inputVertexPositions[v].x<Leftmost.x){
-        Leftmost = geometry->inputVertexPositions[v];
-        leftmost = v.getIndex();
-      }
-      if(geometry->inputVertexPositions[v].x>Rightmost.x){
-        Rightmost = geometry->inputVertexPositions[v];
-        rightmost = v.getIndex();
-      }
-    
-    }
-    Leftmost-= Vector3({-5,0,0});
-    VertexData<Vector3> Displacement(*mesh,Leftmost);
-
-    geometry->inputVertexPositions-=Displacement;
-
-    // std::cout<<"The force at the leftmost is"<< Field[leftmost] <<" with magnitude "<< Field[leftmost].norm()<<"\n";
-    // std::cout<<"The force at the leftmost is"<< Field[rightmost] <<" with magnitude "<< Field[rightmost].norm()<<"\n";
-
-    // std::cout<<" The difference in force in theory " << slope*(geometry->inputVertexPositions[rightmost].x - geometry->inputVertexPositions[leftmost].x)<< " and the obtained is " << Field[rightmost].norm()-Field[leftmost].norm()<<"\n";
-
-
-    // geometry->normalize(Vector3({0.0,0.0,0.0}),false);
-    geometry->refreshQuantities();
-    
-    // Bead_1.Move_bead(backtrackstep,center);
-
-    if(Save ){
-    Sim_data << V_bar<<" "<< A_bar<<" "<< time <<" "<< V<<" " << A<<" " << E_Vol << " " << E_Sur << " " << E_Ben <<" " << E_Bead << " "<< grad_norm<<" " << backtrackstep << " \n";
-    }
-    system_time+=1;
-    
-    
-  
   return backtrackstep;
 }
 
+double Mem3DG::integrate_field(double h, double V_bar, double nu, double P0, double KA, double KB, double slope, double x0, std::ofstream &Sim_data, double time, bool Save)
+{
+  //, Beads Bead_1
 
+  // std::cout<<"2_2\n";
+  // Vector<double> Total_force=buildFlowOperator(h,V_bar,nu,c0,P0,KA,KB,Kd);
+  VertexData<Vector3> Force(*mesh);
+  VertexData<Vector3> Field(*mesh);
+  double c0 = 0.0;
+  double Kd = 0.0;
+  Force = buildFlowOperator(V_bar, P0, KA, KB, h); //+Bead_1.Gradient();
 
+  // This force is the grdient basically
+  double alpha = h;
 
+  // I have the forces for almost everything i just need the bead.
 
+  size_t vindex;
+  size_t Nvert = mesh->nVertices();
 
+  // I want to print the Volume, the area, VOl_E, Area_E, Bending_E
+  V = geometry->totalVolume();
+  A = geometry->totalArea();
+  double A_bar = 4 * PI * pow(3 * V_bar / (4 * PI * nu), 2.0 / 3.0);
+  double H_bar = sqrt(4 * PI / A_bar) * c0 / 2.0; // Coment this with another comment
+  double D_P = -1 * P0 * (V - V_bar) / (V_bar * V_bar);
+  double lambda = KA * (A - A_bar) / (A_bar * A_bar);
 
-// THis is the main integrate 
-double Mem3DG::integrate(double h, double V_bar, double nu, double c0,double P0,double KA,double KB, double Kd,std::ofstream& Sim_data, double time,bool Save) {
+  E_Vol = E_Pressure(D_P, V, V_bar);
+  E_Sur = E_Surface(KA, A, A_bar);
+  E_Ben = E_Bending(H_bar, KB);
+  E_Bead = Bead_1.Energy();
 
+  // double backtrackstep;
 
-    
-    VertexData<Vector3> Force(*mesh);
-    Force=buildFlowOperator(h,V_bar,nu,c0,P0,KA,KB,Kd);
-    
-    
-    // This force is the gradient basically
-    double alpha=1e-3;
+  // std::cout<<" The position of vertex 120 is "<<geometry->inputVertexPositions[120].x<<" "<<geometry->inputVertexPositions[120].y<< " "<<geometry->inputVertexPositions[120].z<<" \n";
 
-    // I have the forces for almost everything i just need the bead.
+  // if(system_time< 50){
+  //   backtrackstep=h;
+  // }
+  // else{
+  // std::cout<<"Backtracking is being called\n";
+  Total_force = Vector3({0, 0, 0});
+  // backtrackstep=Backtracking(Force,D_P,V_bar,A_bar,KA,KB,H_bar,bead,pulling);
+  // Total_force*=backtrackstep;
+  // I need to find the stop increasing bt
+  // }
+  // std::cout<<" The position of vertex 120 is "<<geometry->inputVertexPositions[120].x<<" "<<geometry->inputVertexPositions[120].y<< " "<<geometry->inputVertexPositions[120].z<<" \n";
+  // double backtrackstep = Backtracking_field(Force,D_P,V_bar,A_bar,KA,KB,H_bar);
+  double backtrackstep = 1e-4; // lowest 5e-7
+  // I need to calculate the force field
 
-    size_t vindex;
-    size_t Nvert=mesh->nVertices();
+  Field = Linear_force_field(x0, slope);
+  // I want to make it volume preserving
 
+  Force += Field;
+  geometry->inputVertexPositions = geometry->inputVertexPositions + backtrackstep * Force;
 
-    // I want to print the Volume, the area, VOl_E, Area_E, Bending_E 
-    double V = geometry->totalVolume();
-    double A = geometry->totalArea();
-    double A_bar=4*PI*pow(3*V_bar/(4*PI*nu),2.0/3.0);
-    double H_bar=sqrt(4*PI/A_bar)*c0/2.0; //Coment this with another comment
-    double D_P=-1*P0*(V-V_bar)/V_bar/V_bar;
-    double lambda=KA*(A-A_bar )/A_bar;    
+  // I want to find the leftmost particle
 
+  Vector3 Leftmost({0, 0, 0});
+  Vector3 Rightmost({0, 0, 0});
 
-    double E_Vol=E_Pressure(D_P,V,V_bar);
-    double E_Sur=E_Surface(KA,A,A_bar);
-    double E_Ben=E_Bending(H_bar,KB);
-    double backtrackstep;
-
-
-    // if(system_time< 50){
-    //   backtrackstep=h;
-    // }
-    // else{
-    backtrackstep=Backtracking(Force,D_P,V_bar,A_bar,KA,KB,H_bar);
-    // }
-    if(Save || backtrackstep<0){
-    Sim_data << V_bar<<" "<< A_bar<<" "<< time <<" "<< V<<" " << A<<" " << E_Vol << " " << E_Sur << " " << E_Ben << " "<< grad_norm<<" " << backtrackstep<<" \n";
+  int rightmost;
+  int leftmost;
+  for (Vertex v : mesh->vertices())
+  {
+    if (geometry->inputVertexPositions[v].x < Leftmost.x)
+    {
+      Leftmost = geometry->inputVertexPositions[v];
+      leftmost = v.getIndex();
     }
-    system_time+=1;
+    if (geometry->inputVertexPositions[v].x > Rightmost.x)
+    {
+      Rightmost = geometry->inputVertexPositions[v];
+      rightmost = v.getIndex();
+    }
+  }
+  Leftmost -= Vector3({-5, 0, 0});
+  VertexData<Vector3> Displacement(*mesh, Leftmost);
 
+  geometry->inputVertexPositions -= Displacement;
 
-    // for (Vertex v : mesh->vertices()) {
-    //     vindex=v.getIndex();
+  // std::cout<<"The force at the leftmost is"<< Field[leftmost] <<" with magnitude "<< Field[leftmost].norm()<<"\n";
+  // std::cout<<"The force at the leftmost is"<< Field[rightmost] <<" with magnitude "<< Field[rightmost].norm()<<"\n";
 
-    //     // Update= { Total_force[vindex],Total_force[vindex+Nvert],Total_force[vindex+2*Nvert]  };
-    //     // Update=h*Force[vindex];
-    //     Update=backtrackstep*Force[vindex];
-    //     geometry->inputVertexPositions[v] =geometry->inputVertexPositions[v]+ Update ; // placeholder
-    // }
-    // Force=MeshData<Vertex,Vector3>::fromVector(Delta_x);
-    // geometry->inputVertexPositions=geometry->inputVertexPositions+backtrackstep*Force;
-    
-  
+  // std::cout<<" The difference in force in theory " << slope*(geometry->inputVertexPositions[rightmost].x - geometry->inputVertexPositions[leftmost].x)<< " and the obtained is " << Field[rightmost].norm()-Field[leftmost].norm()<<"\n";
+
+  // geometry->normalize(Vector3({0.0,0.0,0.0}),false);
+  // geometry->refreshQuantities();
+
+  // Bead_1.Move_bead(backtrackstep,center);
+
+  if (Save)
+  {
+    Sim_data << V_bar << " " << A_bar << " " << time << " " << V << " " << A << " " << E_Vol << " " << E_Sur << " " << E_Ben << " " << E_Bead << " " << grad_norm << " " << backtrackstep << " \n";
+  }
+  system_time += 1;
+
   return backtrackstep;
 }
 
+// THis is the main integrate
+double Mem3DG::integrate(double h, double V_bar, double nu, double c0, double P0, double KA, double KB, double Kd, std::ofstream &Sim_data, double time, bool Save)
+{
+
+  VertexData<Vector3> Force(*mesh);
+  Force = buildFlowOperator(h, V_bar, nu, c0, P0, KA, KB, Kd);
+
+  // This force is the gradient basically
+  double alpha = 1e-3;
+
+  // I have the forces for almost everything i just need the bead.
+
+  size_t vindex;
+  size_t Nvert = mesh->nVertices();
+
+  // I want to print the Volume, the area, VOl_E, Area_E, Bending_E
+  double V = geometry->totalVolume();
+  double A = geometry->totalArea();
+  double A_bar = 4 * PI * pow(3 * V_bar / (4 * PI * nu), 2.0 / 3.0);
+  double H_bar = sqrt(4 * PI / A_bar) * c0 / 2.0; // Coment this with another comment
+  double D_P = -1 * P0 * (V - V_bar) / V_bar / V_bar;
+  double lambda = KA * (A - A_bar) / A_bar;
+
+  double E_Vol = E_Pressure(D_P, V, V_bar);
+  double E_Sur = E_Surface(KA, A, A_bar);
+  double E_Ben = E_Bending(H_bar, KB);
+  double backtrackstep;
+
+  // if(system_time< 50){
+  //   backtrackstep=h;
+  // }
+  // else{
+  backtrackstep = Backtracking(Force, D_P, V_bar, A_bar, KA, KB, H_bar);
+  // }
+  if (Save || backtrackstep < 0)
+  {
+    Sim_data << V_bar << " " << A_bar << " " << time << " " << V << " " << A << " " << E_Vol << " " << E_Sur << " " << E_Ben << " " << grad_norm << " " << backtrackstep << " \n";
+  }
+  system_time += 1;
+
+  // for (Vertex v : mesh->vertices()) {
+  //     vindex=v.getIndex();
+
+  //     // Update= { Total_force[vindex],Total_force[vindex+Nvert],Total_force[vindex+2*Nvert]  };
+  //     // Update=h*Force[vindex];
+  //     Update=backtrackstep*Force[vindex];
+  //     geometry->inputVertexPositions[v] =geometry->inputVertexPositions[v]+ Update ; // placeholder
+  // }
+  // Force=MeshData<Vertex,Vector3>::fromVector(Delta_x);
+  // geometry->inputVertexPositions=geometry->inputVertexPositions+backtrackstep*Force;
+
+  return backtrackstep;
+}
 
 // THis integrate will do surface tension + volume preservation
-double Mem3DG::integrate(double h, double V_bar,double P0,double KA,std::ofstream& Sim_data, double time,bool Save) {
+double Mem3DG::integrate(double h, double V_bar, double P0, double KA, std::ofstream &Sim_data, double time, bool Save)
+{
 
+  VertexData<Vector3> Force(*mesh);
+  Force = buildFlowOperator(h, V_bar, P0, KA);
 
-    
-    VertexData<Vector3> Force(*mesh);
-    Force=buildFlowOperator(h,V_bar,P0,KA);
-    
-    
-    // This force is the gradient basically
-    double alpha=1e-2;
+  // This force is the gradient basically
+  double alpha = 1e-2;
 
-    // I have the forces for almost everything i just need the bead.
+  // I have the forces for almost everything i just need the bead.
 
-    size_t vindex;
-    size_t Nvert=mesh->nVertices();
+  size_t vindex;
+  size_t Nvert = mesh->nVertices();
 
+  // I want to print the Volume, the area, VOl_E, Area_E, Bending_E
+  double V = geometry->totalVolume();
+  double A = geometry->totalArea();
+  double D_P = -1 * P0 * (V - V_bar) / V_bar / V_bar;
 
-    // I want to print the Volume, the area, VOl_E, Area_E, Bending_E 
-    double V = geometry->totalVolume();
-    double A = geometry->totalArea();
-    double D_P=-1*P0*(V-V_bar)/V_bar/V_bar;
-    
+  double E_Vol = E_Pressure(D_P, V, V_bar);
+  double E_Sur = KA * A;
+  double backtrackstep;
 
-    double E_Vol=E_Pressure(D_P,V,V_bar);
-    double E_Sur=KA*A;
-    double backtrackstep;
+  backtrackstep = Backtracking(Force, D_P, V_bar, KA);
+  // }
+  if (Save || backtrackstep < 0)
+  {
+    Sim_data << V_bar << " " << time << " " << V << " " << A << " " << E_Vol << " " << E_Sur << " " << grad_norm << " " << backtrackstep << " \n";
+  }
+  system_time += 1;
 
-    backtrackstep=Backtracking(Force,D_P,V_bar,KA);
-    // }
-    if(Save || backtrackstep<0){
-    Sim_data << V_bar<<" "<< time <<" "<< V<<" " << A<<" " << E_Vol << " " << E_Sur << " "<< grad_norm<<" " << backtrackstep<<" \n";
-    }
-    system_time+=1;
+  // for (Vertex v : mesh->vertices()) {
+  //     vindex=v.getIndex();
 
+  //     // Update= { Total_force[vindex],Total_force[vindex+Nvert],Total_force[vindex+2*Nvert]  };
+  //     // Update=h*Force[vindex];
+  //     Update=backtrackstep*Force[vindex];
+  //     geometry->inputVertexPositions[v] =geometry->inputVertexPositions[v]+ Update ; // placeholder
+  // }
+  // Force=MeshData<Vertex,Vector3>::fromVector(Delta_x);
+  // geometry->inputVertexPositions=geometry->inputVertexPositions+backtrackstep*Force;
 
-    // for (Vertex v : mesh->vertices()) {
-    //     vindex=v.getIndex();
-
-    //     // Update= { Total_force[vindex],Total_force[vindex+Nvert],Total_force[vindex+2*Nvert]  };
-    //     // Update=h*Force[vindex];
-    //     Update=backtrackstep*Force[vindex];
-    //     geometry->inputVertexPositions[v] =geometry->inputVertexPositions[v]+ Update ; // placeholder
-    // }
-    // Force=MeshData<Vertex,Vector3>::fromVector(Delta_x);
-    // geometry->inputVertexPositions=geometry->inputVertexPositions+backtrackstep*Force;
-    
-  
   return backtrackstep;
 }
 
+void Mem3DG::Grad_Vol_dx(std::ofstream &Gradient_file, double P0, double V_bar, size_t index) const
+{
+  // I want to calculate the gradient of the volume
+  VertexData<Vector3> initial_pos(*mesh);
+  initial_pos = geometry->inputVertexPositions;
+  // VertexData<Vector3> Gradients(*mesh,0.0);
+  double V = geometry->totalVolume();
+  double E_vol = 0.0;
+  double E_vol_back = 0.0;
+  double E_vol_front = 0.0;
+  double dr;
+  Vector3 grad{0.0, 0.0, 0.0};
+  double D_P = -P0 * (V - V_bar) / (V_bar * V_bar);
+  E_vol = E_Pressure(D_P, V, V_bar);
 
+  VertexData<Vector3> Calc_grad = D_P * OsmoticPressure();
 
+  Gradient_file << Calc_grad[index].x << " " << Calc_grad[index].y << " " << Calc_grad[index].z << " \n";
 
+  Vector<Vector3> Gradients(10);
+  dr = 10.0;
+  for (size_t exponent = 0; exponent < 20; exponent++)
+  {
+    dr = dr / 10.0;
+    // dr=pow(10,-1*exponent);
 
+    // std::cout<<dr<<" ";
 
-void Mem3DG::Grad_Vol_dx(std::ofstream& Gradient_file,double P0, double V_bar,size_t index) const{
-// I want to calculate the gradient of the volume
-VertexData<Vector3> initial_pos(*mesh);
-initial_pos= geometry->inputVertexPositions;
-// VertexData<Vector3> Gradients(*mesh,0.0);
-double V=geometry->totalVolume();
-double E_vol=0.0;
-double E_vol_back=0.0;
-double E_vol_front=0.0;
-double dr;
-Vector3 grad{0.0,0.0,0.0};
-double D_P=-P0*(V-V_bar)/(V_bar*V_bar);
-E_vol=E_Pressure(D_P,V,V_bar);
+    geometry->inputVertexPositions[index] = initial_pos[index] + Vector3{dr, 0, 0};
+    // geometry->refreshQuantities();
+    V = geometry->totalVolume();
+    D_P = -P0 * (V - V_bar) / V_bar / V_bar;
+    E_vol_front = E_Pressure(D_P, V, V_bar);
+    geometry->inputVertexPositions[index] = initial_pos[index] - Vector3{dr, 0, 0};
+    // geometry->refreshQuantities();
+    V = geometry->totalVolume();
+    D_P = -P0 * (V - V_bar) / V_bar / V_bar;
+    E_vol_back = E_Pressure(D_P, V, V_bar);
+    grad.x = (E_vol_front - E_vol_back) / (2 * dr);
 
+    geometry->inputVertexPositions[index] = initial_pos[index] - Vector3{0, dr, 0};
+    // geometry->refreshQuantities();
+    V = geometry->totalVolume();
+    D_P = -P0 * (V - V_bar) / V_bar / V_bar;
+    E_vol_back = E_Pressure(D_P, V, V_bar);
+    geometry->inputVertexPositions[index] = initial_pos[index] + Vector3{0, dr, 0};
+    // geometry->refreshQuantities();
+    V = geometry->totalVolume();
+    D_P = -P0 * (V - V_bar) / V_bar / V_bar;
+    E_vol_front = E_Pressure(D_P, V, V_bar);
+    grad.y = (E_vol_front - E_vol_back) / (2 * dr);
 
+    geometry->inputVertexPositions[index] = initial_pos[index] - Vector3{0, 0, dr};
+    // geometry->refreshQuantities();
+    V = geometry->totalVolume();
+    D_P = -P0 * (V - V_bar) / V_bar / V_bar;
+    E_vol_back = E_Pressure(D_P, V, V_bar);
+    geometry->inputVertexPositions[index] = initial_pos[index] + Vector3{0, 0, dr};
+    // geometry->refreshQuantities();
+    V = geometry->totalVolume();
+    D_P = -P0 * (V - V_bar) / V_bar / V_bar;
+    E_vol_front = E_Pressure(D_P, V, V_bar);
+    grad.z = (E_vol_front - E_vol_back) / (2 * dr);
 
-VertexData<Vector3> Calc_grad=D_P*OsmoticPressure();
+    Gradients[exponent] = grad;
+    Gradient_file << Gradients[exponent].x << " " << Gradients[exponent].y << " " << Gradients[exponent].z << " \n";
+  }
 
-Gradient_file<<Calc_grad[index].x <<" "<<Calc_grad[index].y<<" "<< Calc_grad[index].z<<" \n";
+  // Gradient_file<<"\n";
+  // This function should just write
+  // std::cout<<"\n";
 
-Vector<Vector3> Gradients(10);
-dr=10.0;
-for(size_t exponent=0;exponent<20;exponent++){
-  dr=dr/10.0;
-  // dr=pow(10,-1*exponent);
-
-  // std::cout<<dr<<" ";
-  
-  geometry->inputVertexPositions[index]=initial_pos[index]+ Vector3{dr,0,0};
-  geometry->refreshQuantities();
-  V=geometry->totalVolume();
-  D_P=-P0*(V-V_bar)/V_bar/V_bar;
-  E_vol_front=E_Pressure(D_P,V,V_bar);
-  geometry->inputVertexPositions[index]=initial_pos[index]- Vector3{dr,0,0};
-  geometry->refreshQuantities();
-  V=geometry->totalVolume();
-  D_P=-P0*(V-V_bar)/V_bar/V_bar;
-  E_vol_back=E_Pressure(D_P,V,V_bar);
-  grad.x=(E_vol_front-E_vol_back)/(2*dr);
-
-  geometry->inputVertexPositions[index]=initial_pos[index]- Vector3{0,dr,0};
-  geometry->refreshQuantities();
-  V=geometry->totalVolume();
-  D_P=-P0*(V-V_bar)/V_bar/V_bar;
-  E_vol_back=E_Pressure(D_P,V,V_bar);
-  geometry->inputVertexPositions[index]=initial_pos[index]+ Vector3{0,dr,0};
-  geometry->refreshQuantities();
-  V=geometry->totalVolume();
-  D_P=-P0*(V-V_bar)/V_bar/V_bar;
-  E_vol_front=E_Pressure(D_P,V,V_bar);
-  grad.y=(E_vol_front-E_vol_back)/(2*dr);
-
-  geometry->inputVertexPositions[index]=initial_pos[index]- Vector3{0,0,dr};
-  geometry->refreshQuantities();
-  V=geometry->totalVolume();
-  D_P=-P0*(V-V_bar)/V_bar/V_bar;
-  E_vol_back=E_Pressure(D_P,V,V_bar);
-  geometry->inputVertexPositions[index]=initial_pos[index]+ Vector3{0,0,dr};
-  geometry->refreshQuantities();
-  V=geometry->totalVolume();
-  D_P=-P0*(V-V_bar)/V_bar/V_bar;
-  E_vol_front=E_Pressure(D_P,V,V_bar);
-  grad.z=(E_vol_front-E_vol_back)/(2*dr);
-
-
-  Gradients[exponent]=grad;
-  Gradient_file<< Gradients[exponent].x <<" " <<Gradients[exponent].y<<" "<<Gradients[exponent].z <<" \n";
-
-}
-
-
-
-
-// Gradient_file<<"\n";
-// This function should just write
-// std::cout<<"\n";
-
-return ;
+  return;
 }
 
 // The exponent will be 1e-6
 
-VertexData<Vector3> Mem3DG::Grad_Vol(std::ofstream& Gradient_file,double P0, double V_bar,bool Save) const{
-// I want to calculate the gradient of the volume
-VertexData<Vector3> initial_pos(*mesh);
-VertexData<Vector3> Finite_grad(*mesh);
-initial_pos= geometry->inputVertexPositions;
-// VertexData<Vector3> Gradients(*mesh,0.0);
-double V=geometry->totalVolume();
-double E_vol=0.0;
-double E_vol_back=0.0;
-double E_vol_front=0.0;
-double dr;
-double D_P=-P0*(V-V_bar)/V_bar/V_bar;
-double total_grad_finite=0;
-double total_grad_theory=0;
-
-Vector3 grad{0.0,0.0,0.0};
-Vector3 grad_theory;
-Vector3 difference;
-
-
-
-E_vol=E_Pressure(D_P,V,V_bar);
-
-VertexData<Vector3> Calc_grad=D_P*OsmoticPressure();
-
-dr=1e-6;
-
-size_t N_vert = mesh->nVertices();
-// for(size_t index=0; index<N_vert; index++){
-size_t index;
-for(Vertex v : mesh->vertices()){
-  index=v.getIndex();
-  grad_theory=Calc_grad[v];
-  geometry->inputVertexPositions[v]=initial_pos[v]+ Vector3{dr,0,0};
-  geometry->refreshQuantities();
-  V=geometry->totalVolume();
-  D_P=-P0*(V-V_bar)/V_bar/V_bar;
-  E_vol_front=E_Pressure(D_P,V,V_bar);
-  geometry->inputVertexPositions[v]=initial_pos[v]- Vector3{dr,0,0};
-  geometry->refreshQuantities();
-  V=geometry->totalVolume();
-  D_P=-P0*(V-V_bar)/V_bar/V_bar;
-  E_vol_back=E_Pressure(D_P,V,V_bar);
-  grad.x=(E_vol_front-E_vol_back)/(2*dr);
-
-  geometry->inputVertexPositions[v]=initial_pos[v]- Vector3{0,dr,0};
-  geometry->refreshQuantities();
-  V=geometry->totalVolume();
-  D_P=-P0*(V-V_bar)/V_bar/V_bar;
-  E_vol_back=E_Pressure(D_P,V,V_bar);
-  geometry->inputVertexPositions[v]=initial_pos[v]+ Vector3{0,dr,0};
-  geometry->refreshQuantities();
-  V=geometry->totalVolume();
-  D_P=-P0*(V-V_bar)/V_bar/V_bar;
-  E_vol_front=E_Pressure(D_P,V,V_bar);
-  grad.y=(E_vol_front-E_vol_back)/(2*dr);
-
-  geometry->inputVertexPositions[v]=initial_pos[v]- Vector3{0,0,dr};
-  geometry->refreshQuantities();
-  V=geometry->totalVolume();
-  D_P=-P0*(V-V_bar)/V_bar/V_bar;
-  E_vol_back=E_Pressure(D_P,V,V_bar);
-  geometry->inputVertexPositions[v]=initial_pos[v]+ Vector3{0,0,dr};
-  geometry->refreshQuantities();
-  V=geometry->totalVolume();
-  D_P=-P0*(V-V_bar)/V_bar/V_bar;
-  E_vol_front=E_Pressure(D_P,V,V_bar);
-  grad.z=(E_vol_front-E_vol_back)/(2*dr);
-  if(Save){
-  difference= grad+grad_theory;
-  Gradient_file<< difference.x <<" "<<difference.y<<" "<< difference.z<<" "<<difference.norm()/grad.norm() <<" " << grad.norm()/grad_theory.norm() <<" \n" ;
-  // difference= grad_theory;
-  // Gradient_file<< difference.x <<" "<<difference.y<<" "<< difference.z<<" "<<grad_theory.norm()<<" \n" ;
-  total_grad_theory+=grad_theory.norm2();
-  total_grad_finite+=grad.norm2();
-  }
-  Finite_grad[v]=-1*grad;
-  geometry->inputVertexPositions[v]=initial_pos[v];
-  geometry->refreshQuantities();
-}
-if(Save){
-  Gradient_file<< sqrt(total_grad_theory)<<" "<< sqrt(total_grad_finite)<<"\n";
-}
-
-return Finite_grad;
-}
-
-
-
-VertexData<Vector3> Mem3DG::Grad_Area(std::ofstream& Gradient_file, double A_bar,double KA,bool Save) const{
-// I want to calculate the gradient of the volume
-VertexData<Vector3> initial_pos(*mesh);
-VertexData<Vector3> Finite_grad(*mesh);
-initial_pos= geometry->inputVertexPositions;
-// VertexData<Vector3> Gradients(*mesh,0.0);
-double A=geometry->totalArea();
-
-
-double E_area=0.0;
-double E_tot_area=0.0;
-double E_area_back=0.0;
-double E_area_front=0.0;
-double dr;
-double lambda=KA*(A-A_bar )/A_bar;
-double total_grad_finite=0;
-double total_grad_theory=0;
-
-Vector3 grad{0.0,0.0,0.0};
-Vector3 grad_theory;
-Vector3 difference;
-
-E_area=E_Surface(KA,A,A_bar);
-
-
-VertexData<Vector3> Calc_grad=lambda*SurfaceTension();
-
-dr=1e-6;
-
-size_t N_vert = mesh->nVertices();
-// for(size_t index=0; index<N_vert; index++){
-size_t index;
-for(Vertex v :mesh->vertices()){
-  // A=geometry->totalArea();
-  
-  
-  // E_tot_area=E_Surface(KA,A,A_bar);
-  // std::cout<<"THe difference in energy is "<<E_tot_area-E_area<<" \n";
-  index=v.getIndex();
-  grad_theory=Calc_grad[v];
-  geometry->inputVertexPositions[v]=initial_pos[v]+ Vector3{dr,0,0};
-  geometry->refreshQuantities();
-  A=geometry->totalArea();
-  lambda=KA*(A-A_bar )/A_bar;
-  E_area_front=E_Surface(KA,A,A_bar);
-  geometry->inputVertexPositions[v]=initial_pos[v]- Vector3{dr,0,0};
-  geometry->refreshQuantities();
-  A=geometry->totalArea();
-  lambda=KA*(A-A_bar )/A_bar;
-  E_area_back=E_Surface(KA,A,A_bar);
-  grad.x=(E_area_front-E_area_back)/(2*dr);
-
-  geometry->inputVertexPositions[v]=initial_pos[v]- Vector3{0,dr,0};
-  geometry->refreshQuantities();
-  A=geometry->totalArea();
-  lambda=KA*(A-A_bar )/A_bar;
-  E_area_back=E_Surface(KA,A,A_bar);
-  geometry->inputVertexPositions[v]=initial_pos[v]+ Vector3{0,dr,0};
-  geometry->refreshQuantities();
-  A=geometry->totalArea();
-  lambda=KA*(A-A_bar )/A_bar;
-  E_area_front=E_Surface(KA,A,A_bar);
-  grad.y=(E_area_front-E_area_back)/(2*dr);
-
-  geometry->inputVertexPositions[v]=initial_pos[v]- Vector3{0,0,dr};
-  geometry->refreshQuantities();
-  A=geometry->totalArea();
-  lambda=KA*(A-A_bar )/A_bar;
-  E_area_back=E_Surface(KA,A,A_bar);
-  geometry->inputVertexPositions[v]=initial_pos[v]+ Vector3{0,0,dr};
-  geometry->refreshQuantities();
-  A=geometry->totalArea();
-  lambda=KA*(A-A_bar )/A_bar;
-  E_area_front=E_Surface(KA,A,A_bar);
-  grad.z=(E_area_front-E_area_back)/(2*dr);
-  if(Save){
-  difference= grad+grad_theory;
-  Gradient_file<< difference.x/grad.norm() <<" "<<difference.y/grad.norm()<<" "<< difference.z/grad.norm()<<" "<<difference.norm()/grad.norm()<<" " << grad.norm()/grad_theory.norm() <<" \n" ;
-  // difference= grad_theory;
-  // Gradient_file<< difference.x <<" "<<difference.y<<" "<< difference.z<<" "<<grad_theory.norm()<<" \n" ;
-  total_grad_theory+=grad_theory.norm2();
-  total_grad_finite+=grad.norm2();
-  }
-  Finite_grad[v]=-1*grad;
-  geometry->inputVertexPositions[v]=initial_pos[v];
-  geometry->refreshQuantities();
-}
-if(Save){
-  Gradient_file<< sqrt(total_grad_theory)<<" "<< sqrt(total_grad_finite)<<"\n";
-}
-
-return Finite_grad ;
-}
-
-
-
-
-VertexData<Vector3> Mem3DG::Grad_Bending(std::ofstream& Gradient_file, double H_bar,double KB, bool Save) {
-// I want to calculate the gradient of the volume
-VertexData<Vector3> initial_pos(*mesh);
-VertexData<Vector3> Finite_grad(*mesh);
-initial_pos= geometry->inputVertexPositions;
-// VertexData<Vector3> Gradients(*mesh,0.0);
-double E_bending=0.0;
-double E_bending_back=0.0;
-double E_bending_front=0.0;
-double dr;
-
-
-Vector3 grad{0.0,0.0,0.0};
-Vector3 grad_theory;
-Vector3 difference;
-
-E_bending=E_Bending(H_bar,KB);
-
-double norm_whole_finite=0;
-double norm_whole_theory=0;
-
-
-VertexData<Vector3> Calc_grad=KB*Bending(H_bar);
-
-dr=1e-6;
-
-size_t N_vert = mesh->nVertices();
-
-
-
-for(size_t index=0; index<N_vert; index++){
-  grad_theory=Calc_grad[index];
-  geometry->inputVertexPositions[index]=initial_pos[index]+ Vector3{dr,0,0};
-  geometry->refreshQuantities();
-
-  
-  E_bending_front=E_Bending(H_bar,KB);
-  geometry->inputVertexPositions[index]=initial_pos[index]- Vector3{dr,0,0};
-  geometry->refreshQuantities();
-
-  
-  E_bending_back=E_Bending(H_bar,KB);
-  grad.x=(E_bending_front-E_bending_back)/(2*dr);
-
-  geometry->inputVertexPositions[index]=initial_pos[index]- Vector3{0,dr,0};
-  geometry->refreshQuantities();
-
-  
-  E_bending_back=E_Bending(H_bar,KB);
-  geometry->inputVertexPositions[index]=initial_pos[index]+ Vector3{0,dr,0};
-  geometry->refreshQuantities();
-
-  
-  E_bending_front=E_Bending(H_bar,KB);
-  grad.y=(E_bending_front-E_bending_back)/(2*dr);
-
-  geometry->inputVertexPositions[index]=initial_pos[index]- Vector3{0,0,dr};
-  geometry->refreshQuantities();
-
-  
-  E_bending_back=E_Bending(H_bar,KB);
-  geometry->inputVertexPositions[index]=initial_pos[index]+ Vector3{0,0,dr};
-  geometry->refreshQuantities();
-
-  
-  E_bending_front=E_Bending(H_bar,KB);
-  grad.z=(E_bending_front-E_bending_back)/(2*dr);
-  if(Save){
-  difference= grad+grad_theory;
-  Gradient_file<< difference.x <<" "<<difference.y<<" "<< difference.z<<" "<<difference.norm()/grad.norm() <<" " <<grad.norm()/grad_theory.norm() << " \n" ;
-  // difference= grad_theory;
-  // Gradient_file<< difference.x <<" "<<difference.y<<" "<< difference.z<<" "<<grad_theory.norm()<<" \n" ;
-  norm_whole_finite+=grad.norm2();
-  norm_whole_theory+=grad_theory.norm2();
-  }
-  Finite_grad[index]=-1*grad;
-  geometry->inputVertexPositions[index]=initial_pos[index];
-  geometry->refreshQuantities();
-}
-
-norm_whole_finite=sqrt(norm_whole_finite);
-norm_whole_theory=sqrt(norm_whole_theory);
-if(Save){
-Gradient_file<< norm_whole_finite<<" "<< norm_whole_finite <<" \n";
-}
-
-
-
-return Finite_grad;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-void Mem3DG::Grad_Bending_2(std::ofstream& Gradient_file, double H_bar,double KB) {
-// I want to calculate the gradient of the volume
-VertexData<Vector3> initial_pos(*mesh);
-initial_pos= geometry->inputVertexPositions;
-// VertexData<Vector3> Gradients(*mesh,0.0);
-double E_bending=0.0;
-double E_bending_back=0.0;
-double E_bending_front=0.0;
-double dr;
-
-
-Vector3 grad{0.0,0.0,0.0};
-Vector3 grad_theory;
-Vector3 difference;
-
-E_bending=E_Bending(H_bar,KB);
-
-double norm_diff=0;
-
-
-
-VertexData<Vector3> Calc_grad=KB*Bending(H_bar);
-
-dr=1e-6;
-
-size_t N_vert = mesh->nVertices();
-
-
-
-for(size_t index=0; index<N_vert; index++){
-  grad_theory=Calc_grad[index];
-  geometry->inputVertexPositions[index]=initial_pos[index]+ Vector3{dr,0,0};
-  geometry->refreshQuantities();
-
-  
-  E_bending_front=E_Bending(H_bar,KB);
-  geometry->inputVertexPositions[index]=initial_pos[index]- Vector3{dr,0,0};
-  geometry->refreshQuantities();
-
-  
-  E_bending_back=E_Bending(H_bar,KB);
-  grad.x=(E_bending_front-E_bending_back)/(2*dr);
-
-  geometry->inputVertexPositions[index]=initial_pos[index]- Vector3{0,dr,0};
-  geometry->refreshQuantities();
-
-  
-  E_bending_back=E_Bending(H_bar,KB);
-  geometry->inputVertexPositions[index]=initial_pos[index]+ Vector3{0,dr,0};
-  geometry->refreshQuantities();
-
-  
-  E_bending_front=E_Bending(H_bar,KB);
-  grad.y=(E_bending_front-E_bending_back)/(2*dr);
-
-  geometry->inputVertexPositions[index]=initial_pos[index]- Vector3{0,0,dr};
-  geometry->refreshQuantities();
-
-  
-  E_bending_back=E_Bending(H_bar,KB);
-  geometry->inputVertexPositions[index]=initial_pos[index]+ Vector3{0,0,dr};
-  geometry->refreshQuantities();
-
-  
-  E_bending_front=E_Bending(H_bar,KB);
-  grad.z=(E_bending_front-E_bending_back)/(2*dr);
-
-  difference= grad+grad_theory;
-
-  // Gradient_file<< difference.x <<" "<<difference.y<<" "<< difference.z<<" \n" ;
-  // difference= grad_theory;
-  Gradient_file<< difference.x <<" "<<difference.y<<" "<< difference.z<<" "<<difference.norm()/grad_theory.norm()<<" \n" ;
-  // norm_whole_finite+=grad.norm2();
-  // norm_whole_theory+=grad_theory.norm2();
-
-}
-
-// norm_whole_finite=sqrt(norm_whole_finite);
-// norm_whole_theory=sqrt(norm_whole_theory);
-
-// Gradient_file<< norm_whole_finite<<" "<< norm_whole_finite <<" \n";
-
-
-
-
-return ;
-}
-
-void Mem3DG::Bending_test(std::ofstream& Analysis_file, double H0,double KB) {
-
-  // THe idea here would be to do the same as with the other function but store things 
-
-    size_t neigh_index;
-    size_t N_vert=mesh->nVertices();
-
-    Vector3 Hij;
-    Vector3 Kij;
-    Vector3 Sij_1;
-    Vector3 Sij_2;
-    Vector3 Sij_22;
-
-    Vector3 F1={0,0,0};
-    Vector3 F2={0,0,0};
-    Vector3 F3={0,0,0};
-    Vector3 F4={0,0,0};
-
-    Vector3 Position_1;
-    Vector3 Position_2;
-
-    VertexData<Vector3> Force(*mesh);
-
-    VertexData<double> Scalar_MC(*mesh,0.0);
-    double factor;
-    size_t index1;
-    for(Vertex v1 : mesh->vertices()) {
-        index1=v1.getIndex();
-        Scalar_MC[index1]=geometry->scalarMeanCurvature(v1)/geometry->barycentricDualArea(v1);
-        }   
-    
-    
-    size_t index;
-    for(Vertex v: mesh->vertices()){
-        F1={0,0,0};
-        F2={0,0,0};
-        F3={0,0,0};
-        F4={0,0,0};
-
-        index=v.getIndex();
-        Position_1=geometry->inputVertexPositions[v];
-        for(Halfedge he: v.outgoingHalfedges()){
-
-            neigh_index=he.tipVertex().getIndex();
-            Position_2=geometry->inputVertexPositions[neigh_index];
-      
-      
-            Kij=computeHalfedgeGaussianCurvatureVector(he);
-            // factor=-1*(Scalar_MC[index]-(system_time<50? H_Vector_0[index]+dH_Vector[index]*system_time: H0))-1*(Scalar_MC[neigh_index]-(system_time<50? H_Vector_0[neigh_index]+dH_Vector[neigh_index]*system_time: H0));
-            factor=-1*(Scalar_MC[index]-H0)-1*(Scalar_MC[neigh_index]-H0);
-            F1=F1+factor*Kij;
-
-            Hij=2*computeHalfedgeMeanCurvatureVector(he);
-            // factor=(1/3.0)*(Scalar_MC[index]*Scalar_MC[index] -(system_time<50? H_Vector_0[index]+dH_Vector[index]*system_time: H0)*(system_time<50? H_Vector_0[index]+dH_Vector[index]*system_time: H0))+(2.0/3.0)*(Scalar_MC[neigh_index]*Scalar_MC[neigh_index]-(system_time<50? H_Vector_0[neigh_index]+dH_Vector[neigh_index]*system_time: H0)*(system_time<50? H_Vector_0[neigh_index]+dH_Vector[neigh_index]*system_time: H0));
-            factor=(1/3.0)*(Scalar_MC[index]*Scalar_MC[index] -H0*H0)+(2.0/3.0)*(Scalar_MC[neigh_index]*Scalar_MC[neigh_index]-H0*H0);
-            F2=F2+factor*Hij;
-
-            Sij_1 =  geometry->edgeLength(he.edge()) * dihedralAngleGradient(he,he.vertex());
-            // factor=-1*(Scalar_MC[index]-(system_time<50? H_Vector_0[index]+dH_Vector[index]*system_time: H0));
-            factor=-1*(Scalar_MC[index]-H0);
-            F3=F3+factor*Sij_1;
-
-            Sij_2=(geometry->edgeLength(he.twin().edge())*dihedralAngleGradient(he.twin(),he.vertex())+ geometry->edgeLength(he.next().edge())*dihedralAngleGradient(he.next(),he.vertex()) + geometry->edgeLength(he.twin().next().next().edge())*dihedralAngleGradient(he.twin().next().next(), he.vertex()));
-
-            // Sij_2=-1*( geometry->cotan(he.next().next())*geometry->faceNormal(he.face()) + geometry->cotan(he.twin())*geometry->faceNormal(he.twin().face()));
-
-            // std::cout<<"Norm new "<< Sij_2.norm()<<"Norm old "<< Sij_22.norm()<<"\n";
-            // std::cout<<"Norm ratio new/old = "<<Sij_2.norm()/Sij_22.norm()<<" \n";
-            // std::cout<<"Relative orientation "<<dot(Sij_2/Sij_2.norm(),Sij_22/Sij_22.norm())<<" \n\n";
-
-
-            // factor= -1*(Scalar_MC[neigh_index]-(system_time<50? H_Vector_0[neigh_index]+dH_Vector[neigh_index]*system_time: H0));
-            factor= -1*(Scalar_MC[neigh_index]-H0);
-            
-            F4=F4+factor*Sij_2;
-
+VertexData<Vector3> Mem3DG::Grad_Vol(std::ofstream &Gradient_file, double P0, double V_bar, bool Save) const
+{
+  // I want to calculate the gradient of the volume
+  VertexData<Vector3> initial_pos(*mesh);
+  VertexData<Vector3> Finite_grad(*mesh);
+  initial_pos = geometry->inputVertexPositions;
+  // VertexData<Vector3> Gradients(*mesh,0.0);
+  double V = geometry->totalVolume();
+  double E_vol = 0.0;
+  double E_vol_back = 0.0;
+  double E_vol_front = 0.0;
+  double dr;
+  double D_P = -P0 * (V - V_bar) / V_bar / V_bar;
+  double total_grad_finite = 0;
+  double total_grad_theory = 0;
+
+  Vector3 grad{0.0, 0.0, 0.0};
+  Vector3 grad_theory;
+  Vector3 difference;
+
+  E_vol = E_Pressure(D_P, V, V_bar);
+
+  VertexData<Vector3> Calc_grad = D_P * OsmoticPressure();
+
+  dr = 1e-6;
+
+  size_t N_vert = mesh->nVertices();
+  // for(size_t index=0; index<N_vert; index++){
+  size_t index;
+  for (Vertex v : mesh->vertices())
+  {
+    index = v.getIndex();
+    grad_theory = Calc_grad[v];
+    geometry->inputVertexPositions[v] = initial_pos[v] + Vector3{dr, 0, 0};
+    // geometry->refreshQuantities();
+    V = geometry->totalVolume();
+    D_P = -P0 * (V - V_bar) / V_bar / V_bar;
+    E_vol_front = E_Pressure(D_P, V, V_bar);
+    geometry->inputVertexPositions[v] = initial_pos[v] - Vector3{dr, 0, 0};
+    // geometry->refreshQuantities();
+    V = geometry->totalVolume();
+    D_P = -P0 * (V - V_bar) / V_bar / V_bar;
+    E_vol_back = E_Pressure(D_P, V, V_bar);
+    grad.x = (E_vol_front - E_vol_back) / (2 * dr);
+
+    geometry->inputVertexPositions[v] = initial_pos[v] - Vector3{0, dr, 0};
+    // geometry->refreshQuantities();
+    V = geometry->totalVolume();
+    D_P = -P0 * (V - V_bar) / V_bar / V_bar;
+    E_vol_back = E_Pressure(D_P, V, V_bar);
+    geometry->inputVertexPositions[v] = initial_pos[v] + Vector3{0, dr, 0};
+    // geometry->refreshQuantities();
+    V = geometry->totalVolume();
+    D_P = -P0 * (V - V_bar) / V_bar / V_bar;
+    E_vol_front = E_Pressure(D_P, V, V_bar);
+    grad.y = (E_vol_front - E_vol_back) / (2 * dr);
+
+    geometry->inputVertexPositions[v] = initial_pos[v] - Vector3{0, 0, dr};
+    // geometry->refreshQuantities();
+    V = geometry->totalVolume();
+    D_P = -P0 * (V - V_bar) / V_bar / V_bar;
+    E_vol_back = E_Pressure(D_P, V, V_bar);
+    geometry->inputVertexPositions[v] = initial_pos[v] + Vector3{0, 0, dr};
+    // geometry->refreshQuantities();
+    V = geometry->totalVolume();
+    D_P = -P0 * (V - V_bar) / V_bar / V_bar;
+    E_vol_front = E_Pressure(D_P, V, V_bar);
+    grad.z = (E_vol_front - E_vol_back) / (2 * dr);
+    if (Save)
+    {
+      difference = grad + grad_theory;
+      Gradient_file << difference.x << " " << difference.y << " " << difference.z << " " << difference.norm() / grad.norm() << " " << grad.norm() / grad_theory.norm() << " \n";
+      // difference= grad_theory;
+      // Gradient_file<< difference.x <<" "<<difference.y<<" "<< difference.z<<" "<<grad_theory.norm()<<" \n" ;
+      total_grad_theory += grad_theory.norm2();
+      total_grad_finite += grad.norm2();
     }
-    Analysis_file<<F1.x <<" "<< F1.y<<" "<< F1. z<<" "<< F2.x<<" "<< F2.y<<" "<< F2.z<<" "<< F3.x<<" "<< F3.y<<" "<< F3.z<<" "<< F4.x<<" "<< F4.y<<" "<< F4.z<<" \n";
+    Finite_grad[v] = -1 * grad;
+    geometry->inputVertexPositions[v] = initial_pos[v];
+    // geometry->refreshQuantities();
+  }
+  if (Save)
+  {
+    Gradient_file << sqrt(total_grad_theory) << " " << sqrt(total_grad_finite) << "\n";
+  }
 
+  return Finite_grad;
+}
 
+VertexData<Vector3> Mem3DG::Grad_Area(std::ofstream &Gradient_file, double A_bar, double KA, bool Save) const
+{
+  // I want to calculate the gradient of the volume
+  VertexData<Vector3> initial_pos(*mesh);
+  VertexData<Vector3> Finite_grad(*mesh);
+  initial_pos = geometry->inputVertexPositions;
+  // VertexData<Vector3> Gradients(*mesh,0.0);
+  double A = geometry->totalArea();
 
+  double E_area = 0.0;
+  double E_tot_area = 0.0;
+  double E_area_back = 0.0;
+  double E_area_front = 0.0;
+  double dr;
+  double lambda = KA * (A - A_bar) / A_bar;
+  double total_grad_finite = 0;
+  double total_grad_theory = 0;
 
+  Vector3 grad{0.0, 0.0, 0.0};
+  Vector3 grad_theory;
+  Vector3 difference;
+
+  E_area = E_Surface(KA, A, A_bar);
+
+  VertexData<Vector3> Calc_grad = lambda * SurfaceTension();
+
+  dr = 1e-6;
+
+  size_t N_vert = mesh->nVertices();
+  // for(size_t index=0; index<N_vert; index++){
+  size_t index;
+  for (Vertex v : mesh->vertices())
+  {
+    // A=geometry->totalArea();
+
+    // E_tot_area=E_Surface(KA,A,A_bar);
+    // std::cout<<"THe difference in energy is "<<E_tot_area-E_area<<" \n";
+    index = v.getIndex();
+    grad_theory = Calc_grad[v];
+    geometry->inputVertexPositions[v] = initial_pos[v] + Vector3{dr, 0, 0};
+    // geometry->refreshQuantities();
+    A = geometry->totalArea();
+    lambda = KA * (A - A_bar) / A_bar;
+    E_area_front = E_Surface(KA, A, A_bar);
+    geometry->inputVertexPositions[v] = initial_pos[v] - Vector3{dr, 0, 0};
+    // geometry->refreshQuantities();
+    A = geometry->totalArea();
+    lambda = KA * (A - A_bar) / A_bar;
+    E_area_back = E_Surface(KA, A, A_bar);
+    grad.x = (E_area_front - E_area_back) / (2 * dr);
+
+    geometry->inputVertexPositions[v] = initial_pos[v] - Vector3{0, dr, 0};
+    // geometry->refreshQuantities();
+    A = geometry->totalArea();
+    lambda = KA * (A - A_bar) / A_bar;
+    E_area_back = E_Surface(KA, A, A_bar);
+    geometry->inputVertexPositions[v] = initial_pos[v] + Vector3{0, dr, 0};
+    // geometry->refreshQuantities();
+    A = geometry->totalArea();
+    lambda = KA * (A - A_bar) / A_bar;
+    E_area_front = E_Surface(KA, A, A_bar);
+    grad.y = (E_area_front - E_area_back) / (2 * dr);
+
+    geometry->inputVertexPositions[v] = initial_pos[v] - Vector3{0, 0, dr};
+    // geometry->refreshQuantities();
+    A = geometry->totalArea();
+    lambda = KA * (A - A_bar) / A_bar;
+    E_area_back = E_Surface(KA, A, A_bar);
+    geometry->inputVertexPositions[v] = initial_pos[v] + Vector3{0, 0, dr};
+    // geometry->refreshQuantities();
+    A = geometry->totalArea();
+    lambda = KA * (A - A_bar) / A_bar;
+    E_area_front = E_Surface(KA, A, A_bar);
+    grad.z = (E_area_front - E_area_back) / (2 * dr);
+    if (Save)
+    {
+      difference = grad + grad_theory;
+      Gradient_file << difference.x / grad.norm() << " " << difference.y / grad.norm() << " " << difference.z / grad.norm() << " " << difference.norm() / grad.norm() << " " << grad.norm() / grad_theory.norm() << " \n";
+      // difference= grad_theory;
+      // Gradient_file<< difference.x <<" "<<difference.y<<" "<< difference.z<<" "<<grad_theory.norm()<<" \n" ;
+      total_grad_theory += grad_theory.norm2();
+      total_grad_finite += grad.norm2();
+    }
+    Finite_grad[v] = -1 * grad;
+    geometry->inputVertexPositions[v] = initial_pos[v];
+    // geometry->refreshQuantities();
+  }
+  if (Save)
+  {
+    Gradient_file << sqrt(total_grad_theory) << " " << sqrt(total_grad_finite) << "\n";
+  }
+
+  return Finite_grad;
+}
+
+VertexData<Vector3> Mem3DG::Grad_Bending(std::ofstream &Gradient_file, double H_bar, double KB, bool Save)
+{
+  // I want to calculate the gradient of the volume
+  VertexData<Vector3> initial_pos(*mesh);
+  VertexData<Vector3> Finite_grad(*mesh);
+  initial_pos = geometry->inputVertexPositions;
+  // VertexData<Vector3> Gradients(*mesh,0.0);
+  double E_bending = 0.0;
+  double E_bending_back = 0.0;
+  double E_bending_front = 0.0;
+  double dr;
+
+  Vector3 grad{0.0, 0.0, 0.0};
+  Vector3 grad_theory;
+  Vector3 difference;
+
+  E_bending = E_Bending(H_bar, KB);
+
+  double norm_whole_finite = 0;
+  double norm_whole_theory = 0;
+
+  VertexData<Vector3> Calc_grad = KB * Bending(H_bar);
+
+  dr = 1e-6;
+
+  size_t N_vert = mesh->nVertices();
+
+  for (size_t index = 0; index < N_vert; index++)
+  {
+    grad_theory = Calc_grad[index];
+    geometry->inputVertexPositions[index] = initial_pos[index] + Vector3{dr, 0, 0};
+    // geometry->refreshQuantities();
+
+    E_bending_front = E_Bending(H_bar, KB);
+    geometry->inputVertexPositions[index] = initial_pos[index] - Vector3{dr, 0, 0};
+    // geometry->refreshQuantities();
+
+    E_bending_back = E_Bending(H_bar, KB);
+    grad.x = (E_bending_front - E_bending_back) / (2 * dr);
+
+    geometry->inputVertexPositions[index] = initial_pos[index] - Vector3{0, dr, 0};
+    // geometry->refreshQuantities();
+
+    E_bending_back = E_Bending(H_bar, KB);
+    geometry->inputVertexPositions[index] = initial_pos[index] + Vector3{0, dr, 0};
+    // geometry->refreshQuantities();
+
+    E_bending_front = E_Bending(H_bar, KB);
+    grad.y = (E_bending_front - E_bending_back) / (2 * dr);
+
+    geometry->inputVertexPositions[index] = initial_pos[index] - Vector3{0, 0, dr};
+    // geometry->refreshQuantities();
+
+    E_bending_back = E_Bending(H_bar, KB);
+    geometry->inputVertexPositions[index] = initial_pos[index] + Vector3{0, 0, dr};
+    // geometry->refreshQuantities();
+
+    E_bending_front = E_Bending(H_bar, KB);
+    grad.z = (E_bending_front - E_bending_back) / (2 * dr);
+    if (Save)
+    {
+      difference = grad + grad_theory;
+      Gradient_file << difference.x << " " << difference.y << " " << difference.z << " " << difference.norm() / grad.norm() << " " << grad.norm() / grad_theory.norm() << " \n";
+      // difference= grad_theory;
+      // Gradient_file<< difference.x <<" "<<difference.y<<" "<< difference.z<<" "<<grad_theory.norm()<<" \n" ;
+      norm_whole_finite += grad.norm2();
+      norm_whole_theory += grad_theory.norm2();
+    }
+    Finite_grad[index] = -1 * grad;
+    geometry->inputVertexPositions[index] = initial_pos[index];
+    // geometry->refreshQuantities();
+  }
+
+  norm_whole_finite = sqrt(norm_whole_finite);
+  norm_whole_theory = sqrt(norm_whole_theory);
+  if (Save)
+  {
+    Gradient_file << norm_whole_finite << " " << norm_whole_finite << " \n";
+  }
+
+  return Finite_grad;
+}
+
+void Mem3DG::Grad_Bending_2(std::ofstream &Gradient_file, double H_bar, double KB)
+{
+  // I want to calculate the gradient of the volume
+  VertexData<Vector3> initial_pos(*mesh);
+  initial_pos = geometry->inputVertexPositions;
+  // VertexData<Vector3> Gradients(*mesh,0.0);
+  double E_bending = 0.0;
+  double E_bending_back = 0.0;
+  double E_bending_front = 0.0;
+  double dr;
+
+  Vector3 grad{0.0, 0.0, 0.0};
+  Vector3 grad_theory;
+  Vector3 difference;
+
+  E_bending = E_Bending(H_bar, KB);
+
+  double norm_diff = 0;
+
+  VertexData<Vector3> Calc_grad = KB * Bending(H_bar);
+
+  dr = 1e-6;
+
+  size_t N_vert = mesh->nVertices();
+
+  for (size_t index = 0; index < N_vert; index++)
+  {
+    grad_theory = Calc_grad[index];
+    geometry->inputVertexPositions[index] = initial_pos[index] + Vector3{dr, 0, 0};
+    // geometry->refreshQuantities();
+
+    E_bending_front = E_Bending(H_bar, KB);
+    geometry->inputVertexPositions[index] = initial_pos[index] - Vector3{dr, 0, 0};
+    // geometry->refreshQuantities();
+
+    E_bending_back = E_Bending(H_bar, KB);
+    grad.x = (E_bending_front - E_bending_back) / (2 * dr);
+
+    geometry->inputVertexPositions[index] = initial_pos[index] - Vector3{0, dr, 0};
+    // geometry->refreshQuantities();
+
+    E_bending_back = E_Bending(H_bar, KB);
+    geometry->inputVertexPositions[index] = initial_pos[index] + Vector3{0, dr, 0};
+    // geometry->refreshQuantities();
+
+    E_bending_front = E_Bending(H_bar, KB);
+    grad.y = (E_bending_front - E_bending_back) / (2 * dr);
+
+    geometry->inputVertexPositions[index] = initial_pos[index] - Vector3{0, 0, dr};
+    // geometry->refreshQuantities();
+
+    E_bending_back = E_Bending(H_bar, KB);
+    geometry->inputVertexPositions[index] = initial_pos[index] + Vector3{0, 0, dr};
+    // geometry->refreshQuantities();
+
+    E_bending_front = E_Bending(H_bar, KB);
+    grad.z = (E_bending_front - E_bending_back) / (2 * dr);
+
+    difference = grad + grad_theory;
+
+    // Gradient_file<< difference.x <<" "<<difference.y<<" "<< difference.z<<" \n" ;
+    // difference= grad_theory;
+    Gradient_file << difference.x << " " << difference.y << " " << difference.z << " " << difference.norm() / grad_theory.norm() << " \n";
+    // norm_whole_finite+=grad.norm2();
+    // norm_whole_theory+=grad_theory.norm2();
+  }
+
+  // norm_whole_finite=sqrt(norm_whole_finite);
+  // norm_whole_theory=sqrt(norm_whole_theory);
+
+  // Gradient_file<< norm_whole_finite<<" "<< norm_whole_finite <<" \n";
+
+  return;
+}
+
+void Mem3DG::Bending_test(std::ofstream &Analysis_file, double H0, double KB)
+{
+
+  // THe idea here would be to do the same as with the other function but store things
+
+  size_t neigh_index;
+  size_t N_vert = mesh->nVertices();
+
+  Vector3 Hij;
+  Vector3 Kij;
+  Vector3 Sij_1;
+  Vector3 Sij_2;
+  Vector3 Sij_22;
+
+  Vector3 F1 = {0, 0, 0};
+  Vector3 F2 = {0, 0, 0};
+  Vector3 F3 = {0, 0, 0};
+  Vector3 F4 = {0, 0, 0};
+
+  Vector3 Position_1;
+  Vector3 Position_2;
+
+  VertexData<Vector3> Force(*mesh);
+
+  VertexData<double> Scalar_MC(*mesh, 0.0);
+  double factor;
+  size_t index1;
+  for (Vertex v1 : mesh->vertices())
+  {
+    index1 = v1.getIndex();
+    Scalar_MC[index1] = geometry->scalarMeanCurvature(v1) / geometry->barycentricDualArea(v1);
+  }
+
+  size_t index;
+  for (Vertex v : mesh->vertices())
+  {
+    F1 = {0, 0, 0};
+    F2 = {0, 0, 0};
+    F3 = {0, 0, 0};
+    F4 = {0, 0, 0};
+
+    index = v.getIndex();
+    Position_1 = geometry->inputVertexPositions[v];
+    for (Halfedge he : v.outgoingHalfedges())
+    {
+
+      neigh_index = he.tipVertex().getIndex();
+      Position_2 = geometry->inputVertexPositions[neigh_index];
+
+      Kij = computeHalfedgeGaussianCurvatureVector(he);
+      // factor=-1*(Scalar_MC[index]-(system_time<50? H_Vector_0[index]+dH_Vector[index]*system_time: H0))-1*(Scalar_MC[neigh_index]-(system_time<50? H_Vector_0[neigh_index]+dH_Vector[neigh_index]*system_time: H0));
+      factor = -1 * (Scalar_MC[index] - H0) - 1 * (Scalar_MC[neigh_index] - H0);
+      F1 = F1 + factor * Kij;
+
+      Hij = 2 * computeHalfedgeMeanCurvatureVector(he);
+      // factor=(1/3.0)*(Scalar_MC[index]*Scalar_MC[index] -(system_time<50? H_Vector_0[index]+dH_Vector[index]*system_time: H0)*(system_time<50? H_Vector_0[index]+dH_Vector[index]*system_time: H0))+(2.0/3.0)*(Scalar_MC[neigh_index]*Scalar_MC[neigh_index]-(system_time<50? H_Vector_0[neigh_index]+dH_Vector[neigh_index]*system_time: H0)*(system_time<50? H_Vector_0[neigh_index]+dH_Vector[neigh_index]*system_time: H0));
+      factor = (1 / 3.0) * (Scalar_MC[index] * Scalar_MC[index] - H0 * H0) + (2.0 / 3.0) * (Scalar_MC[neigh_index] * Scalar_MC[neigh_index] - H0 * H0);
+      F2 = F2 + factor * Hij;
+
+      Sij_1 = geometry->edgeLength(he.edge()) * dihedralAngleGradient(he, he.vertex());
+      // factor=-1*(Scalar_MC[index]-(system_time<50? H_Vector_0[index]+dH_Vector[index]*system_time: H0));
+      factor = -1 * (Scalar_MC[index] - H0);
+      F3 = F3 + factor * Sij_1;
+
+      Sij_2 = (geometry->edgeLength(he.twin().edge()) * dihedralAngleGradient(he.twin(), he.vertex()) + geometry->edgeLength(he.next().edge()) * dihedralAngleGradient(he.next(), he.vertex()) + geometry->edgeLength(he.twin().next().next().edge()) * dihedralAngleGradient(he.twin().next().next(), he.vertex()));
+
+      // Sij_2=-1*( geometry->cotan(he.next().next())*geometry->faceNormal(he.face()) + geometry->cotan(he.twin())*geometry->faceNormal(he.twin().face()));
+
+      // std::cout<<"Norm new "<< Sij_2.norm()<<"Norm old "<< Sij_22.norm()<<"\n";
+      // std::cout<<"Norm ratio new/old = "<<Sij_2.norm()/Sij_22.norm()<<" \n";
+      // std::cout<<"Relative orientation "<<dot(Sij_2/Sij_2.norm(),Sij_22/Sij_22.norm())<<" \n\n";
+
+      // factor= -1*(Scalar_MC[neigh_index]-(system_time<50? H_Vector_0[neigh_index]+dH_Vector[neigh_index]*system_time: H0));
+      factor = -1 * (Scalar_MC[neigh_index] - H0);
+
+      F4 = F4 + factor * Sij_2;
+    }
+    Analysis_file << F1.x << " " << F1.y << " " << F1.z << " " << F2.x << " " << F2.y << " " << F2.z << " " << F3.x << " " << F3.y << " " << F3.z << " " << F4.x << " " << F4.y << " " << F4.z << " \n";
 
     // Force[index]=F1+F2+F3+F4;
+  }
 
-    }
-
-
-
-
-  return ;
+  return;
 }
 
+double Mem3DG::integrate_finite(double h, double V_bar, double nu, double c0, double P0, double KA, double KB, double Kd, std::ofstream &Sim_data, double time, std::ofstream &Gradient_file_vol, std::ofstream &Gradient_file_area, std::ofstream &Gradient_file_bending, bool Save)
+{
 
+  // Vector<double> Total_force=buildFlowOperator(h,V_bar,nu,c0,P0,KA,KB,Kd);
+  VertexData<Vector3> Force(*mesh);
+  Vector3 Update;
+  size_t vindex;
+  size_t Nvert = mesh->nVertices();
 
+  // I want to print the Volume, the area, VOl_E, Area_E, Bending_E
+  double V = geometry->totalVolume();
+  double A = geometry->totalArea();
+  double A_bar = 4 * PI * pow(3 * V_bar / (4 * PI * nu), 2.0 / 3.0);
+  double H_bar = sqrt(4 * PI / A_bar) * c0 / 2.0; // Coment this with another comment
+  double D_P = -1 * P0 * (V - V_bar) / V_bar / V_bar;
+  double lambda = KA * (A - A_bar) / A_bar;
+  // std::cout<<"The forces are calculated here\n";
+  Force = Grad_Vol(Gradient_file_vol, P0, V_bar, Save) + Grad_Area(Gradient_file_area, A_bar, KA, Save) + Grad_Bending(Gradient_file_bending, H_bar, KB, Save);
+  // lambda=KA;
+  // KB=0;
 
-double Mem3DG::integrate_finite(double h, double V_bar, double nu, double c0,double P0,double KA,double KB, double Kd,std::ofstream& Sim_data, double time,std::ofstream& Gradient_file_vol,std::ofstream& Gradient_file_area,std::ofstream& Gradient_file_bending,bool Save ) {
+  double E_Vol = E_Pressure(D_P, V, V_bar);
+  double E_Sur = E_Surface(KA, A, A_bar);
+  double E_Ben = E_Bending(H_bar, KB);
+  double backtrackstep;
 
+  // std::cout<<"Now is the backtracking\n";
 
+  backtrackstep = Backtracking(Force, D_P, V_bar, A_bar, KA, KB, H_bar);
+  Sim_data << V_bar << " " << A_bar << " " << time << " " << V << " " << A << " " << E_Vol << " " << E_Sur << " " << E_Ben << " " << grad_norm << " " << backtrackstep << " " << "\n";
 
-    // Vector<double> Total_force=buildFlowOperator(h,V_bar,nu,c0,P0,KA,KB,Kd);
-    VertexData<Vector3> Force(*mesh);
-    Vector3 Update;
-    size_t vindex;
-    size_t Nvert=mesh->nVertices();
+  system_time += 1;
 
+  for (Vertex v : mesh->vertices())
+  {
+    vindex = v.getIndex();
+    Update = backtrackstep * Force[vindex];
+    geometry->inputVertexPositions[v] = geometry->inputVertexPositions[v] + Update; // placeholder
+  }
 
-    // I want to print the Volume, the area, VOl_E, Area_E, Bending_E 
-    double V = geometry->totalVolume();
-    double A = geometry->totalArea();
-    double A_bar=4*PI*pow(3*V_bar/(4*PI*nu),2.0/3.0);
-    double H_bar=sqrt(4*PI/A_bar)*c0/2.0; //Coment this with another comment
-    double D_P=-1*P0*(V-V_bar)/V_bar/V_bar;
-    double lambda=KA*(A-A_bar )/A_bar;    
-    // std::cout<<"The forces are calculated here\n";
-    Force=Grad_Vol(Gradient_file_vol,P0,V_bar,Save)+ Grad_Area(Gradient_file_area,A_bar,KA,Save)+Grad_Bending(Gradient_file_bending,H_bar,KB,Save);
-    // lambda=KA;
-    // KB=0;
-
-
-    double E_Vol=E_Pressure(D_P,V,V_bar);
-    double E_Sur=E_Surface(KA,A,A_bar);
-    double E_Ben=E_Bending(H_bar,KB);
-    double backtrackstep;
-
-
-    // std::cout<<"Now is the backtracking\n";
-    
-    backtrackstep=Backtracking(Force,D_P,V_bar,A_bar,KA,KB,H_bar);
-    Sim_data << V_bar<<" "<< A_bar<<" "<< time <<" "<< V<<" " << A<<" " << E_Vol << " " << E_Sur << " " << E_Ben << " "<< grad_norm<<" " <<backtrackstep <<" "<<"\n";
-
-    system_time+=1;
-    
-    for (Vertex v : mesh->vertices()) {
-        vindex=v.getIndex();
-        Update=backtrackstep*Force[vindex];
-        geometry->inputVertexPositions[v] =geometry->inputVertexPositions[v]+ Update ; // placeholder
-    }
-    
-  
   return backtrackstep;
 }
 
+VertexData<Vector3> Mem3DG::Grad_Bead(std::ofstream &Gradient_file, bool Save, bool Projection)
+{
 
+  std::cout << "The interaction to consider is " << Bead_1.interaction << "\n";
+  // I want to calculate the gradient of the volume
+  VertexData<Vector3> initial_pos(*mesh);
+  VertexData<Vector3> Finite_grad(*mesh);
+  initial_pos = geometry->inputVertexPositions;
 
+  // VertexData<Vector3> Gradients(*mesh,0.0);
+  // double V=geometry->totalVolume();
+  double E_bead = 0.0;
+  double E_bead_back = 0.0;
+  double E_bead_front = 0.0;
+  double dr;
+  double r_dist;
+  // double D_P=-P0*(V-V_bar)/V_bar/V_bar;
+  double total_grad_finite = 0;
+  double total_grad_theory = 0;
 
-VertexData<Vector3> Mem3DG::Grad_Bead(std::ofstream& Gradient_file,bool Save,bool Projection) {
+  Vector3 grad{0.0, 0.0, 0.0};
+  Vector3 grad_theory;
+  Vector3 difference;
+  Vector3 Area_grad;
+  Vector3 r;
+  E_bead = Bead_1.Energy();
 
-std::cout<<"The interaction to consider is " <<Bead_1.interaction <<"\n";
-// I want to calculate the gradient of the volume
-VertexData<Vector3> initial_pos(*mesh);
-VertexData<Vector3> Finite_grad(*mesh);
-initial_pos= geometry->inputVertexPositions;
+  // E_vol=E_Pressure(D_P,V,V_bar);
 
-// VertexData<Vector3> Gradients(*mesh,0.0);
-// double V=geometry->totalVolume();
-double E_bead=0.0;
-double E_bead_back=0.0;
-double E_bead_front=0.0;
-double dr;
-double r_dist;
-// double D_P=-P0*(V-V_bar)/V_bar/V_bar;
-double total_grad_finite=0;
-double total_grad_theory=0;
+  VertexData<Vector3> Calc_grad = Bead_1.Gradient();
+  VertexData<Vector3> Grad_area = SurfaceGrad();
+  dr = 1e-7;
 
-Vector3 grad{0.0,0.0,0.0};
-Vector3 grad_theory;
-Vector3 difference;
-Vector3 Area_grad;
-Vector3 r;
-E_bead=Bead_1.Energy();
+  size_t N_vert = mesh->nVertices();
+  std::cout << "The number of vertices is " << N_vert << " \n";
+  // for(size_t index=0; index<N_vert; index++){
+  size_t index;
+  for (Vertex v : mesh->vertices())
+  {
+    // std::cout<<"One vertex\n";
+    index = v.getIndex();
+    grad_theory = Calc_grad[v];
 
-// E_vol=E_Pressure(D_P,V,V_bar);
+    geometry->inputVertexPositions[v] = initial_pos[v] + Vector3{dr, 0, 0};
+    // geometry->refreshQuantities();
+    E_bead_front = Bead_1.Energy();
 
-VertexData<Vector3> Calc_grad=Bead_1.Gradient();
-VertexData<Vector3> Grad_area=SurfaceGrad();
-dr=1e-7;
+    geometry->inputVertexPositions[v] = initial_pos[v] - Vector3{dr, 0, 0};
+    // geometry->refreshQuantities();
+    E_bead_back = Bead_1.Energy();
 
-size_t N_vert = mesh->nVertices();
-std::cout<<"The number of vertices is "<< N_vert <<" \n";
-// for(size_t index=0; index<N_vert; index++){
-size_t index;
-for(Vertex v : mesh->vertices()){
-  // std::cout<<"One vertex\n";
-  index=v.getIndex();
-  grad_theory=Calc_grad[v];
- 
-  geometry->inputVertexPositions[v]=initial_pos[v]+ Vector3{dr,0,0};
-  geometry->refreshQuantities();
-  E_bead_front=Bead_1.Energy();
+    grad.x = (E_bead_front - E_bead_back) / (2 * dr);
 
-  geometry->inputVertexPositions[v]=initial_pos[v]- Vector3{dr,0,0};
-  geometry->refreshQuantities();
-  E_bead_back=Bead_1.Energy();
-  
-  grad.x=(E_bead_front-E_bead_back)/(2*dr);
+    geometry->inputVertexPositions[v] = initial_pos[v] - Vector3{0, dr, 0};
+    // geometry->refreshQuantities();
+    E_bead_back = Bead_1.Energy();
 
-  geometry->inputVertexPositions[v]=initial_pos[v]- Vector3{0,dr,0};
-  geometry->refreshQuantities();
-  E_bead_back=Bead_1.Energy();
-  
-  geometry->inputVertexPositions[v]=initial_pos[v]+ Vector3{0,dr,0};
-  geometry->refreshQuantities();
-  E_bead_front=Bead_1.Energy();
-  
-  grad.y=(E_bead_front-E_bead_back)/(2*dr);
+    geometry->inputVertexPositions[v] = initial_pos[v] + Vector3{0, dr, 0};
+    // geometry->refreshQuantities();
+    E_bead_front = Bead_1.Energy();
 
-  geometry->inputVertexPositions[v]=initial_pos[v]- Vector3{0,0,dr};
-  geometry->refreshQuantities();
-  E_bead_back=Bead_1.Energy();
+    grad.y = (E_bead_front - E_bead_back) / (2 * dr);
 
-  geometry->inputVertexPositions[v]=initial_pos[v]+ Vector3{0,0,dr};
-  geometry->refreshQuantities();
-  E_bead_front=Bead_1.Energy();
-  
-  grad.z=(E_bead_front-E_bead_back)/(2*dr);
-  
+    geometry->inputVertexPositions[v] = initial_pos[v] - Vector3{0, 0, dr};
+    // geometry->refreshQuantities();
+    E_bead_back = Bead_1.Energy();
 
+    geometry->inputVertexPositions[v] = initial_pos[v] + Vector3{0, 0, dr};
+    // geometry->refreshQuantities();
+    E_bead_front = Bead_1.Energy();
 
+    grad.z = (E_bead_front - E_bead_back) / (2 * dr);
 
-  if(Save){
-  difference= grad+grad_theory;
-  
-  // I can do this i have grad and grad_theory so i can actually compare them 
-  
+    if (Save)
+    {
+      difference = grad + grad_theory;
 
-  // I want to know a little more abt this direction.
+      // I can do this i have grad and grad_theory so i can actually compare them
 
-    // r= Bead_1.Pos- geometry->inputVertexPositions[v];
-    // r_dist=r.norm();
-    // r= r.unit();
-    // Area_grad=Grad_area[v].unit();
-    // // Area_grad= geometry->vertexNormalMeanCurvature(v).unit();
-    
-    // double E_v=4*1.0*(pow(1.0/r_dist,12)-pow(1.0/r_dist,6));
-    // Vector3 F2=E_v *-1*geometry->vertexNormalMeanCurvature(v);
+      // I want to know a little more abt this direction.
 
-  
-  Gradient_file<< difference.x <<" "<<difference.y<<" "<< difference.z<<" "<<difference.norm()/grad.norm() <<" "<<difference.norm() << " " << grad.norm()/grad_theory.norm()<<" \n";//<< dot(r.unit(),difference.unit())<<" " << dot(Area_grad,difference.unit())<<" "<< dot(Area_grad,r.unit())<<" \n";//<< dot(r,HN) <<" \n" ;
-  // difference= grad_theory;
-  // Gradient_file<< difference.x <<" "<<difference.y<<" "<< difference.z<<" "<<grad_theory.norm()<<" \n" ;
-  total_grad_theory+=grad_theory.norm2();
-  total_grad_finite+=grad.norm2();
+      // r= Bead_1.Pos- geometry->inputVertexPositions[v];
+      // r_dist=r.norm();
+      // r= r.unit();
+      // Area_grad=Grad_area[v].unit();
+      // // Area_grad= geometry->vertexNormalMeanCurvature(v).unit();
+
+      // double E_v=4*1.0*(pow(1.0/r_dist,12)-pow(1.0/r_dist,6));
+      // Vector3 F2=E_v *-1*geometry->vertexNormalMeanCurvature(v);
+
+      Gradient_file << difference.x << " " << difference.y << " " << difference.z << " " << difference.norm() / grad.norm() << " " << difference.norm() << " " << grad.norm() / grad_theory.norm() << " \n"; //<< dot(r.unit(),difference.unit())<<" " << dot(Area_grad,difference.unit())<<" "<< dot(Area_grad,r.unit())<<" \n";//<< dot(r,HN) <<" \n" ;
+      // difference= grad_theory;
+      // Gradient_file<< difference.x <<" "<<difference.y<<" "<< difference.z<<" "<<grad_theory.norm()<<" \n" ;
+      total_grad_theory += grad_theory.norm2();
+      total_grad_finite += grad.norm2();
+    }
+    Finite_grad[v] = -1 * grad;
+    geometry->inputVertexPositions[v] = initial_pos[v];
+    // geometry->refreshQuantities();
   }
-  Finite_grad[v]=-1*grad;
-  geometry->inputVertexPositions[v]=initial_pos[v];
-  geometry->refreshQuantities();
-}
-if(Save){
-  Gradient_file<< sqrt(total_grad_theory)<<" "<< sqrt(total_grad_finite)<<" "<<sqrt(total_grad_theory/total_grad_finite) << " \n";
-}
-
-return Finite_grad;
-}
-
-
-
-
-
-
-VertexData<Vector3> Mem3DG::Grad_tot_Area(std::ofstream& Gradient_file,bool Save) const{
-// I want to calculate the gradient of the volume
-VertexData<Vector3> initial_pos(*mesh);
-VertexData<Vector3> Finite_grad(*mesh);
-initial_pos= geometry->inputVertexPositions;
-// VertexData<Vector3> Gradients(*mesh,0.0);
-double A=geometry->totalArea();
-
-
-double E_area=0.0;
-double E_tot_area=0.0;
-double E_area_back=0.0;
-double E_area_front=0.0;
-double dr;
-// double lambda=KA*(A-A_bar )/A_bar;
-double total_grad_finite=0;
-double total_grad_theory=0;
-
-Vector3 grad{0.0,0.0,0.0};
-Vector3 grad_theory;
-Vector3 difference;
-
-E_area=A;
-
-
-VertexData<Vector3> Calc_grad=SurfaceGrad();
-
-dr=1e-7;
-
-size_t N_vert = mesh->nVertices();
-// for(size_t index=0; index<N_vert; index++){
-size_t index;
-for(Vertex v :mesh->vertices()){
-  // A=geometry->totalArea();
-  
-  
-  // E_tot_area=E_Surface(KA,A,A_bar);
-  // std::cout<<"THe difference in energy is "<<E_tot_area-E_area<<" \n";
-  index=v.getIndex();
-  grad_theory=Calc_grad[v];
-  geometry->inputVertexPositions[v]=initial_pos[v]+ Vector3{dr,0,0};
-  geometry->refreshQuantities();
-  A=geometry->totalArea();
-  E_area_front=A;
-  geometry->inputVertexPositions[v]=initial_pos[v]- Vector3{dr,0,0};
-  geometry->refreshQuantities();
-  A=geometry->totalArea();
-  E_area_back=A;
-  grad.x=(E_area_front-E_area_back)/(2*dr);
-
-  geometry->inputVertexPositions[v]=initial_pos[v]- Vector3{0,dr,0};
-  geometry->refreshQuantities();
-  A=geometry->totalArea();
-
-  E_area_back=A;
-  geometry->inputVertexPositions[v]=initial_pos[v]+ Vector3{0,dr,0};
-  geometry->refreshQuantities();
-  A=geometry->totalArea();
-  E_area_front=A;
-  grad.y=(E_area_front-E_area_back)/(2*dr);
-
-  geometry->inputVertexPositions[v]=initial_pos[v]- Vector3{0,0,dr};
-  geometry->refreshQuantities();
-  A=geometry->totalArea();
-  E_area_back=A;
-  geometry->inputVertexPositions[v]=initial_pos[v]+ Vector3{0,0,dr};
-  geometry->refreshQuantities();
-  A=geometry->totalArea();
-  E_area_front=A;
-  grad.z=(E_area_front-E_area_back)/(2*dr);
-  if(Save){
-  difference= grad+grad_theory;
-  Gradient_file<< difference.x/grad.norm() <<" "<<difference.y/grad.norm()<<" "<< difference.z/grad.norm()<<" "<<difference.norm()/grad.norm()<<" " << grad.norm()/grad_theory.norm() <<" \n" ;
-  // difference= grad_theory;
-  // Gradient_file<< difference.x <<" "<<difference.y<<" "<< difference.z<<" "<<grad_theory.norm()<<" \n" ;
-  total_grad_theory+=grad_theory.norm2();
-  total_grad_finite+=grad.norm2();
+  if (Save)
+  {
+    Gradient_file << sqrt(total_grad_theory) << " " << sqrt(total_grad_finite) << " " << sqrt(total_grad_theory / total_grad_finite) << " \n";
   }
-  Finite_grad[v]=-1*grad;
-  geometry->inputVertexPositions[v]=initial_pos[v];
-  geometry->refreshQuantities();
-}
-if(Save){
-  Gradient_file<< sqrt(total_grad_theory)<<" "<< sqrt(total_grad_finite)<< " "<< sqrt(total_grad_theory/total_grad_finite)<<" \n";
+
+  return Finite_grad;
 }
 
-return Finite_grad ;
+VertexData<Vector3> Mem3DG::Grad_tot_Area(std::ofstream &Gradient_file, bool Save) const
+{
+  // I want to calculate the gradient of the volume
+  VertexData<Vector3> initial_pos(*mesh);
+  VertexData<Vector3> Finite_grad(*mesh);
+  initial_pos = geometry->inputVertexPositions;
+  // VertexData<Vector3> Gradients(*mesh,0.0);
+  double A = geometry->totalArea();
+
+  double E_area = 0.0;
+  double E_tot_area = 0.0;
+  double E_area_back = 0.0;
+  double E_area_front = 0.0;
+  double dr;
+  // double lambda=KA*(A-A_bar )/A_bar;
+  double total_grad_finite = 0;
+  double total_grad_theory = 0;
+
+  Vector3 grad{0.0, 0.0, 0.0};
+  Vector3 grad_theory;
+  Vector3 difference;
+
+  E_area = A;
+
+  VertexData<Vector3> Calc_grad = SurfaceGrad();
+
+  dr = 1e-7;
+
+  size_t N_vert = mesh->nVertices();
+  // for(size_t index=0; index<N_vert; index++){
+  size_t index;
+  for (Vertex v : mesh->vertices())
+  {
+    // A=geometry->totalArea();
+
+    // E_tot_area=E_Surface(KA,A,A_bar);
+    // std::cout<<"THe difference in energy is "<<E_tot_area-E_area<<" \n";
+    index = v.getIndex();
+    grad_theory = Calc_grad[v];
+    geometry->inputVertexPositions[v] = initial_pos[v] + Vector3{dr, 0, 0};
+    // geometry->refreshQuantities();
+    A = geometry->totalArea();
+    E_area_front = A;
+    geometry->inputVertexPositions[v] = initial_pos[v] - Vector3{dr, 0, 0};
+    // geometry->refreshQuantities();
+    A = geometry->totalArea();
+    E_area_back = A;
+    grad.x = (E_area_front - E_area_back) / (2 * dr);
+
+    geometry->inputVertexPositions[v] = initial_pos[v] - Vector3{0, dr, 0};
+    // geometry->refreshQuantities();
+    A = geometry->totalArea();
+
+    E_area_back = A;
+    geometry->inputVertexPositions[v] = initial_pos[v] + Vector3{0, dr, 0};
+    // geometry->refreshQuantities();
+    A = geometry->totalArea();
+    E_area_front = A;
+    grad.y = (E_area_front - E_area_back) / (2 * dr);
+
+    geometry->inputVertexPositions[v] = initial_pos[v] - Vector3{0, 0, dr};
+    // geometry->refreshQuantities();
+    A = geometry->totalArea();
+    E_area_back = A;
+    geometry->inputVertexPositions[v] = initial_pos[v] + Vector3{0, 0, dr};
+    // geometry->refreshQuantities();
+    A = geometry->totalArea();
+    E_area_front = A;
+    grad.z = (E_area_front - E_area_back) / (2 * dr);
+    if (Save)
+    {
+      difference = grad + grad_theory;
+      Gradient_file << difference.x / grad.norm() << " " << difference.y / grad.norm() << " " << difference.z / grad.norm() << " " << difference.norm() / grad.norm() << " " << grad.norm() / grad_theory.norm() << " \n";
+      // difference= grad_theory;
+      // Gradient_file<< difference.x <<" "<<difference.y<<" "<< difference.z<<" "<<grad_theory.norm()<<" \n" ;
+      total_grad_theory += grad_theory.norm2();
+      total_grad_finite += grad.norm2();
+    }
+    Finite_grad[v] = -1 * grad;
+    geometry->inputVertexPositions[v] = initial_pos[v];
+    // geometry->refreshQuantities();
+  }
+  if (Save)
+  {
+    Gradient_file << sqrt(total_grad_theory) << " " << sqrt(total_grad_finite) << " " << sqrt(total_grad_theory / total_grad_finite) << " \n";
+  }
+
+  return Finite_grad;
 }
 
+void Mem3DG::Grad_Bead_dx(std::ofstream &Gradient_file, bool Save)
+{
+  // I want to calculate the gradient of the volume
+  VertexData<Vector3> initial_pos(*mesh);
+  initial_pos = geometry->inputVertexPositions;
+  // VertexData<Vector3> Gradients(*mesh,0.0);
+  // double V=geometry->totalVolume();
+  double E_bead = 0.0;
+  double E_bead_back = 0.0;
+  double E_bead_front = 0.0;
+  double dr;
+  Vector3 grad{0.0, 0.0, 0.0};
+  E_bead = Bead_1.Energy();
+  int index = 7333;
 
+  VertexData<Vector3> Calc_grad = Bead_1.Gradient();
 
-void Mem3DG::Grad_Bead_dx(std::ofstream& Gradient_file,bool Save){
-// I want to calculate the gradient of the volume
-VertexData<Vector3> initial_pos(*mesh);
-initial_pos= geometry->inputVertexPositions;
-// VertexData<Vector3> Gradients(*mesh,0.0);
-// double V=geometry->totalVolume();
-double E_bead=0.0;
-double E_bead_back=0.0;
-double E_bead_front=0.0;
-double dr;
-Vector3 grad{0.0,0.0,0.0};
-E_bead=Bead_1.Energy();
-int index=7333;
+  Gradient_file << Calc_grad[index].x << " " << Calc_grad[index].y << " " << Calc_grad[index].z << " \n";
 
-VertexData<Vector3> Calc_grad=Bead_1.Gradient();
+  Vector<Vector3> Gradients(20);
+  dr = 10.0;
+  for (size_t exponent = 0; exponent < 20; exponent++)
+  {
+    dr = dr / 10.0;
+    // dr=pow(10,-1*exponent);
 
-Gradient_file<<Calc_grad[index].x <<" "<<Calc_grad[index].y<<" "<< Calc_grad[index].z<<" \n";
+    // std::cout<<dr<<" ";
 
-Vector<Vector3> Gradients(20);
-dr=10.0;
-for(size_t exponent=0;exponent<20;exponent++){
-  dr=dr/10.0;
-  // dr=pow(10,-1*exponent);
+    geometry->inputVertexPositions[index] = initial_pos[index] + Vector3{dr, 0, 0};
+    // geometry->refreshQuantities();
+    // V=geometry->totalVolume();
+    // D_P=-P0*(V-V_bar)/V_bar/V_bar;
+    E_bead_front = Bead_1.Energy();
+    geometry->inputVertexPositions[index] = initial_pos[index] - Vector3{dr, 0, 0};
+    // geometry->refreshQuantities();
 
-  // std::cout<<dr<<" ";
-  
-  geometry->inputVertexPositions[index]=initial_pos[index]+ Vector3{dr,0,0};
-  geometry->refreshQuantities();
-  // V=geometry->totalVolume();
-  // D_P=-P0*(V-V_bar)/V_bar/V_bar;
-  E_bead_front=Bead_1.Energy();
-  geometry->inputVertexPositions[index]=initial_pos[index]- Vector3{dr,0,0};
-  geometry->refreshQuantities();
- 
-  E_bead_back=Bead_1.Energy();
-  grad.x=(E_bead_front-E_bead_back)/(2*dr);
+    E_bead_back = Bead_1.Energy();
+    grad.x = (E_bead_front - E_bead_back) / (2 * dr);
 
-  geometry->inputVertexPositions[index]=initial_pos[index]- Vector3{0,dr,0};
-  geometry->refreshQuantities();
-  // V=geometry->totalVolume();
-  // D_P=-P0*(V-V_bar)/V_bar/V_bar;
-  E_bead_back=Bead_1.Energy();
-  geometry->inputVertexPositions[index]=initial_pos[index]+ Vector3{0,dr,0};
-  geometry->refreshQuantities();
-  // V=geometry->totalVolume();
-  // D_P=-P0*(V-V_bar)/V_bar/V_bar;
-  E_bead_front=Bead_1.Energy();
-  grad.y=(E_bead_front-E_bead_back)/(2*dr);
+    geometry->inputVertexPositions[index] = initial_pos[index] - Vector3{0, dr, 0};
+    // geometry->refreshQuantities();
+    // V=geometry->totalVolume();
+    // D_P=-P0*(V-V_bar)/V_bar/V_bar;
+    E_bead_back = Bead_1.Energy();
+    geometry->inputVertexPositions[index] = initial_pos[index] + Vector3{0, dr, 0};
+    // geometry->refreshQuantities();
+    // V=geometry->totalVolume();
+    // D_P=-P0*(V-V_bar)/V_bar/V_bar;
+    E_bead_front = Bead_1.Energy();
+    grad.y = (E_bead_front - E_bead_back) / (2 * dr);
 
-  geometry->inputVertexPositions[index]=initial_pos[index]- Vector3{0,0,dr};
-  geometry->refreshQuantities();
-  E_bead_back=Bead_1.Energy();
-  geometry->inputVertexPositions[index]=initial_pos[index]+ Vector3{0,0,dr};
-  geometry->refreshQuantities();
-  // V=geometry->totalVolume();
-  // D_P=-P0*(V-V_bar)/V_bar/V_bar;
-  E_bead_front=Bead_1.Energy();
-  grad.z=(E_bead_front-E_bead_back)/(2*dr);
+    geometry->inputVertexPositions[index] = initial_pos[index] - Vector3{0, 0, dr};
+    // geometry->refreshQuantities();
+    E_bead_back = Bead_1.Energy();
+    geometry->inputVertexPositions[index] = initial_pos[index] + Vector3{0, 0, dr};
+    // geometry->refreshQuantities();
+    // V=geometry->totalVolume();
+    // D_P=-P0*(V-V_bar)/V_bar/V_bar;
+    E_bead_front = Bead_1.Energy();
+    grad.z = (E_bead_front - E_bead_back) / (2 * dr);
 
-
-  Gradients[exponent]=grad;
-  Gradient_file<< Gradients[exponent].x <<" " <<Gradients[exponent].y<<" "<<Gradients[exponent].z <<" \n";
-
+    Gradients[exponent] = grad;
+    Gradient_file << Gradients[exponent].x << " " << Gradients[exponent].y << " " << Gradients[exponent].z << " \n";
+  }
 }
 
-
-}
-
-
-
-Eigen::Matrix2d Mem3DG::Face_sizing(Face f){
+Eigen::Matrix2d Mem3DG::Face_sizing(Face f)
+{
   Eigen::Matrix2d Sizing; //({0.0,0.0,0.0,0.0});
   // Eigen::Matrix2d Sizing{{0.0,0.0,0.0,0.0}};
-  Sizing << 0.0, 0.0, 0.0,0.0;
+  Sizing << 0.0, 0.0, 0.0, 0.0;
 
   Eigen::Matrix3d Rotation;
 
-
   Vector3 Normal1 = geometry->faceNormal(f);
-  Vector3 Axis1({0.0,1.0,0.0});
-  
+  Vector3 Axis1({0.0, 1.0, 0.0});
+
   // std::cout<<"THe norm of the normal is " << Normal1.norm2()<<" \n";
-  Eigen::Vector3d Normal{Normal1.x,Normal1.y,Normal1.z};
-  Eigen::Vector3d Axis{Axis1.x ,Axis1.y ,Axis1.z};
+  Eigen::Vector3d Normal{Normal1.x, Normal1.y, Normal1.z};
+  Eigen::Vector3d Axis{Axis1.x, Axis1.y, Axis1.z};
 
   Eigen::Vector3d uvw = Normal.cross(Axis);
-  
-  
 
   double rcos = Normal.dot(Axis);
   double rsin = uvw.norm();
 
-  if(rsin>1e-7){
-    uvw/=rsin;
+  if (rsin > 1e-7)
+  {
+    uvw /= rsin;
   }
 
   // Eigen::Matrix3d V_x{{0, uvw(2), -1*uvw(1) },{-1*uvw(2), 0, uvw(0)},{uvw(1), -1*uvw(0), 0}};
 
   // Eigen::Matrix3d V_x{{0, -1*uvw(2), uvw(1) },{uvw(2), 0, -1*uvw(0)},{-1*uvw(1), uvw(0), 0}};
   // Eigen::Matrix3d V_x({0, -1*uvw(2), uvw(1) ,uvw(2), 0, -1*uvw(0),-1*uvw(1), uvw(0), 0});
-  Eigen::Matrix3d V_x; 
+  Eigen::Matrix3d V_x;
 
-  V_x << 0, -1*uvw(2), uvw(1) ,uvw(2), 0, -1*uvw(0),-1*uvw(1), uvw(0), 0;
+  V_x << 0, -1 * uvw(2), uvw(1), uvw(2), 0, -1 * uvw(0), -1 * uvw(1), uvw(0), 0;
 
-  
-  Rotation = rcos*Eigen::Matrix3d::Identity()+ rsin*V_x+ uvw*uvw.transpose()*(1-rcos);
-
+  Rotation = rcos * Eigen::Matrix3d::Identity() + rsin * V_x + uvw * uvw.transpose() * (1 - rcos);
 
   // We want to compare the outer proudct of two vectors
   // Eigen::Matrix3d outer{{uvw(0)*uvw(0),uvw(1)*uvw(0),uvw(2)*uvw(0) }, {uvw(0)*uvw(1),uvw(1)*uvw(1),uvw(2)*uvw(1)}, {uvw(0)*uvw(2),uvw(1)*uvw(2),uvw(2)*uvw(2)}};
@@ -5036,223 +5372,221 @@ Eigen::Matrix2d Mem3DG::Face_sizing(Face f){
   // std::cout<<"And the eigen one is "<<" \n";
   // std::cout<< uvw*uvw.transpose() <<"\n";
 
-  Eigen::Vector3d trial({1.0,5.0,4.0});
+  Eigen::Vector3d trial({1.0, 5.0, 4.0});
 
   // std::cout<<"v_x is " << V_x << " \n";
 
   // std::cout<<"Trial has norm  " <<trial.norm() <<" \n";
 
-  trial = Rotation*trial; 
-// 
+  trial = Rotation * trial;
+  //
   // std::cout<<"Trial has now norm " << trial.norm() << "\n ";
   // std::cout<<"Trial now is " << trial <<" \n";
-
-
-
 
   Vector3 Pos;
   Eigen::Vector3d spare_vec;
   vector<Eigen::Vector2d> Positions(0);
   vector<int> index(0);
 
-  for( Vertex v : f.adjacentVertices()){
+  for (Vertex v : f.adjacentVertices())
+  {
 
     Pos = geometry->inputVertexPositions[v];
-    spare_vec = Eigen::Vector3d{Pos.x, Pos.y, Pos.z}; 
+    spare_vec = Eigen::Vector3d{Pos.x, Pos.y, Pos.z};
     spare_vec = Rotation * spare_vec;
     index.push_back(v.getIndex());
-    Positions.push_back({spare_vec(0),spare_vec(2)});
+    Positions.push_back({spare_vec(0), spare_vec(2)});
     // std::cout<<"THe y pos is " << spare_vec(1) <<"\t";
-
   }
   // std::cout<<"\n";
 
   // std::cout<<"The order is " << index[0] << " then " << index[1] << "then " << index[2]<<" \n";
 
   int counter = 0;
-  for( Edge e : f.adjacentEdges()){
+  for (Edge e : f.adjacentEdges())
+  {
 
     // std::cout<<"The original edgelength is " << geometry->edgeLength(e) << " \n";
-    
 
-    Eigen::Vector2d e_mat = Positions[(counter+1)%3]-Positions[counter%3];
-    
+    Eigen::Vector2d e_mat = Positions[(counter + 1) % 3] - Positions[counter % 3];
+
     // std::cout<<"THe projected length is " << e_mat.norm() << " \n";
 
-
-    Eigen::Vector2d t_mat{ -1*e_mat(1), e_mat(0)};
+    Eigen::Vector2d t_mat{-1 * e_mat(1), e_mat(0)};
     t_mat.normalize();
 
-
     double theta = geometry->dihedralAngle(e.halfedge());
-    if(e.halfedge().face() != f){
+    if (e.halfedge().face() != f)
+    {
       theta = geometry->dihedralAngle(e.halfedge().twin());
     }
 
-    Sizing -= 1/2. * theta * e_mat.norm() * t_mat*t_mat.transpose();
-    
-    
-    counter+=1;
+    Sizing -= 1 / 2. * theta * e_mat.norm() * t_mat * t_mat.transpose();
 
-
+    counter += 1;
   }
 
-  Sizing/= geometry->faceArea(f);
+  Sizing /= geometry->faceArea(f);
 
   return Sizing;
 }
 
+FaceData<double> Mem3DG::Face_sizings()
+{
 
-FaceData<double> Mem3DG::Face_sizings(){
-
-  FaceData<double> sizing(*mesh,0.0);
+  FaceData<double> sizing(*mesh, 0.0);
   double aspect_min = 0.2;
   double refine_angle = 0.7;
 
   // Lets create the face sizing
-  Eigen::Matrix2d Face_sizing_mat ; //({0.0,0.0, 0.0,0.0});
+  Eigen::Matrix2d Face_sizing_mat; //({0.0,0.0, 0.0,0.0});
   Face_sizing_mat << 0.0, 0.0, 0.0, 0.0;
   Eigen::EigenSolver<Eigen::Matrix2d> Solve;
   Eigen::Vector2d eigenvals;
 
-  for(Face f : mesh->faces()){
+  for (Face f : mesh->faces())
+  {
     // For every face i need to do the sizing thingy
-    Face_sizing_mat = Face_sizing(f) ;
+    Face_sizing_mat = Face_sizing(f);
 
-    Face_sizing_mat = Face_sizing_mat.transpose()* Face_sizing_mat/(refine_angle * refine_angle);
+    Face_sizing_mat = Face_sizing_mat.transpose() * Face_sizing_mat / (refine_angle * refine_angle);
 
     Solve.compute(Face_sizing_mat);
 
     eigenvals = Solve.eigenvalues().real();
 
-    // 
-    for(int i = 0; i <2  ;i++) eigenvals[i] = clamp(eigenvals[i],1.f/(0.2*0.2), 1.f/(0.001*0.001));
+    //
+    for (int i = 0; i < 2; i++)
+      eigenvals[i] = clamp(eigenvals[i], 1.f / (0.2 * 0.2), 1.f / (0.001 * 0.001));
 
-    double lmax = std::max(eigenvals[0]  ,eigenvals[1]);
+    double lmax = std::max(eigenvals[0], eigenvals[1]);
     double lmin = lmax * aspect_min * aspect_min;
 
-    for(int i = 0; i <2; i++) if(eigenvals[i] < lmin ) eigenvals[i] = lmin;
+    for (int i = 0; i < 2; i++)
+      if (eigenvals[i] < lmin)
+        eigenvals[i] = lmin;
 
-    
-    sizing[f.getIndex()] = std::max( fabs(eigenvals[0]),fabs(eigenvals[1]));
-
+    sizing[f.getIndex()] = std::max(fabs(eigenvals[0]), fabs(eigenvals[1]));
   }
 
-
-
-
   return sizing;
-
-
 }
 
+VertexData<double> Mem3DG::Vert_sizing(FaceData<double> Face_sizings)
+{
 
-VertexData<double> Mem3DG::Vert_sizing(FaceData<double> Face_sizings){
-
-  VertexData<double> sizing(*mesh,0.0);
+  VertexData<double> sizing(*mesh, 0.0);
 
   // We need to create the vertsizing first.
   // WE have the sizing of every face
-  for(Vertex v : mesh->vertices()){
+  for (Vertex v : mesh->vertices())
+  {
     double sum = 0.0;
-    for(Face f : v.adjacentFaces()){
-      sum += Face_sizings[f]*geometry->faceArea(f)/3.;
+    for (Face f : v.adjacentFaces())
+    {
+      sum += Face_sizings[f] * geometry->faceArea(f) / 3.;
     }
-    sizing[v] = sum/geometry->vertexDualArea(v);
+    sizing[v] = sum / geometry->vertexDualArea(v);
   }
-
 
   return sizing;
 }
 
-EdgeData<double> Mem3DG::Edge_sizing(VertexData<double> Vert_sizings){
+EdgeData<double> Mem3DG::Edge_sizing(VertexData<double> Vert_sizings)
+{
 
-  EdgeData<double> sizing(*mesh,0.0);
+  EdgeData<double> sizing(*mesh, 0.0);
 
   Vertex v1;
   Vertex v2;
-  for(Edge e: mesh->edges()){
+  for (Edge e : mesh->edges())
+  {
     v1 = e.halfedge().vertex();
     v2 = e.halfedge().next().vertex();
-    sizing[e] = geometry->edgeLength(e)*std::sqrt((Vert_sizings[v1]+Vert_sizings[v2])/2.0);
+    sizing[e] = geometry->edgeLength(e) * std::sqrt((Vert_sizings[v1] + Vert_sizings[v2]) / 2.0);
   }
   return sizing;
 }
 
-bool Mem3DG::Area_sanity_check(){
-  bool all_positive=true;
-  for(Vertex v : mesh->vertices()){
-    if(geometry->circumcentricDualArea(v)<0){
-      all_positive=false;
+bool Mem3DG::Area_sanity_check()
+{
+  bool all_positive = true;
+  for (Vertex v : mesh->vertices())
+  {
+    if (geometry->circumcentricDualArea(v) < 0)
+    {
+      all_positive = false;
     }
-
   }
 
   return all_positive;
 }
 
+void Mem3DG::Save_mesh(size_t current_t)
+{
 
+  // Build member variables: mesh, geometry
+  Vector3 Pos;
 
-void Mem3DG::Save_mesh( size_t current_t){
+  // Here is where we need to find the latest directory
+  std::string test_name = basic_name + "Ip_mem_" + std::to_string(current_t) + ".obj";
+  const char *dir = test_name.c_str();
+  struct stat sb;
+  size_t iteration = current_t;
+  int status = -1;
+  while (status < 0)
+  {
 
-
-// Build member variables: mesh, geometry
-    Vector3 Pos;
-
-    // Here is where we need to find the latest directory
-    std::string test_name = basic_name+"Ip_mem_"+std::to_string(current_t)+".obj";
-    const char* dir = test_name.c_str();
-    struct stat sb;
-    size_t iteration = current_t;
-    int status = -1;
-    while( status < 0 ){
-
-    if( stat(dir, &sb) != 0){
+    if (stat(dir, &sb) != 0)
+    {
       // std::cout<<"Path already exists
       status = -1;
       break;
     }
-    iteration +=1;
-    test_name = basic_name+"Ip_mem_"+std::to_string(iteration)+".obj";
+    iteration += 1;
+    test_name = basic_name + "Ip_mem_" + std::to_string(iteration) + ".obj";
     dir = test_name.c_str();
+  }
+  std::ofstream o(test_name);
+  o << "#This is a meshfile from a saved state\n";
+
+  for (Vertex v : mesh->vertices())
+  {
+    Pos = geometry->inputVertexPositions[v];
+    o << "v " << Pos.x << " " << Pos.y << " " << Pos.z << "\n";
+  }
+
+  // I need to save the faces now
+
+  for (Face f : mesh->faces())
+  {
+    o << "f";
+
+    for (Vertex v : f.adjacentVertices())
+    {
+      o << " " << v.getIndex() + 1;
     }
-    std::ofstream o(test_name);
-    o << "#This is a meshfile from a saved state\n" ;
+    o << "\n";
+  }
 
-    for(Vertex v : mesh->vertices()) {
-    Pos=geometry->inputVertexPositions[v];
-    o << "v " << Pos.x <<" "<< Pos.y << " "<< Pos.z <<"\n";
+  // I need to save the bead positions too;
 
-    }
+  for (size_t b = 0; b < Beads.size(); b++)
+  {
 
-
-    // I need to save the faces now
-
-    for(Face f : mesh->faces()) {
-    o<<"f";
-    
-    for(Vertex v: f.adjacentVertices()){
-        o << " " <<v.getIndex()+1;
-    }
-    o<<"\n";
-    
-    }
-    
-
-
-    // I need to save the bead positions too;
-
-    for(size_t b = 0; b < Beads.size(); b++){
-
-    test_name = basic_name+"Ip_bead_"+std::to_string(b)+"_data.txt";
+    test_name = basic_name + "Ip_bead_" + std::to_string(b) + "_data.txt";
     std::ofstream bead_file(test_name, std::ios_base::app);
-    bead_file << Beads[b]->Pos.x <<" "<< Beads[b]->Pos.y << " "<< Beads[b]->Pos.z <<"\n";
+    bead_file << Beads[b]->Pos.x << " " << Beads[b]->Pos.y << " " << Beads[b]->Pos.z << "\n";
     bead_file.close();
+  }
 
-    }
-    
-
-
-    return ;
-
+  return;
 }
+
+// if (Field != "None" && false)
+// {
+//   // std::cout<<"We doing field\n";
+//   VertexData<Vector3> Field(*mesh, Vector3({0.0, 0.0, 0.0}));
+//   Field = Linear_force_field(Field_vals[0], Field_vals[1]);
+//   geometry->inputVertexPositions += backtrackstep * Field;
+// } // We are not implementing fields like this

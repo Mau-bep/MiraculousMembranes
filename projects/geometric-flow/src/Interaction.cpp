@@ -154,6 +154,8 @@ VertexData<Vector3> Normal_dot_Interaction::Gradient()
     if (Energy_constants.size() > 3)
         outside = static_cast<int>(Energy_constants[3]);
 
+    // Ok so what is going on here
+
     Halfedge he;
     // I need to check that there is a nonzero total force
     Bead_1->Prev_Total_force = Bead_1->Total_force;
@@ -263,7 +265,7 @@ VertexData<Vector3> Normal_dot_Interaction::Gradient()
 
         // std::cout<<" \n";
     }
-    // std::cout<<"The bead total force should be" << Bead_1->Total_force << "\n";
+    // std::cout<<"Th"
     return Force;
 }
 

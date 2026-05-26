@@ -150,7 +150,7 @@ Halfedge MutationManager::splitEdge(Edge e, double tSplit) {
   }
   return splitEdge(e, tSplit, newPos);
 }
- 
+
 Halfedge MutationManager::splitEdge(Edge e, Vector3 newVertexPosition) {
   if (!maySplitEdge(e)) return Halfedge();
 
@@ -182,7 +182,6 @@ Halfedge MutationManager::splitEdge(Edge e, double tSplit, Vector3 newVertexPosi
     pos[newV] = newVertexPosition;
 
     // std::cout<< "The new vertex position of index" << newV.getIndex() <<" is "<< pos[newV] << "\n";
-
   }
   Halfedge newHeBack = newHeFront.prevOrbitFace().twin().prevOrbitFace().twin();
 

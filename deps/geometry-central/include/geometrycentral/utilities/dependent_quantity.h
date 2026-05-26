@@ -4,10 +4,10 @@
 // for an easy workaround are welcome.
 #include <Eigen/SparseCore>
 
+#include <array>
 #include <functional>
 #include <iostream>
 #include <vector>
-#include <array>
 
 
 namespace geometrycentral {
@@ -20,7 +20,7 @@ public:
     listToJoin.push_back(this);
   }
 
-  virtual ~DependentQuantity(){};
+  virtual ~DependentQuantity() {};
 
   std::function<void()> evaluateFunc;
   bool computed = false;
@@ -48,8 +48,8 @@ template <typename D>
 class DependentQuantityD : public DependentQuantity {
 
 public:
-  DependentQuantityD(){};
-  virtual ~DependentQuantityD(){};
+  DependentQuantityD() {};
+  virtual ~DependentQuantityD() {};
 
   DependentQuantityD(D* dataBuffer_, std::function<void()> evaluateFunc_, std::vector<DependentQuantity*>& listToJoin)
       : DependentQuantity(evaluateFunc_, listToJoin), dataBuffer(dataBuffer_) {}

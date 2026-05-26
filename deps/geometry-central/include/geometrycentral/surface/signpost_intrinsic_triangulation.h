@@ -1,8 +1,8 @@
 #pragma once
 
 #include "geometrycentral/surface/embedded_geometry_interface.h"
-#include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/intrinsic_geometry_interface.h"
+#include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/surface_point.h"
 #include "geometrycentral/utilities/elementary_geometry.h"
 
@@ -74,17 +74,20 @@ public:
   EdgeData<std::vector<SurfacePoint>> traceEdges();
   std::vector<SurfacePoint> traceHalfedge(Halfedge he, bool trimEnd = true); // trace a single intrinsic halfedge
 
-  // Given data defined on the vertices of the input triangulation, samples it to the vertices of the intrinsic triangulation
+  // Given data defined on the vertices of the input triangulation, samples it to the vertices of the intrinsic
+  // triangulation
   template <typename T>
   VertexData<T> sampleFromInput(const VertexData<T>& dataOnInput);
-  
-  // Given data defined on the vertices of the intrinsic triangulation, restrict it to the vertices of the input triangulation
+
+  // Given data defined on the vertices of the intrinsic triangulation, restrict it to the vertices of the input
+  // triangulation
   template <typename T>
   VertexData<T> restrictToInput(const VertexData<T>& dataOnIntrinsic);
 
   // Returns true if the intrinsic triangulation (or edge) satisifies the intrinsic Delaunay criterion
   bool isDelaunay();
   bool isDelaunay(Edge e);
+  bool isDelaunay_improv(Edge e);
 
   // Returns the smallest angle in the intrinsic triangulation, in degrees
   double minAngleDegrees();
@@ -242,4 +245,3 @@ private:
 
 
 #include "geometrycentral/surface/signpost_intrinsic_triangulation.ipp"
-
