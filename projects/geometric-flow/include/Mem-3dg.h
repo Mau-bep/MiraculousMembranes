@@ -154,7 +154,7 @@ public:
 
   double integrate_Newton(std::ofstream &Sim_data, double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data, std::vector<std::string> Constraints, std::vector<std::string> Data_filenames);
   double integrate_Newton_Normal(std::ofstream &Sim_data, double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data, std::vector<std::string> Constraints, std::vector<std::string> Data_filenames);
-
+  VertexData<Vector3> Newton_Normal_step(std::ofstream &Sim_data, double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data, std::vector<std::string> Constraints, std::vector<std::string> Data_filenames);
   double integrate_implicit(std::vector<std::string> Energies, std::vector<std::vector<double>> Energy_constants, std::ofstream &Sim_data, double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data);
 
   void Get_Energies(std::vector<std::string> Energies, std::vector<std::vector<double>> Energy_constants, double *NewE);

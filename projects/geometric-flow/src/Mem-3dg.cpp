@@ -3180,6 +3180,7 @@ double Mem3DG::integrate(std::ofstream &Sim_data, double time, std::vector<std::
     }
     Sim_data << backtrackstep << " \n";
   }
+
   if (Bead_data_filenames.size() != 0 && Save_output_data)
   {
     // std::cout<<"Not here right?\n";
@@ -3924,9 +3925,8 @@ double Mem3DG::integrate_Newton(std::ofstream &Sim_data, double time, std::vecto
   return backtrackstep;
 }
 
-double Mem3DG::integrate_Newton_Normal(std::ofstream &Sim_data, double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data, std::vector<std::string> Constraints, std::vector<std::string> Data_filenames)
+VertexData<Vector3> Mem3DG::Newton_Normal_step(std::ofstream &Sim_data, double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data, std::vector<std::string> Constraints, std::vector<std::string> Data_filenames)
 {
-
   std::cout << "THe lagrange multipliers are " << Sim_handler->Lagrange_mult.transpose() << "\n";
   auto start = chrono::steady_clock::now();
   auto end = chrono::steady_clock::now();
@@ -3973,7 +3973,208 @@ double Mem3DG::integrate_Newton_Normal(std::ofstream &Sim_data, double time, std
     if (Constraints[i] == "Rz")
       N_constraints += 1;
   }
+  std::cout << "The number of constraints is " << N_constraints << "\n";
+  Sim_handler->N_constraints = N_constraints;
+  Sim_handler->Constraints = Constraints;
+  // SparseMatrix<double> H2_mat;//(N_vert*3+N_constraints,N_vert*3+N_constraints);
+  // SparseMatrix<double> H1_mat;
+  SparseMatrix<double> Hessian;
+  SparseMatrix<double> Hessian_constraints;
 
+  Eigen::SimplicialLDLT<SparseMatrix<double>> solverHess;
+
+  start = chrono::steady_clock::now();
+  // std::cout << "Calculating gradients\n";
+  Sim_handler->Calculate_gradient_precomp();
+  Hessian = Sim_handler->Calculate_Hessian_Normal();
+  Sim_handler->Calculate_Jacobian_Normal();
+
+  SparseMatrix<double> LHS((N_vert) + N_constraints, (N_vert) + N_constraints);
+  Eigen::VectorXd RHS((N_vert) + N_constraints);
+
+  typedef Eigen::Triplet<double> T;
+  std::vector<T> tripletList;
+
+  for (int row = 0; row < Sim_handler->Jacobian_constraints.rows(); row++)
+  {
+    for (int col = 0; col < Sim_handler->Jacobian_constraints.cols(); col++)
+    {
+      tripletList.push_back(T(col, row + (N_vert), Sim_handler->Jacobian_constraints(row, col)));
+      tripletList.push_back(T(row + (N_vert), col, Sim_handler->Jacobian_constraints(row, col)));
+    }
+  }
+
+  int row;
+  int col;
+  double value;
+
+  int maxrow = 0;
+  int maxcol = 0;
+
+  int smol_counter = 0;
+  for (long int k = 0; k < Hessian.outerSize(); ++k)
+  {
+    for (SparseMatrix<double>::InnerIterator it(Hessian, k); it; ++it)
+    {
+      value = it.value();
+      row = it.row();
+      col = it.col();
+      if (value < 1e-8 && value > -1e-8)
+        smol_counter += 1;
+      tripletList.push_back(T(row, col, value));
+    }
+  }
+  // We regularize the Hessian by adding a diagonal
+  if (regularize)
+  {
+    for (size_t i = 0; i < (N_vert + N_beads); i++)
+    {
+      tripletList.push_back(T(i, i, 1e-6));
+    }
+  }
+  Eigen::VectorXd LambdaJ = Sim_handler->Jacobian_constraints.transpose() * Sim_handler->Lagrange_mult;
+
+  std::cout << "The lagrange multipliers are " << Sim_handler->Lagrange_mult.transpose() << "\n";
+  std::cout << "The size of Jacobian constraints is " << Sim_handler->Jacobian_constraints.rows() << " and " << Sim_handler->Jacobian_constraints.cols() << "\n";
+
+  std::cout << "THe size of Lambda J is " << LambdaJ.rows() << " and " << LambdaJ.cols() << "\n";
+  std::cout << "THe maximum value of Lambda J is " << LambdaJ.maxCoeff() << " and the minimum is " << LambdaJ.minCoeff() << "\n";
+  Vector3 Force;
+  double dual_area = 0.0;
+  for (size_t vi = 0; vi < mesh->nVertices(); vi++)
+  {
+    Force = Sim_handler->Current_grad[vi];
+    RHS(vi) = LambdaJ(vi) + dot(Force, Sim_handler->Vertex_normals[vi]);
+  }
+  std::cout << "RHS force from vertices ready\n";
+  std::cout << "The size of RHS is " << RHS.rows() << " and " << RHS.cols() << "\n";
+
+  for (int Ci = 0; Ci < N_constraints; Ci++)
+  {
+    // We need to add the value of the constraint
+    if (Constraints[Ci] == "Volume")
+    {
+      RHS((N_vert) + Ci) = -1 * (geometry->totalVolume() - Sim_handler->Trgt_vol);
+      // RHS((N_vert + N_beads) + Ci) = -1 * (geometry->totalVolume() - Sim_handler->Trgt_vol);
+
+      std::cout << "The total volume is " << geometry->totalVolume() << " and the target is " << Sim_handler->Trgt_vol << "\n";
+    }
+    if (Constraints[Ci] == "Area")
+    {
+      RHS((N_vert) + Ci) = -1 * (A - Sim_handler->Trgt_area);
+
+      std::cout << "The total area  is " << A << " and the target is " << Sim_handler->Trgt_area << "\n";
+    }
+    if (Constraints[Ci] == "CMx")
+      RHS((N_vert) + Ci) = 0.0; // Considering the beads should have +N_beads
+    if (Constraints[Ci] == "CMy")
+      RHS((N_vert) + Ci) = 0.0;
+    if (Constraints[Ci] == "CMz")
+      RHS((N_vert) + Ci) = 0.0;
+    if (Constraints[Ci] == "Rx")
+      RHS((N_vert) + Ci) = 0.0;
+    if (Constraints[Ci] == "Ry")
+      RHS((N_vert) + Ci) = 0.0;
+    if (Constraints[Ci] == "Rz")
+      RHS((N_vert) + Ci) = 0.0;
+  }
+  std::cout << "THe maximum value of RHS is " << RHS.maxCoeff() << " and the minimum is " << RHS.minCoeff() << "\n";
+
+  LHS.setFromTriplets(tripletList.begin(), tripletList.end());
+  solverHess.compute(LHS);
+
+  Eigen::VectorXd result = solverHess.solve(RHS);
+
+  std::cout << "The size of result is " << result.rows() << " and " << result.cols() << "\n";
+  std::cout << "THe max value of result is " << result.maxCoeff() << " and the minimum is " << result.minCoeff() << "\n";
+
+  VertexData<Vector3> Force_result(*mesh, Vector3({0.0, 0.0, 0.0}));
+  // Eigen::VectorXd Grad_L = LambdaJ+ ;
+  bool flag = false;
+  for (size_t vi = 0; vi < mesh->nVertices(); vi++)
+  {
+    if (mesh->vertex(vi).isBoundary())
+    {
+      Force_result[vi] = Vector3({0.0, 0.0, 0.0});
+      result(vi) = 0.0;
+      continue;
+    }
+    for (Vertex vj : mesh->vertex(vi).adjacentVertices())
+    {
+      if (vj.isBoundary())
+      {
+        Force_result[vi] = Vector3({0.0, 0.0, 0.0});
+        result(vi) = 0.0;
+        flag = true;
+        break;
+      }
+    }
+    if (flag)
+    {
+      flag = false;
+      continue;
+    }
+    Force_result[vi] = result(vi) * Sim_handler->Vertex_normals[vi];
+  }
+
+  for (int bi = 0; bi < N_beads; bi++)
+  {
+    Force = Vector3{0.0, 0.0, result((N_vert + bi))};
+
+    Beads[bi]->Total_force = Force;
+  }
+
+  return Force_result;
+  //
+}
+double Mem3DG::integrate_Newton_Normal(std::ofstream &Sim_data, double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data, std::vector<std::string> Constraints, std::vector<std::string> Data_filenames)
+{
+  std::cout << "THe lagrange multipliers are " << Sim_handler->Lagrange_mult.transpose() << "\n";
+  auto start = chrono::steady_clock::now();
+  auto end = chrono::steady_clock::now();
+  auto construction_start = chrono::steady_clock::now();
+  auto construction_end = chrono::steady_clock::now();
+  auto solve_start = chrono::steady_clock::now();
+  auto solve_end = chrono::steady_clock::now();
+
+  bool regularize = true;
+
+  double time_construct = 0;
+  double time_solve = 0;
+  double time_compute = 0;
+  double time_gradients = 0;
+  double time_backtracking = 0;
+
+  size_t bead_count = 0;
+  geometry->requireFaceAreas();
+  A = 0.0;
+  for (Face f : mesh->faces())
+    A += geometry->faceAreas[f];
+  geometry->unrequireFaceAreas();
+
+  size_t N_vert = mesh->nVertices();
+  int N_beads = Beads.size();
+  int N_constraints = 0;
+
+  for (size_t i = 0; i < Constraints.size(); i++)
+  {
+    if (Constraints[i] == "Volume")
+      N_constraints += 1;
+    if (Constraints[i] == "Area")
+      N_constraints += 1;
+    if (Constraints[i] == "CMx")
+      N_constraints += 1;
+    if (Constraints[i] == "CMy")
+      N_constraints += 1;
+    if (Constraints[i] == "CMz")
+      N_constraints += 1;
+    if (Constraints[i] == "Rx")
+      N_constraints += 1;
+    if (Constraints[i] == "Ry")
+      N_constraints += 1;
+    if (Constraints[i] == "Rz")
+      N_constraints += 1;
+  }
   std::cout << "The number of constraints is " << N_constraints << "\n";
   Sim_handler->N_constraints = N_constraints;
   Sim_handler->Constraints = Constraints;
@@ -4137,9 +4338,10 @@ double Mem3DG::integrate_Newton_Normal(std::ofstream &Sim_data, double time, std
   // Current grad norm is
 
   double backtrackstep;
-  if (false)
+  // if (false)
+  // {
+  if (result.dot(RHS) < 0)
   {
-    // if(result.dot(RHS)<0 || Projection <0.0){
     //
     std::cout << "The result is not a descent direction, we will not backtrack\n";
     small_TS = true;
@@ -4155,8 +4357,10 @@ double Mem3DG::integrate_Newton_Normal(std::ofstream &Sim_data, double time, std
       backtrackstep = Backtracking_grad_Normal(result.tail(N_constraints), Projection, Current_grad_norm);
     }
     else
+    {
       backtrackstep = timestep;
-
+      geometry->inputVertexPositions += Force_result * backtrackstep;
+    }
     geometry->refreshQuantities();
     double TotE = 0.0;
 

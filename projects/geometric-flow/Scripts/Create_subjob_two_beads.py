@@ -26,6 +26,7 @@ import numpy as np
 angle = sys.argv[1]
 outside1 = int(sys.argv[2])
 outside2 = int(sys.argv[3])
+radius = float(sys.argv[4])
 ka = sys.argv[5]
 Nsim = 1
 
@@ -33,7 +34,7 @@ Nsim = 1
 
 
 # Strength=sys.argv[2]
-radius = float(sys.argv[4])
+
 
 # KA = sys.argv[4]
 # KB = sys.argv[5]
@@ -157,7 +158,7 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
     
     location = [1,"outside","inside"]
 
-    dir = '"../Results/Two_beads_r_{0:.2f}_{1}_{2}_BFGS_Fixed_Surface_tension/"'.format(radius,location[outside1],location[outside2])
+    dir = '"../Results/Two_beads_r_{0:.2f}_{1}_{2}_BFGS_Fixed_May/"'.format(radius,location[outside1],location[outside2])
 
     x1 = float(dist)/2.0
     x2 = -float(dist)/2.0 
@@ -167,7 +168,7 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
     disp2 = 0.0
 
     print("Disp is {}".format(disp))
-    return
+
 
     if(outside1<0 and outside2 <0 ):
         disp =-1*np.sqrt(  (R_vesicle-r_bead)**2 -(float(dist)/2.0)**2)
@@ -178,9 +179,8 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
         disp = np.sqrt(  (R_vesicle+r_bead)**2 - (disp2+float(dist)/2)**2      ) 
 
 
-    # We should do 
-    
-    output_from_parsed_template = template.render(Dir = dir,r=radius,rc = radius*1.2,dist = dist, outside1 = outside1,disp = disp,disp2 = disp2, x1 = x1, outside2 = outside2, x2 = x2 , KA = ka)
+    # We should do  
+    output_from_parsed_template = template.render(Dir = dir,r=radius,rc = radius*1.25,dist = dist, outside1 = outside1,disp = disp,disp2 = disp2, x1 = x1, outside2 = outside2, x2 = x2 , KA = ka)
 
 
 
@@ -189,7 +189,7 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
 
 
     # print("something\n")
-    Config_path = '../Config_files/Wrapping_two_{0:.2f}_{1}_{2}_{3}_BFGS_ST_{4}_3.json'.format(radius,angle,location[outside1],location[outside2],ka) 
+    Config_path = '../Config_files/Wrapping_two_{0:.2f}_{1}_{2}_{3}_BFGS_ST_{4}_May.json'.format(radius,angle,location[outside1],location[outside2],ka) 
     
     sim_path = data['first_dir']
     
@@ -217,10 +217,10 @@ Config_path, sim_path = Create_json_wrapping_two_fixed(angle,outside1,outside2)
 
 
 # # def main():
-Output_name = 'output_two_r_{0:.2f}_theta_{1}_{2}_{3}_BFGS_ST_{4}.output'.format(radius,angle,location[outside1],location[outside2],ka)
+Output_name = 'output_two_r_{0:.2f}_theta_{1}_{2}_{3}_BFGS_ST_{4}_May.output'.format(radius,angle,location[outside1],location[outside2],ka)
 Output_path = '../Outputs/'+Output_name
 
-f=open('../Subjobs/subjob_two_bead_r_{0:.2f}_theta_{1}_{2}_{3}_BFGS_ST_{4}'.format(radius,angle,location[outside1],location[outside2],ka),'w')
+f=open('../Subjobs/subjob_two_bead_r_{0:.2f}_theta_{1}_{2}_{3}_BFGS_ST_{4}_May'.format(radius,angle,location[outside1],location[outside2],ka),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')
@@ -239,7 +239,7 @@ f.write('#SBATCH --time=12:01:20\n')
 
 f.write('#\n')
 f.write('#Define the amount of system RAM used by your job in GigaBytes\n')
-f.write('#SBATCH --mem=5G\n')
+f.write('#SBATCH --mem=8G\n')
 f.write('#\n')
 
 #f.write('#Send emails when a job starts, it is finished or it exits\n')
@@ -281,7 +281,7 @@ f.write('srun time -v ../build/bin/main_cluster {} {}\n'.format(Config_path,Nsim
 f.write('date\n')
 #  Here we can tell the script to move the output file
 
-f.write('cp {}.output {}/{}.txt \n'.format(Output_path,sim_path,Output_name) )
+f.write('cp {} {}/{} \n'.format(Output_path,sim_path,Output_name) )
 # I need to acces the data in the config file.
 
 f.write('\n')

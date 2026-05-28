@@ -1239,15 +1239,15 @@ int main(int argc, char **argv)
     // Bead_datas << "Remeshing_time Gradients Backtracking  Construction compute Solve \n";
     // Bead_datas.close();
 
-    std::string filename2 = basic_name + "Bead_data.txt";
+    // std::string filename2 = basic_name + "Bead_data.txt";
 
-    std::ofstream Bead_data(filename2);
+    // std::ofstream Bead_data(filename2);
 
     bool Save_bead_data = false;
     bool Save_output_data = false;
     bool small_Ts;
-    Bead_data << "####### This data is taken every" << save_interval << " steps just like the mesh dump, radius is " << radius << " \n";
-    Bead_data.close();
+    // Bead_data << "####### This data is taken every" << save_interval << " steps just like the mesh dump, radius is " << radius << " \n";
+    // Bead_data.close();
 
     size_t n_vert;
     size_t n_vert_old;
@@ -1439,7 +1439,7 @@ int main(int argc, char **argv)
             {
                 R0 = sqrt(A_bar / (4 * PI));
 
-                c_null = Energy_constants[i][1] / R0;
+                c_null = Energy_constants[i][1];
                 Energy_constants[i][1] = c_null;
                 Sim_handler.Energy_constants[i][1] = c_null;
                 std::cout << "Updated the C0 to " << c_null << "\n";
@@ -1453,7 +1453,7 @@ int main(int argc, char **argv)
     }
 
     std::cout << "Starting sim\n";
-    for (size_t current_t = 1; current_t <= Final_t; current_t++)
+    for (size_t current_t = 0; current_t <= Final_t; current_t++)
     {
         M3DG.discreteTs = current_t;
         for (int sw = 0; sw < Switches.size(); sw++)
@@ -1950,7 +1950,6 @@ int main(int argc, char **argv)
             // Bead_data.close();
             // Sim_data.close();
             // std::cout<<"Saving\n";
-
             start_time_control = chrono::steady_clock::now();
             // if(current_t%100==0){
             Save_mesh(basic_name, current_t);
@@ -1958,7 +1957,7 @@ int main(int argc, char **argv)
             end_time_control = chrono::steady_clock::now();
             saving_mesh_time += chrono::duration_cast<chrono::milliseconds>(end_time_control - start_time_control).count();
             Save_bead_data = true;
-            Bead_data = std::ofstream(filename2, std::ios_base::app);
+            // Bead_data = std::ofstream(filename2, std::ios_base::app);
             Save_output_data = true;
             Sim_data = std::ofstream(filename, std::ios_base::app);
         }
@@ -2016,9 +2015,9 @@ int main(int argc, char **argv)
         // std::cout<<"Bead_1 position changed? "<< Bead_1.Pos << " \n";
 
         start_time_control = chrono::steady_clock::now();
-        // std::cout<<"We integrate\n";
         if (Integration == "Gradient_descent")
         {
+
             // std::cout<<"Gonna integrate now\n";
             dt_sim = M3DG.integrate(Sim_data, time, Bead_filenames, Save_output_data);
         }
@@ -2507,7 +2506,6 @@ int main(int argc, char **argv)
             M3DG.system_time += 1;
         }
 
-        Bead_data.close();
         Sim_data.close();
 
         end_time_control = chrono::steady_clock::now();
@@ -2534,16 +2532,6 @@ int main(int argc, char **argv)
 
     Sim_data.close();
 
-    // std::cout << "Saving the beads\n";
-    if (Beads.size() > 0)
-    {
-        Bead_data.close();
-
-        Bead_data = std::ofstream(Bead_filenames[Beads.size()], std::ios_base::app);
-
-        Bead_data << (chrono::duration_cast<chrono::milliseconds>(end_full - start_full).count()) << " 0 0 0 0 0 \n";
-        Bead_data.close();
-    }
     std::cout << "Saving the final state\n";
     if (Saving_last_states)
     {

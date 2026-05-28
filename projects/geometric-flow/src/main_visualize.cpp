@@ -135,11 +135,14 @@ double trgt_len;
 double avg_remeshing;
 bool edge_length_adj;
 VertexData<Vector3> ORIG_VPOS; // original vertex positions
-Vector3 CoM;                   // original center of mass
+
+Vector3 CoM; // original center of mass
 
 Mem3DG M3DG;
 E_Handler Sim_handler;
-
+VertexData<Vector3> NewtonStepSaved;
+float NewtonTs = 1.0;
+// bool Backtracking = false;
 // std::vector<Bead> Beads;
 // std::vector<std::string> bonds;
 // std::vector<std::vector<double>> constants;
@@ -876,11 +879,7 @@ double Integration_step(int timestep, bool Save, bool First_iter)
             {
                 Beads[i].state = "froze";
             }
-            // std::cout << "We are doing the first iter\n";
             Sim_handler.update_vertex_normals();
-            // std::cout << "COnstraints is " << Constraints.size() << " in size \n";
-            // for (size_t i = 0; i < Constraints.size(); i++)
-            // std::cout << "The constraint is " << Constraints[i] << " \n";
             Lagrange_mults.resize(Constraints.size());
             for (size_t i = 0; i < Constraints.size(); i++)
                 Lagrange_mults(i) = 0.0f;
@@ -895,10 +894,36 @@ double Integration_step(int timestep, bool Save, bool First_iter)
                     Sim_handler.Energy_constants[i][0] = 0.0;
                 }
                 if (Energies[i] == "Volume_constraint")
+                {
                     Sim_handler.Energy_constants[i][0] = 0.0;
+                    V_bar = Energy_constants[i][1];
+                }
             }
             // Should i add the target volume and target area too?
             Sim_handler.Trgt_area = A_target;
+            Sim_handler.Trgt_vol = V_bar;
+            Sim_handler.Constraints = Constraints;
+            // std::cout << "Solving the sytem to get the initial lagrange multipliers\n";
+            // i WANT TO SOLVE THE rectangular system.
+            Sim_handler.Calculate_Jacobian_Normal();
+            Sim_handler.Calculate_gradient();
+            // std::cout << "We called our gradients \n";
+            Eigen::MatrixXd Jt = Sim_handler.Jacobian_constraints.transpose();
+            Jt = Jt.block(0, 0, Sim_handler.mesh->nVertices(), 2);
+            Eigen::VectorXd df(Sim_handler.mesh->nVertices());
+            // std::cout << "The cuantities have been defined\n";
+            // std::cout << "The shape of Jt is" << Jt.rows() << " " << Jt.cols() << "\n";
+            // std::cout << "The shape of df is" << df.size() << "\n";
+            for (size_t i = 0; i < Sim_handler.mesh->nVertices(); i++)
+            {
+                df(i) = dot(Sim_handler.Current_grad[i], Sim_handler.Vertex_normals[i]);
+            }
+            // std::cout << "THe long awaited solve\n";
+            Eigen::VectorXd delta_lambdas = Jt.colPivHouseholderQr().solve(df);
+            // std::cout << "Solved!\n";
+            Sim_handler.Lagrange_mult(0) = delta_lambdas(0);
+            Sim_handler.Lagrange_mult(1) = delta_lambdas(1);
+            // std::cout << "The initial lagrange multipliers are " << Sim_handler.Lagrange_mult.transpose() << "\n";
         }
         // Ok i need this thing to
         // I need to know if it is the first iteration or not ...
@@ -909,6 +934,61 @@ double Integration_step(int timestep, bool Save, bool First_iter)
     if (Save)
         Sim_data.close();
     return timeStep;
+}
+
+VertexData<Vector3> NewtonStep()
+{
+
+    for (size_t i = 0; i < Beads.size(); i++)
+    {
+        Beads[i].state = "froze";
+    }
+    Sim_handler.update_vertex_normals();
+    Lagrange_mults.resize(Constraints.size());
+    for (size_t i = 0; i < Constraints.size(); i++)
+        Lagrange_mults(i) = 0.0f;
+    Sim_handler.Lagrange_mult = Lagrange_mults;
+    double A_target = 0.0;
+    // Now i need to do the area constraint
+    for (size_t i = 0; i < Energies.size(); i++)
+    {
+        if (Energies[i] == "Area_constraint")
+        {
+            A_target = Energy_constants[i][1];
+            Sim_handler.Energy_constants[i][0] = 0.0;
+        }
+        if (Energies[i] == "Volume_constraint")
+        {
+            Sim_handler.Energy_constants[i][0] = 0.0;
+            V_bar = Energy_constants[i][1];
+        }
+    }
+    // Should i add the target volume and target area too?
+    Sim_handler.Trgt_area = A_target;
+    Sim_handler.Trgt_vol = V_bar;
+    Sim_handler.Constraints = Constraints;
+    // std::cout << "Solving the sytem to get the initial lagrange multipliers\n";
+    // i WANT TO SOLVE THE rectangular system.
+    Sim_handler.Calculate_Jacobian_Normal();
+    Sim_handler.Calculate_gradient();
+    // std::cout << "We called our gradients \n";
+    Eigen::MatrixXd Jt = Sim_handler.Jacobian_constraints.transpose();
+    Jt = Jt.block(0, 0, Sim_handler.mesh->nVertices(), 2);
+    Eigen::VectorXd df(Sim_handler.mesh->nVertices());
+    // std::cout << "The cuantities have been defined\n";
+    // std::cout << "The shape of Jt is" << Jt.rows() << " " << Jt.cols() << "\n";
+    // std::cout << "The shape of df is" << df.size() << "\n";
+    for (size_t i = 0; i < Sim_handler.mesh->nVertices(); i++)
+    {
+        df(i) = dot(Sim_handler.Current_grad[i], Sim_handler.Vertex_normals[i]);
+    }
+    // std::cout << "THe long awaited solve\n";
+    Eigen::VectorXd delta_lambdas = Jt.colPivHouseholderQr().solve(df);
+    // std::cout << "Solved!\n";
+    Sim_handler.Lagrange_mult(0) = delta_lambdas(0);
+    Sim_handler.Lagrange_mult(1) = delta_lambdas(1);
+    // std::cout << "The initial lagrange multipliers are " << Sim_handler.Lagrange_mult.transpose() << "\n";
+    return M3DG.Newton_Normal_step(Sim_data, 0, Bead_filenames, false, Constraints, Constraints);
 }
 
 static const ImVec4 pressColor = ImColor::HSV(1. / 7.0f, 0.6f, 0.6f); // gold
@@ -1195,6 +1275,27 @@ void Callback_qts()
             }
             ImGui::TreePop();
         }
+        if (ImGui::TreeNodeEx("Newton funoptions"))
+        {
+            // 3 THINGS
+            // 1. Calculate the newton step
+            // 2. stepsize
+            // 3. step that amount
+
+            if (ImGui::Button("Calculate Newton step"))
+            {
+                NewtonStepSaved = NewtonStep();
+                psMesh->addVertexVectorQuantity("Newton step", NewtonStepSaved);
+            }
+
+            ImGui::InputFloat("Step size", &NewtonTs, 1.0, 1.0, 4);
+            if (ImGui::Button("Take Newton step"))
+            {
+                geometry->vertexPositions += NewtonTs * NewtonStepSaved;
+                psMesh->updateVertexPositions(geometry->vertexPositions);
+            }
+            ImGui::TreePop();
+        }
 
         ImGui::TreePop();
     }
@@ -1268,12 +1369,18 @@ void Callback_qts()
         }
         if (Area_constraint && updateArea)
             updateTargetArea(current_t + integration_counter, origA, A_bar, dA, minStepsReq);
-        Integration_step(integration_counter + current_t, Save, integration_counter == 1 && !continueLastCall);
+        double timestepIter = Integration_step(integration_counter + current_t, Save, integration_counter == 1 && !continueLastCall);
+
         if (Save)
         {
             savedSteps += 1;
             // std::cout << "Saving the mesh uwu\n";
             Save_mesh(basic_name, current_t + integration_counter);
+        }
+        if (timestepIter <= 0)
+        {
+            std::cout << "Sim is not progresssing we will stop integrating\n";
+            integration_counter = integration_steps;
         }
     }
 
@@ -1407,6 +1514,11 @@ void Callback_qts()
             Sim_handler.Calculate_gradient();
             psMesh->addVertexVectorQuantity("Full gradient", Sim_handler.Current_grad);
         }
+        ImGui::SameLine(150);
+        if (ImGui::Button("Display Newton step"))
+        {
+            psMesh->addVertexVectorQuantity("Newton step", NewtonStep());
+        }
 
         static std::vector<std::vector<float>> Menu_E_constants(Og_Energy_constants.size());
         // Ok so now
@@ -1444,8 +1556,9 @@ void Callback_qts()
                     // static float Value = Energy_constants[i][0];
                     ImGui::DragFloat(("Constant " + std::to_string(j)).c_str(), &Menu_E_constants[i][j], Og_Energy_constants[i][j] * 0.1, Og_Energy_constants[i][j] * 10.0, Og_Energy_constants[i][j] * 0.1, "%.3f");
                     Energy_constants[i][j] = Menu_E_constants[i][j];
+                    // Sim_handler.Energy_constants[i][j] = Energy_constants[i][j];
                 }
-                // char Energy_constant  = std::to_string(Energy_constants[i][0]).c_str();
+
                 ImGui::TreePop();
             }
             // OK now i will add just a button to show the gradient of the beads

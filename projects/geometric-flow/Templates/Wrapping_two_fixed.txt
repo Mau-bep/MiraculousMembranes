@@ -1,7 +1,7 @@
 {
     "init_file": "../../../input/Simplesphere.obj",
-    "save_interval": 200,
-    "timesteps": 150000,
+    "save_interval": 500,
+    "timesteps": 70000,
     "continue_sim": false,
     "resize_vol": false,
     "arcsim": true,
@@ -11,8 +11,18 @@
     "remesh_every": 1,
     "Count_remesh": true,
     "first_dir": {{ Dir }},
-    "Switches" : ["BFGS","BFGS-Normal"],
-    "Switch_times": [3000,70000],
+    "Switches" : ["BFGS",
+        "BFGS-Normal",
+        "Newton-Normal",
+        "No_remesh",
+        "Save_all",
+        "Freeze_beads"],
+    "Switch_times": [3000,
+        7000,
+        69990,
+        69990,
+        69990,
+        7000],
     "boundary": false,
     "recentering": false,
     "saving_states": true,
@@ -26,18 +36,18 @@
     ],
     "Energies": [
         {
-            "Name": "Bending_tan",
+            "Name": "Bending",
             "constants": [
                 20.0 
             ]
         },
         {
             "Name": "Volume_constraint",
-            "constants":[100000.0, -1.0]
+            "constants":[1000000.0, -1.0]
         },
         {
-            "Name": "Surface_tension",
-            "constants":[{{KA}}, -1.0]
+            "Name": "Area_constraint",
+            "constants":[{{KA}}, -1.0,-1.0, 0.01]
         }
         
     ],
@@ -51,8 +61,8 @@
             "Pos": [
                 {{ x1 }},0.0,0.0
             ],
-            "mem_inter": "Frenkel_Normal_nopush",
-            "inter_str": 1000,
+            "mem_inter": "Frenkel",
+            "inter_str": 800,
             "rc" : {{ rc }},
             "bonds": [],
             "bonds_constants": [],
@@ -73,8 +83,8 @@
                 0.0,
                 0.0
             ],
-            "mem_inter": "Frenkel_Normal_nopush",
-            "inter_str": 1000,
+            "mem_inter": "Frenkel",
+            "inter_str": 800,
             "rc" : {{ rc }},
             "bonds": [],
             "bonds_constants": [],
@@ -86,10 +96,10 @@
     ,
     "remesher": {
         "aspect_min": 0.2,
-        "refine_angle": 0.7,
+        "refine_angle": 0.6,
         "refine_compression": 0.0001,
         "refine_velocity": 1.0,
-        "size_max": 0.2,
+        "size_max": 0.15,
         "size_min": 0.001
     }
 }
