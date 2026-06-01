@@ -104,6 +104,7 @@ public:
 
     virtual void Calculate_energies(double *E);
     virtual void Calculate_Lag_norm(double *Norm);
+    virtual void Calculate_Merit(double *Norm);
     virtual void Calculate_Lag_norm_Normal(double *Norm);
 
     // THis function saves the value of the gradient to current gradient but before saves current gradient to previous gradient
@@ -117,6 +118,7 @@ public:
 
     virtual SparseMatrix<double> Calculate_Hessian();
     virtual SparseMatrix<double> Calculate_Hessian_Normal();
+    virtual SparseMatrix<double> Calculate_Hessian_Normal_clipped();
     virtual SparseMatrix<double> Calculate_Hessian_E();
     virtual SparseMatrix<double> Calculate_Hessian_E_Verts();
     virtual SparseMatrix<double> Calculate_Hessian_Constraints();

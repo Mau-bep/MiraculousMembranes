@@ -875,6 +875,9 @@ double Integration_step(int timestep, bool Save, bool First_iter)
     {
         if (First_iter)
         {
+            std::cout << "Beaut of contraints ";
+            for (size_t i = 0; i < Constraints.size(); i++)
+                std::cout << Constraints[i] << " ";
             for (size_t i = 0; i < Beads.size(); i++)
             {
                 Beads[i].state = "froze";
@@ -909,20 +912,21 @@ double Integration_step(int timestep, bool Save, bool First_iter)
             Sim_handler.Calculate_gradient();
             // std::cout << "We called our gradients \n";
             Eigen::MatrixXd Jt = Sim_handler.Jacobian_constraints.transpose();
-            Jt = Jt.block(0, 0, Sim_handler.mesh->nVertices(), 2);
+            Jt = Jt.block(0, 0, Sim_handler.mesh->nVertices(), 1);
             Eigen::VectorXd df(Sim_handler.mesh->nVertices());
             // std::cout << "The cuantities have been defined\n";
-            // std::cout << "The shape of Jt is" << Jt.rows() << " " << Jt.cols() << "\n";
-            // std::cout << "The shape of df is" << df.size() << "\n";
+            std::cout << "The shape of Jt is" << Jt.rows() << " " << Jt.cols() << "\n";
+            std::cout << "The shape of df is" << df.size() << "\n";
             for (size_t i = 0; i < Sim_handler.mesh->nVertices(); i++)
             {
                 df(i) = dot(Sim_handler.Current_grad[i], Sim_handler.Vertex_normals[i]);
             }
+            Eigen::MatrixXd J = Jt.transpose();
             // std::cout << "THe long awaited solve\n";
-            Eigen::VectorXd delta_lambdas = Jt.colPivHouseholderQr().solve(df);
+            Eigen::VectorXd delta_lambdas = (J * Jt).colPivHouseholderQr().solve(J * df);
             // std::cout << "Solved!\n";
             Sim_handler.Lagrange_mult(0) = delta_lambdas(0);
-            Sim_handler.Lagrange_mult(1) = delta_lambdas(1);
+            // Sim_handler.Lagrange_mult(1) = delta_lambdas(1);
             // std::cout << "The initial lagrange multipliers are " << Sim_handler.Lagrange_mult.transpose() << "\n";
         }
         // Ok i need this thing to
@@ -943,6 +947,10 @@ VertexData<Vector3> NewtonStep()
     {
         Beads[i].state = "froze";
     }
+    std::cout << "Beaut of contraints ";
+    for (size_t i = 0; i < Constraints.size(); i++)
+        std::cout << Constraints[i] << " ";
+    std::cout << "\n";
     Sim_handler.update_vertex_normals();
     Lagrange_mults.resize(Constraints.size());
     for (size_t i = 0; i < Constraints.size(); i++)
@@ -975,6 +983,7 @@ VertexData<Vector3> NewtonStep()
     Eigen::MatrixXd Jt = Sim_handler.Jacobian_constraints.transpose();
     Jt = Jt.block(0, 0, Sim_handler.mesh->nVertices(), 2);
     Eigen::VectorXd df(Sim_handler.mesh->nVertices());
+
     // std::cout << "The cuantities have been defined\n";
     // std::cout << "The shape of Jt is" << Jt.rows() << " " << Jt.cols() << "\n";
     // std::cout << "The shape of df is" << df.size() << "\n";
@@ -1498,6 +1507,11 @@ void Callback_qts()
             Options.refine_angle = refineAngle;
             // This is where we will add the different options to change
             ImGui::TreePop();
+        }
+        if (ImGui::Button("Display normals"))
+        {
+            M3DG.Sim_handler->update_vertex_normals();
+            psMesh->addVertexVectorQuantity("Normals", M3DG.Sim_handler->Vertex_normals);
         }
 
         ImGui::TreePop(); // This is required at the end of the if block
@@ -2242,8 +2256,24 @@ int main(int argc, char **argv)
     int Nsim = std::stoi(argv[2]);
 
     json Data = json::parse(JsonFile);
-
+    std::string first_dir;
     // We loaded the json file
+    // std::cout << "Here\n";
+    bool loaded = false;
+    if (Data.contains("Subfolder"))
+    {
+        loaded = true;
+        std::string subfolder = Data["Subfolder"];
+        std::cout << "Loaded the subfolder " << subfolder << "\n";
+        first_dir = Data["first_dir"];
+        basic_name = first_dir + subfolder;
+        std::cout << "THe basic name is " << basic_name << "\n";
+        JsonFile.close();
+        std::cout << "Closed the json\n";
+        std::cout << "The candidate for file is " << basic_name + "Input_file.json" << "\n";
+        JsonFile.open(basic_name + "/Input_file.json", std::ios::in);
+        Data = json::parse(JsonFile);
+    }
 
     Switch = "None";
     Switch_t = 0;
@@ -2359,12 +2389,15 @@ int main(int argc, char **argv)
         std::cout << " \n";
 
         // I want to add here something
-        if (Energy["Name"] == "Volume_constraint" && Constants[1] < 0)
+        if (Energy["Name"] == "Volume_constraint")
         {
-            // THe volume constraint wants the default volume
-            Constants[1] = geometry->totalVolume();
             Constraints.push_back("Volume");
-            std::cout << "Setting the target volume to current volume \n";
+            if (Constants[1] < 0)
+            {
+                Constants[1] = geometry->totalVolume();
+                std::cout << "Setting the target volume to current volume \n";
+            }
+            V_bar = Constants[1];
         }
         if (Energy["Name"] == "Area_constraint")
         {
@@ -2971,16 +3004,13 @@ int main(int argc, char **argv)
 
     //
 
-    std::string first_dir = Data["first_dir"];
+    first_dir = Data["first_dir"];
 
     int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
     // std::string filename;
-    if (Data.contains("Subfolder"))
+    if (loaded)
     {
-        std::string subfolder = Data["Subfolder"];
-        // first_dir = first_dir + Data["Subfolder" ;
-        basic_name = first_dir + subfolder;
         filename = basic_name + "Output_data.txt";
         Sim_data = std::ofstream(filename, std::ios_base::app);
         Sim_data.close();
@@ -3027,10 +3057,6 @@ int main(int argc, char **argv)
     Bead_datas.close();
 
     std::cout << "Here4\n";
-
-    // COmo por aca hay de todo
-
-    // Ok so here is where we register the surface mesh with polyscope
 
     polyscope::state::facePickIndStart = mesh->nVertices();
     polyscope::state::edgePickIndStart = polyscope::state::facePickIndStart + mesh->nFaces();

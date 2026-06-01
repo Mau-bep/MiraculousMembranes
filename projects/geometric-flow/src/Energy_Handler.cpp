@@ -3742,6 +3742,119 @@ void E_Handler::Calculate_Lag_norm_Normal(double *Norm)
     }
 }
 
+void E_Handler::Calculate_Merit(double *Norm)
+{
+
+    *Norm = 0;
+    Energy_values.resize(Energies.size());
+
+    int bead_count = 0;
+    for (size_t i = 0; i < Energies.size(); i++)
+    {
+        if (Energies[i] == "Volume_constraint")
+        {
+            if (Energy_constants[i][0] > 1e-5)
+                Energy_values[i] = E_Volume_constraint(Energy_constants[i]);
+            else
+                Energy_values[i] = 0.0;
+            *Norm += Energy_values[i];
+            continue;
+        }
+        if (Energies[i] == "Area_constraint")
+        {
+            if (Energy_constants[i][0] > 1e-5)
+                Energy_values[i] = E_Area_constraint(Energy_constants[i]);
+            else
+                Energy_values[i] = 0.0;
+
+            // std::cout<<"THe target area is " << Energy_constants[i][1] <<" \n";
+            *Norm += Energy_values[i];
+            continue;
+        }
+        if (Energies[i] == "Surface_tension" || Energies[i] == "H1_Surface_tension" || Energies[i] == "H2_Surface_tension")
+        {
+            if (Energy_constants[i][0] < 1e-5)
+            {
+                Energy_values[i] = 0.0;
+                continue;
+            }
+            Energy_values[i] = E_SurfaceTension(Energy_constants[i]);
+            *Norm += Energy_values[i];
+            continue;
+        }
+        if (Energies[i] == "Bending" || Energies[i] == "H1_Bending" || Energies[i] == "H2_Bending")
+        {
+            if (Energy_constants[i][0] < 1e-5)
+            {
+                Energy_values[i] = 0.0;
+                continue;
+            }
+
+            Energy_values[i] = E_Bending(Energy_constants[i]);
+            *Norm += Energy_values[i];
+            continue;
+        }
+        if (Energies[i] == "Bending_tan")
+        {
+            if (Energy_constants[i][0] < 1e-5)
+            {
+                Energy_values[i] = 0.0;
+                continue;
+            }
+
+            Energy_values[i] = E_Bending_tan(Energy_constants[i]);
+            *Norm += Energy_values[i];
+            continue;
+        }
+        if (Energies[i] == "Bead" || Energies[i] == "H1_Bead" || Energies[i] == "H2_Bead")
+        {
+            Energy_values[i] = Beads[bead_count]->Bead_I->Tot_Energy();
+            *Norm += Energy_values[i];
+            bead_count++;
+            continue;
+        }
+        if (Energies[i] == "Laplace")
+        {
+            Energy_values[i] = E_Laplace(Energy_constants[i]);
+            *Norm += Energy_values[i];
+            continue;
+        }
+
+        if (Energies[i] == "Edge_reg")
+        {
+            Energy_values[i] = E_Edge_reg(Energy_constants[i]);
+            *Norm += Energy_values[i];
+            continue;
+        }
+        if (Energies[i] == "Face_reg")
+        {
+            if (Face_reference.size() == 0)
+            {
+                update_face_reference();
+            }
+            Energy_values[i] = E_Face_reg(Energy_constants[i]);
+            *Norm += Energy_values[i];
+            continue;
+        }
+    }
+
+    double val;
+    // I need to add the beads
+    for (int i = 0; i < N_constraints; i++)
+    {
+        if (Constraints[i] == "Volume")
+        {
+            val = (geometry->totalVolume() - Trgt_vol);
+            *Norm += val * val;
+        }
+        if (Constraints[i] == "Area")
+        {
+            val = (geometry->totalArea() - Trgt_area);
+            *Norm += val * val;
+        }
+    }
+}
+
 void E_Handler::Calculate_gradient()
 {
     Previous_grad = Current_grad;
@@ -4236,6 +4349,7 @@ void E_Handler::Calculate_Jacobian()
         {
             // I need to find which are the energy constants
             grad_vol = F_Volume(std::vector<double>{-1.0});
+
             N_constraints += 1;
             // std::cout<<"Volume constraint added \n";
             // Constraint_values.push_back(geometry->totalVolume());
@@ -4511,7 +4625,8 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_Normal()
     {
         if (Energies[i] == "Bending")
         {
-            Hessian += H_Bending(Energy_constants[i]);
+            SparseMatrix<double> H_bend = H_Bending(Energy_constants[i]);
+            Hessian += H_bend;
         }
         if (Energies[i] == "Surface_tension")
         {
@@ -4523,6 +4638,7 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_Normal()
         }
         if (Energies[i] == "Bead")
         {
+            // SO the new idea is to delete this part
             Hessian += Beads[bead_counter]->Bead_I->Hessian();
             bead_counter += 1;
         }
@@ -4554,6 +4670,175 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_Normal()
             Hessian += -1.0 * Lagrange_mult(i) * H_SurfaceTension(std::vector<double>{1.0});
         }
     }
+
+    double H_norm = Hessian.diagonal().maxCoeff();
+    double H_min = Hessian.diagonal().minCoeff();
+    std::cout << "Hessian diagonal ratio: " << H_norm / H_min << std::endl;
+
+    // Now i need to convert this hessian to the one that uses the normals
+
+    SparseMatrix<double> Normal_Hessian(mesh->nVertices(), mesh->nVertices());
+    // SparseMatrix<double> Normal_Hessian(mesh->nVertices() + N_beads, mesh->nVertices() + N_beads);
+
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+    double val;
+    Eigen::Vector<double, 3> Normal_i;
+    Eigen::Vector<double, 3> Normal_j;
+    Eigen::Matrix<double, 3, 3> Block;
+    Eigen::Vector<double, 3> Row_vec;
+    int Bead_id;
+    // So here i need to define the thigns that i need
+    std::unordered_set<std::pair<int, int>, MyHashForPairs> visited_pairs;
+    size_t row;
+    size_t col;
+    std::pair<int, int> current_pair;
+    for (int k = 0; k < Hessian.outerSize(); ++k)
+        for (SparseMatrix<double>::InnerIterator it(Hessian, k); it; ++it)
+        {
+            // val = it.value();
+            row = it.row(); // row index
+            col = it.col(); // col index (here it is equal to k)
+            current_pair = make_pair(row / 3, col / 3);
+            if (visited_pairs.find(current_pair) != visited_pairs.end())
+            {
+                continue;
+            }
+            else
+            {
+                visited_pairs.insert(current_pair);
+
+                if (current_pair.first >= N_verts || current_pair.second >= N_verts)
+                {
+                    continue;
+                    // This part corresponds to the bead, lets do it (:
+                    // This are 3 cases
+                    if (current_pair.first >= N_verts && current_pair.second >= N_verts)
+                    {
+                        Bead_id = current_pair.first - N_verts;
+                        Block = Hessian.block(row, col, 3, 3);
+                        Row_vec = Block * Eigen::Vector3d{0.0, 0.0, 1.0};
+                        val = Eigen::Vector3d{0.0, 0.0, 1.0}.dot(Row_vec);
+                        tripletList.push_back(T(current_pair.first, current_pair.second, val));
+                    }
+                    else if (current_pair.first >= N_verts && current_pair.second < N_verts)
+                    {
+                        Bead_id = current_pair.first - N_verts;
+                        Normal_j << Vertex_normals[current_pair.second].x, Vertex_normals[current_pair.second].y, Vertex_normals[current_pair.second].z;
+                        Block = Hessian.block(row, col, 3, 3);
+                        Row_vec = Block * Normal_j;
+                        val = Eigen::Vector3d{0.0, 0.0, 1.0}.dot(Row_vec);
+                        tripletList.push_back(T(current_pair.first, current_pair.second, val));
+                    }
+                    else if (current_pair.first < N_verts && current_pair.second >= N_verts)
+                    {
+                        Bead_id = current_pair.second - N_verts;
+                        Normal_i << Vertex_normals[current_pair.first].x, Vertex_normals[current_pair.first].y, Vertex_normals[current_pair.first].z;
+                        Block = Hessian.block(row, col, 3, 3);
+                        Row_vec = Block * Eigen::Vector3d{0.0, 0.0, 1.0};
+                        val = Normal_i.dot(Row_vec);
+                        tripletList.push_back(T(current_pair.first, current_pair.second, val));
+                    }
+                }
+                else
+                {
+                    Normal_i << Vertex_normals[row / 3].x, Vertex_normals[row / 3].y, Vertex_normals[row / 3].z;
+                    Normal_j << Vertex_normals[col / 3].x, Vertex_normals[col / 3].y, Vertex_normals[col / 3].z;
+
+                    Block = Hessian.block(row, col, 3, 3);
+                    Row_vec = Block * Normal_j;
+                    val = Normal_i.dot(Row_vec);
+                    tripletList.push_back(T(current_pair.first, current_pair.second, val));
+                }
+            }
+        }
+
+    Normal_Hessian.setFromTriplets(tripletList.begin(), tripletList.end());
+    // std::cout << "Hihihi\n";
+    // std::cout << "THe full hessian is \n"
+    //           << Hessian.toDense() << "\n";
+    // std::cout << "The normal hessian is \n"
+    //           << Normal_Hessian.toDense() << "\n";
+
+    return Normal_Hessian;
+}
+
+SparseMatrix<double> E_Handler::Calculate_Hessian_Normal_clipped()
+{
+
+    int N_verts = mesh->nVertices();
+    int N_beads = Beads.size();
+
+    std::vector<double> Energy_constants_val;
+    SparseMatrix<double> Hessian(3 * (N_verts + N_beads), 3 * (N_verts + N_beads));
+    std::string constraint;
+
+    int bead_counter = 0;
+    for (size_t i = 0; i < Energies.size(); i++)
+    {
+        if (Energies[i] == "Bending")
+        {
+            Hessian += H_Bending(Energy_constants[i]);
+        }
+        if (Energies[i] == "Surface_tension")
+        {
+            Hessian += H_SurfaceTension(Energy_constants[i]);
+        }
+        if (Energies[i] == "Laplace")
+        {
+            Hessian += H_Laplace(Energy_constants[i]);
+        }
+        if (Energies[i] == "Bead")
+        {
+            SparseMatrix<double> H_Bead(3 * (N_verts + N_beads), 3 * (N_verts + N_beads));
+            H_Bead += Beads[bead_counter]->Bead_I->Hessian();
+            int counter = 0;
+            // I WANT TO CLIP THIS Hessian
+            for (size_t j = 0; j < H_Bead.rows(); j++)
+            {
+                double &val = H_Bead.coeffRef(j, j);
+                if (val < 0.0)
+                {
+                    val = 0.0;
+                    counter += 1;
+                }
+            }
+            std::cout << "There were " << counter << " negative values in the diag :o \n";
+            Hessian += H_Bead;
+            bead_counter += 1;
+        }
+        if (Energies[i] == "Edge_reg")
+        {
+            Hessian += H_Edge_reg(Energy_constants[i]);
+        }
+        if (Energies[i] == "Face_reg")
+        {
+            Hessian += H_Face_reg(Energy_constants[i]);
+        }
+        if (Energies[i] == "Bending_tan")
+        {
+            Hessian += H_Bending_tan(Energy_constants[i]);
+        }
+    }
+
+    // std::cout << "Hihihi\n";
+    for (size_t i = 0; i < Constraints.size(); i++)
+    {
+        constraint = Constraints[i];
+        if (constraint == "Volume")
+        {
+            // std::cout << "Adding volume constraint to the hessian \n";
+            Hessian += -1.0 * Lagrange_mult(i) * H_Volume(std::vector<double>{1.0});
+        }
+        if (constraint == "Area")
+        {
+            Hessian += -1.0 * Lagrange_mult(i) * H_SurfaceTension(std::vector<double>{1.0});
+        }
+    }
+
+    double H_norm = Hessian.diagonal().maxCoeff();
+    double H_min = Hessian.diagonal().minCoeff();
+    std::cout << "Hessian diagonal ratio: " << H_norm / H_min << std::endl;
 
     // Now i need to convert this hessian to the one that uses the normals
 

@@ -25,7 +25,7 @@ import numpy as np
 # KA=float(sys.argv[3])
 # KB=float(sys.argv[4])
 Strength=sys.argv[1]
-radius = float(sys.argv[2])
+radius = sys.argv[2]
 
 KA = sys.argv[3]
 KB = sys.argv[4]
@@ -58,15 +58,16 @@ def Create_json_wrapping(ka,kb,r,inter_str):
 
 def Create_json_wrapping_vesicle(ka,kb,r,inter_str):
 
+    rad = float(r)
     os.makedirs("../Config_files/",exist_ok = True)
     env = Environment(loader=FileSystemLoader('../Templates/'))
 
     template = env.get_template('Wrapping_vesicle.txt')
-    output_from_parsed_template = template.render(KA = ka, KB = kb,radius = r,rc=r*1.2,xpos = 2.0+r ,interaction=inter_str)
+    output_from_parsed_template = template.render(KA = ka, KB = kb,radius = r,rc=rad*1.25,xpos = 2.0+rad ,interaction=inter_str)
 
     data = json.loads(output_from_parsed_template)
 
-    Config_path = '../Config_files/Wrapping_BFGS_strg_{}_radius_{}_KA_{}_KB_{}.json'.format(inter_str,r,ka,kb) 
+    Config_path = '../Config_files/Wrapping_LBFGS_strg_{}_radius_{}_KA_{}_KB_{}.json'.format(inter_str,r,ka,kb) 
     
     sim_path = data['first_dir']
 
@@ -84,14 +85,14 @@ os.makedirs('../Outputs/',exist_ok=True)
 Config_path, sim_path = Create_json_wrapping_vesicle(KA,KB,radius,Strength)
 
 
-f=open('../Subjobs/subjob_BFGS_wrapping_Strg_{}_radius_{}_KA_{}_KB_{}_Nsim_{}'.format(Strength,radius,KA,KB,Nsim),'w')
+f=open('../Subjobs/subjob_LBFGS_wrapping_Strg_{}_radius_{}_KA_{}_KB_{}_Nsim_{}'.format(Strength,radius,KA,KB,Nsim),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')
 
 f.write('#SBATCH --job-name=Mem3DGpa\n')
 
-Output_name = 'output_BFGS_wrapping_Strg_{}_radius_{}_KA_{}_KB_{}_Nsim_{}.output'.format(Strength,radius,KA,KB,Nsim)
+Output_name = 'output_LBFGS_wrapping_Strg_{}_radius_{}_KA_{}_KB_{}_Nsim_{}.output'.format(Strength,radius,KA,KB,Nsim)
 
 Output_path = '../Outputs/'+Output_name
 f.write('#SBATCH --output={}\n'.format(Output_path))

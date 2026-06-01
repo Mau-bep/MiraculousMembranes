@@ -560,10 +560,13 @@ int main(int argc, char **argv)
         for (size_t z = 0; z < Constants.size(); z++)
             std::cout << Constants[z] << " ";
         std::cout << " \n";
-        if (Energy["Name"] == "Volume_constraint" && Constants[1] < 0)
+        if (Energy["Name"] == "Volume_constraint")
         {
-            Constants[1] = geometry->totalVolume();
+
+            if (Constants[1] < 0)
+                Constants[1] = geometry->totalVolume();
             std::cout << "Setting the target volume to current volume \n";
+            V_bar = Constants[1];
         }
         if (Energy["Name"] == "Area_constraint")
         {
@@ -583,6 +586,7 @@ int main(int argc, char **argv)
                 if (Constants[1] > 0)
                 {
                     A_bar = Constants[1];
+                    std::cout << "The target area is " << A_bar << " \n";
                 }
                 else
                 {
@@ -1308,6 +1312,7 @@ int main(int argc, char **argv)
     M3DG.basic_name = basic_name;
 
     M3DG.BFGS_iter = 0;
+    M3DG.Newton_iter = 0;
 
     std::cout << "The number of vertices is " << mesh->nVertices() << "\n";
     // Lets add noise here
@@ -1453,6 +1458,8 @@ int main(int argc, char **argv)
     }
 
     std::cout << "Starting sim\n";
+
+    std::vector<std::string> Constraints(0);
     for (size_t current_t = 0; current_t <= Final_t; current_t++)
     {
         M3DG.discreteTs = current_t;
@@ -2087,7 +2094,7 @@ int main(int argc, char **argv)
                 Switch_times_map["Newton"] = -1;
             }
 
-            std::vector<std::string> Constraints(0);
+            // std::vector<std::string> Constraints(0);
 
             if (!M3DG.boundary)
                 Constraints = std::vector<std::string>{"Volume"};
@@ -2164,19 +2171,28 @@ int main(int argc, char **argv)
             }
             if (current_t == 1 || current_t == Switch_t)
             {
+                Constraints.resize(0);
                 Sim_handler.update_vertex_normals();
                 std::cout << "defining lagrange mults\n";
                 if (!M3DG.boundary)
                 {
+                    Constraints.push_back("Volume");
                     Eigen::VectorXd Lagrange_mults;
-                    Lagrange_mults.resize(1);
+                    Lagrange_mults.resize(7);
                     Lagrange_mults(0) = 0.0;
+                    Lagrange_mults(1) = 0.0;
+                    Lagrange_mults(2) = 0.0;
+                    Lagrange_mults(3) = 0.0;
+                    Lagrange_mults(4) = 0.0;
+                    Lagrange_mults(5) = 0.0;
+                    Lagrange_mults(6) = 0.0;
 
                     double A_target = 0.0;
                     for (size_t i = 0; i < Energies.size(); i++)
                     {
                         if (Energies[i] == "Area_constraint")
                         {
+                            Constraints.push_back("Area");
                             A_target = Energy_constants[i][1];
                             Lagrange_mults.resize(8);
                             Lagrange_mults(0) = 0.0;
@@ -2194,7 +2210,7 @@ int main(int argc, char **argv)
                     if (Beads.size() > 0)
                     {
                         std::cout << "The current area is " << geometry->totalArea() << "\n";
-                        std::cout << "The target area is " << A_target * 1.05 << "\n";
+                        std::cout << "The target area is " << A_target << "\n";
                         Sim_handler.Trgt_area = A_target;
                         // Sim_handler.Trgt_area = A_target * 1.025;
                     }
@@ -2202,35 +2218,61 @@ int main(int argc, char **argv)
                     {
                         Sim_handler.Trgt_area = A_target;
                     }
-                    Sim_handler.Lagrange_mult = Lagrange_mults;
 
+                    Constraints.push_back("CMx");
+                    Constraints.push_back("CMy");
+                    Constraints.push_back("CMz");
+                    Constraints.push_back("Rx");
+                    Constraints.push_back("Ry");
+                    Constraints.push_back("Rz");
+                    Sim_handler.Constraints = Constraints;
+
+                    // We will estimate the lagrange multiplier
+                    Sim_handler.Calculate_Jacobian_Normal();
+                    Sim_handler.Calculate_gradient();
+                    Eigen::MatrixXd Jt = Sim_handler.Jacobian_constraints.transpose();
+                    Jt = Jt.block(0, 0, Sim_handler.mesh->nVertices(), 1);
+                    Eigen::VectorXd df(Sim_handler.mesh->nVertices());
+                    // std::cout << "The cuantities have been defined\n";
+                    std::cout << "The shape of Jt is" << Jt.rows() << " " << Jt.cols() << "\n";
+                    std::cout << "The shape of df is" << df.size() << "\n";
+                    for (size_t i = 0; i < Sim_handler.mesh->nVertices(); i++)
+                    {
+                        df(i) = dot(Sim_handler.Current_grad[i], Sim_handler.Vertex_normals[i]);
+                    }
+                    Eigen::MatrixXd J = Jt.transpose();
+                    // std::cout << "THe long awaited solve\n";
+                    Eigen::VectorXd delta_lambdas = (J * Jt).colPivHouseholderQr().solve(J * df);
+                    Lagrange_mults(0) = delta_lambdas(0);
+                    Sim_handler.Lagrange_mult = Lagrange_mults;
+                    std::cout << "THe lagrange mults would be " << Lagrange_mults.transpose() << "\n";
                     Sim_handler.Trgt_vol = V_bar;
                     std::cout << "DOne definining\n";
                 }
                 else
                 {
-                    Eigen::VectorXd Lagrange_mults(7);
+                    Eigen::VectorXd Lagrange_mults(6);
                     Lagrange_mults(0) = 0.0;
                     Lagrange_mults(1) = 0.0;
                     Lagrange_mults(2) = 0.0;
                     Lagrange_mults(3) = 0.0;
                     Lagrange_mults(4) = 0.0;
                     Lagrange_mults(5) = 0.0;
-                    Lagrange_mults(6) = 0.0;
+                    // Lagrange_mults(6) = 0.0;
                     Sim_handler.Lagrange_mult = Lagrange_mults;
                 }
                 Switch_times_map["Newton-Normal"] = -1;
             }
 
-            std::vector<std::string> Constraints(0);
-            if (!M3DG.boundary)
-                Constraints = std::vector<std::string>{"Volume"};
+            // std::vector<std::string> Constraints(0);
+            // if (!M3DG.boundary)
+            //     Constraints = std::vector<std::string>{"Volume"};
 
             for (size_t i = 0; i < Energies.size(); i++)
             {
                 if (Energies[i] == "Area_constraint")
                 {
-                    Constraints.push_back("Area");
+                    // Constraints.push_back("Area");
                     Sim_handler.Energy_constants[i][0] = 0.0;
                     continue;
                 }
@@ -2241,15 +2283,9 @@ int main(int argc, char **argv)
                 }
             }
 
-            Constraints.push_back("CMx");
-            Constraints.push_back("CMy");
-            Constraints.push_back("CMz");
-            Constraints.push_back("Rx");
-            Constraints.push_back("Ry");
-            Constraints.push_back("Rz");
-
             if (Constraints.size() > Sim_handler.Lagrange_mult.size())
             {
+                std::cout << "Resizing the lagrange mults?\n";
                 Sim_handler.Lagrange_mult.resize(Constraints.size());
                 for (size_t i = 0; i < Sim_handler.Lagrange_mult.size(); i++)
                 {

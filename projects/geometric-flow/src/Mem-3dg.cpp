@@ -1130,6 +1130,383 @@ double Mem3DG::Backtracking()
   return alpha;
 }
 
+double Mem3DG::Backtracking_grad_Normal_2(Eigen::VectorXd p_lambda, double Projection, double Current_grad_norm)
+{
+
+  double c1 = 0.0001;
+  double rho = 0.5;
+  double alpha = 1;
+  // alpha = 5e-4;
+  double position_Projeection = 0;
+  double X_pos;
+
+  int N_vert = mesh->nVertices();
+  int N_beads = Beads.size();
+
+  VertexData<Vector3> Step_newton = Sim_handler->Current_grad;
+  std::vector<Vector3> Step_beads(0);
+
+  for (size_t bi = 0; bi < N_beads; bi++)
+    Step_beads.push_back(Beads[bi]->Total_force);
+
+  double PrevNorm = Current_grad_norm;
+
+  double NewNorm;
+  double NewMerit;
+  double V;
+  double A;
+  double PrevMerit = 0;
+  Sim_handler->Calculate_Merit(&PrevMerit);
+
+  // Now we have the whole merit function this can be turned into a proper function later
+
+  VertexData<Vector3> initial_pos(*mesh);
+  Eigen::VectorXd initial_lag;
+  std::vector<Vector3> initial_bead_pos(0);
+
+  // We will open a file to log the backtracking process
+  std::ofstream backtrack_log;
+
+  backtrack_log.open(basic_name + "backtrack_log.txt", std::ios::app);
+  // So the order will be : Prevnorm Projection NEWNORM NEWNORM NEWNORM ...
+
+  backtrack_log << PrevMerit << " ";
+  if (recentering)
+  {
+    if (Field != "None")
+    {
+      // std::cout<<"THere is a field\n";
+      Vector3 leftmost = Vector3({1e10, 1e10, 1e10});
+      for (Vertex v : mesh->vertices())
+      {
+        if (geometry->inputVertexPositions[v].x < leftmost.x)
+          leftmost = geometry->inputVertexPositions[v];
+      }
+      // I have the leftmost vertex, the position of this vertex should be P
+      leftmost = Vector3({-1.0, 0.0, 0.0}) - leftmost;
+      VertexData<Vector3> Displacement(*mesh, leftmost);
+      geometry->inputVertexPositions += Displacement;
+    }
+    else
+    {
+      // Ok so if there is a field the way we normalize is different.
+      //
+      Vector3 CoM = geometry->centerOfMass();
+
+      geometry->normalize(Vector3({0.0, 0.0, 0.0}), false);
+    }
+  }
+  Vector3 CoM = geometry->centerOfMass();
+
+  initial_pos = geometry->inputVertexPositions;
+  initial_lag = Sim_handler->Lagrange_mult;
+
+  for (int bi = 0; bi < N_beads; bi++)
+  {
+    initial_bead_pos.push_back(Beads[bi]->Pos);
+  }
+
+  std::vector<Vector3> Bead_init;
+
+  for (size_t i = 0; i < N_beads; i++)
+    Bead_init.push_back(Beads[i]->Pos);
+
+  Vector3 center;
+  geometry->inputVertexPositions += alpha * Step_newton;
+  // We move the beads;
+  for (size_t i = 0; i < Beads.size(); i++)
+    Beads[i]->Move_bead(alpha, Vector3({0, 0, 0}));
+
+  for (int i = 0; i < Sim_handler->N_constraints; i++)
+  {
+    if (Sim_handler->Constraints[i] == "Volume" || Sim_handler->Constraints[i] == "Area")
+    {
+      Sim_handler->Lagrange_mult[i] -= alpha * p_lambda[i];
+    }
+  }
+
+  bool nanflag = false;
+  for (Vertex v : mesh->vertices())
+  {
+    if (isnan(geometry->inputVertexPositions[v].norm2()))
+      nanflag = true;
+  }
+
+  if (nanflag)
+    std::cout << "At least one vertex has nan position\n";
+
+  center = geometry->centerOfMass();
+  Vector3 Vertex_pos;
+
+  size_t bead_count = 0;
+  NewNorm = 0.0;
+  Sim_handler->Calculate_Lag_norm_Normal(&NewNorm);
+  NewMerit = 0.0;
+  Sim_handler->Calculate_Merit(&NewMerit);
+
+  size_t counter = 0;
+  bool displacement_cond = true;
+
+  if (Projection < 1e-7)
+  {
+    small_TS = true;
+    std::cout << "The norm  diff is quite small and so is the gradient\n";
+    std::cout << "The norm diff is" << abs(NewNorm - PrevNorm) / PrevNorm << "\n";
+    std::cout << "The projection is" << Projection << "\n";
+    return -1.0;
+  }
+
+  // Ok so here we have the new merit and the
+
+  while (true)
+  {
+    displacement_cond = true;
+    backtrack_log << NewMerit << " ";
+
+    for (size_t i = 0; i < Beads.size(); i++)
+      displacement_cond = displacement_cond && Beads[i]->Total_force.norm() * alpha < 0.1 * Beads[i]->sigma;
+
+    // if( fabs(PrevNorm-NewNorm) <= alpha * Projection && NewNorm < PrevNorm  ) {
+    // if (NewNorm < PrevNorm)
+    if (NewMerit < PrevMerit)
+    {
+
+      if (fabs(NewNorm - PrevNorm) > 5e1 && false)
+      {
+
+        std::cout << "The energies are ";
+        for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
+          std::cout << Sim_handler->Energies[i] << " is " << Sim_handler->Energy_values[i] << " ";
+        std::cout << " \n";
+        std::cout << "The projection is " << Projection << " \n";
+
+        double Max_projection = 0.0;
+        int maxproj_index = 0;
+
+        double maxDisplacement = 0.0;
+        std::cout << "Finding breaking point\n";
+        for (Vertex v : mesh->vertices())
+        {
+          if (Sim_handler->Current_grad[v].norm() > Max_projection)
+          {
+            Max_projection = Sim_handler->Current_grad[v].norm();
+            maxproj_index = v.getIndex();
+          }
+          double displacement = (geometry->inputVertexPositions[v] - initial_pos[v]).norm();
+          if (displacement > maxDisplacement)
+          {
+            maxDisplacement = displacement;
+          }
+        }
+        std::cout << "The max displacement is " << maxDisplacement << " \n";
+        std::cout << "The value of alpha is " << alpha << " \n";
+        std::cout << "We will recalculate the energies, lets go back one step for now\n";
+        geometry->inputVertexPositions = initial_pos;
+
+        Sim_handler->Lagrange_mult = initial_lag;
+
+        // geometry->refreshQuantities();
+        mesh->compress();
+        // I want something else
+
+        alpha = 0.0;
+
+        // Lets troubleshoot this hehe
+        std::cout << "The previous energy was" << PrevNorm << " \n";
+        std::cout << "The projection of the bigges vertex is " << Max_projection << " \n";
+        std::cout << "This vertex is located at " << geometry->inputVertexPositions[maxproj_index] << " \n";
+        std::cout << "This vertex in init pos is  at " << initial_pos[maxproj_index] << " \n";
+
+        // Lets explore the sorroundings
+        Vertex v = mesh->vertex(maxproj_index);
+        for (Face f : v.adjacentFaces())
+        {
+          std::cout << "The adjacent faces are " << f.getIndex() << " \n";
+          std::cout << "With area " << geometry->faceArea(f) << " \n";
+        }
+        for (Halfedge he : v.outgoingHalfedges())
+        {
+          std::cout << "The adjacent halfedges are " << he.getIndex() << " \n";
+          std::cout << "With cotan " << geometry->cotan(he) << " \n";
+        }
+      }
+      backtrack_log << "\n";
+      backtrack_log.close();
+      break;
+    }
+
+    if (std::isnan(NewNorm))
+    {
+      std::cout << "Grad norm is nan \n";
+      backtrack_log << "\n";
+      backtrack_log.close();
+      alpha = -1.0;
+      break;
+    }
+
+    alpha *= rho;
+    if ((abs((NewNorm - PrevNorm) / PrevNorm) < 1e-7 && Projection < 0.5) || Projection < 1e-5)
+    {
+      small_TS = true;
+      std::cout << "The energy diff is quite small and so is the gradient\n";
+      std::cout << "The energy diff is" << abs(NewNorm - PrevNorm) / PrevNorm << "\n";
+      std::cout << "The projection is" << Projection << "\n";
+      backtrack_log << "\n";
+      backtrack_log.close();
+      return -1.0;
+    }
+
+    if (alpha < 1e-10)
+    {
+      std::cout << "THe timestep got small so the simulation would end \n";
+      std::cout << "THe timestep is " << alpha << " \n";
+      std::cout << "The NORM diff is" << abs(NewNorm - PrevNorm) << "\n";
+      std::cout << "The merit diff is" << abs(NewMerit - PrevMerit) << "\n";
+
+      std::cout << "THe relative energy diff  is" << abs((NewNorm - PrevNorm) / PrevNorm) << "\n";
+      std::cout << "THe relative energy diff  is" << abs((NewMerit - PrevMerit) / PrevMerit) << "\n";
+      std::cout << " THe merit function is " << NewMerit << " \n";
+      std::cout << "The projection is" << Projection << "\n";
+      std::cout << "The projection is too big " << (Projection > 1.0e8) << " \n";
+      if (Projection > 1.0e8)
+      {
+        // return alpha;
+        std::cout << "The gradient got crazy\n";
+        std::cout << "The projections is " << Projection << "\n";
+        geometry->inputVertexPositions = initial_pos;
+        Sim_handler->Lagrange_mult = initial_lag;
+        backtrack_log << "\n";
+        backtrack_log.close();
+        return -1;
+      }
+      if (Projection < 100)
+      {
+        small_TS = true;
+      }
+
+      break;
+
+      // LEts try to step when it get super small
+    }
+
+    else if (small_TS)
+      small_TS = false;
+    // std::cout<<"System time is" << system_time <<" \n";
+    if (alpha > 0)
+    {
+      // std::cout<<"UPDATING POSITIONS\n";
+      geometry->inputVertexPositions = initial_pos + alpha * Step_newton;
+
+      for (int i = 0; i < Sim_handler->N_constraints; i++)
+      {
+        if (Sim_handler->Constraints[i] == "Volume" || Sim_handler->Constraints[i] == "Area")
+        {
+          // std::cout<<"Updating lagrange multipliers\n";
+          Sim_handler->Lagrange_mult[i] = initial_lag[i] - alpha * p_lambda[i];
+        }
+      }
+      // std::cout<<"The lagrange multipliers are " << Sim_handler->Lagrange_mult.transpose() << "\n";
+
+      for (size_t i = 0; i < Beads.size(); i++)
+      {
+        Beads[i]->Reset_bead(Bead_init[i]);
+        Beads[i]->Total_force = Step_beads[i];
+        Beads[i]->Move_bead(alpha, Vector3({0, 0, 0}));
+      }
+    }
+    else
+    {
+      for (size_t i = 0; i < Beads.size(); i++)
+      {
+        Beads[i]->Reset_bead(Bead_init[i]);
+        // Beads[i]->Move_bead(alpha, Vector3({0,0,0}));
+      }
+      geometry->inputVertexPositions = initial_pos;
+      Sim_handler->Lagrange_mult = initial_lag;
+    }
+
+    // geometry->refreshQuantities();
+
+    bead_count = 0;
+
+    // NewE = 0.0;
+    // Sim_handler->Calculate_energies(&NewE);
+    NewNorm = 0.0;
+    Sim_handler->Calculate_Lag_norm_Normal(&NewNorm);
+    NewMerit = 0.0;
+    Sim_handler->Calculate_Merit(&NewMerit);
+    // Sim_handler->Calculate_Lag_norm(&NewNorm);
+    // NewNorm = NewNorm;
+  }
+
+  backtrack_log << "\n";
+  backtrack_log.close();
+
+  nanflag = false;
+
+  for (Vertex v : mesh->vertices())
+    if (isnan(geometry->inputVertexPositions[v].x + geometry->inputVertexPositions[v].y + geometry->inputVertexPositions[v].z))
+      nanflag = true;
+
+  if (nanflag)
+    std::cout << "After backtracking one vertex is nan :( also the value of alpha is" << alpha << " \n";
+  if (alpha <= 0.0)
+  {
+    // std::cout<<"Repositioning\n";
+    geometry->inputVertexPositions = initial_pos;
+  }
+  if (recentering)
+  {
+
+    if (alpha <= 0.0)
+    {
+      std::cout << "NotRecentering after crisis\n";
+    }
+    else
+    {
+      // std::cout<<"rENORMALIZING\n";
+      CoM = geometry->centerOfMass();
+
+      if (Field != "None")
+      {
+        // std::cout<<"THere is a field\n";
+        Vector3 leftmost = Vector3({1e10, 1e10, 1e10});
+        for (Vertex v : mesh->vertices())
+        {
+          if (geometry->inputVertexPositions[v].x < leftmost.x)
+            leftmost = geometry->inputVertexPositions[v];
+        }
+        // I have the leftmost vertex, the position of this vertex should be P
+        leftmost = Vector3({-1.0, 0.0, 0.0}) - leftmost;
+        CoM = leftmost;
+        VertexData<Vector3> Displacement(*mesh, leftmost);
+        geometry->inputVertexPositions += Displacement;
+      }
+      else
+      {
+        geometry->normalize(Vector3({0.0, 0.0, 0.0}), false);
+      }
+      // CoM = geometry->centerOfMass();
+
+      for (size_t i = 0; i < Beads.size(); i++)
+      {
+
+        // Here i need to move the bead
+        // if(Beads[i]->state!= "froze"){
+        Beads[i]->Pos -= CoM;
+        // }
+      }
+      // }
+      //
+    }
+    // geometry->refreshQuantities();
+  }
+
+  // std::cout<<"The difference in energy is " << fabs(NewE-previousE) <<"(: \n";
+  // std::cout<<"The new norm is " << NewNorm << "\n";
+  return alpha;
+}
+
 double Mem3DG::Backtracking_grad_Normal(Eigen::VectorXd p_lambda, double Projection, double Current_grad_norm)
 {
 
@@ -1386,6 +1763,7 @@ double Mem3DG::Backtracking_grad_Normal(Eigen::VectorXd p_lambda, double Project
         if (Sim_handler->Constraints[i] == "Volume" || Sim_handler->Constraints[i] == "Area")
         {
           // std::cout<<"Updating lagrange multipliers\n";
+          std::cout << "p lambda is" << p_lambda[i] << " \n";
           Sim_handler->Lagrange_mult[i] = initial_lag[i] - alpha * p_lambda[i];
         }
       }
@@ -4188,6 +4566,318 @@ double Mem3DG::integrate_Newton_Normal(std::ofstream &Sim_data, double time, std
   start = chrono::steady_clock::now();
   // std::cout << "Calculating gradients\n";
   Sim_handler->Calculate_gradient_precomp();
+  // Hessian = Sim_handler->Calculate_Hessian_Normal();
+  Hessian = Sim_handler->Calculate_Hessian_Normal_clipped();
+  Sim_handler->Calculate_Jacobian_Normal();
+
+  SparseMatrix<double> LHS((N_vert) + N_constraints, (N_vert) + N_constraints);
+  Eigen::VectorXd RHS((N_vert) + N_constraints);
+
+  typedef Eigen::Triplet<double> T;
+  std::vector<T> tripletList;
+
+  for (int row = 0; row < Sim_handler->Jacobian_constraints.rows(); row++)
+  {
+    for (int col = 0; col < Sim_handler->Jacobian_constraints.cols(); col++)
+    {
+      tripletList.push_back(T(col, row + (N_vert), Sim_handler->Jacobian_constraints(row, col)));
+      tripletList.push_back(T(row + (N_vert), col, Sim_handler->Jacobian_constraints(row, col)));
+    }
+  }
+
+  int row;
+  int col;
+  double value;
+
+  int maxrow = 0;
+  int maxcol = 0;
+
+  int smol_counter = 0;
+  for (long int k = 0; k < Hessian.outerSize(); ++k)
+  {
+    for (SparseMatrix<double>::InnerIterator it(Hessian, k); it; ++it)
+    {
+      value = it.value();
+      row = it.row();
+      col = it.col();
+      if (value < 1e-8 && value > -1e-8)
+        smol_counter += 1;
+      tripletList.push_back(T(row, col, value));
+    }
+  }
+  // We regularize the Hessian by adding a diagonal
+  if (regularize)
+  {
+    double safety_shift = 1e-10 * Hessian.diagonal().cwiseAbs().maxCoeff();
+    std::cout << "Safety shift if " << safety_shift << " \n";
+    for (size_t i = 0; i < (N_vert + N_beads); i++)
+    {
+      tripletList.push_back(T(i, i, safety_shift));
+    }
+  }
+  Eigen::VectorXd LambdaJ = Sim_handler->Jacobian_constraints.transpose() * Sim_handler->Lagrange_mult;
+
+  std::cout << "The lagrange multipliers are " << Sim_handler->Lagrange_mult.transpose() << "\n";
+  std::cout << "The size of Jacobian constraints is " << Sim_handler->Jacobian_constraints.rows() << " and " << Sim_handler->Jacobian_constraints.cols() << "\n";
+
+  std::cout << "THe size of Lambda J is " << LambdaJ.rows() << " and " << LambdaJ.cols() << "\n";
+  std::cout << "THe maximum value of Lambda J is " << LambdaJ.maxCoeff() << " and the minimum is " << LambdaJ.minCoeff() << "\n";
+  Vector3 Force;
+  double dual_area = 0.0;
+  for (size_t vi = 0; vi < mesh->nVertices(); vi++)
+  {
+    Force = Sim_handler->Current_grad[vi];
+    RHS(vi) = LambdaJ(vi) + dot(Force, Sim_handler->Vertex_normals[vi]);
+  }
+  std::cout << "RHS force from vertices ready\n";
+  std::cout << "The size of RHS is " << RHS.rows() << " and " << RHS.cols() << "\n";
+
+  for (int Ci = 0; Ci < N_constraints; Ci++)
+  {
+    // We need to add the value of the constraint
+    if (Constraints[Ci] == "Volume")
+    {
+      RHS((N_vert) + Ci) = -1 * (geometry->totalVolume() - Sim_handler->Trgt_vol);
+      // RHS((N_vert + N_beads) + Ci) = -1 * (geometry->totalVolume() - Sim_handler->Trgt_vol);
+
+      std::cout << "The total volume is " << geometry->totalVolume() << " and the target is " << Sim_handler->Trgt_vol << "\n";
+    }
+    if (Constraints[Ci] == "Area")
+    {
+      RHS((N_vert) + Ci) = -1 * (A - Sim_handler->Trgt_area);
+
+      std::cout << "The total area  is " << A << " and the target is " << Sim_handler->Trgt_area << "\n";
+    }
+    if (Constraints[Ci] == "CMx")
+      RHS((N_vert) + Ci) = 0.0; // Considering the beads should have +N_beads
+    if (Constraints[Ci] == "CMy")
+      RHS((N_vert) + Ci) = 0.0;
+    if (Constraints[Ci] == "CMz")
+      RHS((N_vert) + Ci) = 0.0;
+    if (Constraints[Ci] == "Rx")
+      RHS((N_vert) + Ci) = 0.0;
+    if (Constraints[Ci] == "Ry")
+      RHS((N_vert) + Ci) = 0.0;
+    if (Constraints[Ci] == "Rz")
+      RHS((N_vert) + Ci) = 0.0;
+  }
+  std::cout << "THe maximum value of RHS is " << RHS.maxCoeff() << " and the minimum is " << RHS.minCoeff() << "\n";
+
+  LHS.setFromTriplets(tripletList.begin(), tripletList.end());
+  solverHess.compute(LHS);
+  std::cout << "Is the solve a success?\n";
+  if (solverHess.info() != Eigen::Success)
+  {
+    std::cout << "THe solve is not a succes?\n";
+  }
+
+  Eigen::VectorXd result = solverHess.solve(RHS);
+
+  std::cout << "The size of result is " << result.rows() << " and " << result.cols() << "\n";
+  std::cout << "THe max value of result is " << result.maxCoeff() << " and the minimum is " << result.minCoeff() << "\n";
+
+  VertexData<Vector3> Force_result(*mesh, Vector3({0.0, 0.0, 0.0}));
+  // Eigen::VectorXd Grad_L = LambdaJ+ ;
+  bool flag = false;
+  for (size_t vi = 0; vi < mesh->nVertices(); vi++)
+  {
+    if (mesh->vertex(vi).isBoundary())
+    {
+      Force_result[vi] = Vector3({0.0, 0.0, 0.0});
+      result(vi) = 0.0;
+      continue;
+    }
+    for (Vertex vj : mesh->vertex(vi).adjacentVertices())
+    {
+      if (vj.isBoundary())
+      {
+        Force_result[vi] = Vector3({0.0, 0.0, 0.0});
+        result(vi) = 0.0;
+        flag = true;
+        break;
+      }
+    }
+    if (flag)
+    {
+      flag = false;
+      continue;
+    }
+    Force_result[vi] = result(vi) * Sim_handler->Vertex_normals[vi];
+  }
+
+  for (int bi = 0; bi < N_beads; bi++)
+  {
+    Force = Vector3{0.0, 0.0, result((N_vert + bi))};
+
+    Beads[bi]->Total_force = Force;
+  }
+
+  //
+
+  double Projection = result.transpose() * LHS * RHS;
+  double Current_grad_norm = 0.0;
+
+  Sim_handler->Calculate_Lag_norm_Normal(&Current_grad_norm);
+
+  Sim_handler->Current_grad = Force_result;
+
+  // Current grad norm is
+
+  double backtrackstep;
+  // if (false)
+  // {
+
+  // Ok so here
+  double dirDerivative = result.head(mesh->nVertices()).dot(RHS.head(mesh->nVertices()));
+  std::cout << "The directional derivative is " << dirDerivative << " \n";
+
+  if (result.dot(RHS) < 0 && false)
+  {
+    //
+    std::cout << "The result is not a descent direction, we will not backtrack\n";
+    small_TS = true;
+    backtrackstep = 0.0;
+    // backtrackstep = integrate(Sim_data,time,Bead_data_filenames,Save_output_data);
+  }
+  else
+  {
+
+    if (backtrack)
+    {
+      std::cout << "Projection is " << Projection << " and the grad norm is " << Current_grad_norm << "\n";
+      backtrackstep = Backtracking_grad_Normal(result.tail(N_constraints), Projection, Current_grad_norm);
+    }
+    else
+    {
+      backtrackstep = timestep;
+      geometry->inputVertexPositions += Force_result * backtrackstep;
+    }
+    std::cout << "THe backtrackstep is" << backtrackstep << " \n";
+    geometry->refreshQuantities();
+    double TotE = 0.0;
+
+    Sim_handler->Calculate_energies_precomp(&TotE);
+    A = 0.0;
+    geometry->requireFaceAreas();
+    for (Face f : mesh->faces())
+    {
+      A += geometry->faceArea(f);
+    }
+    Sim_data << time + backtrackstep << " " << discreteTs << " " << geometry->totalVolume() << " " << A << " ";
+    for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
+    {
+
+      Sim_data << Sim_handler->Energy_values[i] << " ";
+    }
+
+    Sim_data << TotE << " ";
+
+    // Sim_data << Current_grad_norm <<" " << backtrackstep <<" \n";
+    for (size_t i = 0; i < Sim_handler->Gradient_norms.size(); i++)
+    {
+      Sim_data << Sim_handler->Gradient_norms[i] << " ";
+    }
+    // Sim_data << Grad_tot_norm << " ";
+    Sim_data << backtrackstep << " \n";
+  }
+
+  if (Bead_data_filenames.size() != 0 && Save_output_data)
+  {
+
+    std::ofstream Bead_data;
+    for (size_t i = 0; i < Beads.size(); i++)
+    {
+      Bead_data = std::ofstream(Bead_data_filenames[i], std::ios_base::app);
+      Bead_data << discreteTs << " " << Beads[i]->Pos.x << " " << Beads[i]->Pos.y << " " << Beads[i]->Pos.z << " " << Beads[i]->Total_force.x << " " << Beads[i]->Total_force.y << " " << Beads[i]->Total_force.z << " \n";
+      Bead_data.close();
+    }
+  }
+
+  return backtrackstep;
+  // Ok so we have everything i guess?
+}
+
+double Mem3DG::integrate_Newton_Normal_Sherman(std::ofstream &Sim_data, double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data, std::vector<std::string> Constraints, std::vector<std::string> Data_filenames)
+{
+  std::cout << "THe lagrange multipliers are " << Sim_handler->Lagrange_mult.transpose() << "\n";
+  auto start = chrono::steady_clock::now();
+  auto end = chrono::steady_clock::now();
+  auto construction_start = chrono::steady_clock::now();
+  auto construction_end = chrono::steady_clock::now();
+  auto solve_start = chrono::steady_clock::now();
+  auto solve_end = chrono::steady_clock::now();
+
+  bool regularize = true;
+
+  double time_construct = 0;
+  double time_solve = 0;
+  double time_compute = 0;
+  double time_gradients = 0;
+  double time_backtracking = 0;
+
+  if (Newton_iter == 0)
+  {
+    // First newton iter
+    mu = 1e-2;
+    // This mu is the value for the area and volume constraint
+  }
+  // Here i will update the values for the area and volume constraint c:
+  for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
+  {
+    if (Sim_handler->Energies[i] == "Volume_constraint")
+    {
+      Sim_handler->Energy_constants[i][0] = mu;
+    }
+    if (Sim_handler->Energies[i] == "Area_constraint")
+    {
+      Sim_handler->Energy_constants[i][0] = mu;
+    }
+  }
+  // SO now the volume and area constraints are back back in the game.
+
+  size_t bead_count = 0;
+  geometry->requireFaceAreas();
+  A = 0.0;
+  for (Face f : mesh->faces())
+    A += geometry->faceAreas[f];
+  geometry->unrequireFaceAreas();
+
+  size_t N_vert = mesh->nVertices();
+  int N_beads = Beads.size();
+  int N_constraints = 0;
+
+  for (size_t i = 0; i < Constraints.size(); i++)
+  {
+    if (Constraints[i] == "Volume")
+      N_constraints += 1;
+    if (Constraints[i] == "Area")
+      N_constraints += 1;
+    if (Constraints[i] == "CMx")
+      N_constraints += 1;
+    if (Constraints[i] == "CMy")
+      N_constraints += 1;
+    if (Constraints[i] == "CMz")
+      N_constraints += 1;
+    if (Constraints[i] == "Rx")
+      N_constraints += 1;
+    if (Constraints[i] == "Ry")
+      N_constraints += 1;
+    if (Constraints[i] == "Rz")
+      N_constraints += 1;
+  }
+  std::cout << "The number of constraints is " << N_constraints << "\n";
+  Sim_handler->N_constraints = N_constraints;
+  Sim_handler->Constraints = Constraints;
+  // SparseMatrix<double> H2_mat;//(N_vert*3+N_constraints,N_vert*3+N_constraints);
+  // SparseMatrix<double> H1_mat;
+  SparseMatrix<double> Hessian;
+  SparseMatrix<double> Hessian_constraints;
+
+  Eigen::SimplicialLDLT<SparseMatrix<double>> solverHess;
+
+  start = chrono::steady_clock::now();
+  // std::cout << "Calculating gradients\n";
+  Sim_handler->Calculate_gradient_precomp();
   Hessian = Sim_handler->Calculate_Hessian_Normal();
   Sim_handler->Calculate_Jacobian_Normal();
 
@@ -4340,7 +5030,7 @@ double Mem3DG::integrate_Newton_Normal(std::ofstream &Sim_data, double time, std
   double backtrackstep;
   // if (false)
   // {
-  if (result.dot(RHS) < 0)
+  if (result.dot(RHS) < 0 && false)
   {
     //
     std::cout << "The result is not a descent direction, we will not backtrack\n";
@@ -4361,6 +5051,7 @@ double Mem3DG::integrate_Newton_Normal(std::ofstream &Sim_data, double time, std
       backtrackstep = timestep;
       geometry->inputVertexPositions += Force_result * backtrackstep;
     }
+    std::cout << "THe backtrackstep is" << backtrackstep << " \n";
     geometry->refreshQuantities();
     double TotE = 0.0;
 

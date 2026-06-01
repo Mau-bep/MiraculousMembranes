@@ -74,6 +74,9 @@ public:
   std::vector<Eigen::VectorXd> y_list;
   std::vector<double> rho_list;
 
+  // Newton param
+  int Newton_iter;
+  double mu;
   // Convergence estimators
   int N_data;
   double mean_E;
@@ -135,6 +138,7 @@ public:
   double Backtracking();
   double Backtracking_grad(Eigen::VectorXd pk, double Projection, double Current_grad_norm);
   double Backtracking_grad_Normal(Eigen::VectorXd pk, double Projection, double Current_grad_norm);
+  double Backtracking_grad_Normal_2(Eigen::VectorXd pk, double Projection, double Current_grad_norm);
 
   double Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3> Bead_forces);
   double Backtracking(VertexData<Vector3> Force, double P0, double V_bar, double A_bar, double KA, double KB, double H_bar, bool bead, bool pulling);
@@ -154,6 +158,8 @@ public:
 
   double integrate_Newton(std::ofstream &Sim_data, double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data, std::vector<std::string> Constraints, std::vector<std::string> Data_filenames);
   double integrate_Newton_Normal(std::ofstream &Sim_data, double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data, std::vector<std::string> Constraints, std::vector<std::string> Data_filenames);
+  double integrate_Newton_Normal_Sherman(std::ofstream &Sim_data, double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data, std::vector<std::string> Constraints, std::vector<std::string> Data_filenames);
+
   VertexData<Vector3> Newton_Normal_step(std::ofstream &Sim_data, double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data, std::vector<std::string> Constraints, std::vector<std::string> Data_filenames);
   double integrate_implicit(std::vector<std::string> Energies, std::vector<std::vector<double>> Energy_constants, std::ofstream &Sim_data, double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data);
 
