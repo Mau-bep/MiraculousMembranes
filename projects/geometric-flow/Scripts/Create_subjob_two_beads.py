@@ -158,7 +158,7 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
     
     location = [1,"outside","inside"]
 
-    dir = '"../Results/Two_beads_r_{0:.2f}_{1}_{2}_BFGS_Fixed_May/"'.format(radius,location[outside1],location[outside2])
+    dir = '"../Results/Two_beads_r_{0:.2f}_{1}_{2}_BFGS_Fixed_june/"'.format(radius,location[outside1],location[outside2])
 
     x1 = float(dist)/2.0
     x2 = -float(dist)/2.0 

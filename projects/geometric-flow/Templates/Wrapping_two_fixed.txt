@@ -1,7 +1,7 @@
 {
     "init_file": "../../../input/Simplesphere.obj",
     "save_interval": 500,
-    "timesteps": 70000,
+    "timesteps": 300000,
     "continue_sim": false,
     "resize_vol": false,
     "arcsim": true,
@@ -19,9 +19,9 @@
         "Freeze_beads"],
     "Switch_times": [3000,
         7000,
-        69990,
-        69990,
-        69990,
+        299990,
+        299990,
+        299990,
         7000],
     "boundary": false,
     "recentering": false,
@@ -38,16 +38,17 @@
         {
             "Name": "Bending",
             "constants": [
-                20.0 
+                20.0 ,
+                0.0
             ]
         },
         {
             "Name": "Volume_constraint",
-            "constants":[1000000.0, -1.0]
+            "constants":[2000000.0, 32.9269]
         },
         {
-            "Name": "Area_constraint",
-            "constants":[{{KA}}, -1.0,-1.0, 0.01]
+            "Name": "Surface_tension",
+            "constants":[{{KA}}, 0.0,-1.0, 0.01]
         }
         
     ],
@@ -62,7 +63,7 @@
                 {{ x1 }},0.0,0.0
             ],
             "mem_inter": "Frenkel",
-            "inter_str": 800,
+            "inter_str": 430,
             "rc" : {{ rc }},
             "bonds": [],
             "bonds_constants": [],
@@ -84,7 +85,7 @@
                 0.0
             ],
             "mem_inter": "Frenkel",
-            "inter_str": 800,
+            "inter_str": 430,
             "rc" : {{ rc }},
             "bonds": [],
             "bonds_constants": [],
@@ -96,7 +97,7 @@
     ,
     "remesher": {
         "aspect_min": 0.2,
-        "refine_angle": 0.6,
+        "refine_angle": 0.55,
         "refine_compression": 0.0001,
         "refine_velocity": 1.0,
         "size_max": 0.15,

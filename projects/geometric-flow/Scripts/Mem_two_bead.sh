@@ -9,8 +9,8 @@
 # set Init_cond=1
 # foreach v ( 1.0 )
 # foreach Init_cond ( 2 )
-set radius = 0.2
-set KA = 100000
+set radius = 0.25
+set KA = 5
 # set KB = 20
 # foreach Strg ( `seq 20 5 140`)
 # foreach Strg ( 225.0  )
