@@ -3863,21 +3863,15 @@ void E_Handler::Calculate_gradient()
     int bead_count = 0;
     double grad_norm = 0;
     // I will do an inspection for vertex 0 ;
-
+    Gradient_norms.resize(Energies.size() + 1, 0.0);
     for (size_t i = 0; i < Energies.size(); i++)
     {
         if (Energies[i] == "Volume_constraint")
         {
             if (Energy_constants[i][0] < 1e-5)
             {
-                if (Gradient_norms.size() == i)
-                {
-                    Gradient_norms.push_back(0.0);
-                }
-                else
-                {
-                    Gradient_norms[i] = 0.0;
-                }
+                Gradient_norms[i] = 0.0;
+
                 continue;
             }
             Force_temp = F_Volume_constraint_2(Energy_constants[i]);
@@ -3886,14 +3880,9 @@ void E_Handler::Calculate_gradient()
             {
                 grad_norm += Force_temp[v].norm2();
             }
-            if (Gradient_norms.size() == i)
-            {
-                Gradient_norms.push_back(grad_norm);
-            }
-            else
-            {
-                Gradient_norms[i] = grad_norm;
-            }
+
+            Gradient_norms[i] = grad_norm;
+
             Current_grad += Force_temp;
             continue;
         }
@@ -3903,15 +3892,8 @@ void E_Handler::Calculate_gradient()
             {
                 if (Energy_constants[i][0] < 1e-5)
                 {
-                    if (Gradient_norms.size() == i)
-                    {
-                        Gradient_norms.push_back(0.0);
-                    }
-                    else
-                    {
-                        Gradient_norms[i] = 0.0;
-                    }
-                    continue;
+
+                    Gradient_norms[i] = 0.0;
                 }
                 continue;
             }
@@ -3921,14 +3903,9 @@ void E_Handler::Calculate_gradient()
             {
                 grad_norm += Force_temp[v].norm2();
             }
-            if (Gradient_norms.size() == i)
-            {
-                Gradient_norms.push_back(grad_norm);
-            }
-            else
-            {
-                Gradient_norms[i] = grad_norm;
-            }
+
+            Gradient_norms[i] = grad_norm;
+
             Current_grad += Force_temp;
             continue;
         }
@@ -3941,14 +3918,9 @@ void E_Handler::Calculate_gradient()
             {
                 grad_norm += Force_temp[v].norm2();
             }
-            if (Gradient_norms.size() == i)
-            {
-                Gradient_norms.push_back(grad_norm);
-            }
-            else
-            {
-                Gradient_norms[i] = grad_norm;
-            }
+
+            Gradient_norms[i] = grad_norm;
+
             Current_grad += Force_temp;
             continue;
         }
@@ -3960,14 +3932,9 @@ void E_Handler::Calculate_gradient()
             {
                 grad_norm += Force_temp[v].norm2();
             }
-            if (Gradient_norms.size() == i)
-            {
-                Gradient_norms.push_back(grad_norm);
-            }
-            else
-            {
-                Gradient_norms[i] = grad_norm;
-            }
+
+            Gradient_norms[i] = grad_norm;
+
             Current_grad += Force_temp;
             continue;
         }
@@ -3979,14 +3946,9 @@ void E_Handler::Calculate_gradient()
             {
                 grad_norm += Force_temp[v].norm2();
             }
-            if (Gradient_norms.size() == i)
-            {
-                Gradient_norms.push_back(grad_norm);
-            }
-            else
-            {
-                Gradient_norms[i] = grad_norm;
-            }
+
+            Gradient_norms[i] = grad_norm;
+
             Current_grad += Force_temp;
             continue;
         }
@@ -3998,14 +3960,8 @@ void E_Handler::Calculate_gradient()
             {
                 grad_norm += Force_temp[j].norm2();
             }
-            if (Gradient_norms.size() == i)
-            {
-                Gradient_norms.push_back(grad_norm);
-            }
-            else
-            {
-                Gradient_norms[i] = grad_norm;
-            }
+
+            Gradient_norms[i] = grad_norm;
 
             Current_grad += Force_temp;
             bead_count += 1;
@@ -4020,14 +3976,9 @@ void E_Handler::Calculate_gradient()
             {
                 grad_norm += Force_temp[v].norm2();
             }
-            if (Gradient_norms.size() == i)
-            {
-                Gradient_norms.push_back(grad_norm);
-            }
-            else
-            {
-                Gradient_norms[i] = grad_norm;
-            }
+
+            Gradient_norms[i] = grad_norm;
+
             Current_grad += Force_temp;
             continue;
         }
@@ -4039,14 +3990,9 @@ void E_Handler::Calculate_gradient()
             {
                 grad_norm += Force_temp[v].norm2();
             }
-            if (Gradient_norms.size() == i)
-            {
-                Gradient_norms.push_back(grad_norm);
-            }
-            else
-            {
-                Gradient_norms[i] = grad_norm;
-            }
+
+            Gradient_norms[i] = grad_norm;
+
             Current_grad += Force_temp;
             continue;
         }
@@ -4061,14 +4007,9 @@ void E_Handler::Calculate_gradient()
             {
                 grad_norm += Force_temp[v].norm2();
             }
-            if (Gradient_norms.size() == i)
-            {
-                Gradient_norms.push_back(grad_norm);
-            }
-            else
-            {
-                Gradient_norms[i] = grad_norm;
-            }
+
+            Gradient_norms[i] = grad_norm;
+
             Current_grad += Force_temp;
             continue;
         }

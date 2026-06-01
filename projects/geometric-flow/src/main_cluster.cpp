@@ -2561,6 +2561,10 @@ int main(int argc, char **argv)
                 std::cout << "Ending sim due to small TS and long enough time \n";
                 break;
             }
+            std::ifstream statm("/proc/self/statm");
+            long pages;
+            statm >> pages;
+            std::cout << "RSS at t=" << current_t << ": " << pages * 4 / 1024 << " MB\n";
         }
     }
     std::cout << "The simulation is finished\n";
