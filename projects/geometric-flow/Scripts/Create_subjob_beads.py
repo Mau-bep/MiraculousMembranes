@@ -106,7 +106,7 @@ f.write('#SBATCH --time=10:00:00\n')
 
 f.write('#\n')
 f.write('#Define the amount of system RAM used by your job in GigaBytes\n')
-f.write('#SBATCH --mem=3G\n')
+f.write('#SBATCH --mem=16G\n')
 f.write('#\n')
 
 #f.write('#Send emails when a job starts, it is finished or it exits\n')
@@ -145,7 +145,9 @@ f.write('date\n')
 f.write('srun time -v ../build/bin/main_cluster {} {}\n'.format(Config_path,Nsim))
 f.write('date\n')
 
-f.write('cp {}.output {}/{}.txt \n'.format(Output_path,sim_path,Output_name) )
+
+f.write('cp {} {}/{} \n'.format(Output_path,sim_path,Output_name) )
+# I need to acces the data in the config file.
 
 
 f.write('\n')
