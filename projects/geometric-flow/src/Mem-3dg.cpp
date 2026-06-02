@@ -1032,13 +1032,13 @@ double Mem3DG::Backtracking()
     {
       BFGS_iter = 0;
       remesh_flag = true;
-      std::cout << "The remesh flag is true\n";
-      std::cout << "THe timestep got small so the simulation would end \n";
-      std::cout << "THe timestep is " << alpha << " \n";
-      std::cout << "The energy diff is" << abs(NewE - previousE) << "\n";
-      std::cout << "THe relative energy diff  is" << abs((NewE - previousE) / previousE) << "\n";
-      std::cout << "The projection is" << Projection << "\n";
-      std::cout << "The projection is too big " << (Projection > 1.0e8) << " \n";
+      // std::cout << "The remesh flag is true\n";
+      // std::cout << "THe timestep got small so the simulation would end \n";
+      // std::cout << "THe timestep is " << alpha << " \n";
+      // std::cout << "The energy diff is" << abs(NewE - previousE) << "\n";
+      // std::cout << "THe relative energy diff  is" << abs((NewE - previousE) / previousE) << "\n";
+      // std::cout << "The projection is" << Projection << "\n";
+      // std::cout << "The projection is too big " << (Projection > 1.0e8) << " \n";
       if (Projection > 1.0e8)
       {
         // return alpha;
@@ -1358,16 +1358,16 @@ double Mem3DG::Backtracking_grad_Normal_2(Eigen::VectorXd p_lambda, double Proje
 
     if (alpha < 1e-10)
     {
-      std::cout << "THe timestep got small so the simulation would end \n";
-      std::cout << "THe timestep is " << alpha << " \n";
-      std::cout << "The NORM diff is" << abs(NewNorm - PrevNorm) << "\n";
-      std::cout << "The merit diff is" << abs(NewMerit - PrevMerit) << "\n";
+      // std::cout << "THe timestep got small so the simulation would end \n";
+      // std::cout << "THe timestep is " << alpha << " \n";
+      // std::cout << "The NORM diff is" << abs(NewNorm - PrevNorm) << "\n";
+      // std::cout << "The merit diff is" << abs(NewMerit - PrevMerit) << "\n";
 
-      std::cout << "THe relative energy diff  is" << abs((NewNorm - PrevNorm) / PrevNorm) << "\n";
-      std::cout << "THe relative energy diff  is" << abs((NewMerit - PrevMerit) / PrevMerit) << "\n";
-      std::cout << " THe merit function is " << NewMerit << " \n";
-      std::cout << "The projection is" << Projection << "\n";
-      std::cout << "The projection is too big " << (Projection > 1.0e8) << " \n";
+      // std::cout << "THe relative energy diff  is" << abs((NewNorm - PrevNorm) / PrevNorm) << "\n";
+      // std::cout << "THe relative energy diff  is" << abs((NewMerit - PrevMerit) / PrevMerit) << "\n";
+      // std::cout << " THe merit function is " << NewMerit << " \n";
+      // std::cout << "The projection is" << Projection << "\n";
+      // std::cout << "The projection is too big " << (Projection > 1.0e8) << " \n";
       if (Projection > 1.0e8)
       {
         // return alpha;
@@ -1723,12 +1723,12 @@ double Mem3DG::Backtracking_grad_Normal(Eigen::VectorXd p_lambda, double Project
 
     if (alpha < 1e-10)
     {
-      std::cout << "THe timestep got small so the simulation would end \n";
-      std::cout << "THe timestep is " << alpha << " \n";
-      std::cout << "The NORM diff is" << abs(NewNorm - PrevNorm) << "\n";
-      std::cout << "THe relative energy diff  is" << abs((NewNorm - PrevNorm) / PrevNorm) << "\n";
-      std::cout << "The projection is" << Projection << "\n";
-      std::cout << "The projection is too big " << (Projection > 1.0e8) << " \n";
+      // std::cout << "THe timestep got small so the simulation would end \n";
+      // std::cout << "THe timestep is " << alpha << " \n";
+      // std::cout << "The NORM diff is" << abs(NewNorm - PrevNorm) << "\n";
+      // std::cout << "THe relative energy diff  is" << abs((NewNorm - PrevNorm) / PrevNorm) << "\n";
+      // std::cout << "The projection is" << Projection << "\n";
+      // std::cout << "The projection is too big " << (Projection > 1.0e8) << " \n";
       if (Projection > 1.0e8)
       {
         // return alpha;
@@ -2104,12 +2104,12 @@ double Mem3DG::Backtracking_grad(Eigen::VectorXd p_lambda, double Projection, do
 
     if (alpha < 1e-10)
     {
-      std::cout << "THe timestep got small so the simulation would end \n";
-      std::cout << "THe timestep is " << alpha << " \n";
-      std::cout << "The NORM diff is" << abs(NewNorm - PrevNorm) << "\n";
-      std::cout << "THe relative energy diff  is" << abs((NewNorm - PrevNorm) / PrevNorm) << "\n";
-      std::cout << "The projection is" << Projection << "\n";
-      std::cout << "The projection is too big " << (Projection > 1.0e8) << " \n";
+      // std::cout << "THe timestep got small so the simulation would end \n";
+      // std::cout << "THe timestep is " << alpha << " \n";
+      // std::cout << "The NORM diff is" << abs(NewNorm - PrevNorm) << "\n";
+      // std::cout << "THe relative energy diff  is" << abs((NewNorm - PrevNorm) / PrevNorm) << "\n";
+      // std::cout << "The projection is" << Projection << "\n";
+      // std::cout << "The projection is too big " << (Projection > 1.0e8) << " \n";
       if (Projection > 1.0e8)
       {
         // return alpha;
@@ -3085,11 +3085,11 @@ double Mem3DG::Backtracking_field(VertexData<Vector3> Force, double D_P, double 
     if (alpha < 1e-10)
     {
 
-      std::cout << "THe timestep got small so the simulation would end \n";
-      std::cout << "THe timestep is " << alpha << " \n";
-      std::cout << "The energy diff is" << abs(NewE - previousE) << "\n";
-      std::cout << "THe relative energy diff  is" << abs((NewE - previousE) / previousE) << "\n";
-      std::cout << "The projection is" << Projection << "\n";
+      // std::cout << "THe timestep got small so the simulation would end \n";
+      // std::cout << "THe timestep is " << alpha << " \n";
+      // std::cout << "The energy diff is" << abs(NewE - previousE) << "\n";
+      // std::cout << "THe relative energy diff  is" << abs((NewE - previousE) / previousE) << "\n";
+      // std::cout << "The projection is" << Projection << "\n";
 
       // if(Projection>1e10){
       //   std::cout<<"Not moving forward\n";
@@ -3749,7 +3749,7 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
     std::cout << "After" << N_data << "steps of iterations the mean Energy is " << mean_E << " and the variance is " << var_E << "\n";
     if (var_E < 1e-8)
     {
-      std::cout << "We would end the simulation because the variance of the energy is very small\n";
+      // std::cout << "We would end the simulation because the variance of the energy is very small\n";
       // backtrackstep= -1;
     }
     N_data = 0;
