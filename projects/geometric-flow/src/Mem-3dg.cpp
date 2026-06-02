@@ -916,7 +916,7 @@ double Mem3DG::Backtracking()
     }
   }
   double previousE = 0;
-  Sim_handler->Calculate_energies_precomp(&previousE);
+  Sim_handler->Calculate_energies(&previousE);
   for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
   {
     if (isnan(Sim_handler->Energy_values[i]))
@@ -3498,7 +3498,7 @@ double Mem3DG::integrate(std::ofstream &Sim_data, double time, std::vector<std::
   V = 0;
 
   start = chrono::steady_clock::now();
-  Sim_handler->Calculate_gradient_precomp();
+  Sim_handler->Calculate_gradient();
   end = chrono::steady_clock::now();
 
   time_gradients = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -3613,7 +3613,7 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
   std::vector<Vector3> Bead_forces(Beads.size());
   if (BFGS_iter == 0)
   {
-    Sim_handler->Calculate_gradient_precomp();
+    Sim_handler->Calculate_gradient();
 
     VertexData<double> Grad_E = VertexData<double>(*mesh, 0.0);
     for (Vertex v : mesh->vertices())
@@ -3647,7 +3647,7 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
     // here the vertices are alreay updated no?
 
     geometry->refreshQuantities();
-    Sim_handler->Calculate_gradient_precomp();
+    Sim_handler->Calculate_gradient();
 
     for (Vertex v : mesh->vertices())
     {
@@ -3699,7 +3699,7 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
     Eigen::VectorXd s_k = backtrackstep * r;
 
     geometry->refreshQuantities();
-    Sim_handler->Calculate_gradient_precomp();
+    Sim_handler->Calculate_gradient();
     for (Vertex v : mesh->vertices())
     {
       Grad_E[v.getIndex()] = dot((Sim_handler->Current_grad[v] - Sim_handler->Previous_grad[v]), Vertex_Normals[v]);
@@ -3962,7 +3962,7 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
   time_backtracking = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
   double tot_E = 0;
-  Sim_handler->Calculate_energies_precomp(&tot_E);
+  Sim_handler->Calculate_energies(&tot_E);
 
   N_data += 1;
   mean_E = mean_E + (tot_E - mean_E) / N_data;

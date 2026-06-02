@@ -4566,8 +4566,8 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_Normal()
     {
         if (Energies[i] == "Bending")
         {
-            SparseMatrix<double> H_bend = H_Bending(Energy_constants[i]);
-            Hessian += H_bend;
+
+            Hessian += H_Bending(Energy_constants[i]);
         }
         if (Energies[i] == "Surface_tension")
         {
@@ -4746,6 +4746,7 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_Normal_clipped()
             }
             std::cout << "There were " << counter << " negative values in the diag :o \n";
             Hessian += H_Bead;
+            H_Bead.resize(0, 0);
             bead_counter += 1;
         }
         if (Energies[i] == "Edge_reg")
@@ -4865,7 +4866,7 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_Normal_clipped()
     //           << Hessian.toDense() << "\n";
     // std::cout << "The normal hessian is \n"
     //           << Normal_Hessian.toDense() << "\n";
-
+    Hessian.resize(0, 0);
     return Normal_Hessian;
 }
 
