@@ -3647,6 +3647,7 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
     // here the vertices are alreay updated no?
 
     geometry->refreshQuantities();
+    mesh->compress();
     Sim_handler->Calculate_gradient();
 
     for (Vertex v : mesh->vertices())
@@ -3699,6 +3700,7 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
     Eigen::VectorXd s_k = backtrackstep * r;
 
     geometry->refreshQuantities();
+    mesh->compress();
     Sim_handler->Calculate_gradient();
     for (Vertex v : mesh->vertices())
     {
@@ -3760,10 +3762,11 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
 
     V = geometry->totalVolume();
     A = 0.0;
-    geometry->requireFaceAreas();
-    for (Face f : mesh->faces())
-      A += geometry->faceAreas[f];
-    geometry->unrequireFaceAreas();
+    // geometry->requireFaceAreas();
+    // for (Face f : mesh->faces())
+    //   A += geometry->faceAreas[f];
+    // geometry->unrequireFaceAreas();
+    A = geometry->totalArea();
     Sim_data << time << " " << discreteTs << " " << V << " " << A << " ";
     for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
     {
@@ -3823,7 +3826,7 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
 
   if (BFGS_iter == 0)
   {
-    Sim_handler->Calculate_gradient_precomp();
+    Sim_handler->Calculate_gradient();
     for (size_t bi = 0; bi < Beads.size(); bi++)
     {
       Bead_forces[bi] = Beads[bi]->Total_force;
@@ -3848,8 +3851,10 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
     rho_list.resize(0);
 
     s_list.push_back(Aux_vector);
+    mesh->compress();
     geometry->refreshQuantities();
-    Sim_handler->Calculate_gradient_precomp();
+
+    Sim_handler->Calculate_gradient();
 
     Vector3 Diff;
     for (Vertex v : mesh->vertices())
@@ -3926,7 +3931,8 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
     Eigen::VectorXd s_k = backtrackstep * r;
 
     geometry->refreshQuantities();
-    Sim_handler->Calculate_gradient_precomp();
+    mesh->compress();
+    Sim_handler->Calculate_gradient();
     for (Vertex v : mesh->vertices())
     {
       Grad_vec[3 * v.getIndex()] = Sim_handler->Current_grad[v].x - Sim_handler->Previous_grad[v].x;
@@ -3999,10 +4005,11 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
   {
     V = geometry->totalVolume();
     A = 0.0;
-    geometry->requireFaceAreas();
-    for (Face f : mesh->faces())
-      A += geometry->faceAreas[f];
-    geometry->unrequireFaceAreas();
+    // geometry->requireFaceAreas();
+    // for (Face f : mesh->faces())
+    //   A += geometry->faceAreas[f];
+    // geometry->unrequireFaceAreas();
+    A = geometry->totalArea();
     Sim_data << time << " " << discreteTs << " " << V << " " << A << " ";
     for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
     {
