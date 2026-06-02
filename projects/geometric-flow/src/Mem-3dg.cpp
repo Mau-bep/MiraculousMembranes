@@ -4751,7 +4751,7 @@ double Mem3DG::integrate_Newton_Normal(std::ofstream &Sim_data, double time, std
 
     if (backtrack)
     {
-      std::cout << "Projection is " << Projection << " and the grad norm is " << Current_grad_norm << "\n";
+      // std::cout << "Projection is " << Projection << " and the grad norm is " << Current_grad_norm << "\n";
       backtrackstep = Backtracking_grad_Normal(result.tail(N_constraints), Projection, Current_grad_norm);
     }
     else

@@ -239,7 +239,7 @@ f.write('#SBATCH --time=12:01:20\n')
 
 f.write('#\n')
 f.write('#Define the amount of system RAM used by your job in GigaBytes\n')
-f.write('#SBATCH --mem=16G\n')
+f.write('#SBATCH --mem=2G\n')
 f.write('#\n')
 
 #f.write('#Send emails when a job starts, it is finished or it exits\n')

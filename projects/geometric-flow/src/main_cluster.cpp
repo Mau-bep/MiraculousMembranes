@@ -1068,12 +1068,12 @@ int main(int argc, char **argv)
 
     std::cout << "My algorithm says\n";
     std::cout << "The max sizing is " << max_sizing << " and the min sizing is " << min_sizing << " \n";
-    arcsim::Mesh remesher_mesh = translate_to_arcsim(mesh, geometry);
-    Cloth_1.mesh = remesher_mesh;
-    if (arcsim)
-        Cloth_1.remeshing = remeshing_params;
-    arcsim::compute_masses(Cloth_1);
-    arcsim::compute_ws_data(Cloth_1.mesh);
+    // arcsim::Mesh remesher_mesh = translate_to_arcsim(mesh, geometry);
+    // Cloth_1.mesh = remesher_mesh;
+    // if (arcsim)
+    // Cloth_1.remeshing = remeshing_params;
+    // arcsim::compute_masses(Cloth_1);
+    // arcsim::compute_ws_data(Cloth_1.mesh);
 
     ORIG_VPOS = geometry->inputVertexPositions;
     CoM = geometry->centerOfMass();
@@ -1215,7 +1215,7 @@ int main(int argc, char **argv)
 
     std::ofstream Sim_data(filename);
 
-    Sim_data << "time Volume Area ";
+    Sim_data << "time step Volume Area ";
     for (size_t i = 0; i < Energies.size(); i++)
     {
         Sim_data << Energies[i] << " ";
@@ -1275,24 +1275,24 @@ int main(int argc, char **argv)
 
     std::cout << "Starting sim m\n";
 
-    if (arcsim)
-    {
-        arcsim::dynamic_remesh(Cloth_1);
+    // if (arcsim)
+    // {
+    //     arcsim::dynamic_remesh(Cloth_1);
 
-        std::cout << "Done first remeshing\n";
-        std::cout << "THis remeshing did " << Cloth_1.remeshing.op_counter << " operations \n";
-        std::cout << " \n\n";
-        delete mesh;
-        delete geometry;
+    //     std::cout << "Done first remeshing\n";
+    //     std::cout << "THis remeshing did " << Cloth_1.remeshing.op_counter << " operations \n";
+    //     std::cout << " \n\n";
+    //     delete mesh;
+    //     delete geometry;
 
-        std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
-        arcsim::delete_mesh(Cloth_1.mesh);
-        mesh = mesh_uptr.release();
-        geometry = geometry_uptr.release();
-        // remesh(*mesh, *geometry, Options);
-        // geometry->requireVertexPositions();
-        // geometry->inputVertexPositions = geometry->vertexPositions;
-    }
+    //     std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
+    //     arcsim::delete_mesh(Cloth_1.mesh);
+    //     mesh = mesh_uptr.release();
+    //     geometry = geometry_uptr.release();
+    //     // remesh(*mesh, *geometry, Options);
+    //     // geometry->requireVertexPositions();
+    //     // geometry->inputVertexPositions = geometry->vertexPositions;
+    // }
 
     // std::cout << "Here now\n";
     M3DG.mesh = mesh;
@@ -1632,6 +1632,7 @@ int main(int argc, char **argv)
                     break;
                 }
             }
+            geometry->unrequireCornerAngles();
             if (flagSmallAngle)
             {
                 remeshSmallAngles(*mesh, *geometry, Options);
@@ -1639,13 +1640,12 @@ int main(int argc, char **argv)
                 mesh->compress();
                 geometry->refreshQuantities(); // i guess yes
             }
-            geometry->unrequireCornerAngles();
         }
 
         if (arcsim && ((current_t - last_remesh) > remesh_every && remesh_every > 0 || dt_sim == 0.0 || (flagSmallAngle && remesh_every < 0)))
         {
 
-            bool flagSmallAngle = false;
+            flagSmallAngle = false;
             geometry->requireCornerAngles();
             for (Corner c : mesh->corners())
             {
@@ -1655,6 +1655,7 @@ int main(int argc, char **argv)
                     break;
                 }
             }
+            geometry->unrequireCornerAngles();
             if (flagSmallAngle)
             {
                 remeshSmallAngles(*mesh, *geometry, Options);
@@ -1662,7 +1663,7 @@ int main(int argc, char **argv)
                 mesh->compress();
                 geometry->refreshQuantities();
             }
-            geometry->unrequireCornerAngles();
+
             last_remesh = current_t;
             // std::cout << "Remeshing w my own thingy at step " << current_t << " \n";
             remesh_op = remesh(*mesh, *geometry, Options);
@@ -2025,7 +2026,6 @@ int main(int argc, char **argv)
         if (Integration == "Gradient_descent")
         {
 
-            // std::cout<<"Gonna integrate now\n";
             dt_sim = M3DG.integrate(Sim_data, time, Bead_filenames, Save_output_data);
         }
         else if (Integration == "BFGS")
@@ -2119,12 +2119,12 @@ int main(int argc, char **argv)
                     continue;
                 }
             }
-            // Constraints.push_back("CMx");
-            // Constraints.push_back("CMy");
-            // Constraints.push_back("CMz");
-            // Constraints.push_back("Rx");
-            // Constraints.push_back("Ry");
-            // Constraints.push_back("Rz");
+            Constraints.push_back("CMx");
+            Constraints.push_back("CMy");
+            Constraints.push_back("CMz");
+            Constraints.push_back("Rx");
+            Constraints.push_back("Ry");
+            Constraints.push_back("Rz");
 
             Sim_handler.Constraints = Constraints;
             std::vector<std::string> Data_filenames(0);
@@ -2134,7 +2134,7 @@ int main(int argc, char **argv)
             {
                 Integration = "Gradient_descent";
                 Switch_t = current_t + 1;
-                Switch_times_map["Newton-Normal"] = Switch_t;
+                Switch_times_map["Newton"] = Switch_t;
                 remesh_every = 1;
                 arcsim = true;
                 Switch_times_map["No_remesh"] = current_t + 2;
@@ -2589,8 +2589,8 @@ int main(int argc, char **argv)
             beads_saved << " \n";
             // std::cout<<Bead_pos_saved[k].x << " " << Bead_pos_saved[k].y << " " << Bead_pos_saved[k].z << Bead_pos_saved[6+k].x << " " << Bead_pos_saved[6+k].y << " " << Bead_pos_saved[6+k].z << " \n";
             std::cout << "Saved mesh idx is " << saved_mesh_idx << " \n";
-            arcsim::save_obj(Saved_meshes[saved_mesh_idx], basic_name + "Saved_final_frame_" + std::to_string(11 - 2 * k) + ".obj");
-            arcsim::save_obj(Saved_after_remesh[saved_mesh_idx], basic_name + "Saved_final_frame_" + std::to_string(12 - 2 * k) + ".obj");
+            // arcsim::save_obj(Saved_meshes[saved_mesh_idx], basic_name + "Saved_final_frame_" + std::to_string(11 - 2 * k) + ".obj");
+            // arcsim::save_obj(Saved_after_remesh[saved_mesh_idx], basic_name + "Saved_final_frame_" + std::to_string(12 - 2 * k) + ".obj");
 
             saved_mesh_idx = (saved_mesh_idx - 1 + 6) % 6;
         }

@@ -10,12 +10,13 @@
 # foreach v ( 1.0 )
 # foreach Init_cond ( 2 )
 set radius = 0.25
-set KA = 5
+# set KA = 5
 # set KB = 20
 # foreach Strg ( `seq 20 5 140`)
 # foreach Strg ( 225.0  )
-# foreach KA ( `seq 0 5 20` )
-foreach theta ( 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0 2.1 2.2 2.3 2.4 2.5 )
+# foreach KA ( `seq 0 5 15` )
+foreach KA ( 0 10 50 )
+foreach theta ( 0.6 0.625 0.65 0.675 0.7 0.725 0.75 0.775 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 )
 # foreach theta ( 2.6  )
 
 #python3 Create_subjob.py ${v} ${c0} ${KA} ${KB}
