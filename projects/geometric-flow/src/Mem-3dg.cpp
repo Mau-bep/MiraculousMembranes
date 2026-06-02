@@ -2440,12 +2440,12 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
     {
       BFGS_iter = 0;
 
-      std::cout << "THe timestep got small so the simulation would end \n";
-      std::cout << "THe timestep is " << alpha << " \n";
-      std::cout << "The energy diff is" << abs(NewE - previousE) << "\n";
-      std::cout << "THe relative energy diff  is" << abs((NewE - previousE) / previousE) << "\n";
-      std::cout << "The projection is" << Projection << "\n";
-      std::cout << "The projection is too big " << (Projection > 1.0e8) << " \n";
+      // std::cout << "THe timestep got small so the simulation would end \n";
+      // std::cout << "THe timestep is " << alpha << " \n";
+      // std::cout << "The energy diff is" << abs(NewE - previousE) << "\n";
+      // std::cout << "THe relative energy diff  is" << abs((NewE - previousE) / previousE) << "\n";
+      // std::cout << "The projection is" << Projection << "\n";
+      // std::cout << "The projection is too big " << (Projection > 1.0e8) << " \n";
       if (Projection > 1.0e5)
       {
         remesh_flag = true;
@@ -2717,12 +2717,12 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, double P0, double V_bar, 
     if (alpha < 1e-10)
     {
 
-      std::cout << "THe timestep got small so the simulation would end \n";
-      std::cout << "THe timestep is " << alpha << " \n";
-      std::cout << "The energy diff is" << abs(NewE - previousE) << "\n";
-      std::cout << "THe relative energy diff  is" << abs((NewE - previousE) / previousE) << "\n";
-      std::cout << "The projection is" << Projection << "\n";
-      std::cout << "The projection is too big " << (Projection > 1.0e10) << " \n";
+      // std::cout << "THe timestep got small so the simulation would end \n";
+      // std::cout << "THe timestep is " << alpha << " \n";
+      // std::cout << "The energy diff is" << abs(NewE - previousE) << "\n";
+      // std::cout << "THe relative energy diff  is" << abs((NewE - previousE) / previousE) << "\n";
+      // std::cout << "The projection is" << Projection << "\n";
+      // std::cout << "The projection is too big " << (Projection > 1.0e10) << " \n";
       if (Projection > 1.0e10)
       {
         // return alpha;
