@@ -4,7 +4,7 @@
     "timesteps": 10000,
     "continue_sim": false,
     "resize_vol": false,
-    "arcsim": true,
+    "remeshing": true,
     "first_dir": "../Results/Particle_wrapping_on_plane/",
     "boundary": true,
     "recentering": false,

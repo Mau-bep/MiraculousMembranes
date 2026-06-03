@@ -4,7 +4,7 @@
     "timesteps": 50100,
     "continue_sim": false,
     "resize_vol": false,
-    "arcsim": true,
+    "remeshing": true,
     "Subfolder": "18/",
     "Integration": "BFGS",
     "BFGS_saved_states": 15,

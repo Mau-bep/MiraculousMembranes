@@ -2469,6 +2469,8 @@ int main(int argc, char **argv)
     for (auto Bead_data : Data["Beads"])
     {
         std::cout << "Adding a bead\n";
+        std::cout << "Hihi\n";
+        std::cout << "THe bead is " << Bead_data["mem_inter"] << " \n";
         if (Bead_data.contains("gradient_order"))
         {
             Energies.push_back(Bead_data["gradient_order"]);
@@ -2514,14 +2516,14 @@ int main(int argc, char **argv)
             {
                 Bead_params.push_back(radius * pow(2, 1.0 / 6.0));
             }
-            else if (Bead_data["mem_inter"] == "One_over_r_x")
+            else if (Bead_data["mem_inter"] == "Frenkel" || Bead_data["mem_inter"] == "Frenkel_Normal_nopush")
             {
-                Bead_params.push_back(-1.0);
+                Bead_params.push_back(radius * 2.0);
             }
             else
             {
                 // PBead.rc = 2.0*radius;
-                Bead_params.push_back(radius * 2.0);
+                Bead_params.push_back(-1);
             }
         }
 
@@ -2575,6 +2577,79 @@ int main(int argc, char **argv)
             }
 
             Interaction_container.push_back(std::move(make_unique<Frenkel_Normal>(mesh, geometry, Bead_params)));
+
+            Beads.push_back(Bead());
+            Beads[bead_counter].mesh = mesh;
+            Beads[bead_counter].geometry = geometry;
+            Beads[bead_counter].Pos = BPos;
+            Beads[bead_counter].strength = Bead_params[0];
+            Beads[bead_counter].sigma = Bead_params[1];
+            Beads[bead_counter].rc = Bead_params[2];
+            Beads[bead_counter].interaction = interaction_mem;
+            std::cout << "Trivial assignments done\n";
+            Beads[bead_counter].Bead_I = Interaction_container[bead_counter].get();
+            std::cout << "Assigned INter \n";
+            Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
+            std::cout << "Assined bead of inter\n";
+            Beads[bead_counter].Bead_id = bead_counter;
+
+            std::cout << "The energy constants are ";
+            for (size_t i = 0; i < Interaction_container[bead_counter].get()->Energy_constants.size(); i++)
+            {
+                std::cout << Interaction_container[bead_counter].get()->Energy_constants[i] << " ";
+            }
+            std::cout << "\n";
+        }
+
+        if (interaction_mem == "Linear")
+        {
+
+            if (Bead_data.contains("outside"))
+            {
+                Bead_params.push_back(Bead_data["outside"]);
+            }
+            else
+            {
+                Bead_params.push_back(1.0); // default outside
+            }
+
+            Interaction_container.push_back(std::move(make_unique<Linear>(mesh, geometry, Bead_params)));
+
+            Beads.push_back(Bead());
+            Beads[bead_counter].mesh = mesh;
+            Beads[bead_counter].geometry = geometry;
+            Beads[bead_counter].Pos = BPos;
+            Beads[bead_counter].strength = Bead_params[0];
+            Beads[bead_counter].sigma = Bead_params[1];
+            Beads[bead_counter].rc = Bead_params[2];
+            Beads[bead_counter].interaction = interaction_mem;
+            std::cout << "Trivial assignments done\n";
+            Beads[bead_counter].Bead_I = Interaction_container[bead_counter].get();
+            std::cout << "Assigned INter \n";
+            Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
+            std::cout << "Assined bead of inter\n";
+            Beads[bead_counter].Bead_id = bead_counter;
+
+            std::cout << "The energy constants are ";
+            for (size_t i = 0; i < Interaction_container[bead_counter].get()->Energy_constants.size(); i++)
+            {
+                std::cout << Interaction_container[bead_counter].get()->Energy_constants[i] << " ";
+            }
+            std::cout << "\n";
+        }
+        if (interaction_mem == "Linear_Normal")
+        {
+
+            if (Bead_data.contains("outside"))
+            {
+                Bead_params.push_back(Bead_data["outside"]);
+            }
+            else
+            {
+                Bead_params.push_back(1.0); // default outside
+            }
+
+            Interaction_container.push_back(std::move(make_unique<Linear_Normal>(mesh, geometry, Bead_params)));
 
             Beads.push_back(Bead());
             Beads[bead_counter].mesh = mesh;
@@ -3182,675 +3257,5 @@ int main(int argc, char **argv)
     std::cout << "Calling the mesh\n";
     polyscope::show();
 
-    return 0;
-
-    // Ok what
-
-    Eigen::Vector<double, 12> Positions_flap;
-    // Now  need to set the thingys i can use angles too but whatever
-    Eigen::Vector<double, 3> P3{11.309800, -0.225893, 0.745853};
-    Eigen::Vector<double, 3> P2{10.827291, 0.383619, 0.261750};
-    Eigen::Vector<double, 3> P1{11.822630, 0.413617, -0.222668};
-    Eigen::Vector<double, 3> P4{11.324419, -0.007852, -0.808003};
-
-    Positions_flap << P1, P2, P3, P4;
-    std::cout << "THe Positioms are " << Positions_flap.transpose() << "\n";
-    Eigen::Vector<double, 12> grad_dih = geometry->gradient_dihedral_angle(Positions_flap);
-
-    std::cout << "THe grad is " << grad_dih << " \n";
-
-    // OK oK now guat
-
-    // NOW WE MOVE THE VERTICES ACCORDING TO GRADIENT
-    bool save = true;
-
-    // Nw we do our iteration
-    Eigen::Vector<double, 6> Grad_edge;
-    Eigen::Vector<double, 6> Positions_edge;
-
-    for (int i = 0; i < 2; i++)
-    {
-        Positions_edge[3 * i] = Positions_flap[3 * i];
-        Positions_edge[3 * i + 1] = Positions_flap[3 * i + 1];
-        Positions_edge[3 * i + 2] = Positions_flap[3 * i + 2];
-    }
-
-    Grad_edge = geometry->gradient_edge_length(Positions_edge);
-
-    for (int step = 0; step < 30; step++)
-    {
-
-        if (save)
-        {
-            SimplePolygonMesh simpleMesh;
-            Vector3 v_pos;
-
-            for (int i = 0; i < 4; i++)
-            {
-                // We will asign the vertices
-                v_pos.x = Positions_flap[3 * i];
-                v_pos.y = Positions_flap[3 * i + 1];
-                v_pos.z = Positions_flap[3 * i + 2];
-                simpleMesh.vertexCoordinates.push_back(v_pos);
-            }
-
-            // We have two faces
-            std::vector<size_t> polygon(3);
-            polygon[0] = 0;
-            polygon[1] = 1;
-            polygon[2] = 2;
-
-            // I am sorry for this
-
-            simpleMesh.polygons.push_back(polygon);
-            polygon[0] = 1;
-            polygon[1] = 0;
-            polygon[2] = 3;
-            simpleMesh.polygons.push_back(polygon);
-
-            auto lvals = makeManifoldSurfaceMeshAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
-
-            std::tie(mesh_uptr, geometry_uptr) = std::tuple<std::unique_ptr<ManifoldSurfaceMesh>,
-                                                            std::unique_ptr<VertexPositionGeometry>>(std::move(std::get<0>(lvals)),  // mesh
-                                                                                                     std::move(std::get<1>(lvals))); // geometry
-            mesh = mesh_uptr.release();
-            geometry = geometry_uptr.release();
-
-            Save_mesh("../Results/", step);
-            //
-        }
-
-        // At the end of the step i move the vertices in grad direction
-        // Positions_flap += grad_dih;
-        int factor = -1;
-        if (step > 15)
-            factor = 1;
-        // You know whats better, we just add it in p1 and p2
-        for (int i = 2; i < 4; i++)
-        {
-            // std::cout<<"i is equal to" << i <<" \n";
-            Positions_flap[3 * i] += factor * grad_dih[3 * i] / 30;
-            Positions_flap[3 * i + 1] += factor * grad_dih[3 * i + 1] / 30;
-            Positions_flap[3 * i + 2] += factor * grad_dih[3 * i + 2] / 30;
-        }
-
-        grad_dih = geometry->gradient_dihedral_angle(Positions_flap);
-    }
-
-    // Now i go here and do the edge length thingy
-
-    for (int step = 30; step < 60; step++)
-    {
-
-        if (save)
-        {
-            SimplePolygonMesh simpleMesh;
-            Vector3 v_pos;
-
-            for (int i = 0; i < 4; i++)
-            {
-                // We will asign the vertices
-                v_pos.x = Positions_flap[3 * i];
-                v_pos.y = Positions_flap[3 * i + 1];
-                v_pos.z = Positions_flap[3 * i + 2];
-                simpleMesh.vertexCoordinates.push_back(v_pos);
-            }
-
-            // We have two faces
-            std::vector<size_t> polygon(3);
-            polygon[0] = 0;
-            polygon[1] = 1;
-            polygon[2] = 2;
-
-            // I am sorry for this
-
-            simpleMesh.polygons.push_back(polygon);
-            polygon[0] = 1;
-            polygon[1] = 0;
-            polygon[2] = 3;
-            simpleMesh.polygons.push_back(polygon);
-
-            auto lvals = makeManifoldSurfaceMeshAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
-
-            std::tie(mesh_uptr, geometry_uptr) = std::tuple<std::unique_ptr<ManifoldSurfaceMesh>,
-                                                            std::unique_ptr<VertexPositionGeometry>>(std::move(std::get<0>(lvals)),  // mesh
-                                                                                                     std::move(std::get<1>(lvals))); // geometry
-            mesh = mesh_uptr.release();
-            geometry = geometry_uptr.release();
-
-            Save_mesh("../Results/", step);
-            //
-        }
-
-        // At the end of the step i move the vertices in grad direction
-        // Positions_flap += grad_dih;
-        int factor = 1;
-        if (step > 45)
-            factor = -1;
-        // You know whats better, we just add it in p1 and p2
-        for (int i = 0; i < 2; i++)
-        {
-            // std::cout<<"i is equal to" << i <<" \n";
-            Positions_flap[3 * i] += factor * Grad_edge[3 * i] / 40;
-            Positions_flap[3 * i + 1] += factor * Grad_edge[3 * i + 1] / 40;
-            Positions_flap[3 * i + 2] += factor * Grad_edge[3 * i + 2] / 40;
-        }
-
-        for (int i = 0; i < 2; i++)
-        {
-            Positions_edge[3 * i] = Positions_flap[3 * i];
-            Positions_edge[3 * i + 1] = Positions_flap[3 * i + 1];
-            Positions_edge[3 * i + 2] = Positions_flap[3 * i + 2];
-        }
-        Grad_edge = geometry->gradient_edge_length(Positions_edge);
-        std::cout << "The grad edge is" << Grad_edge.transpose() << "\n";
-    }
-
-    // Ok
-
-    // return 0;
-
-    // Now i want o save it like an obj?
-    //
-
-    std::string filename2 = basic_name + "Bead_data.txt";
-
-    std::ofstream Bead_data(filename2);
-
-    bool Save_bead_data = false;
-    bool Save_output_data = false;
-    bool small_Ts;
-    Bead_data << "####### This data is taken every" << save_interval << " steps just like the mesh dump, radius is " << radius << " \n";
-    Bead_data.close();
-    // Here i want to run my video
-    size_t n_vert;
-    size_t n_vert_old;
-    size_t n_vert_new;
-    double Volume;
-    double Area;
-    double nu_obs;
-    // double nu_evol;
-    double nu_0;
-    double c_null;
-    counter = 0;
-    double time = 0.0;
-    double dt_sim = 0.0;
-    int sys_time = 0;
-
-    std::cout << "Here5\n";
-
-    bool seam = false;
-    Cloth_1.dump_info = false;
-    start = chrono::steady_clock::now();
-
-    // Save_mesh(basic_name,-1);
-
-    // Save_mesh(basic_name,111);
-    // M3DG.Smooth_vertices();
-    // geometry->refreshQuantities()
-    // Save_mesh(basic_name,112);
-
-    std::ofstream Dihedrals(basic_name + "dihedrals_evol.txt");
-    Dihedrals << "## THE EVOLUTION OF THE DIHEDRAL DISTRIBUTION\n";
-    Dihedrals.close();
-    std::ofstream EdgeLengths(basic_name + "edgelengths.txt");
-    EdgeLengths << "## THE EVOLUTION OF THE EDGE LENGTHS\n";
-    EdgeLengths.close();
-
-    // We will do the eigenvalues thingy
-    // std::cout<<"Doing the eigen
-    Eigen::MatrixXd Hessian_bending; // = Sim_handler.H_Bending(Energy_constants[0]).toDense();
-    Eigen_sol_Bending;
-    // = Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd>(Hessian_bending);
-
-    if (Energy_constants.size() > 1 && false)
-    {
-        Eigen::MatrixXd Hessian_surface = Sim_handler.H_SurfaceTension(Energy_constants[1]).toDense();
-
-        Eigen_sol_Surface = Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd>(Hessian_surface);
-        // std::cout<<"The Hessian is \n" << Hessian_surface <<" \n";
-    } // We now can do the solve;
-
-    Eigen::VectorXd Eigenvalues_bending;  // = Eigen_sol_Bending.eigenvalues();
-    Eigen::MatrixXd Eigenvectors_bending; // = Eigen_sol_Bending.eigenvectors();
-
-    // Eigen::VectorXd Eigenvalues_bending = Eigen_sol_Surface.eigenvalues();
-    // Eigen::MatrixXd Eigenvectors_bending = Eigen_sol_Surface.eigenvectors();
-
-    // Eigen::VectorXd Eigenvalues_surface = Eigen_sol_Surface.eigenvalues();
-    // Eigen::MatrixXd Eigenvectors_surface = Eigen_sol_Surface.eigenvectors();
-
-    // std::cout<<"The eigenvalues are "<< Eigenvalues_bending.transpose()<<std::endl;
-    // for(int i = 0;  i < Eigenvalues_bending.size(); i++){
-    //     // std::cout<<"is is" << i <<" \n";
-
-    //     double eig = Eigenvalues_bending(i);
-    //     std::cout<< Eigenvalues_bending(i) <<" ";
-    //     if(fabs(eig) < 1e-7){
-    //         Eigenvectors_Bending.push_back(Eigenvectors_bending.col(i));
-    //     }
-    // }
-
-    std::cout << std::endl;
-
-    // for(int i = 0;  i < Eigenvalues_surface.size(); i++){
-    //     //  std::cout<<"is is" << i <<" \n";
-    //     double eig = Eigenvalues_surface(i);
-    //     if(fabs(eig) < 1e-7){
-    //         Eigenvectors_Surface.push_back(Eigenvectors_surface.col(i));
-    //     }
-    // }
-
-    // Here we start the polyscope thingy
-    // We need a remesh function tho
-
-    std::cout << "Here6\n";
-    polyscope::TransparencyMode::Pretty;
-    polyscope::init();
-
-    polyscope::TransparencyMode::Pretty;
-
-    TOTAL_ANGLE_DEFECT = geometry->totalAngleDefect();
-    EULER_CHARACTERISTIC = geometry->eulerCharacteristic();
-
-    polyscope::state::userCallback = functionCallback;
-    geometry->requireVertexPositions();
-
-    psMesh = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions, mesh->getFaceVertexList());
-
-    psMesh->setTransparency(0.7);
-    // std::vector<glm::vec3> points;
-    for (size_t i = 0; i < Beads.size(); i++)
-    {
-        points.push_back(glm::vec3(Beads[i].Pos.x, Beads[i].Pos.y, Beads[i].Pos.z));
-    }
-    if (Beads.size() > 0)
-    {
-        psCloud = polyscope::registerPointCloud("really great points", points);
-
-        std::cout << "The radius would be " << Beads[0].sigma * 1.0 << "\n";
-        psCloud->setPointRadius(Beads[0].sigma);
-    }
-
-    std::cout << "Here7\n";
-
-    psMesh->setSmoothShade(false);
-
-    psMesh->setSurfaceColor({1.0, 0.45, 0.0});
-
-    // i JUST WANT SOMETHING ELSE HERE
-
-    polyscope::show();
-
-    //
-
-    return 1;
-
-    start_full = chrono::steady_clock::now();
-    for (size_t current_t = 0; current_t <= Final_t; current_t++)
-    {
-
-        // std::cout<<"Curren t t is " << current_t <<" \n";
-        // if(current_t>400){
-        //     save_interval = 1;
-        // }
-
-        Save_dihedrals(basic_name);
-        Save_edgelengths(basic_name);
-
-        start_time_control = chrono::steady_clock::now();
-
-        if (arcsim && current_t % remesh_every == 0)
-        {
-            int n_vert_old = 0;
-            int n_vert_new = 0;
-
-            n_vert_old = mesh->nVertices();
-
-            double avg_dih1;
-            double max_dih1 = 0.0;
-            double min_dih1 = 1e2;
-            double avg_dih2;
-            double max_dih2 = 0.0;
-            double min_dih2 = 1e2;
-            // M3DG.Smooth_vertices();
-            avg_dih2 = 0.0;
-            avg_dih1 = 0.0;
-
-            for (Edge e : mesh->edges())
-            {
-                dih = fabs(geometry->dihedralAngle(e.halfedge()));
-                avg_dih1 += dih;
-                if (dih > max_dih1)
-                    max_dih1 = dih;
-                if (dih < min_dih1)
-                    min_dih1 = dih;
-            }
-            // std::cout<<"The average dihedral is"<< avg_dih/mesh->nEdges()<<" \n";
-            // std::cout<<"The min dih is"<< min_dih << " and the max dih is " << max_dih <<" \n";
-            // avg_dih =0.0;
-            avg_dih1 = avg_dih1 / mesh->nEdges();
-
-            arcsim::Mesh remesher_mesh2 = translate_to_arcsim(mesh, geometry);
-            Cloth_1.mesh = remesher_mesh2;
-
-            if (Saving_last_states)
-            {
-                saved_mesh_idx = (saved_mesh_idx + 1) % 6;
-                arcsim::delete_mesh(Saved_meshes[saved_mesh_idx]);
-                if (Beads.size() >= 01)
-                {
-                    Bead_pos_saved[saved_mesh_idx] = Beads[0].Pos;
-                }
-                Saved_meshes[saved_mesh_idx] = arcsim::deep_copy(remesher_mesh2);
-            }
-
-            Cloth_1.remeshing = remeshing_params;
-            arcsim::compute_masses(Cloth_1);
-            arcsim::compute_ws_data(Cloth_1.mesh);
-            arcsim::dynamic_remesh(Cloth_1);
-
-            if (Saving_last_states)
-            {
-                arcsim::delete_mesh(Saved_after_remesh[saved_mesh_idx]);
-                Saved_after_remesh[saved_mesh_idx] = arcsim::deep_copy(Cloth_1.mesh);
-            }
-
-            small_Ts = M3DG.small_TS;
-            sys_time = M3DG.system_time;
-
-            delete mesh;
-            delete geometry;
-            // std::cout<<"translating back?\n";
-            std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
-            arcsim::delete_mesh(Cloth_1.mesh);
-
-            mesh = mesh_uptr.release();
-            geometry = geometry_uptr.release();
-
-            M3DG.mesh = mesh;
-            M3DG.geometry = geometry;
-            // M3DG.Smooth_vertices();
-            // geometry->refreshQuantities();
-
-            for (Edge e : mesh->edges())
-            {
-                dih = fabs(geometry->dihedralAngle(e.halfedge()));
-                avg_dih2 += dih;
-                if (dih > max_dih2)
-                    max_dih2 = dih;
-                if (dih < min_dih2)
-                    min_dih2 = dih;
-            }
-
-            avg_dih2 = avg_dih2 / mesh->nEdges();
-
-            n_vert_new = mesh->nVertices();
-
-            for (size_t i = 0; i < Beads.size(); i++)
-            {
-                Beads[i].Reasign_mesh(mesh, geometry);
-            }
-
-            // if( abs(n_vert_new-n_vert_old)>= 300){
-            //     std::cout<<"The change in the number of vertices is "<< n_vert_new-n_vert_old <<" \n";
-            //     std::cout<<"Which is clearly too big :P \n";
-            //     break;
-            // }
-            // std::cout<<"The change in the number of vertices is "<< n_vert_new-n_vert_old <<" \n";
-            // std::cout<<"The average dihedral before was " << avg_dih1 << " and now it is " << avg_dih2 <<" \n";
-            // std::cout<<"The previous min dih was" << min_dih1 << " and now it is " << min_dih2 <<" \n";
-            // std::cout<<"The previous max dih was" << max_dih1 << " and now it is " << max_dih2 <<" \n\n";
-        }
-        end_time_control = chrono::steady_clock::now();
-        remeshing_elapsed_time += chrono::duration_cast<chrono::milliseconds>(end_time_control - start_time_control).count();
-        Bead_datas = std::ofstream(Bead_filenames[Beads.size()], std::ios_base::app);
-
-        Bead_datas << std::chrono::duration_cast<std::chrono::milliseconds>(end_time_control - start_time_control).count() << " ";
-        Bead_datas.close();
-
-        if (current_t % save_interval == 0)
-        {
-            // Bead_data.close();
-            // Sim_data.close();
-            // std::cout<<"Saving\n";
-
-            start_time_control = chrono::steady_clock::now();
-            // if(current_t%100==0){
-            Save_mesh(basic_name, current_t);
-            // }
-            end_time_control = chrono::steady_clock::now();
-            saving_mesh_time += chrono::duration_cast<chrono::milliseconds>(end_time_control - start_time_control).count();
-            Save_bead_data = true;
-            Bead_data = std::ofstream(filename2, std::ios_base::app);
-            Save_output_data = true;
-            Sim_data = std::ofstream(filename, std::ios_base::app);
-        }
-
-        if (current_t % 1000 == 0)
-        {
-
-            end = chrono::steady_clock::now();
-            n_vert = mesh->nVertices();
-            std::cout << "THe number of vertices is " << n_vert << "\n";
-            std::cout << "the avg edge lenghth is " << geometry->meanEdgeLength() << "\n";
-            std::cout << "The avg edge length is = " << std::fixed << std::setprecision(10) << geometry->meanEdgeLength() << std::endl;
-
-            Volume = geometry->totalVolume();
-            Area = geometry->totalArea();
-            nu_obs = 3 * Volume / (4 * PI * pow(Area / (4 * PI), 1.5));
-            H0 = sqrt(4 * PI / Area) * c0 / 2.0;
-
-            // c_null=2*H0 *pow(Area/(4*PI),0.5);
-
-            std::cout << "The reduced volume is " << nu_obs << "\n";
-            if (current_t == 0)
-            {
-                nu_0 = nu_obs;
-            }
-
-            std::cout << "The spontaneous curvature is " << H0 << "\n";
-            std::cout << "Current t is " << current_t << "\n";
-            std::cout << "The system time is " << time << "\n\n";
-
-            for (Edge e : mesh->edges())
-            {
-                dih = fabs(geometry->dihedralAngle(e.halfedge()));
-                avg_dih += dih;
-                if (dih > max_dih)
-                    max_dih = dih;
-                if (dih < min_dih)
-                    min_dih = dih;
-            }
-            std::cout << "The average dihedral is" << avg_dih / mesh->nEdges() << " \n";
-            std::cout << "The min dih is" << min_dih << " and the max dih is " << max_dih << " \n";
-            avg_dih = 0.0;
-
-            std::cout << "A thousand iterations took " << chrono::duration_cast<chrono::milliseconds>(end - start).count() << " miliseconds\n\n";
-
-            // polyscope::screenshot(basic_name+std::to_string(current_t)+".jpg",true);
-            // std::cout<<"SMALL TS?\n";
-            start = chrono::steady_clock::now();
-            if (M3DG.small_TS)
-            {
-                break;
-            }
-            // std::cout<<"No\n";
-        }
-        // std::cout<<"Redeclaring M3DG\n";
-        // std::cout<<"Bead_1 position changed? "<< Bead_1.Pos << " \n";
-
-        start_time_control = chrono::steady_clock::now();
-        // std::cout<<"3\n";
-        // std::cout<<"Integrating\n";
-
-        // dt_sim=M3DG.integrate(TS,V_bar,nu_evol,c0,P0,KA,KB,sigma,Sim_data, time,Save_bead_data,Bead_filenames,Save_output_data,pulling);
-        dt_sim = M3DG.integrate(Sim_data, time, Bead_filenames, Save_output_data);
-
-        if (M3DG.small_TS && current_t > Final_t * 0.2)
-        {
-            std::cout << "Ending sim due to small TS \n";
-            break;
-        }
-
-        // nanvertex = false;
-        // for(Vertex v : mesh->vertices()) if(isnan(geometry->inputVertexPositions[v].x+ geometry->inputVertexPositions[v].y  + geometry->inputVertexPositions[v].z )) nanvertex = true;
-
-        // if(nanvertex) std::cout<< "After integrating one vertex is nan :( also the value of alpha is"<< dt_sim << " \n";
-
-        Bead_data.close();
-        Sim_data.close();
-
-        // Then i need to multiply all the vertices by this value
-        if (resize_vol)
-        {
-            // std::cout<<"are we resizing?\n";
-            double k;
-
-            double V;
-            V = geometry->totalVolume();
-
-            k = pow(V_bar / V, 1.0 / 3.0);
-
-            geometry->inputVertexPositions *= k;
-            geometry->refreshQuantities();
-        }
-        // std::cout<<"The current volume is " << geometry->totalVolume() << " \n";
-
-        end_time_control = chrono::steady_clock::now();
-        // std::cout<<"5\n";
-
-        integrate_elapsed_time += chrono::duration_cast<chrono::milliseconds>(end_time_control - start_time_control).count();
-        Save_output_data = false;
-        Save_bead_data = false;
-
-        if (current_t % 1000 == 0)
-        {
-            std::cout << "Remeshing has taken a total of " << remeshing_elapsed_time << " milliseconds\n"
-                      << "Saving the mesh has taken a total of " << saving_mesh_time << "milliseconds \n Integrating the forces has taken a total of " << integrate_elapsed_time << " milliseconds \n\n";
-
-            if (M3DG.small_TS)
-            {
-                std::cout << "Ending sim due to small TS \n";
-                break;
-            }
-        }
-
-        if (dt_sim == -1)
-        {
-            std::cout << "Sim broke or timestep very small\n";
-            std::cout << "At timestep " << current_t << " \n";
-            break;
-        }
-        else
-        {
-            // std::cout<<"Adding time\n";
-            time += dt_sim;
-            // std::cout<<"SUccesfully\n";
-        }
-        if (time > 10 && Beads.size() > 1)
-        {
-            Beads[1].state = "froze";
-        }
-    }
-    end_full = chrono::steady_clock::now();
-    Sim_data.close();
-    Bead_data.close();
-
-    Bead_data = std::ofstream(Bead_filenames[Beads.size()], std::ios_base::app);
-
-    Bead_data << (chrono::duration_cast<chrono::milliseconds>(end_full - start_full).count()) << " 0 0 0 0 0 \n";
-    Bead_data.close();
-
-    if (Saving_last_states)
-    {
-        std::ofstream beads_saved(basic_name + "Saved_bead_info.txt");
-        beads_saved << std::setprecision(std::numeric_limits<double>::max_digits10);
-
-        std::cout << "Printing bead info\n";
-        for (int k = 0; k < 6; k++)
-        {
-            std::cout << Bead_pos_saved[k].x << " " << Bead_pos_saved[k].y << " " << Bead_pos_saved[k].z << " \n";
-            std::cout << "Saved mesh idx is " << saved_mesh_idx << " \n";
-            arcsim::save_obj(Saved_meshes[saved_mesh_idx], basic_name + "Saved_final_frame_" + std::to_string(11 - 2 * k) + ".obj");
-            arcsim::save_obj(Saved_after_remesh[saved_mesh_idx], basic_name + "Saved_final_frame_" + std::to_string(12 - 2 * k) + ".obj");
-
-            beads_saved << Bead_pos_saved[saved_mesh_idx].x << " " << Bead_pos_saved[saved_mesh_idx].y << " " << Bead_pos_saved[saved_mesh_idx].z << " \n";
-
-            saved_mesh_idx = (saved_mesh_idx - 1 + 6) % 6;
-        }
-    }
-    Vector3 Pos;
-    std::ofstream o(basic_name + "Final_state.obj");
-    o << "#This is a meshfile from a saved state\n";
-
-    for (Vertex v : mesh->vertices())
-    {
-        Pos = geometry->inputVertexPositions[v];
-        o << "v " << Pos.x << " " << Pos.y << " " << Pos.z << "\n";
-    }
-
-    // I need to save the faces now
-
-    for (Face f : mesh->faces())
-    {
-        o << "f";
-
-        for (Vertex v : f.adjacentVertices())
-        {
-            o << " " << v.getIndex() + 1;
-        }
-        o << "\n";
-    }
-
-    delete mesh;
-    delete geometry;
-
     return EXIT_SUCCESS;
 }
-
-// std::cout<<"The current frame is "<< frame_counter <<"\n";/
-// if (ImGui::Button("Compute principal curvature in faces"))
-// {
-
-//     geometry->requireFacePrincipalCurvatureDirections();
-//     geometry->requireHalfedgeVectorsInFace();
-//     geometry->requireVertexPositions();
-//     FaceData<Vector2> Face_tangents = geometry->facePrincipalCurvatureDirections;
-//     FaceData<Vector3> Face_tangents_3D(*mesh, Vector3{0.0, 0.0, 0.0});
-//     for (Face f : mesh->faces())
-//     {
-//         Vector2 r = Face_tangents[f];
-//         Halfedge he = f.halfedge();
-//         Vector2 r1 = Vector2{0.0, 0.0};
-//         Vector2 r2 = geometry->halfedgeVectorsInFace[he];
-//         Vector2 r3 = -1 * geometry->halfedgeVectorsInFace[he.next().next()];
-
-//         Vector2 u = r2 - r1;
-//         Vector2 v = r3 - r1;
-//         double factor = 1.0 / (dot(u, u) * dot(v, v) - dot(u, v) * dot(u, v));
-
-//         double b1 = factor * (dot(v, v) * dot(u, r) - dot(u, v) * dot(v, r));
-//         double b2 = factor * (-1 * dot(u, v) * dot(u, r) + dot(u, u) * dot(v, r));
-
-//         // double lambda1 = cross(r - r3, r2 - r3) / cross(r1 - r3, r2 - r3);
-//         // double lambda2 = cross(r - r3, r3 - r1) / cross(r1 - r3, r2 - r3);
-//         // double lambda3 = 1 - lambda1 - lambda2;
-//         // I have the barycentric coordinates, so i can get the 3D vector as a linear combination of the halfedge vectors in the face
-
-//         Vector3 v1 = geometry->inputVertexPositions[he.vertex()];
-//         Vector3 v2 = geometry->inputVertexPositions[he.next().vertex()];
-//         Vector3 v3 = geometry->inputVertexPositions[he.next().next().vertex()];
-
-//         Vector3 r_3D = b1 * (v2 - v1) + b2 * (v3 - v1);
-
-//         Face_tangents_3D[f] = r_3D;
-
-//         // Face_tangents_3D[f] = geometry->faceTangentFrom2D
-//         // I need to get the barycentric coordinates
-//     }
-//     // Ok so we want to turn
-//     // psMesh->addFaceVectorQuantity2D("Principal curvature directions", Face_tangents);
-//     psMesh->addFaceVectorQuantity("Principal curvature directions", Face_tangents_3D);
-//     // psMesh->addFaceTangentVectorQuantity("Principal curvature directions tangents", Face_tangents);
-// }

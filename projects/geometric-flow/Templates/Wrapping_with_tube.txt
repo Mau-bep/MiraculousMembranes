@@ -4,7 +4,7 @@
     "timesteps": 100000,
     "continue_sim": false,
     "resize_vol": false,
-    "arcsim": true,
+    "remeshing": true,
     "remesh_every": 5,
     "first_dir": "../Results/Wrap_with_tube_GM/",
     "boundary": false,

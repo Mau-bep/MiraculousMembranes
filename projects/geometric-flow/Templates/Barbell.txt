@@ -5,7 +5,7 @@
     "remesh_every": 10,
     "continue_sim": false,
     "resize_vol": false,
-    "arcsim": true,
+    "remeshing": true,
     "first_dir": "../Results/Barbell_tube_new/",
     "boundary": false,
     "recentering": false,

@@ -4,7 +4,7 @@
     "timesteps": 100000,
     "continue_sim": false,
     "resize_vol": true,
-    "arcsim": true,
+    "remeshing": true,
     "remesh_every": 1,
     "first_dir": "../Results/Linear_field/",
     "boundary": false,

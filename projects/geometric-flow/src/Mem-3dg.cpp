@@ -3590,7 +3590,7 @@ double Mem3DG::integrate(std::ofstream &Sim_data, double time, std::vector<std::
   return backtrackstep;
 }
 
-double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data, VertexData<Vector3> Vertex_Normals)
+double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data)
 {
   auto start = chrono::steady_clock::now();
   auto end = chrono::steady_clock::now();
@@ -3618,12 +3618,12 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
     VertexData<double> Grad_E = VertexData<double>(*mesh, 0.0);
     for (Vertex v : mesh->vertices())
     {
-      Grad_E[v] = dot(Sim_handler->Current_grad[v], Vertex_Normals[v]);
+      Grad_E[v] = dot(Sim_handler->Current_grad[v], Sim_handler->Vertex_normals[v]);
     }
     VertexData<Vector3> Force(*mesh, Vector3{0.0, 0.0, 0.0});
     for (Vertex v : mesh->vertices())
     {
-      Force[v] = Grad_E[v] * Vertex_Normals[v];
+      Force[v] = Grad_E[v] * Sim_handler->Vertex_normals[v];
     }
     for (size_t bi = 0; bi < Beads.size(); bi++)
     {
@@ -3652,7 +3652,7 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
 
     for (Vertex v : mesh->vertices())
     {
-      Aux_vector[v.getIndex()] = dot(Sim_handler->Current_grad[v], Vertex_Normals[v]) - dot(Sim_handler->Previous_grad[v], Vertex_Normals[v]);
+      Aux_vector[v.getIndex()] = dot(Sim_handler->Current_grad[v], Sim_handler->Vertex_normals[v]) - dot(Sim_handler->Previous_grad[v], Sim_handler->Vertex_normals[v]);
     }
     y_list.push_back(Aux_vector);
 
@@ -3666,7 +3666,7 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
 
     for (Vertex v : mesh->vertices())
     {
-      Grad_E[v.getIndex()] = dot(Sim_handler->Current_grad[v], Vertex_Normals[v]);
+      Grad_E[v.getIndex()] = dot(Sim_handler->Current_grad[v], Sim_handler->Vertex_normals[v]);
     }
 
     double alpha_i;
@@ -3688,7 +3688,7 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
     VertexData<Vector3> Force(*mesh, Vector3({0.0, 0.0, 0.0}));
     for (Vertex v : mesh->vertices())
     {
-      Force[v] = r[v.getIndex()] * Vertex_Normals[v];
+      Force[v] = r[v.getIndex()] * Sim_handler->Vertex_normals[v];
     }
     for (size_t bi = 0; bi < Beads.size(); bi++)
     {
@@ -3704,7 +3704,7 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
     Sim_handler->Calculate_gradient();
     for (Vertex v : mesh->vertices())
     {
-      Grad_E[v.getIndex()] = dot((Sim_handler->Current_grad[v] - Sim_handler->Previous_grad[v]), Vertex_Normals[v]);
+      Grad_E[v.getIndex()] = dot((Sim_handler->Current_grad[v] - Sim_handler->Previous_grad[v]), Sim_handler->Vertex_normals[v]);
     }
 
     if (BFGS_iter < m)
@@ -3994,7 +3994,7 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
     std::cout << "After" << N_data << "steps of iterations the mean Energy is " << mean_E << " and the variance is " << var_E << "\n";
     // std::cout<<"After" << N_data << "steps of iterations the mean Energy is " << mean_Grad <<" and the variance is " << var_Grad << "\n";
 
-    if (var_E < 0.06)
+    if (var_E < 0.0006)
       Turn_normal_iter = true;
     N_data = 0;
     mean_E = 0;

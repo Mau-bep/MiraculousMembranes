@@ -33,11 +33,6 @@
 #include "Energy_Handler.h"
 #include "math.h"
 
-#include "libarcsim/include/cloth.hpp"
-#include "libarcsim/include/collision.hpp"
-#include "libarcsim/include/mesh.hpp"
-#include "libarcsim/include/dynamicremesh.hpp"
-
 #include "io.hpp"
 #include "simulation.hpp"
 #include "conf.hpp"
@@ -74,58 +69,22 @@ std::unique_ptr<VertexPositionGeometry> geometry_uptr;
 ManifoldSurfaceMesh *mesh;
 VertexPositionGeometry *geometry;
 
-std::unique_ptr<Frenkel_Normal> Frenkel_uptr;
-Frenkel_Normal *fnormal;
-
 std::vector<std::unique_ptr<Interaction>> Interaction_container;
-
-std::vector<arcsim::Mesh> Saved_meshes(6);
-std::vector<arcsim::Mesh> Saved_after_remesh(6);
-
-// Polyscope visualization handle, to quickly add data to the surface
-
-// polyscope::SurfaceMesh* psMesh;
 
 // Some global variables
 float TIMESTEP = -4;
 float kappa = 1.0;
 
-float H0 = 1.0;
-float V_bar = (4 / 3) * PI * 10;
+float V_bar = (4 / 3) * PI * 1.0;
 double A_bar;
 double dA = 0.0;
 double Area;
 
-float nu;
-float Interaction_str;
-float c0;
-
-float P0 = 100000.0;
-float KA = 1.0000;
-float KB = 0.0001;
-float sigma = 0.1;
-double TS = 0.0001;
-
-double Curv_adap = 1.0;
-double Min_rel_length = 0.5;
-double trgt_len;
-double avg_remeshing;
-bool edge_length_adj;
 VertexData<Vector3> ORIG_VPOS; // original vertex positions
 Vector3 CoM;                   // original center of mass
 
-VertexData<Vector3> Vertex_Normals;
-
 Mem3DG M3DG;
 E_Handler Sim_handler;
-Bead Bead_1;
-Bead Bead_2;
-
-Eigen::SparseMatrix<double> Hessian;
-
-std::array<double, 3> BLUE = {0.11, 0.388, 0.89};
-// glm::vec<3, float> ORANGE_VEC = {1, 0.65, 0};
-std::array<double, 3> ORANGE = {1, 0.65, 0};
 
 void showSelected()
 {
@@ -134,20 +93,16 @@ void showSelected()
 
 void Save_mesh(std::string basic_name, size_t current_t)
 {
-    // Build member variables: mesh, geometry
     Vector3 Pos;
-
     std::ofstream o(basic_name + "membrane_" + std::to_string(current_t) + ".obj");
     o << "#This is a meshfile from a saved state\n";
-
     for (Vertex v : mesh->vertices())
     {
         Pos = geometry->inputVertexPositions[v];
         o << "v " << Pos.x << " " << Pos.y << " " << Pos.z << "\n";
     }
 
-    // I need to save the faces now
-
+    // Saving faces
     for (Face f : mesh->faces())
     {
         o << "f";
@@ -158,60 +113,19 @@ void Save_mesh(std::string basic_name, size_t current_t)
         }
         o << "\n";
     }
-
-    return;
-}
-
-void Save_mesh(std::string basic_name, bool arcsim_remeshing, size_t current_t)
-{
-    // Build member variables: mesh, geometry
-    Vector3 Pos;
-    std::ofstream o;
-    if (arcsim_remeshing)
-    {
-        o.open(basic_name + "Mem_arc_" + std::to_string(current_t) + ".obj");
-    }
-    else
-    {
-        o.open(basic_name + "Mem_common_" + std::to_string(current_t) + ".obj");
-    }
-    o << "#This is a meshfile from a saved state\n";
-
-    for (Vertex v : mesh->vertices())
-    {
-        Pos = geometry->inputVertexPositions[v];
-        o << "v " << Pos.x << " " << Pos.y << " " << Pos.z << "\n";
-    }
-
-    // I need to save the faces now
-
-    for (Face f : mesh->faces())
-    {
-        o << "f";
-
-        for (Vertex v : f.adjacentVertices())
-        {
-            o << " " << v.getIndex() + 1;
-        }
-        o << "\n";
-    }
-
     return;
 }
 
 void Save_dihedrals(std::string basic_name)
 {
-    // Build member variables: mesh, geometry
     Vector3 Pos;
     std::ofstream o(basic_name + "dihedrals_evol.txt", std::ios::app);
-
     for (Edge e : mesh->edges())
     {
         o << geometry->dihedralAngle(e.halfedge()) << " ";
     }
     o << "\n";
     o.close();
-
     return;
 }
 
@@ -228,155 +142,10 @@ void Save_edgelengths(std::string basic_name)
     return;
 }
 
-arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh *mesh, VertexPositionGeometry *geometry)
-{
-
-    arcsim::Mesh mesh1;
-    // std::cout<< mesh1.verts.size()<<" number of vertices\n";
-
-    // std::cout<<"Adding vertices?\n";
-    for (size_t v = 0; v < mesh->nVertices(); v++)
-    {
-        // const Vert *vert0 = mesh0.verts[v];
-        Vector3 pos_orig = geometry->inputVertexPositions[v];
-        arcsim::Vec3 pos;
-        pos[0] = pos_orig.x;
-        pos[1] = pos_orig.y;
-        pos[2] = pos_orig.z;
-        arcsim::Vert *vert1 = new arcsim::Vert(pos, 1, 0);
-        mesh1.add(vert1);
-    }
-
-    // std::cout<<"Adding nodes?\n";
-    for (size_t v = 0; v < mesh->nVertices(); v++)
-    {
-        // const Vert *vert0 = mesh0.verts[v];
-        Vector3 pos_orig = geometry->inputVertexPositions[v];
-        arcsim::Vec3 pos;
-        pos[0] = pos_orig.x;
-        pos[1] = pos_orig.y;
-        pos[2] = pos_orig.z;
-        // arcsim::Vert *vert1 = new arcsim::Vert(pos, 0, 1);
-        // mesh1.add(vert1);
-        arcsim::Node *node1 = new arcsim::Node(pos, pos, pos, 0, false);
-        node1->preserve = false;
-        node1->temp = false;
-        node1->temp2 = false;
-        node1->verts.resize(1);
-        node1->verts[0] = mesh1.verts[v];
-
-        mesh1.add(node1);
-        // mesh1.add(new arcsim::Node(pos,
-        //                      pos,
-        //                      pos,
-        //                      0,false));
-        // mesh1.verts[v]->node=mesh1.nodes[v];
-        // arcsim::include(mesh1.verts[v],mesh1.nodes[v]->verts);
-        // mesh1.nodes[v]->verts.push_back(mesh1.verts[v]);
-    }
-
-    // std::cout<<"Adding edges?\n";
-    for (size_t e = 0; e < mesh->nEdges(); e++)
-    {
-        Edge e_orig = mesh->edge(e);
-
-        arcsim::Edge *edge1 = new arcsim::Edge(mesh1.nodes[e_orig.firstVertex().getIndex()], mesh1.nodes[e_orig.secondVertex().getIndex()], 0);
-        mesh1.add(edge1);
-    }
-
-    // std::cout<<"Adding faces?\n";
-    for (size_t f = 0; f < mesh->nFaces(); f++)
-    {
-        Face f_orig = mesh->face(f);
-        Halfedge he = f_orig.halfedge();
-        arcsim::Face *face1 = new arcsim::Face(mesh1.verts[he.vertex().getIndex()], mesh1.verts[he.next().vertex().getIndex()], mesh1.verts[he.next().next().vertex().getIndex()], 0, 0);
-
-        mesh1.add(face1);
-    }
-
-    arcsim::compute_ms_data(mesh1);
-
-    mesh1.numComponents = 1;
-
-    return mesh1;
-}
-
-std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
-translate_to_geometry(arcsim::Mesh mesh)
-{
-
-    SimplePolygonMesh simpleMesh;
-
-    // std::cout<<"This is being called\n";
-    //   processLoadedMesh(simpleMesh, loadType);
-    Vector3 v_pos;
-
-    vector<int> flags(0);
-
-    for (size_t v = 0; v < mesh.verts.size(); v++)
-    {
-        arcsim::Vec3 pos_old = mesh.nodes[v]->x;
-
-        v_pos.x = pos_old[0];
-        v_pos.y = pos_old[1];
-        v_pos.z = pos_old[2];
-
-        simpleMesh.vertexCoordinates.push_back(v_pos);
-    }
-
-    // }
-    int id1;
-    int id2;
-    int id3;
-
-    bool non_manifold = false;
-    for (size_t f = 0; f < mesh.faces.size(); f++)
-    {
-
-        std::vector<size_t> polygon(3);
-
-        id1 = mesh.faces[f]->v[0]->index;
-        id2 = mesh.faces[f]->v[1]->index;
-        id3 = mesh.faces[f]->v[2]->index;
-
-        polygon[0] = id1;
-        polygon[1] = id2;
-        polygon[2] = id3;
-
-        simpleMesh.polygons.push_back(polygon);
-    }
-
-    // std::cout<<"Does this happen after loading the data to create the mesh?\n";
-    // std::cout<<" THe information in the mesh is, "<< simpleMesh.vertexCoordinates.size()<<"number of vertices\n";
-    auto lvals = makeManifoldSurfaceMeshAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
-
-    return std::tuple<std::unique_ptr<ManifoldSurfaceMesh>,
-                      std::unique_ptr<VertexPositionGeometry>>(std::move(std::get<0>(lvals)),  // mesh
-                                                               std::move(std::get<1>(lvals))); // geometry
-}
-std::vector<std::string> split(std::string s, std::string delimiter)
-{
-    size_t pos_start = 0, pos_end, delim_len = delimiter.length();
-    std::string token;
-    std::vector<std::string> res;
-
-    while ((pos_end = s.find(delimiter, pos_start)) != std::string::npos)
-    {
-        token = s.substr(pos_start, pos_end - pos_start);
-        pos_start = pos_end + delim_len;
-        res.push_back(token);
-    }
-
-    res.push_back(s.substr(pos_start));
-    return res;
-}
-
 Vector3 Get_bead_pos(std::string filename, int step)
 {
     std::cout << "THe filename is" << filename << " \n";
-    // Ok i need to get the vector for the position;
     std::ifstream Bead_data(filename);
-
     if (!Bead_data.is_open())
     {
         cerr << "Error opening the file! " << endl;
@@ -385,20 +154,14 @@ Vector3 Get_bead_pos(std::string filename, int step)
     string line;
     int counter = 0;
     Vector3 Bead_pos({0.0, 0.0, 0.0});
-    // the frame i want is (500*nsim)/100 = 5*nsim
 
     while (std::getline(Bead_data, line))
     {
         std::vector<std::string> splitted = split(line, " ");
         if (line[0] == '#')
-        {
             continue;
-        }
-
         if (counter == int(step / 50))
         {
-            // We get the things we need
-            // Bead_pos.x = std::stod(splitted[0]);
             Bead_pos = Vector3({std::stod(splitted[0]), std::stod(splitted[1]), std::stod(splitted[2])});
             break;
         }
@@ -408,29 +171,16 @@ Vector3 Get_bead_pos(std::string filename, int step)
     {
         std::cout << "The output file doesnt get that far\n";
     }
-
-    std::cout << "The initial bead position is " << Bead_pos.x << " " << Bead_pos.y << " " << Bead_pos.z << " \n";
-
     return Bead_pos;
 }
-
-// using namespace Ipopt;
 
 int main(int argc, char **argv)
 {
 
-    // Here is where we start changing stufff
-    // The parsing has to do many stuff before its completely functional
     std::fstream JsonFile;
-
     JsonFile.open(argv[1], std::ios::in);
     int Nsim = std::stoi(argv[2]);
-
     json Data = json::parse(JsonFile);
-
-    // We loaded the json file
-    // Now i also want to move the json file to my directory
-
     bool finish_sim = false;
 
     if (Data.contains("finish_sim"))
@@ -444,9 +194,8 @@ int main(int argc, char **argv)
 
     std::string filepath = Data["init_file"];
     int save_interval = Data["save_interval"];
-    bool resize_vol = Data["resize_vol"];
-    bool arcsim = Data["arcsim"];
 
+    bool remesher = Data["remeshing"];
     std::string Integration = "Gradient_descent";
 
     if (Data.contains("Integration"))
@@ -464,23 +213,18 @@ int main(int argc, char **argv)
     }
 
     // Switches handling
-
     std::vector<std::string> Switches(0);
     std::string Switch = "None";
     int Switch_t = 0;
     std::unordered_map<std::string, int> Switch_times_map;
-
     if (Data.contains("Switches"))
     {
-
         for (auto sw : Data["Switches"])
-        {
             Switches.push_back(sw);
-        }
+
         int switch_counter = 0;
         for (auto t : Data["Switch_times"])
         {
-
             Switch_times_map[Switches[switch_counter]] = t;
             switch_counter += 1;
         }
@@ -508,6 +252,7 @@ int main(int argc, char **argv)
     if (Data.contains("remesh_every"))
         remesh_every = Data["remesh_every"];
     std::cout << "Remeshing every " << remesh_every << " steps " << std::endl;
+
     if (Data.contains("adapt_remesh"))
         adapt_remesh = Data["adapt_remesh"];
 
@@ -534,7 +279,6 @@ int main(int argc, char **argv)
     size_t Final_t = Data["timesteps"];
 
     // Load the geometry
-
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
     mesh = mesh_uptr.release();
     geometry = geometry_uptr.release();
@@ -562,7 +306,7 @@ int main(int argc, char **argv)
         std::cout << " \n";
         if (Energy["Name"] == "Volume_constraint")
         {
-
+            // The format for the volume constraint is KV V_bar if V_bar is -1 we set it to the current volume
             if (Constants[1] < 0)
                 Constants[1] = geometry->totalVolume();
             std::cout << "Setting the target volume to current volume \n";
@@ -729,6 +473,79 @@ int main(int argc, char **argv)
             }
 
             Interaction_container.push_back(std::move(make_unique<Frenkel_Normal>(mesh, geometry, Bead_params)));
+
+            Beads.push_back(Bead());
+            Beads[bead_counter].mesh = mesh;
+            Beads[bead_counter].geometry = geometry;
+            Beads[bead_counter].Pos = BPos;
+            Beads[bead_counter].strength = Bead_params[0];
+            Beads[bead_counter].sigma = Bead_params[1];
+            Beads[bead_counter].rc = Bead_params[2];
+            Beads[bead_counter].interaction = interaction_mem;
+            std::cout << "Trivial assignments done\n";
+            Beads[bead_counter].Bead_I = Interaction_container[bead_counter].get();
+            std::cout << "Assigned INter \n";
+            Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
+            std::cout << "Assined bead of inter\n";
+            Beads[bead_counter].Bead_id = bead_counter;
+
+            std::cout << "The energy constants are ";
+            for (size_t i = 0; i < Interaction_container[bead_counter].get()->Energy_constants.size(); i++)
+            {
+                std::cout << Interaction_container[bead_counter].get()->Energy_constants[i] << " ";
+            }
+            std::cout << "\n";
+        }
+
+        if (interaction_mem == "Linear")
+        {
+
+            if (Bead_data.contains("outside"))
+            {
+                Bead_params.push_back(Bead_data["outside"]);
+            }
+            else
+            {
+                Bead_params.push_back(1.0); // default outside
+            }
+
+            Interaction_container.push_back(std::move(make_unique<Linear>(mesh, geometry, Bead_params)));
+
+            Beads.push_back(Bead());
+            Beads[bead_counter].mesh = mesh;
+            Beads[bead_counter].geometry = geometry;
+            Beads[bead_counter].Pos = BPos;
+            Beads[bead_counter].strength = Bead_params[0];
+            Beads[bead_counter].sigma = Bead_params[1];
+            Beads[bead_counter].rc = Bead_params[2];
+            Beads[bead_counter].interaction = interaction_mem;
+            std::cout << "Trivial assignments done\n";
+            Beads[bead_counter].Bead_I = Interaction_container[bead_counter].get();
+            std::cout << "Assigned INter \n";
+            Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
+            std::cout << "Assined bead of inter\n";
+            Beads[bead_counter].Bead_id = bead_counter;
+
+            std::cout << "The energy constants are ";
+            for (size_t i = 0; i < Interaction_container[bead_counter].get()->Energy_constants.size(); i++)
+            {
+                std::cout << Interaction_container[bead_counter].get()->Energy_constants[i] << " ";
+            }
+            std::cout << "\n";
+        }
+        if (interaction_mem == "Linear_Normal")
+        {
+
+            if (Bead_data.contains("outside"))
+            {
+                Bead_params.push_back(Bead_data["outside"]);
+            }
+            else
+            {
+                Bead_params.push_back(1.0); // default outside
+            }
+
+            Interaction_container.push_back(std::move(make_unique<Linear_Normal>(mesh, geometry, Bead_params)));
 
             Beads.push_back(Bead());
             Beads[bead_counter].mesh = mesh;
@@ -967,20 +784,6 @@ int main(int argc, char **argv)
         std::cout << "Momentum is " << M3DG.momentum << "\n";
     }
 
-    arcsim::Cloth Cloth_1;
-    arcsim::Cloth::Remeshing remeshing_params;
-
-    if (arcsim)
-    {
-        // You can make this only one function but you need to write the code for json helpers
-        remeshing_params.aspect_min = Data["remesher"]["aspect_min"];
-        remeshing_params.refine_angle = Data["remesher"]["refine_angle"];
-        remeshing_params.refine_compression = Data["remesher"]["refine_compression"];
-        remeshing_params.refine_velocity = Data["remesher"]["refine_velocity"];
-        remeshing_params.size_max = Data["remesher"]["size_max"];
-        remeshing_params.size_min = Data["remesher"]["size_min"];
-        remeshing_params.total_op = -1;
-    }
     RemeshOptions Options;
     if (Data.contains("remesher"))
     {
@@ -1068,12 +871,6 @@ int main(int argc, char **argv)
 
     std::cout << "My algorithm says\n";
     std::cout << "The max sizing is " << max_sizing << " and the min sizing is " << min_sizing << " \n";
-    // arcsim::Mesh remesher_mesh = translate_to_arcsim(mesh, geometry);
-    // Cloth_1.mesh = remesher_mesh;
-    // if (arcsim)
-    // Cloth_1.remeshing = remeshing_params;
-    // arcsim::compute_masses(Cloth_1);
-    // arcsim::compute_ws_data(Cloth_1.mesh);
 
     ORIG_VPOS = geometry->inputVertexPositions;
     CoM = geometry->centerOfMass();
@@ -1257,7 +1054,6 @@ int main(int argc, char **argv)
     size_t n_vert_old;
     size_t n_vert_new;
     double Volume;
-    double Area;
     double nu_obs;
     // double nu_evol;
     double nu_0;
@@ -1268,31 +1064,11 @@ int main(int argc, char **argv)
     int sys_time = 0;
 
     bool seam = false;
-    Cloth_1.dump_info = false;
     start = chrono::steady_clock::now();
 
     Save_mesh(basic_name, 0);
 
     std::cout << "Starting sim m\n";
-
-    // if (arcsim)
-    // {
-    //     arcsim::dynamic_remesh(Cloth_1);
-
-    //     std::cout << "Done first remeshing\n";
-    //     std::cout << "THis remeshing did " << Cloth_1.remeshing.op_counter << " operations \n";
-    //     std::cout << " \n\n";
-    //     delete mesh;
-    //     delete geometry;
-
-    //     std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
-    //     arcsim::delete_mesh(Cloth_1.mesh);
-    //     mesh = mesh_uptr.release();
-    //     geometry = geometry_uptr.release();
-    //     // remesh(*mesh, *geometry, Options);
-    //     // geometry->requireVertexPositions();
-    //     // geometry->inputVertexPositions = geometry->vertexPositions;
-    // }
 
     // std::cout << "Here now\n";
     M3DG.mesh = mesh;
@@ -1474,15 +1250,11 @@ int main(int argc, char **argv)
             {
                 Integration = "Newton";
                 remesh_every = -1;
-                // save_interval = 0;
-                resize_vol = false;
             }
             if (Switch == "Newton-Normal" && current_t == Switch_t)
             {
                 Integration = "Newton-Normal";
                 remesh_every = -1;
-                // save_interval = 0;
-                resize_vol = false;
             }
             if (Switch == "BFGS" && current_t == Switch_t)
             {
@@ -1528,7 +1300,7 @@ int main(int argc, char **argv)
             }
             if (Switch == "No_remesh" && current_t == Switch_t)
             {
-                arcsim = false;
+                remesher = false;
                 Switch_times_map[Switch] = -1;
                 for (size_t i = 0; i < Energies.size(); i++)
                 {
@@ -1543,14 +1315,14 @@ int main(int argc, char **argv)
             }
             if (Switch == "Remesh_always" && current_t == Switch_t)
             {
-                arcsim = true;
+                remesher = true;
                 remesh_every = 1;
                 Switch_times_map[Switch] = -1;
                 std::cout << "Remeshing every step activated\n";
             }
             if (Switch == "Restore_remeshing" && current_t == Switch_t)
             {
-                arcsim = true;
+                remesher = true;
                 std::cout << "Restoring remeshing\n";
                 remesh_every = Data["remesh_every"];
                 Switch_times_map[Switch] = -1;
@@ -1568,8 +1340,6 @@ int main(int argc, char **argv)
                 Sim_handler.Energy_constants = Energy_constants;
                 std::cout << "Added the volume constraint\n";
                 Switch_times_map[Switch] = -1;
-                if (resize_vol)
-                    resize_vol = false;
             }
             if (Switch == "Save_all" && current_t == Switch_t)
             {
@@ -1621,7 +1391,7 @@ int main(int argc, char **argv)
         // FLAG THE SMALL TRIANGLES
         bool flagSmallAngle = false;
 
-        if (arcsim)
+        if (remesher)
         {
             geometry->requireCornerAngles();
             for (Corner c : mesh->corners())
@@ -1642,7 +1412,7 @@ int main(int argc, char **argv)
             }
         }
 
-        if (arcsim && ((current_t - last_remesh) > remesh_every && remesh_every > 0 || dt_sim == 0.0 || (flagSmallAngle && remesh_every < 0)))
+        if (remesher && ((current_t - last_remesh) > remesh_every && remesh_every > 0 || dt_sim == 0.0 || (flagSmallAngle && remesh_every < 0)))
         {
 
             flagSmallAngle = false;
@@ -1708,242 +1478,6 @@ int main(int argc, char **argv)
                 Remeshing_count.close();
             }
         }
-        if (arcsim && ((current_t - last_remesh) > remesh_every && remesh_every > 0 || dt_sim == 0.0) && false)
-        {
-            bool flagSmallAngle = false;
-            geometry->requireCornerAngles();
-            for (Corner c : mesh->corners())
-            {
-                if (geometry->cornerAngles[c] < 0.2)
-                {
-                    flagSmallAngle = true;
-                    break;
-                }
-            }
-            if (flagSmallAngle)
-            {
-                std::cout << "Remeshing small angles at step " << current_t << " \n";
-                remeshSmallAngles(*mesh, *geometry, Options);
-                M3DG.BFGS_iter = 0;
-                mesh->compress();
-                geometry->refreshQuantities();
-            }
-            geometry->unrequireCornerAngles();
-
-            // std::cout<<"Remesh every is "<< remesh_every<<" \n";
-            last_remesh = current_t;
-            // if(dt_sim==0.0){ std::cout<<"wE ARE REMESHING CAUSE THINGS DONT MAKE SENSE\n";}
-            // std::cout<<"\t\t Remeshing\n";
-            // Here we want to explore whats going on
-
-            int n_vert_old = 0;
-            int n_vert_new = 0;
-
-            n_vert_old = mesh->nVertices();
-
-            double avg_dih1;
-            double max_dih1 = 0.0;
-            double min_dih1 = 1e2;
-            double avg_dih2;
-            double max_dih2 = 0.0;
-            double min_dih2 = 1e2;
-
-            arcsim::Mesh remesher_mesh2 = translate_to_arcsim(mesh, geometry);
-            Cloth_1.mesh = remesher_mesh2;
-
-            if (Saving_last_states)
-            {
-                saved_mesh_idx = (saved_mesh_idx + 1) % 6;
-                arcsim::delete_mesh(Saved_meshes[saved_mesh_idx]);
-
-                for (size_t i = 0; i < Beads.size(); i++)
-                {
-                    Bead_pos_saved[6 * i + saved_mesh_idx] = Beads[i].Pos;
-                }
-                Saved_meshes[saved_mesh_idx] = arcsim::deep_copy(remesher_mesh2);
-            }
-
-            // std::cout<<"Remesghing\n";
-            Cloth_1.remeshing = remeshing_params;
-            arcsim::compute_masses(Cloth_1);
-            arcsim::compute_ws_data(Cloth_1.mesh);
-            arcsim::dynamic_remesh(Cloth_1);
-
-            if (Cloth_1.remeshing.op_counter >= 300 && false)
-            {
-                Cloth_1.mesh = arcsim::deep_copy(Saved_meshes[(saved_mesh_idx - 1 + 6) % 6]);
-                for (size_t i = 0; i < Beads.size(); i++)
-                {
-                    Beads[i].Pos = Bead_pos_saved[6 * i + (saved_mesh_idx - 1 + 6) % 6];
-                }
-            }
-            double output = 0.0;
-            if (adapt_remesh)
-            {
-
-                int error = Cloth_1.remeshing.op_counter - trgt_remesh_op;
-                double proportional = error;
-                integral_error = integral_error + error * remesh_every;
-                double derivative = (error - (remesh_op_last - trgt_remesh_op)) / remesh_every;
-                output = 0.6 * proportional + 1.2 * integral_error / 10000 + (3.0 / 40) * derivative / 10000;
-
-                remesh_op_last = Cloth_1.remeshing.op_counter;
-
-                //
-
-                if (Cloth_1.remeshing.op_counter > 50)
-                {
-                    remesh_every = remesh_every / 2;
-                    if (remesh_every < 1)
-                        remesh_every = 1;
-                }
-                else if (Cloth_1.remeshing.op_counter < 20)
-                {
-                    remesh_every = remesh_every + 10;
-                }
-                else
-                {
-                    remesh_every = remesh_every + 1;
-                }
-            }
-
-            // if(remesh_every > 1000) remesh_every = 1000; // I wonder if i really need this or remesh_every should be unbounded
-
-            if (Count_remesh)
-            {
-                Remeshing_count = std::ofstream(basic_name + "Remeshing_count.txt", std::ios_base::app);
-                Remeshing_count << current_t << " " << Cloth_1.remeshing.op_counter << " " << remesh_every << " " << output << "\n";
-                Remeshing_count.close();
-            }
-
-            if (Cloth_1.remeshing.op_counter != 0)
-            {
-                arcsim::compute_masses(Cloth_1);
-                arcsim::compute_ws_data(Cloth_1.mesh);
-                arcsim::dynamic_remesh(Cloth_1);
-            }
-
-            if (Saving_last_states)
-            {
-                arcsim::delete_mesh(Saved_after_remesh[saved_mesh_idx]);
-                Saved_after_remesh[saved_mesh_idx] = arcsim::deep_copy(Cloth_1.mesh);
-            }
-
-            small_Ts = M3DG.small_TS;
-            sys_time = M3DG.system_time;
-
-            delete mesh;
-            delete geometry;
-            // std::cout<<"translating back?\n";
-            std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
-            arcsim::delete_mesh(Cloth_1.mesh);
-
-            mesh = mesh_uptr.release();
-            geometry = geometry_uptr.release();
-
-            M3DG.mesh = mesh;
-            M3DG.geometry = geometry;
-            M3DG.BFGS_iter = 0;
-            Sim_handler.mesh = mesh;
-            Sim_handler.geometry = geometry;
-
-            if (Cloth_1.remeshing.op_counter > 300)
-            {
-                double min_a = 1e10;
-                double a;
-                for (Face f : mesh->faces())
-                {
-                    a = geometry->faceArea(f);
-                    if (a < min_a)
-                        min_a = a;
-
-                    if (geometry->faceArea(f) < 1e-6)
-                    {
-                        std::cout << "There is a face with area smaller than 1e-6\n";
-                        std::cout << "THe area is " << geometry->faceArea(f) << "\n";
-                        // std::cout<<"The area is "<< geometry->faceArea(f) << "\n";
-                        Eigen::Vector<double, 9> Face_pos;
-                        Halfedge he = f.halfedge();
-                        for (int i = 0; i < 3; i++)
-                        {
-                            Vertex v = he.vertex();
-                            Vector3 pos = geometry->inputVertexPositions[v];
-                            Face_pos.segment<3>(3 * i) << pos.x, pos.y, pos.z;
-                            he = he.next();
-                        }
-                        Eigen::Vector<double, 9> Face_grad = geometry->gradient_triangle_area(Face_pos);
-                        for (int i = 0; i < 3; i++)
-                        {
-                            Vertex v = he.vertex();
-                            Vector3 grad = Vector3{Face_grad(3 * i), Face_grad(3 * i + 1), Face_grad(3 * i + 2)};
-                            geometry->inputVertexPositions[v] = geometry->inputVertexPositions[v] - 1e-6 * grad;
-                            he = he.next();
-                        }
-
-                        std::cout << "THe new face area is " << geometry->faceArea(f) << "\n";
-                    }
-                }
-                std::cout << "The smallest area is " << min_a << "\n";
-            }
-
-            for (Edge e : mesh->edges())
-            {
-                dih = fabs(geometry->dihedralAngle(e.halfedge()));
-                avg_dih2 += dih;
-                if (dih > max_dih2)
-                    max_dih2 = dih;
-                if (dih < min_dih2)
-                    min_dih2 = dih;
-            }
-
-            avg_dih2 = avg_dih2 / mesh->nEdges();
-
-            n_vert_new = mesh->nVertices();
-
-            // std::cout<<"The size of the beads is "<< Beads.size() << " \n";
-            for (size_t i = 0; i < Beads.size(); i++)
-            {
-                Beads[i].Reasign_mesh(mesh, geometry);
-            }
-            if (Integration == "Newton")
-            {
-                try
-                {
-                    Switch_t = Switch_times_map.at("Newton");
-                }
-                catch (std::out_of_range e)
-                {
-                    Switch_t = -1;
-                }
-            }
-            //     if(Integration == "Newton" && current_t >  Switch_t && Switch_t >=0){
-
-            //         // std::cout<<"\t \t At this step\n";
-            //     Sim_handler.Calculate_Jacobian();
-            //     // std::cout<<"\t \t The Jacobian is calculated\n";
-            //     Sim_handler.Calculate_gradient();
-            //     // std::cout<<"\t \t The gradient is calculated\n";
-
-            //     // std::vector<double> RHS(0);
-            //     Eigen::VectorXd RHS(3* mesh->nVertices());
-            //     int index;
-            //     for(Vertex v: mesh->vertices()){
-
-            //         index = v.getIndex();
-            //         RHS(3*index) = Sim_handler.Current_grad[v].x;
-            //         RHS(3*index+1) = Sim_handler.Current_grad[v].y;
-            //         RHS(3*index+2) = Sim_handler.Current_grad[v].z;
-
-            //     }
-
-            //     Eigen::MatrixXd J_transpose = Sim_handler.Jacobian_constraints.transpose();
-            //     Eigen::VectorXd  Lagrange_mul = J_transpose.colPivHouseholderQr().solve(RHS);
-
-            //     std::cout<<"THe previous Lagrange multipliers were " << Sim_handler.Lagrange_mult.transpose() <<" \n";
-            //     Sim_handler.Lagrange_mult = Lagrange_mul;
-            //     std::cout<<"THe new  Lagrange multipliers were " << Sim_handler.Lagrange_mult.transpose() <<" \n";
-            // }
-        }
 
         end_time_control = chrono::steady_clock::now();
         remeshing_elapsed_time += chrono::duration_cast<chrono::milliseconds>(end_time_control - start_time_control).count();
@@ -1980,9 +1514,6 @@ int main(int argc, char **argv)
             Volume = geometry->totalVolume();
             Area = geometry->totalArea();
             nu_obs = 3 * Volume / (4 * PI * pow(Area / (4 * PI), 1.5));
-            H0 = sqrt(4 * PI / Area) * c0 / 2.0;
-
-            // c_null=2*H0 *pow(Area/(4*PI),0.5);
 
             std::cout << "The reduced volume is " << nu_obs << "\n";
             if (current_t == 0)
@@ -1990,7 +1521,6 @@ int main(int argc, char **argv)
                 nu_0 = nu_obs;
             }
 
-            std::cout << "The spontaneous curvature is " << H0 << "\n";
             std::cout << "Current t is " << current_t << "\n";
             std::cout << "The system time is " << time << "\n\n";
 
@@ -2136,9 +1666,8 @@ int main(int argc, char **argv)
                 Switch_t = current_t + 1;
                 Switch_times_map["Newton"] = Switch_t;
                 remesh_every = 1;
-                arcsim = true;
+                remesher = true;
                 Switch_times_map["No_remesh"] = current_t + 2;
-                resize_vol = false;
                 for (size_t i = 0; i < Energies.size(); i++)
                 {
                     if (Energies[i] == "Volume_constraint")
@@ -2306,9 +1835,9 @@ int main(int argc, char **argv)
                 Switch_t = current_t + 100;
                 Switch_times_map["Newton-Normal"] = Switch_t;
                 remesh_every = 1;
-                arcsim = true;
+                remesher = true;
                 Switch_times_map["No_remesh"] = current_t + 50;
-                resize_vol = false;
+
                 for (size_t i = 0; i < Energies.size(); i++)
                 {
                     if (Energies[i] == "Volume_constraint")
@@ -2395,13 +1924,7 @@ int main(int argc, char **argv)
                 Switch_times_map["No_remesh"] = Switch_times_map["IpOpt"] - 1;
                 Switch_times_map["Restore_remeshing"] = current_t + 1;
                 std::cout << "Remeshing and retrying \n";
-                // Switch_times_map["Finer_mesh"] = current_t + 1;
-
-                // remesh_every = 1;
-                // arcsim = true;
-
                 std::cout << "\n\n*** The problem FAILED!\n";
-                // std::cout<< "Refining mesh and trying again\n";
             }
             Integration = "Gradient_descent";
         }
@@ -2483,13 +2006,6 @@ int main(int argc, char **argv)
                 Switch_times_map["No_remesh"] = Switch_times_map["IpOpt"] - 1;
                 Switch_times_map["Restore_remeshing"] = current_t + 1;
                 std::cout << "Remeshing and retrying \n";
-                // Switch_times_map["Finer_mesh"] = current_t + 1;
-
-                // remesh_every = 1;
-                // arcsim = true;
-
-                //     std::cout << "\n\n*** The problem FAILED!\n";
-                //     // std::cout<< "Refining mesh and trying again\n";
             }
             Integration = "Gradient_descent";
         }
@@ -2498,15 +2014,10 @@ int main(int argc, char **argv)
             // std::cout<<"Integrating with BFGS but only in the normal direction\n";
             if (M3DG.BFGS_iter == 0)
             {
-                Vertex_Normals = VertexData<Vector3>(*mesh, {0.0, 0.0, 0.0});
-                for (Vertex v : mesh->vertices())
-                {
-                    Vertex_Normals[v] = geometry->vertexNormalAreaWeighted(v);
-                }
-                std::cout << "Normals calculated\n";
+                M3DG.Sim_handler->update_vertex_normals();
             }
             // std::cout<<"Integrating\n";
-            dt_sim = M3DG.integrate_BFGS_Normal(Sim_data, time, Bead_filenames, Save_output_data, Vertex_Normals);
+            dt_sim = M3DG.integrate_BFGS_Normal(Sim_data, time, Bead_filenames, Save_output_data);
 
             if (M3DG.remesh_flag)
             {
@@ -2587,11 +2098,7 @@ int main(int argc, char **argv)
                 beads_saved << Bead_pos_saved[6 * i + saved_mesh_idx].x << " " << Bead_pos_saved[6 * i + saved_mesh_idx].y << " " << Bead_pos_saved[6 * i + saved_mesh_idx].z << " ";
             }
             beads_saved << " \n";
-            // std::cout<<Bead_pos_saved[k].x << " " << Bead_pos_saved[k].y << " " << Bead_pos_saved[k].z << Bead_pos_saved[6+k].x << " " << Bead_pos_saved[6+k].y << " " << Bead_pos_saved[6+k].z << " \n";
             std::cout << "Saved mesh idx is " << saved_mesh_idx << " \n";
-            // arcsim::save_obj(Saved_meshes[saved_mesh_idx], basic_name + "Saved_final_frame_" + std::to_string(11 - 2 * k) + ".obj");
-            // arcsim::save_obj(Saved_after_remesh[saved_mesh_idx], basic_name + "Saved_final_frame_" + std::to_string(12 - 2 * k) + ".obj");
-
             saved_mesh_idx = (saved_mesh_idx - 1 + 6) % 6;
         }
     }
