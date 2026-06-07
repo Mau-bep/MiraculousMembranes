@@ -103,11 +103,7 @@ double Normal_dot_Interaction::Tot_Energy()
         {
             vec_r = Bead_1->Pos - geometry->inputVertexPositions[v];
             double r = vec_r.norm();
-
-            if (r < rc || rc < 0.0)
-            {
-                Total_E += (1.0 / 6.0) * E_r(r, Energy_constants) * Q / r;
-            }
+            Total_E += (1.0 / 6.0) * E_r(r, Energy_constants) * Q / r;
         }
     }
 
@@ -213,18 +209,10 @@ VertexData<Vector3> Normal_dot_Interaction::Gradient()
 
         Grad_Q = outside * geometry->gradient_triple_product(Positions_triangle);
         C2 = 0;
-        if (distance_bead[Vertices_triangle[0]] < rc || rc < 0.0)
-        {
-            C2 = C2 + Energy_contribution[Vertices_triangle[0]] / distance_bead[Vertices_triangle[0]];
-        }
-        if (distance_bead[Vertices_triangle[1]] < rc || rc < 0.0)
-        {
-            C2 = C2 + Energy_contribution[Vertices_triangle[1]] / distance_bead[Vertices_triangle[1]];
-        }
-        if (distance_bead[Vertices_triangle[2]] < rc || rc < 0.0)
-        {
-            C2 = C2 + Energy_contribution[Vertices_triangle[2]] / distance_bead[Vertices_triangle[2]];
-        }
+
+        C2 = C2 + Energy_contribution[Vertices_triangle[0]] / distance_bead[Vertices_triangle[0]];
+        C2 = C2 + Energy_contribution[Vertices_triangle[1]] / distance_bead[Vertices_triangle[1]];
+        C2 = C2 + Energy_contribution[Vertices_triangle[2]] / distance_bead[Vertices_triangle[2]];
 
         C2 = C2 / 6.0;
 
@@ -245,11 +233,11 @@ VertexData<Vector3> Normal_dot_Interaction::Gradient()
         {
 
             // C2 = Energy_contribution[v]/distance_bead[v]/6.0;
-            if (distance_bead[v] > rc && rc > 0.0)
-            {
-                // std::cout<<"Skipping vertex " << v.getIndex() << " because it is outside the cutoff distance\n";
-                continue; // Skip this vertex if the bead is outside the cutoff distance or the normal is not pointing towards the bead
-            }
+            // if (distance_bead[v] > rc && rc > 0.0)
+            // {
+            //     // std::cout<<"Skipping vertex " << v.getIndex() << " because it is outside the cutoff distance\n";
+            //     continue; // Skip this vertex if the bead is outside the cutoff distance or the normal is not pointing towards the bead
+            // }
             Positions_r << geometry->inputVertexPositions[v].x, geometry->inputVertexPositions[v].y, geometry->inputVertexPositions[v].z,
                 Bead_pos.x, Bead_pos.y, Bead_pos.z;
 
@@ -375,10 +363,10 @@ SparseMatrix<double> Normal_dot_Interaction::Hessian()
             // We need to do the whole thing now
             Vertices_r[0] = v.getIndex();
 
-            if (distance_bead[v] > rc && rc > 0.0)
-            {
-                continue; // Skip this vertex if the bead is outside the cutoff distance or the normal is not pointing towards the bead
-            }
+            // if (distance_bead[v] > rc && rc > 0.0)
+            // {
+            //     continue; // Skip this vertex if the bead is outside the cutoff distance or the normal is not pointing towards the bead
+            // }
             Positions_r << geometry->inputVertexPositions[v].x, geometry->inputVertexPositions[v].y, geometry->inputVertexPositions[v].z,
                 Bead_pos.x, Bead_pos.y, Bead_pos.z;
             Grad_r = geometry->gradient_r(Positions_r, distance_bead[v]);

@@ -32,7 +32,6 @@ int remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationMana
     size_t nFlips = 10;
     if (doConnectivityChanges) {
 
-      // doConnectivityChanges = adjustEdgeLengths(mesh, geom, mm, options);
       splitWorstEdges(mesh, geom, mm, options);
       nFlips = fixDelaunay(mesh, geom, mm);
       options.numberOp += nFlips;
@@ -42,18 +41,14 @@ int remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationMana
     nFlips = fixDelaunay(mesh, geom, mm);
     // std::cout<<"The number of flips is "<< nFlips<<"\n";
     options.numberOp += nFlips;
-    // if ((nFlips == 0)) break;
 
-    // cAN WE DO SOME VERTEX SMOOTHING
+
     geom.inputVertexPositions = geom.vertexPositions;
     mesh.compress();
     geom.refreshQuantities();
     double smoothing = smoothByLaplacian(mesh, geom, mm);
     while (smoothing > 1e-4) smoothing = smoothByLaplacian(mesh, geom, mm);
-
-    // std::cout << "The vertices were moved " << smoothing << " \n";
   }
-
   geom.unrequireFaceSizing();
   geom.unrequireVertexSizing();
   geom.inputVertexPositions = geom.vertexPositions;
@@ -1343,7 +1338,6 @@ void remeshSmallAngles(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, 
     if (shouldCollapseSimple(mesh, geom, e, options)) {
       Vertex v = mm.collapseEdge(e, newPos);
       if (v != Vertex()) {
-        // geom.vertexSizing
         didCollapse = true;
       }
     }

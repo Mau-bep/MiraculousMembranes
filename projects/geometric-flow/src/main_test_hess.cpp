@@ -984,8 +984,8 @@ int main(int argc, char **argv)
 
     start = chrono::steady_clock::now();
     double E2 = 0.0;
-    Sim_handler.Calculate_energies_precomp(&E2);
-    Sim_handler.Calculate_gradient_precomp();
+    Sim_handler.Calculate_energies(&E2);
+    Sim_handler.Calculate_gradient();
     TotalForce2 = Sim_handler.Current_grad;
     end = chrono::steady_clock::now();
 

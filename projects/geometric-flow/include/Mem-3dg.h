@@ -96,6 +96,14 @@ public:
   Mem3DG(ManifoldSurfaceMesh *inputMesh, VertexPositionGeometry *inputGeo, Bead input_Bead);
   Mem3DG(ManifoldSurfaceMesh *inputMesh, VertexPositionGeometry *inputGeo, bool test);
 
+  // Rule of five: declare destructor and disable copying to avoid
+  // accidental shallow copies of raw pointers held by this class.
+  ~Mem3DG();
+  Mem3DG(const Mem3DG &) = delete;
+  Mem3DG &operator=(const Mem3DG &) = delete;
+  Mem3DG(Mem3DG &&) = default;
+  Mem3DG &operator=(Mem3DG &&) = default;
+
   void Add_bead(Bead *bead);
 
   virtual VertexData<Vector3> buildFlowOperator(double h, double V_bar, double nu, double c0, double P0, double KA, double KB, double Kd);

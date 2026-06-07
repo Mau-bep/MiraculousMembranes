@@ -63,10 +63,10 @@ public:
     virtual double E_Face_reg(std::vector<double> Constants) const;
 
     // We do the precomputed ones now
-    virtual double E_Area_constraint_precomp(std::vector<double> Constants) const;
-    virtual double E_SurfaceTension_precomp(std::vector<double> Constants) const;
-    virtual double E_Bending_precomp(std::vector<double> Constants) const;
-    virtual double E_Edge_reg_precomp(std::vector<double> Constants) const;
+    // virtual double E_Area_constraint_precomp(std::vector<double> Constants) const;
+    // virtual double E_SurfaceTension_precomp(std::vector<double> Constants) const;
+    // virtual double E_Bending_precomp(std::vector<double> Constants) const;
+    // virtual double E_Edge_reg_precomp(std::vector<double> Constants) const;
 
     virtual VertexData<Vector3> F_Volume_constraint(std::vector<double> Constants) const;
     virtual VertexData<Vector3> F_SurfaceTension(std::vector<double> Constants) const;
@@ -81,9 +81,9 @@ public:
     virtual VertexData<Vector3> F_Edge_reg_2(std::vector<double> Constants) const;
     virtual VertexData<Vector3> F_Face_reg(std::vector<double> Constants) const;
 
-    virtual VertexData<Vector3> F_Volume_constraint_precomp(std::vector<double> Constants) const;
-    virtual VertexData<Vector3> F_Bending_precomp(std::vector<double> Constants) const;
-    virtual VertexData<Vector3> F_Edge_reg_precomp(std::vector<double> Constants) const;
+    // virtual VertexData<Vector3> F_Volume_constraint_precomp(std::vector<double> Constants) const;
+    // virtual VertexData<Vector3> F_Bending_precomp(std::vector<double> Constants) const;
+    // virtual VertexData<Vector3> F_Edge_reg_precomp(std::vector<double> Constants) const;
 
     // virtual VertexData<Vector3> F_SurfaceTension_precomp(std::vector<double> Constants) const;
 
@@ -112,8 +112,8 @@ public:
     virtual void Calculate_Jacobian();
     virtual void Calculate_Jacobian_Normal();
 
-    virtual void Calculate_energies_precomp(double *E);
-    virtual void Calculate_gradient_precomp();
+    // virtual void Calculate_energies_precomp(double *E);
+    // virtual void Calculate_gradient_precomp();
     // virtual void Calculate_Jacobian_precomp();
 
     virtual SparseMatrix<double> Calculate_Hessian();

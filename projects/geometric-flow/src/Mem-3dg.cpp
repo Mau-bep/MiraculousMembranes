@@ -94,6 +94,17 @@ Mem3DG::Mem3DG(ManifoldSurfaceMesh *inputMesh, VertexPositionGeometry *inputGeo,
   remesh_flag = false;
 }
 
+// Destructor: clear internal containers. This class does not own
+// `mesh`, `geometry`, or `Sim_handler` so those pointers are not
+// deleted here.
+Mem3DG::~Mem3DG()
+{
+  Beads.clear();
+  s_list.clear();
+  y_list.clear();
+  rho_list.clear();
+}
+
 void Mem3DG::Add_bead(Bead *bead)
 {
 
@@ -2310,7 +2321,6 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
   if (nanflag)
     std::cout << "At least one vertex has nan position\n";
 
-  // geometry->refreshQuantities();
   center = geometry->centerOfMass();
   Vector3 Vertex_pos;
 
@@ -2325,14 +2335,9 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
     Projection += Force[v].norm2();
   }
 
-  // Projection = Sim_handler->Gradient_norms[Sim_handler->Energies.size()];
-
   size_t bead_count = 0;
   NewE = 0.0;
-  // std::cout<<" calculating energies again\n";
   Sim_handler->Calculate_energies(&NewE);
-  // std::cout<<"New E is " << NewE << "\n";
-  // std::cout<<"The projection is " << Projection << "\n";
   size_t counter = 0;
 
   bool displacement_cond = true;
@@ -2425,7 +2430,6 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
     }
 
     alpha *= rho;
-    // if(Projection<1) std::cout<<"THe projection is " << Projection <<" at iter "<< BFGS_iter << "\n";
     if ((abs((NewE - previousE) / previousE) < 1e-5 && Projection < 1e-2) || Projection < 1e-4)
     {
       small_TS = true;
@@ -2438,14 +2442,8 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
 
     if (alpha < 1e-10)
     {
-      BFGS_iter = 0;
+      // BFGS_iter = 0;
 
-      // std::cout << "THe timestep got small so the simulation would end \n";
-      // std::cout << "THe timestep is " << alpha << " \n";
-      // std::cout << "The energy diff is" << abs(NewE - previousE) << "\n";
-      // std::cout << "THe relative energy diff  is" << abs((NewE - previousE) / previousE) << "\n";
-      // std::cout << "The projection is" << Projection << "\n";
-      // std::cout << "The projection is too big " << (Projection > 1.0e8) << " \n";
       if (Projection > 1.0e5)
       {
         remesh_flag = true;
@@ -2646,14 +2644,6 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, double P0, double V_bar, 
       // std::cout<<Bead_1.Total_force.norm()*alpha<<" Displacement of the bead\n";
       break;
     }
-    // if(abs(NewE-previousE)>100 && Projection>1e6){
-    //   std::cout<<"The energy diff is"<< abs(NewE-previousE)<<"\n";
-    //   std::cout<<"THe relative energy diff  is"<<abs((NewE-previousE)/previousE)<<"\n";
-    //   std::cout<<"The projection is"<< Projection<<"\n";
-    //   std::cout<<"Peak in energy variation, will stop out of safety\n";
-    //   alpha=-1;
-    //   break;
-    // }
 
     if (std::isnan(E_Vol))
     {
@@ -3647,7 +3637,7 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
     // here the vertices are alreay updated no?
 
     geometry->refreshQuantities();
-    mesh->compress();
+
     Sim_handler->Calculate_gradient();
 
     for (Vertex v : mesh->vertices())
@@ -3700,7 +3690,6 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
     Eigen::VectorXd s_k = backtrackstep * r;
 
     geometry->refreshQuantities();
-    mesh->compress();
     Sim_handler->Calculate_gradient();
     for (Vertex v : mesh->vertices())
     {
@@ -3723,13 +3712,15 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
   // std::cout<<"DOne with iteration\n";
   BFGS_iter += 1;
 
+  // HERE I CAN FREE sk AND gRAD_E
+
   double r_eff = 0;
 
   end = chrono::steady_clock::now();
   time_backtracking = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
   double tot_E = 0;
-  Sim_handler->Calculate_energies_precomp(&tot_E);
+  Sim_handler->Calculate_energies(&tot_E);
 
   N_data += 1;
   mean_E = mean_E + (tot_E - mean_E) / N_data;
@@ -3747,11 +3738,11 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
 
     // In this case we will print the value of this quantity
     std::cout << "After" << N_data << "steps of iterations the mean Energy is " << mean_E << " and the variance is " << var_E << "\n";
-    if (var_E < 1e-8)
-    {
-      // std::cout << "We would end the simulation because the variance of the energy is very small\n";
-      // backtrackstep= -1;
-    }
+    // if (var_E < 1e-8)
+    // {
+    // std::cout << "We would end the simulation because the variance of the energy is very small\n";
+    // backtrackstep= -1;
+    // }
     N_data = 0;
     mean_E = 0;
     var_E = 0;
@@ -3762,10 +3753,6 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
 
     V = geometry->totalVolume();
     A = 0.0;
-    // geometry->requireFaceAreas();
-    // for (Face f : mesh->faces())
-    //   A += geometry->faceAreas[f];
-    // geometry->unrequireFaceAreas();
     A = geometry->totalArea();
     Sim_data << time << " " << discreteTs << " " << V << " " << A << " ";
     for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
@@ -3819,9 +3806,6 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
 
   start = chrono::steady_clock::now();
 
-  SparseMatrix<double> HK0(3 * mesh->nVertices(), 3 * mesh->nVertices());
-  HK0.setIdentity();
-
   std::vector<Vector3> Bead_forces(Beads.size());
 
   if (BFGS_iter == 0)
@@ -3851,9 +3835,8 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
     rho_list.resize(0);
 
     s_list.push_back(Aux_vector);
-    mesh->compress();
-    geometry->refreshQuantities();
 
+    geometry->refreshQuantities();
     Sim_handler->Calculate_gradient();
 
     Vector3 Diff;
@@ -3879,7 +3862,6 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
   else
   {
 
-    // IF this is not 0 we need to call the BFGS UPDATE FOR THE HESSIAN
     Eigen::VectorXd Grad_vec = Eigen::VectorXd::Zero(3 * (mesh->nVertices() + Beads.size()));
     for (Vertex v : mesh->vertices())
     {
@@ -3994,7 +3976,7 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
     std::cout << "After" << N_data << "steps of iterations the mean Energy is " << mean_E << " and the variance is " << var_E << "\n";
     // std::cout<<"After" << N_data << "steps of iterations the mean Energy is " << mean_Grad <<" and the variance is " << var_Grad << "\n";
 
-    if (var_E < 0.0006)
+    if (var_E < 0.005)
       Turn_normal_iter = true;
     N_data = 0;
     mean_E = 0;
@@ -4005,10 +3987,6 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
   {
     V = geometry->totalVolume();
     A = 0.0;
-    // geometry->requireFaceAreas();
-    // for (Face f : mesh->faces())
-    //   A += geometry->faceAreas[f];
-    // geometry->unrequireFaceAreas();
     A = geometry->totalArea();
     Sim_data << time << " " << discreteTs << " " << V << " " << A << " ";
     for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
@@ -4095,7 +4073,7 @@ double Mem3DG::integrate_Newton(std::ofstream &Sim_data, double time, std::vecto
   Eigen::SimplicialLDLT<SparseMatrix<double>> solverHess;
 
   start = chrono::steady_clock::now();
-  Sim_handler->Calculate_gradient_precomp();
+  Sim_handler->Calculate_gradient();
   Sim_handler->Calculate_Jacobian();
   Hessian = Sim_handler->Calculate_Hessian();
 
@@ -4267,7 +4245,7 @@ double Mem3DG::integrate_Newton(std::ofstream &Sim_data, double time, std::vecto
     geometry->refreshQuantities();
     double TotE = 0.0;
 
-    Sim_handler->Calculate_energies_precomp(&TotE);
+    Sim_handler->Calculate_energies(&TotE);
     A = 0;
     geometry->requireFaceAreas();
     for (Face f : mesh->faces())
@@ -4370,7 +4348,7 @@ VertexData<Vector3> Mem3DG::Newton_Normal_step(std::ofstream &Sim_data, double t
 
   start = chrono::steady_clock::now();
   // std::cout << "Calculating gradients\n";
-  Sim_handler->Calculate_gradient_precomp();
+  Sim_handler->Calculate_gradient();
   Hessian = Sim_handler->Calculate_Hessian_Normal();
   Sim_handler->Calculate_Jacobian_Normal();
 
@@ -4572,7 +4550,7 @@ double Mem3DG::integrate_Newton_Normal(std::ofstream &Sim_data, double time, std
 
   start = chrono::steady_clock::now();
   // std::cout << "Calculating gradients\n";
-  Sim_handler->Calculate_gradient_precomp();
+  Sim_handler->Calculate_gradient();
   // Hessian = Sim_handler->Calculate_Hessian_Normal();
   Hessian = Sim_handler->Calculate_Hessian_Normal_clipped();
   Sim_handler->Calculate_Jacobian_Normal();
@@ -4763,7 +4741,7 @@ double Mem3DG::integrate_Newton_Normal(std::ofstream &Sim_data, double time, std
     geometry->refreshQuantities();
     double TotE = 0.0;
 
-    Sim_handler->Calculate_energies_precomp(&TotE);
+    Sim_handler->Calculate_energies(&TotE);
     A = 0.0;
     geometry->requireFaceAreas();
     for (Face f : mesh->faces())
@@ -4884,7 +4862,7 @@ double Mem3DG::integrate_Newton_Normal_Sherman(std::ofstream &Sim_data, double t
 
   start = chrono::steady_clock::now();
   // std::cout << "Calculating gradients\n";
-  Sim_handler->Calculate_gradient_precomp();
+  Sim_handler->Calculate_gradient();
   Hessian = Sim_handler->Calculate_Hessian_Normal();
   Sim_handler->Calculate_Jacobian_Normal();
 
@@ -5062,7 +5040,7 @@ double Mem3DG::integrate_Newton_Normal_Sherman(std::ofstream &Sim_data, double t
     geometry->refreshQuantities();
     double TotE = 0.0;
 
-    Sim_handler->Calculate_energies_precomp(&TotE);
+    Sim_handler->Calculate_energies(&TotE);
     A = 0.0;
     geometry->requireFaceAreas();
     for (Face f : mesh->faces())

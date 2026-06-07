@@ -313,7 +313,7 @@ public:
         // Which are the energy constants
         double epsilon = Energy_constants[0];
 
-        return epsilon / r;
+        return epsilon / r + fabs(epsilon);
     }
 
     double dE_r(double r, std::vector<double> Energy_constants) override
@@ -354,7 +354,7 @@ public:
         // Which are the energy constants
         double epsilon = Energy_constants[0];
 
-        return epsilon * r;
+        return epsilon * r + fabs(epsilon);
     }
 
     double dE_r(double r, std::vector<double> Energy_constants) override
