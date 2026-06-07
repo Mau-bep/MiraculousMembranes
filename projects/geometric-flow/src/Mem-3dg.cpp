@@ -3976,7 +3976,7 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
     std::cout << "After" << N_data << "steps of iterations the mean Energy is " << mean_E << " and the variance is " << var_E << "\n";
     // std::cout<<"After" << N_data << "steps of iterations the mean Energy is " << mean_Grad <<" and the variance is " << var_Grad << "\n";
 
-    if (var_E < 0.005)
+    if (var_E < 0.0006)
       Turn_normal_iter = true;
     N_data = 0;
     mean_E = 0;
