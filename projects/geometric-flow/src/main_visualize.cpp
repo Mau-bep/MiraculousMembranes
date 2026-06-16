@@ -1996,7 +1996,10 @@ int main(int argc, char **argv)
 
     // Recenter and rescale.
 
-    geometry->normalize(Recenter);
+    if (Recenter.norm() > 0)
+    {
+        geometry->normalize(Recenter);
+    }
     geometry->rescale(scale_factor);
     geometry->refreshQuantities();
 

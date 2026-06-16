@@ -2364,62 +2364,6 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
     if (NewE <= previousE - c1 * alpha * Projection && displacement_cond && fabs(NewE - previousE) < 1e2)
     {
 
-      if (fabs(NewE - previousE) > 5e1 && false)
-      {
-
-        std::cout << "The energies are ";
-        for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
-          std::cout << Sim_handler->Energies[i] << " is " << Sim_handler->Energy_values[i] << " ";
-        std::cout << " \n";
-        std::cout << "The projection is " << Projection << " \n";
-
-        double Max_projection = 0.0;
-        int maxproj_index = 0;
-
-        double maxDisplacement = 0.0;
-        std::cout << "Finding breaking point\n";
-        for (Vertex v : mesh->vertices())
-        {
-          if (Sim_handler->Current_grad[v].norm() > Max_projection)
-          {
-            Max_projection = Sim_handler->Current_grad[v].norm();
-            maxproj_index = v.getIndex();
-          }
-          double displacement = (geometry->inputVertexPositions[v] - initial_pos[v]).norm();
-          if (displacement > maxDisplacement)
-          {
-            maxDisplacement = displacement;
-          }
-        }
-        std::cout << "The max displacement is " << maxDisplacement << " \n";
-        std::cout << "The value of alpha is " << alpha << " \n";
-        std::cout << "We will recalculate the energies, lets go back one step for now\n";
-        geometry->inputVertexPositions = initial_pos;
-        // geometry->refreshQuantities();
-        mesh->compress();
-        // I want something else
-
-        alpha = 0.0;
-
-        // Lets troubleshoot this hehe
-        std::cout << "The previous energy was" << previousE << " \n";
-        std::cout << "The projection of the bigges vertex is " << Max_projection << " \n";
-        std::cout << "This vertex is located at " << geometry->inputVertexPositions[maxproj_index] << " \n";
-        std::cout << "This vertex in init pos is  at " << initial_pos[maxproj_index] << " \n";
-
-        // Lets explore the sorroundings
-        Vertex v = mesh->vertex(maxproj_index);
-        for (Face f : v.adjacentFaces())
-        {
-          std::cout << "The adjacent faces are " << f.getIndex() << " \n";
-          std::cout << "With area " << geometry->faceArea(f) << " \n";
-        }
-        for (Halfedge he : v.outgoingHalfedges())
-        {
-          std::cout << "The adjacent halfedges are " << he.getIndex() << " \n";
-          std::cout << "With cotan " << geometry->cotan(he) << " \n";
-        }
-      }
       break;
     }
 
@@ -2430,7 +2374,7 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
     }
 
     alpha *= rho;
-    if ((abs((NewE - previousE) / previousE) < 1e-5 && Projection < 1e-2) || Projection < 1e-4)
+    if ((abs((NewE - previousE) / previousE) < 1e-6 && Projection < 1e-3) || Projection < 1e-5)
     {
       small_TS = true;
       std::cout << "The energy diff is quite small and so is the gradient\n";
@@ -3897,36 +3841,40 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
 
     backtrackstep = Backtracking_BFGS(Force, Bead_forces);
 
-    Eigen::VectorXd s_k = backtrackstep * r;
+    // Ok here we have a lil problem when.
+    if (backtrackstep > 0.0)
+    {
+      Eigen::VectorXd s_k = backtrackstep * r;
 
-    geometry->refreshQuantities();
-    mesh->compress();
-    Sim_handler->Calculate_gradient();
-    for (Vertex v : mesh->vertices())
-    {
-      Grad_vec[3 * v.getIndex()] = Sim_handler->Current_grad[v].x - Sim_handler->Previous_grad[v].x;
-      Grad_vec[3 * v.getIndex() + 1] = Sim_handler->Current_grad[v].y - Sim_handler->Previous_grad[v].y;
-      Grad_vec[3 * v.getIndex() + 2] = Sim_handler->Current_grad[v].z - Sim_handler->Previous_grad[v].z;
-    }
-    for (size_t bi = 0; bi < Beads.size(); bi++)
-    {
-      Grad_vec[3 * N_vert + 3 * bi] = Beads[bi]->Total_force.x - Beads[bi]->Prev_Total_force.x;
-      Grad_vec[3 * N_vert + 3 * bi + 1] = Beads[bi]->Total_force.y - Beads[bi]->Prev_Total_force.y;
-      Grad_vec[3 * N_vert + 3 * bi + 2] = Beads[bi]->Total_force.z - Beads[bi]->Prev_Total_force.z;
-    }
+      geometry->refreshQuantities();
+      mesh->compress();
+      Sim_handler->Calculate_gradient();
+      for (Vertex v : mesh->vertices())
+      {
+        Grad_vec[3 * v.getIndex()] = Sim_handler->Current_grad[v].x - Sim_handler->Previous_grad[v].x;
+        Grad_vec[3 * v.getIndex() + 1] = Sim_handler->Current_grad[v].y - Sim_handler->Previous_grad[v].y;
+        Grad_vec[3 * v.getIndex() + 2] = Sim_handler->Current_grad[v].z - Sim_handler->Previous_grad[v].z;
+      }
+      for (size_t bi = 0; bi < Beads.size(); bi++)
+      {
+        Grad_vec[3 * N_vert + 3 * bi] = Beads[bi]->Total_force.x - Beads[bi]->Prev_Total_force.x;
+        Grad_vec[3 * N_vert + 3 * bi + 1] = Beads[bi]->Total_force.y - Beads[bi]->Prev_Total_force.y;
+        Grad_vec[3 * N_vert + 3 * bi + 2] = Beads[bi]->Total_force.z - Beads[bi]->Prev_Total_force.z;
+      }
 
-    if (BFGS_iter < m)
-    {
-      s_list.push_back(s_k);
-      y_list.push_back(Grad_vec);
-      rho_list.push_back(1.0 / (s_k.dot(Grad_vec)));
-    }
-    else
-    {
-      // In case this is not the case we do
-      s_list[BFGS_iter % m] = s_k;
-      y_list[BFGS_iter % m] = Grad_vec;
-      rho_list[BFGS_iter % m] = 1.0 / (s_k.dot(Grad_vec));
+      if (BFGS_iter < m)
+      {
+        s_list.push_back(s_k);
+        y_list.push_back(Grad_vec);
+        rho_list.push_back(1.0 / (s_k.dot(Grad_vec)));
+      }
+      else
+      {
+        // In case this is not the case we do
+        s_list[BFGS_iter % m] = s_k;
+        y_list[BFGS_iter % m] = Grad_vec;
+        rho_list[BFGS_iter % m] = 1.0 / (s_k.dot(Grad_vec));
+      }
     }
   }
 
@@ -3970,7 +3918,7 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
     var_E = 0;
   }
 
-  if (Save_output_data)
+  if (Save_output_data || backtrackstep < 0.0)
   {
     V = geometry->totalVolume();
     A = 0.0;
@@ -3987,7 +3935,7 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
     }
     Sim_data << backtrackstep << " \n";
   }
-  if (Bead_data_filenames.size() != 0 && Save_output_data)
+  if (Bead_data_filenames.size() != 0 && (Save_output_data || backtrackstep < 0.0))
   {
     std::ofstream Bead_data;
     for (size_t i = 0; i < Beads.size(); i++)
