@@ -2434,6 +2434,7 @@ void Bead::update_state()
             state = "froze";
             std::cout << "Bead has reached the final position, freezing it\n";
             // Now i want to also remove the bond energy
+            Pos = FinalPos;
             if (Beads.size() > 0)
             {
                 for (size_t i = 0; i < Beads.size(); i++)
