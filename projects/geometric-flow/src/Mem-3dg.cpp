@@ -2903,18 +2903,6 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, double P0, double V_bar, 
 
     Bead_1.Reset_bead(Vector3({X_pos + 1.4, 0, 0}));
   }
-  if (pulling && two_bead_pulling)
-  {
-
-    for (size_t i = 0; i < Beads.size(); i++)
-    {
-      if (Beads[i]->state == "manual")
-      {
-        Beads[i]->Reset_bead(Bead_init[i]);
-        Beads[i]->Move_bead(alpha, Vector3({0, 0, 0}));
-      }
-    }
-  }
 
   // std::cout<<"finished while\n";
   if (alpha < 0.0)
@@ -3562,20 +3550,19 @@ double Mem3DG::integrate(std::ofstream &Sim_data, double time, std::vector<std::
     }
   }
 
-  for (size_t bi = 0; bi < Beads.size(); bi++)
-  {
-    if (Beads[bi]->state == "manual")
-    {
-      Vector3 Bpos = Beads[bi]->Pos;
-      if ((Bpos.norm2() < 4.0 && dot(Bpos, Beads[bi]->Velocity) < 0) || (Bpos.norm2() > 4.0 && dot(Bpos, Beads[bi]->Velocity) > 0)) // The 2.0 here is hardcoded and it means the radius of the vesicle
-
-      {
-        std::cout << "\t\t Manual bead because it moved too much\n";
-        std::cout << "The bead positions 2 is" << sqrt(Bpos.norm2()) << " \n";
-        Beads[bi]->state = "default";
-      }
-    }
-  }
+  // for (size_t bi = 0; bi < Beads.size(); bi++)
+  // {
+  //   if (Beads[bi]->state == "manual")
+  //   {
+  //     Vector3 Bpos = Beads[bi]->Pos;
+  //     if ((Bpos.norm2() < 4.0 && dot(Bpos, Beads[bi]->Velocity) < 0) || (Bpos.norm2() > 4.0 && dot(Bpos, Beads[bi]->Velocity) > 0)) // The 2.0 here is hardcoded and it means the radius of the vesicle
+  //     {
+  //       std::cout << "\t\t Manual bead because it moved too much\n";
+  //       std::cout << "The bead positions 2 is" << sqrt(Bpos.norm2()) << " \n";
+  //       Beads[bi]->state = "default";
+  //     }
+  //   }
+  // }
 
   return backtrackstep;
 }

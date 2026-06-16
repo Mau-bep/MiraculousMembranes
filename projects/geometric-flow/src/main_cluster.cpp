@@ -299,8 +299,10 @@ int main(int argc, char **argv)
     geometry = geometry_uptr.release();
 
     // Recenter and rescale.
-
-    geometry->normalize(Recenter);
+    if (Recenter.norm() > 0)
+    {
+        geometry->normalize(Recenter);
+    }
     geometry->rescale(scale_factor);
     geometry->refreshQuantities();
 
@@ -706,6 +708,10 @@ int main(int argc, char **argv)
         {
             // We need to set the velocity of the bead
             Beads[bead_counter].Velocity = Vector3({Bead_data["Velocity"][0], Bead_data["Velocity"][1], Bead_data["Velocity"][2]});
+            if (Bead_data.contains("FinalPos"))
+            {
+                Beads[bead_counter].FinalPos = Vector3({Bead_data["FinalPos"][0], Bead_data["FinalPos"][1], Bead_data["FinalPos"][2]});
+            }
         }
 
         bead_counter += 1;
@@ -1934,6 +1940,16 @@ int main(int argc, char **argv)
             else
             {
                 remesh_every = -1;
+            }
+        }
+
+        // We update the state of the manual Beads after moving them.
+        for (Bead *b : M3DG.Beads)
+        {
+            // std::cout << "We are updating the state of the bead with state " << b->state << "\n";
+            if (b->state == "manual")
+            {
+                b->update_state();
             }
         }
 

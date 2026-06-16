@@ -18,8 +18,8 @@ double Interaction::Bond_energy()
     double r;
     std::vector<double> params;
 
-    if (Bead_1->state == "manual")
-        return E_bond;
+    // if (Bead_1->state == "manual")
+    //     return E_bond;
 
     // std::cout<<"Calculating bond energy\n";
 
@@ -51,8 +51,9 @@ std::vector<T> Interaction::Hessian_bonds_triplet()
     std::vector<T> tripletList;
     Eigen::Matrix<double, 3, 3> H_bond;
 
-    if (Bead_1->state == "manual")
-        return tripletList;
+    // We decided that frozen beads will contribute to the Hessian
+    // if (Bead_1->state == "manual")
+    // return tripletList;
 
     for (int i = 0; i < Bead_1->Beads.size(); i++)
     {
@@ -118,8 +119,8 @@ Vector3 Interaction::Bond_force()
     Vector3 Force{0.0, 0.0, 0.0};
     std::vector<double> params;
     double r;
-    if (Bead_1->state == "manual")
-        return Force;
+    // if (Bead_1->state == "manual")
+    // return Force;
     for (size_t i = 0; i < Bead_1->Beads.size(); i++)
     {
         params = Bead_1->Interaction_constants_vector[i];

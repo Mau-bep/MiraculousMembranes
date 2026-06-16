@@ -606,6 +606,15 @@ double Integration_step(int timestep, bool Save, bool First_iter)
     }
     if (Save)
         Sim_data.close();
+
+    for (Bead b : Beads)
+    {
+        if (b.state == "manual")
+        {
+            b.update_state();
+        }
+    }
+
     return timeStep;
 }
 
@@ -2406,6 +2415,10 @@ int main(int argc, char **argv)
         {
             // We need to set the velocity of the bead
             Beads[bead_counter].Velocity = Vector3({Bead_data["Velocity"][0], Bead_data["Velocity"][1], Bead_data["Velocity"][2]});
+            if (Bead_data.contains("FinalPos"))
+            {
+                Beads[bead_counter].FinalPos = Vector3({Bead_data["FinalPos"][0], Bead_data["FinalPos"][1], Bead_data["FinalPos"][2]});
+            }
         }
 
         bead_counter += 1;

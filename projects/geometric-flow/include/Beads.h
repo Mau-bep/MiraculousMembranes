@@ -10,58 +10,60 @@ class Interaction;
 
 using namespace geometrycentral;
 using namespace geometrycentral::surface;
- 
-class Bead {
 
-  public:
-    int Bead_id;
-    int Total_beads;
-    Vector3 Pos;
-    Vector3 Prev_Total_force;
-    Vector3 Total_force;
-    double sigma;
-    double strength;
-    double pulling_speed;
-    double rc;
-    double prev_force;
-    double prev_E_stationary; 
+class Bead
+{
 
-    std::string state;
-    Vector3 Velocity;
+public:
+  int Bead_id;
+  int Total_beads;
+  Vector3 Pos;
+  Vector3 Prev_Total_force;
+  Vector3 Total_force;
+  double sigma;
+  double strength;
+  double pulling_speed;
+  double rc;
+  double prev_force;
+  double prev_E_stationary;
 
-    Vector3 Stopping_pos;
+  std::string state;
+  Vector3 Velocity;
+  Vector3 FinalPos;
 
-    ManifoldSurfaceMesh* mesh;
-    VertexPositionGeometry* geometry;
-    std::string interaction;
-    std::vector<Bead *> Beads;
-    std::vector<std::string>  Bond_type;
-    // std::vector<double> Interaction_constants;
-    std::vector<std::vector<double>> Interaction_constants_vector;
+  Vector3 Stopping_pos;
 
-    std::string Constraint;
-    std::vector<double> Constraint_constants;
+  ManifoldSurfaceMesh *mesh;
+  VertexPositionGeometry *geometry;
+  std::string interaction;
+  std::vector<Bead *> Beads;
+  std::vector<std::string> Bond_type;
+  // std::vector<double> Interaction_constants;
+  std::vector<std::vector<double>> Interaction_constants_vector;
 
-    Interaction* Bead_I;
+  std::string Constraint;
+  std::vector<double> Constraint_constants;
 
-    // constructors
-    Bead() {};
-    Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, Vector3 Position, double sigma_bead, double strg );
-    Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo,Vector3 Position,double input_sigma , double strg, double input_rc);
-    Bead(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo, Vector3 Position, std::vector<double> Energy_constants, Interaction* Interact, int id, int Number_beads);
-    void Reasign_mesh(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo);
+  Interaction *Bead_I;
 
-    VertexData<Vector3> Gradient();
-    void Set_Force(Vector3 Force);
-    double Energy();
-    void Reset_bead(Vector3 Actual_pos);
-    void Move_bead(double dt, Vector3 center);
-    void Move_bead(double dt, Vector3 center, Vector3 Force);
+  // constructors
+  Bead() {};
+  Bead(ManifoldSurfaceMesh *inputMesh, VertexPositionGeometry *inputGeo, Vector3 Position, double sigma_bead, double strg);
+  Bead(ManifoldSurfaceMesh *inputMesh, VertexPositionGeometry *inputGeo, Vector3 Position, double input_sigma, double strg, double input_rc);
+  Bead(ManifoldSurfaceMesh *inputMesh, VertexPositionGeometry *inputGeo, Vector3 Position, std::vector<double> Energy_constants, Interaction *Interact, int id, int Number_beads);
+  void Reasign_mesh(ManifoldSurfaceMesh *inputMesh, VertexPositionGeometry *inputGeo);
 
-    SparseMatrix<double> H_Bead();
-    void Add_bead(Bead *bead, std::string Interaction, std::vector<double> Interaction_strength);
+  VertexData<Vector3> Gradient();
+  void Set_Force(Vector3 Force);
+  double Energy();
+  void Reset_bead(Vector3 Actual_pos);
+  void Move_bead(double dt, Vector3 center);
+  void Move_bead(double dt, Vector3 center, Vector3 Force);
 
-    void Bead_interactions();
-    
+  SparseMatrix<double> H_Bead();
+  void Add_bead(Bead *bead, std::string Interaction, std::vector<double> Interaction_strength);
 
+  void Bead_interactions();
+
+  void update_state();
 };

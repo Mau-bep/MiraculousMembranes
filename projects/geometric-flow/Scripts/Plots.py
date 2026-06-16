@@ -71,7 +71,11 @@ load_pretty_figure_setup()
 
 
 
+# I want to do A piechart plot
 
-x = np.linspace(1,2,10)
-plt.scatter(x,x)
+labels = 'Remeshing', 'Saving mesh', 'Integrating'
+sizes = [28643,3231, 11327126]
+
+fig, ax = plt.subplots()
+ax.pie(sizes, labels=labels)
 plt.show()
