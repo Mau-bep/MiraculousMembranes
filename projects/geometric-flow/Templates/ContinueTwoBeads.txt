@@ -10,7 +10,7 @@
     "adapt_remesh": true,
     "remesh_every": 1,
     "Count_remesh": true,
-    "first_dir": "../Results/TwoBeadsManual/",
+    "first_dir": "../Results/TwoBeadsManualStop/",
     "Subfolder": "4/",
     "Switches": [
         "BFGS",
