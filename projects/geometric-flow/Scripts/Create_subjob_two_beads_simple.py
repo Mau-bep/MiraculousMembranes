@@ -125,7 +125,7 @@ def Create_json_wrapping_two(dist,InputFileDir):
     x2 = -x1
 
 
-    output_from_parsed_template = template.render(InputFile = InputFileDir, Finaldist = dist, x1 = x1, x2 = x2)
+    output_from_parsed_template = template.render(InputFile = InputFileDir,FirstDir=FirstDir ,Finaldist = dist, x1 = x1, x2 = x2)
 
     print(output_from_parsed_template)
     data = json.loads(output_from_parsed_template)
