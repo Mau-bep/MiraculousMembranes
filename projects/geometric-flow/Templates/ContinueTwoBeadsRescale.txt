@@ -22,11 +22,11 @@
     ],
     "Switch_times": [
         5000,
-        70000,
+        50000,
         299990,
         299990,
         299990,
-        70000
+        50000
     ],
     "boundary": false,
     "recentering": false,
@@ -76,7 +76,7 @@
                 0.0
             ],
             "mem_inter": "Frenkel",
-            "inter_str": 430,
+            "inter_str": 400,
             "rc": 0.3125,
             "bonds": [],
             "bonds_constants": [],
@@ -94,8 +94,8 @@
                 0.0,
                 0.0
             ],
-            "mem_inter": "Frenkel_Normal_nopush",
-            "inter_str": 430,
+            "mem_inter": "Frenkel",
+            "inter_str": 400,
             "rc": 0.3125,
             "bonds": [ ],
             "bonds_constants": [],
