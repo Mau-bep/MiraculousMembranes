@@ -20,17 +20,11 @@ Bead::Bead(ManifoldSurfaceMesh *inputMesh, VertexPositionGeometry *inputGeo, Vec
     Pos = Position;
     sigma = input_sigma;
     strength = strg;
-    // interaction = "test_Full";
     interaction = "Shifted_LJ_Normal_var";
     state = "default"; // The other two states are manual and frozee
     Velocity = Vector3({0, 0, 0});
-
-    pulling_speed = 1.0;
     rc = sigma * 2.0;
     prev_force = 0.0;
-    // rc = 1.2;
-    // interaction = "test_angle_normal_r_normalized";
-    // interaction = "test_angle_normal_r_normalized_LJ_Full";
     Total_force = {0, 0, 0};
     prev_E_stationary = 0;
 }
@@ -44,18 +38,11 @@ Bead::Bead(ManifoldSurfaceMesh *inputMesh, VertexPositionGeometry *inputGeo, Vec
     Pos = Position;
     sigma = input_sigma;
     strength = strg;
-    // interaction = "test_Full";
     interaction = "Shifted_LJ_Normal_var";
-
     state = "default"; // The other two states are manual and frozee
     Velocity = Vector3({0, 0, 0});
-
-    pulling_speed = 1.0;
     rc = input_rc;
     prev_force = 0.0;
-    // rc = 1.2;
-    // interaction = "test_angle_normal_r_normalized";
-    // interaction = "test_angle_normal_r_normalized_LJ_Full";
     Total_force = {0, 0, 0};
     prev_E_stationary = 0;
 }
@@ -78,8 +65,6 @@ Bead::Bead(ManifoldSurfaceMesh *inputMesh, VertexPositionGeometry *inputGeo, Vec
     state = "default"; // The other two states are manual and frozee
     Velocity = Vector3({0, 0, 0});
 
-    // std::printf("meow =3");
-    pulling_speed = 1.0;
     prev_force = 0.0;
     Total_force = {0, 0, 0};
     prev_E_stationary = 0;
@@ -104,12 +89,13 @@ void Bead::Reasign_mesh(ManifoldSurfaceMesh *inputMesh, VertexPositionGeometry *
 VertexData<Vector3> Bead::Gradient()
 {
 
+    return Bead_I->Gradient();
+
     VertexData<Vector3> Force(*mesh, {0, 0, 0});
     VertexData<double> E_v(*mesh, 0.0);
 
     if (interaction == "None")
     {
-        // std::cout<<"Null force\n";
         return Force;
     }
 
@@ -1866,6 +1852,7 @@ void Bead::Set_Force(Vector3 Force)
 
 double Bead::Energy()
 {
+
     double Total_E = 0.0;
     double r;
 

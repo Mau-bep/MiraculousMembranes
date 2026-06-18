@@ -22,7 +22,7 @@ public:
   Vector3 Total_force;
   double sigma;
   double strength;
-  double pulling_speed;
+
   double rc;
   double prev_force;
   double prev_E_stationary;
