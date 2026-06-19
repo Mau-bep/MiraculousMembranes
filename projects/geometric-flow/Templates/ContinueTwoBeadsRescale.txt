@@ -76,7 +76,7 @@
                 0.0
             ],
             "mem_inter": "Frenkel",
-            "inter_str": 400,
+            "inter_str": 430,
             "rc": 0.3125,
             "bonds": [],
             "bonds_constants": [],
@@ -95,7 +95,7 @@
                 0.0
             ],
             "mem_inter": "Frenkel",
-            "inter_str": 400,
+            "inter_str": 430,
             "rc": 0.3125,
             "bonds": [ ],
             "bonds_constants": [],

@@ -45,14 +45,16 @@ location = ["unavailable", "outside", "inside"]
 
 def RescaleMesh(Targetdist):
     
+    print("Rescaling the mesh\n")
     shrinkDist = float(Targetdist) - 0.5
 
-    scaleFactor = shrinkDist/0.9
-    displacement = (0.9-shrinkDist)/2.0
+    scaleFactor = shrinkDist/0.3
+    displacement = (0.3-shrinkDist)/2.0
 
     # Now i need to load the mesh
     fRead = open("../../../input/InitTwoBeads.obj",'r')
     InputFileDir =FirstDir+"Init_{}.obj".format(Targetdist) 
+    print("File at {}".format(InputFileDir))
     fWrite = open(InputFileDir,'w+')
     for line in fRead:
         text = line.strip()
@@ -60,7 +62,7 @@ def RescaleMesh(Targetdist):
         if(splittedText[0]=='v'):
             # Then i need to rescale
             x = float(splittedText[1])
-            if( x < 0.45 and x> -0.45):
+            if( x < 0.15 and x> -0.15):
                 xN = x*scaleFactor
             else:
                 if(x<0):
@@ -96,12 +98,12 @@ def Create_json_wrapping_two(dist):
     # We should do  
     output_from_parsed_template = template.render(Finaldist = dist, Finalx1 = FinalX1, Finalx2 = -FinalX1, V1x = V1x, V2x = -V1x,L0 = L0)
 
-    print(output_from_parsed_template)
+    # print(output_from_parsed_template)
     data = json.loads(output_from_parsed_template)
 
 
     # print("something\n")
-    Config_path = '../Config_files/Wrapping_two_{0}_simplestart.json'.format(dist) 
+    Config_path = '../Config_files/Wrapping_two_{0}_Frenkel_2.json'.format(dist) 
     
     sim_path = data['first_dir']
     
@@ -127,7 +129,38 @@ def Create_json_wrapping_two(dist,InputFileDir):
 
     output_from_parsed_template = template.render(InputFile = InputFileDir,FirstDir=FirstDir ,Finaldist = dist, x1 = x1, x2 = x2)
 
-    print(output_from_parsed_template)
+    # print(output_from_parsed_template)
+    data = json.loads(output_from_parsed_template)
+
+
+    # print("something\n")
+    Config_path = '../Config_files/Wrapping_two_{0}_rescale.json'.format(dist) 
+    
+    sim_path = data['first_dir']
+    
+    with open(Config_path, 'w') as file:
+        json.dump(data, file, indent=4)
+
+    return Config_path , sim_path
+
+
+
+def Create_json_wrapping_two(dist,InputFileDir):
+    # theta = float(angle)
+    os.makedirs("../Config_files/",exist_ok = True)
+    env = Environment(loader=FileSystemLoader('../Templates/'))
+
+
+    template = env.get_template('ContinueTwoBeadsRescale.txt')
+    
+    # W
+    x1 = float(dist)/2.0
+    x2 = -x1
+
+
+    output_from_parsed_template = template.render(InputFile = InputFileDir,FirstDir=FirstDir ,Finaldist = dist, x1 = x1, x2 = x2)
+
+    # print(output_from_parsed_template)
     data = json.loads(output_from_parsed_template)
 
 
@@ -151,7 +184,8 @@ os.makedirs('../Outputs/',exist_ok=True)
 # Config_path, sim_path = Create_json_wrapping_two(KA,KB,radius,Strength,angle)
 # # Hopefully this works
 # Config_path, sim_path = Create_json_wrapping_two_outside(angle,outside1,outside2)
-FirstDir = "../Results/TwoBeadsManualStop/"
+FirstDir = "../Results/TwoBeadsManualRescale/"
+os.makedirs(FirstDir,exist_ok=True)
 InputFileDir = RescaleMesh(finaldist)
 Config_path, sim_path = Create_json_wrapping_two(finaldist,InputFileDir)
 
@@ -160,9 +194,11 @@ Config_path, sim_path = Create_json_wrapping_two(finaldist,InputFileDir)
 
 
 # # def main():
+Output_name = 'output_two_{0}_Frenkel_2.output'.format(finaldist)
 Output_name = 'output_two_{0}_rescale.output'.format(finaldist)
 Output_path = '../Outputs/'+Output_name
 
+f=open('../Subjobs/subjob_two_{0}_Frenkel_2'.format(finaldist),'w')
 f=open('../Subjobs/subjob_two_{0}_rescale'.format(finaldist),'w')
 
 f.write('#!/bin/bash \n')
