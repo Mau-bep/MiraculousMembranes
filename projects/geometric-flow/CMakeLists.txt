@@ -102,8 +102,8 @@ set(SRCScluster
   src/Energy_Handler.cpp
   src/Interaction.cpp
   ../../utils/src/colormap.cpp
-  src/NormalNLP.cpp
-  src/ShapeNLP.cpp
+  # src/NormalNLP.cpp
+  # src/ShapeNLP.cpp
 )
 
 set(SRCSvisualize 

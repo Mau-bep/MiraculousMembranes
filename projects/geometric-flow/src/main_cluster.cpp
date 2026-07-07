@@ -38,12 +38,12 @@
 #include "conf.hpp"
 #include "log.hpp"
 
-#include "coin-or/IpIpoptApplication.hpp"
-#include "coin-or/IpSolveStatistics.hpp"
-#include "coin-or/IpTNLP.hpp"
+// #include "coin-or/IpIpoptApplication.hpp"
+// #include "coin-or/IpSolveStatistics.hpp"
+// #include "coin-or/IpTNLP.hpp"
 
-#include "NormalNLP.hpp"
-#include "ShapeNLP.hpp"
+// #include "NormalNLP.hpp"
+// #include "ShapeNLP.hpp"
 
 // #include "hs071_nlp.hpp"
 
@@ -1137,32 +1137,32 @@ int main(int argc, char **argv)
 
     // IPOPT STUFF
 
-    SmartPtr<NormalNLP> normalnlp = new NormalNLP();
-    SmartPtr<ShapeNLP> shapenlp = new ShapeNLP();
-    SmartPtr<IpoptApplication> app = IpoptApplicationFactory();
+    // SmartPtr<NormalNLP> normalnlp = new NormalNLP();
+    // SmartPtr<ShapeNLP> shapenlp = new ShapeNLP();
+    // SmartPtr<IpoptApplication> app = IpoptApplicationFactory();
 
-    ApplicationReturnStatus status_opt;
+    // ApplicationReturnStatus status_opt;
 
-    normalnlp->M3DG = &M3DG;
-    shapenlp->M3DG = &M3DG;
+    // normalnlp->M3DG = &M3DG;
+    // shapenlp->M3DG = &M3DG;
     // THE ORGINAL POSITIONS AND THE NORMAL WILL GET ADDED LATER :3
 
     // std::cout<<"The number of vertices is "<< mesh->nVertices() << "\n";
-    app->Options()->SetStringValue("linear_solver", "ma57");
-    app->Options()->SetNumericValue("tol", 1e-1);
-    app->Options()->SetStringValue("mu_strategy", "adaptive");
-    app->Options()->SetStringValue("output_file", basic_name + "ipopt.out");
-    app->Options()->SetIntegerValue("max_iter", 40);
+    // app->Options()->SetStringValue("linear_solver", "ma57");
+    // app->Options()->SetNumericValue("tol", 1e-1);
+    // app->Options()->SetStringValue("mu_strategy", "adaptive");
+    // app->Options()->SetStringValue("output_file", basic_name + "ipopt.out");
+    // app->Options()->SetIntegerValue("max_iter", 40);
 
-    status_opt = app->Initialize();
-    std::cout << "App initialized\n";
-    if (status_opt != Solve_Succeeded)
-    {
-        std::cout << std::endl
-                  << std::endl
-                  << "*** Error during initialization!" << std::endl;
-        return (int)status_opt;
-    }
+    // status_opt = app->Initialize();
+    // std::cout << "App initialized\n";
+    // if (status_opt != Solve_Succeeded)
+    // {
+    //     std::cout << std::endl
+    //               << std::endl
+    //               << "*** Error during initialization!" << std::endl;
+    //     return (int)status_opt;
+    // }
 
     if (!M3DG.boundary)
         M3DG.Sim_handler->Constraints.push_back("Volume_constraint");
@@ -1828,33 +1828,33 @@ int main(int argc, char **argv)
             }
             Sim_handler.Constraints = Constraints;
 
-            std::cout << "Integrating IpOpt\n";
+            // std::cout << "Integrating IpOpt\n";
 
-            shapenlp = new ShapeNLP();
-            shapenlp->M3DG = &M3DG;
+            // shapenlp = new ShapeNLP();
+            // shapenlp->M3DG = &M3DG;
 
             M3DG.Sim_handler->Trgt_area = geometry->totalArea();
             // M3DG.Sim_handler->Trgt_area = A_target;
             // M3DG.Sim_handler->Trgt_vol = geometry->totalVolume();
 
             std::cout << "THe target area is" << A_target << " and it should be " << A_bar << " \n";
-            app->Initialize();
+            // app->Initialize();
 
-            status_opt = app->OptimizeTNLP(shapenlp); // Here is where the magic happens
-            if (status_opt == Solve_Succeeded)
-            {
-                std::cout << "\n\n*** The problem solved!\n";
-                break;
-            }
-            else
-            {
-                Switch_times_map["IpOptl"] = current_t + 10;
-                Switch_times_map["No_remesh"] = Switch_times_map["IpOpt"] - 1;
-                Switch_times_map["Restore_remeshing"] = current_t + 1;
-                std::cout << "Remeshing and retrying \n";
-                std::cout << "\n\n*** The problem FAILED!\n";
-            }
-            Integration = "Gradient_descent";
+            // status_opt = app->OptimizeTNLP(shapenlp); // Here is where the magic happens
+            // if (status_opt == Solve_Succeeded)
+            // {
+            //     std::cout << "\n\n*** The problem solved!\n";
+            //     break;
+            // }
+            // else
+            // {
+            //     Switch_times_map["IpOptl"] = current_t + 10;
+            //     Switch_times_map["No_remesh"] = Switch_times_map["IpOpt"] - 1;
+            //     Switch_times_map["Restore_remeshing"] = current_t + 1;
+            //     std::cout << "Remeshing and retrying \n";
+            //     std::cout << "\n\n*** The problem FAILED!\n";
+            // }
+            // Integration = "Gradient_descent";
         }
         else if (Integration == "IpOpt-Normal")
         {
@@ -1908,11 +1908,11 @@ int main(int argc, char **argv)
 
             // shapenlp = new ShapeNLP();
             // shapenlp->M3DG = &M3DG;
-            normalnlp = new NormalNLP();
-            normalnlp->M3DG = &M3DG;
-            M3DG.Sim_handler->update_vertex_normals();
-            normalnlp->Normals = M3DG.Sim_handler->Vertex_normals;
-            normalnlp->ORIG_VPOS = geometry->inputVertexPositions;
+            // normalnlp = new NormalNLP();
+            // normalnlp->M3DG = &M3DG;
+            // M3DG.Sim_handler->update_vertex_normals();
+            // normalnlp->Normals = M3DG.Sim_handler->Vertex_normals;
+            // normalnlp->ORIG_VPOS = geometry->inputVertexPositions;
 
             std::cout << "THe original target volume is " << V_bar << "\n";
 
@@ -1920,21 +1920,21 @@ int main(int argc, char **argv)
             std::cout << " The current volume is " << geometry->totalVolume() << " and the target volume is " << V_bar << "\n";
             M3DG.Sim_handler->Trgt_area = A_target * 1.05;
 
-            app->Initialize();
+            // app->Initialize();
 
-            status_opt = app->OptimizeTNLP(normalnlp); // Here is where the magic happens
-            if (status_opt == Solve_Succeeded)
-            {
-                std::cout << "\n\n*** The problem solved!\n";
-                break;
-            }
-            else
-            {
-                Switch_times_map["IpOpt-Normal"] = current_t + 10;
-                Switch_times_map["No_remesh"] = Switch_times_map["IpOpt"] - 1;
-                Switch_times_map["Restore_remeshing"] = current_t + 1;
-                std::cout << "Remeshing and retrying \n";
-            }
+            // status_opt = app->OptimizeTNLP(normalnlp); // Here is where the magic happens
+            // if (status_opt == Solve_Succeeded)
+            // {
+            // std::cout << "\n\n*** The problem solved!\n";
+            // break;
+            // }
+            // else
+            // {
+            //     Switch_times_map["IpOpt-Normal"] = current_t + 10;
+            //     Switch_times_map["No_remesh"] = Switch_times_map["IpOpt"] - 1;
+            //     Switch_times_map["Restore_remeshing"] = current_t + 1;
+            //     std::cout << "Remeshing and retrying \n";
+            // }
             Integration = "Gradient_descent";
         }
         else if (Integration == "BFGS-Normal")
