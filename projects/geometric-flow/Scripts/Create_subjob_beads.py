@@ -85,14 +85,14 @@ os.makedirs('../Outputs/',exist_ok=True)
 Config_path, sim_path = Create_json_wrapping_vesicle(KA,KB,radius,Strength)
 
 
-f=open('../Subjobs/subjob_LBFGS_wrapping_Strg_{}_radius_{}_KA_{}_KB_{}_Nsim_{}'.format(Strength,radius,KA,KB,Nsim),'w')
+f=open('../Subjobs/subjob_LBFGS_wrapping_Strg_{}_r_{}_KA_{}_KB_{}_Nsim_{}'.format(Strength,radius,KA,KB,Nsim),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')
 
 f.write('#SBATCH --job-name=Mem3DGpa\n')
 
-Output_name = 'output_LBFGS_wrapping_Strg_{}_radius_{}_KA_{}_KB_{}_Nsim_{}.output'.format(Strength,radius,KA,KB,Nsim)
+Output_name = 'output_LBFGS_wrapping_Strg_{}_r_{}_KA_{}_KB_{}_Nsim_{}.output'.format(Strength,radius,KA,KB,Nsim)
 
 Output_path = '../Outputs/'+Output_name
 f.write('#SBATCH --output={}\n'.format(Output_path))

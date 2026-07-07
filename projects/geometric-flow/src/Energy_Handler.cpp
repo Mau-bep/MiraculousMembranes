@@ -142,16 +142,26 @@ double E_Handler::E_SurfaceTension(std::vector<double> Constants) const
 {
     return geometry->totalArea() * Constants[0];
 }
+double E_Handler::E_MembraneTension(std::vector<double> Constants) const
+{
+    //
+    double At = Constants[1];
+    double A = geometry->totalArea();
+    if (A < At)
+        return 0.0;
 
-// double E_Handler::E_SurfaceTension_precomp(std::vector<double> Constants) const
-// {
-//     geometry->requireFaceAreas();
-//     double totA = 0.0;
-//     for (Face f : mesh->faces())
-//         totA += geometry->faceAreas[f];
-//     geometry->unrequireFaceAreas();
-//     return totA * Constants[0];
-// }
+    return Constants[0] * (A - At) * (A - At) / At;
+}
+
+double E_Handler::E_ExcessTension(std::vector<double> Constants) const
+{
+    double At = Constants[1];
+    double A = geometry->totalArea();
+    if (A < At)
+        return 0.0;
+
+    return Constants[0] * (A - At);
+}
 
 double E_Handler::E_Bending(std::vector<double> Constants) const
 {
@@ -189,7 +199,7 @@ double E_Handler::E_Bending(std::vector<double> Constants) const
 
     return Eb;
 }
-// double E_Handler::E_Bending_precomp(std::vector<double> Constants) const
+// double E_Handler::E_Bending(std::vector<double> Constants) const
 // {
 //     double KB = Constants[0];
 //     double H0 = Constants[1];
@@ -613,6 +623,29 @@ VertexData<Vector3> E_Handler::F_SurfaceTension(std::vector<double> Constants) c
     return Force;
 }
 
+VertexData<Vector3> E_Handler::F_MembraneTension(std::vector<double> Constants) const
+{
+    double KA = Constants[0];
+    double At = Constants[1];
+    double A = geometry->totalArea();
+    VertexData<Vector3> Force(*mesh, {0.0, 0.0, 0.0});
+    if (A < At)
+        return Force;
+
+    return F_SurfaceTension({KA}) * (A - At) / (At);
+}
+
+VertexData<Vector3> E_Handler::F_ExcessTension(std::vector<double> Constants) const
+{
+    double KA = Constants[0];
+    double At = Constants[1];
+    double A = geometry->totalArea();
+    VertexData<Vector3> Force(*mesh, {0.0, 0.0, 0.0});
+    if (A < At)
+        return Force;
+    return F_SurfaceTension({KA});
+}
+
 VertexData<Vector3> E_Handler::F_Area_constraint(std::vector<double> Constants) const
 {
     double KA = Constants[0];
@@ -623,7 +656,6 @@ VertexData<Vector3> E_Handler::F_Area_constraint(std::vector<double> Constants) 
 // This function correctly implements the spontaneous curvature
 VertexData<Vector3> E_Handler::F_Bending(std::vector<double> Constants) const
 {
-
     double KB = Constants[0];
     double H0 = Constants[1];
 
@@ -891,7 +923,6 @@ VertexData<Vector3> E_Handler::F_Bending(std::vector<double> Constants) const
 
 VertexData<Vector3> E_Handler::F_Bending_tan(std::vector<double> Constants) const
 {
-
     double KB = Constants[0];
     double H0 = Constants[1];
 
@@ -1027,7 +1058,6 @@ VertexData<Vector3> E_Handler::F_Bending_tan(std::vector<double> Constants) cons
 
 VertexData<Vector3> E_Handler::F_Laplace(std::vector<double> Constants) const
 {
-
     double Lambda = Constants[0];
     double H0 = Constants[1];
 
@@ -1148,7 +1178,6 @@ VertexData<Vector3> E_Handler::F_Laplace(std::vector<double> Constants) const
 
 VertexData<Vector3> E_Handler::F_Edge_reg(std::vector<double> Constants) const
 {
-
     VertexData<Vector3> Force(*mesh);
     double KE = Constants[0];
 
@@ -1262,7 +1291,6 @@ VertexData<Vector3> E_Handler::F_Edge_reg(std::vector<double> Constants) const
 
 VertexData<Vector3> E_Handler::F_Edge_reg_2(std::vector<double> Constants) const
 {
-
     VertexData<Vector3> Force(*mesh);
     double KE = Constants[0];
 
@@ -1324,7 +1352,6 @@ VertexData<Vector3> E_Handler::F_Edge_reg_2(std::vector<double> Constants) const
 
 VertexData<Vector3> E_Handler::F_Face_reg(std::vector<double> Constants) const
 {
-
     double KF = Constants[0];
 
     VertexData<Vector3> Force(*mesh);
@@ -1367,7 +1394,6 @@ VertexData<Vector3> E_Handler::F_Face_reg(std::vector<double> Constants) const
 
 SparseMatrix<double> E_Handler::H_SurfaceTension(std::vector<double> Constants)
 {
-
     // Ok so this functino will assemble the Hessi an for the surface tension energy
     int nVerts = mesh->nVertices();
     int nBeads = Beads.size();
@@ -1434,7 +1460,6 @@ SparseMatrix<double> E_Handler::H_SurfaceTension(std::vector<double> Constants)
 
 SparseMatrix<double> E_Handler::H_SurfaceTension_Verts(std::vector<double> Constants)
 {
-
     // Ok so this functino will assemble the Hessi an for the surface tension energy
     int nVerts = mesh->nVertices();
     int nBeads = Beads.size();
@@ -1501,7 +1526,6 @@ SparseMatrix<double> E_Handler::H_SurfaceTension_Verts(std::vector<double> Const
 
 SparseMatrix<double> E_Handler::H_SurfaceTension_Normal(std::vector<double> Constants)
 {
-
     SparseMatrix<double> Hessian = H_SurfaceTension(Constants);
     int N_verts = mesh->nVertices();
     SparseMatrix<double> Normal_Hess(mesh->nVertices(), mesh->nVertices());
@@ -1553,7 +1577,6 @@ SparseMatrix<double> E_Handler::H_SurfaceTension_Normal(std::vector<double> Cons
 
 SparseMatrix<double> E_Handler::H_Bending_tan(std::vector<double> Constants)
 {
-
     double KB = Constants[0];
     double H0 = Constants[1];
 
@@ -1924,7 +1947,6 @@ SparseMatrix<double> E_Handler::H_Bending_tan(std::vector<double> Constants)
 
 SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants)
 {
-
     double KB = Constants[0];
     double H0 = Constants[1];
 
@@ -2295,7 +2317,6 @@ SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants)
 
 SparseMatrix<double> E_Handler::H_Bending_2(std::vector<double> Constants)
 {
-
     double KB = Constants[0];
     double H0 = Constants[1];
 
@@ -2661,7 +2682,6 @@ SparseMatrix<double> E_Handler::H_Bending_2(std::vector<double> Constants)
 
 SparseMatrix<double> E_Handler::H_Volume(std::vector<double> Constants)
 {
-
     // std::cout<<"Hessian volume\n";
     double KV = Constants[0];
 
@@ -2714,7 +2734,6 @@ SparseMatrix<double> E_Handler::H_Volume(std::vector<double> Constants)
 
 SparseMatrix<double> E_Handler::H_Volume_Verts(std::vector<double> Constants)
 {
-
     // std::cout<<"Hessian volume\n";
     double KV = Constants[0];
 
@@ -2767,7 +2786,6 @@ SparseMatrix<double> E_Handler::H_Volume_Verts(std::vector<double> Constants)
 
 SparseMatrix<double> E_Handler::H_Volume_Normal(std::vector<double> Constants)
 {
-
     SparseMatrix<double> Hessian = H_Volume(Constants);
     int N_verts = mesh->nVertices();
     SparseMatrix<double> Normal_Hess(mesh->nVertices(), mesh->nVertices());
@@ -3314,7 +3332,6 @@ SparseMatrix<double> E_Handler::H_Edge_reg(std::vector<double> Constants)
 
 SparseMatrix<double> E_Handler::H_Edge_reg_2(std::vector<double> Constants)
 {
-
     // Lets get this hessian
     double KE = Constants[0];
 
@@ -3378,7 +3395,6 @@ SparseMatrix<double> E_Handler::H_Edge_reg_2(std::vector<double> Constants)
 
 SparseMatrix<double> E_Handler::H_Face_reg(std::vector<double> Constants)
 {
-
     // Ok so this functino will assemble the Hessi an for the surface tension energy
     int nVerts = mesh->nVertices();
     int nBeads = Beads.size();
@@ -3445,7 +3461,6 @@ SparseMatrix<double> E_Handler::H_Face_reg(std::vector<double> Constants)
 
 void E_Handler::Calculate_energies(double *E)
 {
-
     *E = 0;
     Energy_values.resize(Energies.size());
 
@@ -3482,6 +3497,27 @@ void E_Handler::Calculate_energies(double *E)
             Energy_values[i] = E_SurfaceTension(Energy_constants[i]);
             *E += Energy_values[i];
             continue;
+        }
+        if (Energies[i] == "Membrane_tension")
+        {
+            if (Energy_constants[i][0] < 1e-5)
+            {
+                Energy_values[i] = 0.0;
+                continue;
+            }
+            Energy_values[i] = E_MembraneTension(Energy_constants[i]);
+            *E += Energy_values[i];
+            continue;
+        }
+        if (Energies[i] == "Excess_tension")
+        {
+            if (Energy_constants[i][0] < 1e-5)
+            {
+                Energy_values[i] = 0.0;
+                continue;
+            }
+            Energy_values[i] = E_ExcessTension(Energy_constants[i]);
+            *E += Energy_values[i];
         }
         if (Energies[i] == "Bending" || Energies[i] == "H1_Bending" || Energies[i] == "H2_Bending")
         {
@@ -3644,7 +3680,6 @@ void E_Handler::Calculate_energies(double *E)
 
 void E_Handler::Calculate_Lag_norm(double *Norm)
 {
-
     // Now  i need to get this norm
     // std::cout<<""
     Calculate_gradient();
@@ -3694,7 +3729,6 @@ void E_Handler::Calculate_Lag_norm(double *Norm)
 
 void E_Handler::Calculate_Lag_norm_Normal(double *Norm)
 {
-
     // Now  i need to get this norm
     // std::cout<<""
     Calculate_gradient();
@@ -3744,7 +3778,6 @@ void E_Handler::Calculate_Lag_norm_Normal(double *Norm)
 
 void E_Handler::Calculate_Merit(double *Norm)
 {
-
     *Norm = 0;
     Energy_values.resize(Energies.size());
 
@@ -3924,6 +3957,33 @@ void E_Handler::Calculate_gradient()
             Current_grad += Force_temp;
             continue;
         }
+
+        if (Energies[i] == "Membrane_tension")
+        {
+            Force_temp = F_MembraneTension(Energy_constants[i]);
+            grad_norm = 0.0;
+            for (Vertex v : mesh->vertices())
+            {
+                grad_norm += Force_temp[v].norm2();
+            }
+            Gradient_norms[i] = grad_norm;
+            Current_grad += Force_temp;
+            continue;
+        }
+
+        if (Energies[i] == "Excess_tension")
+        {
+            Force_temp = F_ExcessTension(Energy_constants[i]);
+            grad_norm = 0.0;
+            for (Vertex v : mesh->vertices())
+            {
+                grad_norm += Force_temp[v].norm2();
+            }
+            Gradient_norms[i] = grad_norm;
+            Current_grad += Force_temp;
+            continue;
+        }
+
         if (Energies[i] == "Bending")
         {
             Force_temp = F_Bending(Energy_constants[i]);
@@ -4029,6 +4089,8 @@ void E_Handler::Calculate_gradient()
         Gradient_norms[Energies.size()] = grad_norm;
     }
 
+    if (isnan(grad_norm))
+        std::cout << "The gradient norm is Nan? \n";
     return;
 }
 
@@ -4274,7 +4336,6 @@ void E_Handler::Calculate_gradient()
 
 void E_Handler::Calculate_Jacobian()
 {
-
     int N_verts = mesh->nVertices();
     int N_constraints = 0;
     int N_beads = Beads.size();
@@ -4466,7 +4527,6 @@ void E_Handler::Calculate_Jacobian()
 
 void E_Handler::Calculate_Jacobian_Normal()
 {
-
     // I will assume that the normals were already calcualted
     Calculate_Jacobian();
 
@@ -4490,7 +4550,6 @@ void E_Handler::Calculate_Jacobian_Normal()
 
 SparseMatrix<double> E_Handler::Calculate_Hessian()
 {
-
     // Ok so the Hessian is the normal Hessian + lagrange multipliers * Hessian of the gradients
     // For beads you need to include the beads at the size of the matrix of the hessian
     // I recommend adding them at the bottom.
@@ -4554,7 +4613,6 @@ SparseMatrix<double> E_Handler::Calculate_Hessian()
 
 SparseMatrix<double> E_Handler::Calculate_Hessian_Normal()
 {
-
     int N_verts = mesh->nVertices();
     int N_beads = Beads.size();
 
@@ -4707,7 +4765,6 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_Normal()
 
 SparseMatrix<double> E_Handler::Calculate_Hessian_Normal_clipped()
 {
-
     int N_verts = mesh->nVertices();
     int N_beads = Beads.size();
 
@@ -4873,7 +4930,6 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_Normal_clipped()
 
 SparseMatrix<double> E_Handler::Calculate_Hessian_E()
 {
-
     int N_verts = mesh->nVertices();
     int N_beads = Beads.size();
     std::vector<double> Energy_constants_val;
@@ -4921,7 +4977,6 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_E()
 
 SparseMatrix<double> E_Handler::Calculate_Hessian_E_Verts()
 {
-
     SparseMatrix<double> Hessian_Verts(mesh->nVertices() * 3, mesh->nVertices() * 3);
     typedef Eigen::Triplet<double> T;
     std::vector<T> tripletList;
@@ -5070,7 +5125,6 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_E_Normal()
 
 SparseMatrix<double> E_Handler::Calculate_Hessian_Constraints()
 {
-
     // Ok so the Hessian is the normal Hessian + lagrange multipliers * Hessian of the gradients
     // For beads you need to include the beads at the size of the matrix of the hessian
     // I recommend adding them at the bottom.
@@ -5112,7 +5166,6 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_Constraints()
 
 SparseMatrix<double> E_Handler::Calculate_Hessian_Constraints_Verts()
 {
-
     SparseMatrix<double> Hessian_Verts(mesh->nVertices() * 3, mesh->nVertices() * 3);
     typedef Eigen::Triplet<double> T;
     std::vector<T> tripletList;

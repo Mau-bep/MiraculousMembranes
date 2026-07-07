@@ -13,7 +13,7 @@
     "Timestep": 1.0,
     "adapt_remesh": true,
     "Count_remesh": true,
-    "first_dir": "../Results/Wrapping_June/",
+    "first_dir": "../Results/Wrapping_July/",
     "boundary": false,
     "recentering": false,
     "saving_states": false,
@@ -27,11 +27,11 @@
     ],
     "Switch_times": [
         1000,
-        50000,
-        48990,
-        48990,
-        48990,
-        48900
+        25000,
+        51990,
+        51990,
+        519000,
+        25000
     ],
     "momentum": false,
     "rescale": 2.0,

@@ -904,6 +904,7 @@ void Mem3DG::Smooth_vertices()
  */
 double Mem3DG::Backtracking()
 {
+  // std::cout << "Backtracking\n";
 
   double c1 = 0.5;
   double rho = 0.5;
@@ -970,9 +971,11 @@ double Mem3DG::Backtracking()
 
   for (Vertex v : mesh->vertices())
   {
-    if (isnan(Sim_handler->Current_grad[v].x || Sim_handler->Current_grad[v].y || Sim_handler->Current_grad[v].z))
-      std::cout << " Is this force nan at vertex but norm2 is " << Sim_handler->Current_grad[v.getIndex()].norm2() << "\n";
+    if (isnan(Sim_handler->Current_grad[v].x) || isnan(Sim_handler->Current_grad[v].y) || isnan(Sim_handler->Current_grad[v].z))
+      // std::cout << " Is this force nan at vertex but norm2 is " << Sim_handler->Current_grad[v.getIndex()].norm2() << "\n";
+      std::cout << v.getIndex() << " ";
   }
+  // std::cout << " \n";
 
   geometry->inputVertexPositions += alpha * Sim_handler->Current_grad;
   bool nanflag = false;
@@ -1024,6 +1027,7 @@ double Mem3DG::Backtracking()
 
     if (std::isnan(NewE))
     {
+      std::cout << "When backtracking newE is nan";
       alpha = -1.0;
       break;
     }
@@ -2276,6 +2280,7 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
   double position_Projeection = 0;
   double X_pos;
 
+  // std::cout << "Backtracking\n";
   double previousE = 0;
   Sim_handler->Calculate_energies(&previousE);
 
@@ -2305,9 +2310,15 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
 
   for (Vertex v : mesh->vertices())
   {
-    if (isnan(Force[v].x || Force[v].y || Force[v].z))
-      std::cout << " Is this force nan at vertex but norm2 is " << Force[v.getIndex()].norm2() << "\n";
+    if (isnan(Force[v].x) || isnan(Force[v].y) || isnan(Force[v].z))
+    {
+
+      std::cout << BFGS_iter << " " << v.getIndex() << " ";
+      // return 0.0;
+    }
+    // std::cout << " Is this force nan at vertex but norm2 is " << Force[v.getIndex()].norm2() << "\n";
   }
+  // std::cout << "\n";
 
   // std::cout<<"doing the stepping \n";
   geometry->inputVertexPositions += alpha * Force;
@@ -2315,12 +2326,18 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
   for (Vertex v : mesh->vertices())
   {
     if (isnan(geometry->inputVertexPositions[v].norm2()))
+    {
+      std::cout << "Nan vertex index " << v.getIndex() << " \n";
+      // std::cout << "Boundary? " << v.isBoundary() << "\n";
       nanflag = true;
+    }
   }
 
   if (nanflag)
+  {
+    nanflag = true;
     std::cout << "At least one vertex has nan position\n";
-
+  }
   center = geometry->centerOfMass();
   Vector3 Vertex_pos;
 
@@ -2369,6 +2386,7 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
 
     if (std::isnan(NewE))
     {
+      std::cout << "The new Energy is Nan\n";
       alpha = -1.0;
       break;
     }
@@ -2441,11 +2459,20 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
       nanflag = true;
 
   if (nanflag)
+  {
     std::cout << "After backtracking one vertex is nan :( also the value of alpha is" << alpha << " \n";
+    std::cout << "The energy values are ";
+    for (size_t i = 0; i < Sim_handler->Energy_values.size(); i++)
+    {
+      std::cout << Sim_handler->Energy_values[i] << " ";
+    }
+    std::cout << "\n";
+  }
+
   if (alpha <= 0.0)
   {
     // std::cout<<"Repositioning\n";
-    geometry->inputVertexPositions = initial_pos;
+    // geometry->inputVertexPositions = initial_pos;
   }
   if (recentering)
   {
@@ -2608,7 +2635,7 @@ double Mem3DG::Backtracking(VertexData<Vector3> Force, double P0, double V_bar, 
 
     if (std::isnan(NewE))
     {
-
+      std::cout << "New E is nan\n";
       alpha = -1.0;
       break;
     }
@@ -3578,6 +3605,11 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
     y_list.push_back(Aux_vector);
 
     double rho_i = 1.0 / (s_list[0].dot(y_list[0]));
+    if (isnan(rho_i) || isinf(rho_i) || fabs(s_list[0].dot(y_list[0])) < 1e-10)
+    {
+      std::cout << "\tThe value of rho_ i  is something " << rho_i << "\n";
+      BFGS_iter = -1;
+    }
     rho_list.push_back(rho_i);
   }
   else
@@ -3620,7 +3652,7 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
 
     Eigen::VectorXd s_k = backtrackstep * r;
 
-    geometry->refreshQuantities();
+    // geometry->refreshQuantities();
     Sim_handler->Calculate_gradient();
     for (Vertex v : mesh->vertices())
     {
@@ -3637,7 +3669,13 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
     {
       s_list[BFGS_iter % m] = s_k;
       y_list[BFGS_iter % m] = Grad_E;
+
       rho_list[BFGS_iter % m] = 1.0 / (s_k.dot(Grad_E));
+    }
+
+    if (fabs(s_k.dot(Grad_E)) < 1e-10 || isinf(rho_list[BFGS_iter % m]) || isnan(rho_list[BFGS_iter % m]))
+    {
+      BFGS_iter = -1;
     }
   }
   // std::cout<<"DOne with iteration\n";
@@ -3669,11 +3707,6 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
 
     // In this case we will print the value of this quantity
     std::cout << "After" << N_data << "steps of iterations the mean Energy is " << mean_E << " and the variance is " << var_E << "\n";
-    // if (var_E < 1e-8)
-    // {
-    // std::cout << "We would end the simulation because the variance of the energy is very small\n";
-    // backtrackstep= -1;
-    // }
     N_data = 0;
     mean_E = 0;
     var_E = 0;
@@ -3747,6 +3780,7 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
       Bead_forces[bi] = Beads[bi]->Total_force;
     }
     backtrackstep = Backtracking_BFGS(Sim_handler->Current_grad, Bead_forces);
+
     Eigen::VectorXd Aux_vector = Eigen::VectorXd::Zero(3 * (mesh->nVertices() + Beads.size()));
     for (Vertex v : mesh->vertices())
     {
@@ -3788,6 +3822,11 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
     y_list.push_back(Aux_vector);
 
     double rho_i = 1.0 / (s_list[0].dot(y_list[0]));
+    if (isnan(rho_i) || isinf(rho_i || fabs(s_list[0].dot(y_list[0])) < 1e-10))
+    {
+      std::cout << "\tThe value of rho_ i  is something " << rho_i << "\n";
+      BFGS_iter = -1;
+    }
     rho_list.push_back(rho_i);
   }
   else
@@ -3875,6 +3914,12 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
         y_list[BFGS_iter % m] = Grad_vec;
         rho_list[BFGS_iter % m] = 1.0 / (s_k.dot(Grad_vec));
       }
+      if (fabs(s_k.dot(Grad_vec)) < 1e-10 || isinf(rho_list[BFGS_iter % m]))
+      {
+        std::cout << "THe value of s_k dot is " << s_k.dot(Grad_vec) << " \n";
+        std::cout << "Resetting bfgs iters\n";
+        BFGS_iter = -1;
+      }
     }
   }
 
@@ -3918,7 +3963,7 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
     var_E = 0;
   }
 
-  if (Save_output_data || backtrackstep < 0.0)
+  if (Save_output_data || backtrackstep <= 0.0)
   {
     V = geometry->totalVolume();
     A = 0.0;

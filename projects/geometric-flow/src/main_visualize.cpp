@@ -116,6 +116,12 @@ int remeshing_ops;
 
 VertexData<Vector3> ORIG_VPOS; // original vertex positions
 Vector3 CoM;                   // original center of mass
+float Sx = 1;
+float Sy = 1;
+float Sz = 1;
+float Tx = 0.0;
+float Ty = 0.0;
+float Tz = 0.0;
 
 Mem3DG M3DG;
 E_Handler Sim_handler;
@@ -984,6 +990,7 @@ void Callback_qts()
         integration_counter += 1;
         bool Save = integration_counter % save_interval == 0;
         // I should save before running
+        std::cout << "We are at t = " << current_t + integration_counter << " \n";
 
         // i should add the small angle flag
         bool flagSmallAngle = false;
@@ -1280,6 +1287,30 @@ void Callback_qts()
                 psCloud->addVectorQuantity("Bead Forces", CurrentBeadForce);
             }
         }
+        ImGui::TreePop();
+    }
+    if (ImGui::TreeNodeEx("Transformation menu", flag))
+    {
+        if (ImGui::TreeNodeEx("Rescale"))
+        {
+            // THere are 3 factors Sx Sy and Sz
+            ImGui::InputFloat("Scale x", &Sx, 0.1, 1.0, 4);
+            ImGui::InputFloat("Scale y", &Sy, 0.1, 1.0, 4);
+            ImGui::InputFloat("Scale z", &Sz, 0.1, 1.0, 4);
+
+            if (ImGui::Button("Rescale!"))
+            {
+                Vector3 scaleVector = Vector3{Sx, Sy, Sz};
+                geometry->rescale(scaleVector);
+                psMesh->updateVertexPositions(geometry->inputVertexPositions);
+                geometry->vertexPositions = geometry->inputVertexPositions;
+                polyscope::requestRedraw();
+            }
+            // I need to refresh no
+
+            ImGui::TreePop();
+        }
+
         ImGui::TreePop();
     }
 
@@ -2072,7 +2103,14 @@ int main(int argc, char **argv)
             std::cout << "The current reduced volume is " << 3 * V_bar / (4 * PI * pow((Area / (4 * PI)), 1.5)) << "\n";
             // Ok but the thing is that we cannot do A_bar, because A_bar can be too different, so we need a A_bar_current
         }
-
+        if (Energy["Name"] == "Membrane_tension")
+        {
+            // OK so
+            double R0 = pow(0.75 * geometry->totalVolume() / PI, 1.0 / 3.0);
+            // std::cout << "R0 is " << R0 << " \n";
+            double A0 = 4 * PI * R0 * R0;
+            Constants[1] = A0 * Constants[1];
+        }
         Energy_constants.push_back(Constants);
         Constants.resize(0);
     }

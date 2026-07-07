@@ -123,6 +123,7 @@ public:
   Vector3 centerOfMass() const;
   void normalize(const Vector3& origin = {0, 0, 0}, bool rescale = false);
   void rescale(double scale_factor);
+  void rescale(Vector3 scale_vector);
   SparseMatrix<double> buildExteriorDerivative1Form() const;
   SparseMatrix<double> buildHodgeStar0Form() const;
   SparseMatrix<double> buildHodgeStar1Form() const;

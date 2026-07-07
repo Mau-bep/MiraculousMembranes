@@ -366,7 +366,15 @@ int main(int argc, char **argv)
             std::cout << "The target area is " << A_bar << "\n";
             std::cout << "The current reduced volume is " << 3 * V_bar / (4 * PI * pow((Area / (4 * PI)), 1.5)) << "\n";
         }
-
+        if (Energy["Name"] == "Membrane_tension" || Energy["Name"] == "Excess_tension")
+        {
+            // OK so
+            // double R0 = pow(0.75 * geometry->totalVolume() / PI, 1.0 / 3.0);
+            // std::cout << "R0 is " << R0 << " \n";
+            // double A0 = 4 * PI * R0 * R0;
+            double A0 = geometry->totalArea();
+            Constants[1] = A0 * Constants[1];
+        }
         Energy_constants.push_back(Constants);
         Constants.resize(0);
     }
@@ -1353,6 +1361,7 @@ int main(int argc, char **argv)
 
         if (remesher && ((current_t - last_remesh) > remesh_every && remesh_every > 0 || dt_sim == 0.0 || (flagSmallAngle && remesh_every < 0)))
         {
+            // std::cout << "Remeshing at time step " << current_t << "\n";
 
             flagSmallAngle = false;
             geometry->requireCornerAngles();
@@ -1379,6 +1388,7 @@ int main(int argc, char **argv)
             geometry->refreshQuantities();
             double output = 0.0;
             M3DG.BFGS_iter = 0;
+            Sim_handler.update_vertex_normals();
             if (adapt_remesh)
             {
                 int error = remesh_op - trgt_remesh_op;
@@ -1415,6 +1425,12 @@ int main(int argc, char **argv)
                 Remeshing_count.close();
             }
         }
+
+        // if (save_interval == 1)
+        // {
+        //     std::cout << "Current t is " << current_t << " and saving mesh\n";
+        //     Save_mesh(basic_name + "remeshed", current_t);
+        // }
 
         end_time_control = chrono::steady_clock::now();
         remeshing_elapsed_time += chrono::duration_cast<chrono::milliseconds>(end_time_control - start_time_control).count();

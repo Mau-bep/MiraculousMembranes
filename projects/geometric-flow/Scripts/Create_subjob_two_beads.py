@@ -178,7 +178,8 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
         disp2 = ((R_vesicle+r_bead)**2-(R_vesicle-r_bead)**2)/(2*float(dist))
         disp = np.sqrt(  (R_vesicle+r_bead)**2 - (disp2+float(dist)/2)**2      ) 
 
-
+    
+    return 
     # We should do  
     output_from_parsed_template = template.render(Dir = dir,r=radius,rc = radius*1.25,dist = dist, outside1 = outside1,disp = disp,disp2 = disp2, x1 = x1, outside2 = outside2, x2 = x2 , KA = ka)
 

@@ -54,6 +54,8 @@ public:
     virtual double E_Volume_constraint(std::vector<double> Constants) const;
     virtual double E_Area_constraint(std::vector<double> Constants) const;
     virtual double E_SurfaceTension(std::vector<double> Constants) const;
+    virtual double E_MembraneTension(std::vector<double> Constants) const;
+    virtual double E_ExcessTension(std::vector<double> Constants) const;
     virtual double E_Bending(std::vector<double> Constants) const;
     virtual double E_Bending_tan(std::vector<double> Constants) const;
     // virtual double E_Bending_2(std::vector<double> Constants) const;
@@ -70,6 +72,8 @@ public:
 
     virtual VertexData<Vector3> F_Volume_constraint(std::vector<double> Constants) const;
     virtual VertexData<Vector3> F_SurfaceTension(std::vector<double> Constants) const;
+    virtual VertexData<Vector3> F_MembraneTension(std::vector<double> Constants) const;
+    virtual VertexData<Vector3> F_ExcessTension(std::vector<double> Constants) const;
     virtual VertexData<Vector3> F_Area_constraint(std::vector<double> Constants) const;
     virtual VertexData<Vector3> F_Bending(std::vector<double> Constants) const;
     virtual VertexData<Vector3> F_Bending_tan(std::vector<double> Constants) const;

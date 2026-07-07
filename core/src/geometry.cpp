@@ -1407,6 +1407,19 @@ namespace geometrycentral
             }
         }
 
+        void VertexPositionGeometry::rescale(Vector3 scale_vector)
+        {
+            Vector3 center = centerOfMass();
+            for (Vertex v : mesh.vertices())
+            {
+                inputVertexPositions[v] -= center;
+                inputVertexPositions[v].x *= scale_vector.x;
+                inputVertexPositions[v].y *= scale_vector.y;
+                inputVertexPositions[v].z *= scale_vector.z;
+                inputVertexPositions[v] += center;
+            }
+        }
+
         Eigen::Matrix3d VertexPositionGeometry::Cross_product_matrix(Eigen::Vector3d v) const
         {
 
