@@ -1015,8 +1015,9 @@ void Callback_qts()
             geometry->unrequireCornerAngles();
             // we do the small angle check
         }
-        if (((integration_counter - last_remesh) >= remesh_every && remesh_every > 0) || flagSmallAngle)
+        if (((integration_counter - last_remesh) >= remesh_every && remesh_every > 0) || flagSmallAngle || M3DG.remesh_flag)
         {
+            M3DG.remesh_flag = false;
             last_remesh = integration_counter;
             int n_op = remesh(*mesh, *geometry, Options);
             // Here i need to update the remesh_every hehe

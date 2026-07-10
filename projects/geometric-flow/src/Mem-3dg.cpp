@@ -2327,9 +2327,10 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
   {
     if (isnan(geometry->inputVertexPositions[v].norm2()))
     {
-      std::cout << "Nan vertex index " << v.getIndex() << " \n";
+      // std::cout << "Nan vertex index " << v.getIndex() << " \n";
       // std::cout << "Boundary? " << v.isBoundary() << "\n";
       nanflag = true;
+      break;
     }
   }
 
@@ -2413,6 +2414,7 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
         std::cout << "The gradient got crazy\n";
         std::cout << "The projections is " << Projection << "\n";
         geometry->inputVertexPositions = initial_pos;
+        BFGS_iter = -1;
         // return -1; //I may need to change this later
       }
       // small_TS = true;
