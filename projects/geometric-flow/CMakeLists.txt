@@ -105,6 +105,14 @@ set(SRCScluster
   # src/NormalNLP.cpp
   # src/ShapeNLP.cpp
 )
+set(SRCSprocessing 
+  src/Post_processing.cpp  
+  src/Mem-3dg.cpp
+  src/Beads.cpp
+    src/Energy_Handler.cpp
+  src/Interaction.cpp
+  ../../utils/src/colormap.cpp
+)
 
 set(SRCSvisualize 
   src/main_visualize.cpp  
@@ -145,13 +153,7 @@ set(SRCSmainpreserv
 #   ../../utils/src/colormap.cpp
 # )
 
-set(SRCSprocessing 
-  src/Post_processing.cpp  
-  src/Mem-3dg.cpp
-  src/Beads.cpp
-  src/Interaction.cpp
-  ../../utils/src/colormap.cpp
-)
+
 
 set(SRCSprocessingtube 
   src/Processing_tube.cpp  
@@ -273,7 +275,6 @@ target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../.
 target_link_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/lib/")
 
 
-
 add_library(EigenRand INTERFACE)
 target_include_directories(EigenRand INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/EigenRand-0.5.1/")
 
@@ -283,6 +284,26 @@ link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include")
 # target_link_libraries(main_cluster PUBLIC geometry-central polyscope arcsim EigenRand)
 
 target_link_libraries(main_cluster PUBLIC geometry-central polyscope arcsim EigenRand ipopt)
+
+add_executable(Post_processing "${SRCSprocessing}")
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Post_processing)
+target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src_arcsim/")
+
+target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
+target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps")
+
+# add the args.hxx project which we use for command line args
+target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
+target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include/")
+target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/")
+# target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
+link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/lib")
+link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include")
+
+target_link_libraries(Post_processing PUBLIC geometry-central polyscope)
+
+
 
 
 add_executable(main_visualize "${SRCSvisualize}")
@@ -301,16 +322,6 @@ target_include_directories(main_visualize PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/..
 target_link_libraries(main_visualize PUBLIC geometry-central polyscope arcsim)
 
 
-# add_executable(main_cluster "${SRCScluster}")
-# set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT main_cluster)
-# target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
-# target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
-# target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src_arcsim/")
-# # add the args.hxx project which we use for command line args
-# target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
-# target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
-# target_link_libraries(main_cluster PUBLIC geometry-central polyscope arcsim)
-
 add_executable(main_preserving_mean_curv "${SRCSmainpreserv}")
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT main_preserving_mean_curv)
 target_include_directories(main_preserving_mean_curv PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
@@ -320,16 +331,6 @@ target_include_directories(main_preserving_mean_curv PUBLIC "${CMAKE_CURRENT_SOU
 target_link_libraries(main_preserving_mean_curv PUBLIC geometry-central polyscope)
 
 
-# add_executable(main_cluster_beads "${SRCSclusterbeads}")
-# set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT main_cluster_beads)
-# target_include_directories(main_cluster_beads PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
-# target_include_directories(main_cluster_beads PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
-# target_include_directories(main_cluster_beads PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src_arcsim/")
-# target_include_directories(main_cluster_beads PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps")
-# # add the args.hxx project which we use for command line args
-# target_include_directories(main_cluster_beads PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
-# target_include_directories(main_cluster_beads PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
-# target_link_libraries(main_cluster_beads PUBLIC geometry-central polyscope arcsim)
 
 # add_executable(main_cluster_pulling "${SRCSclusterpulling}")
 # set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT main_cluster_pulling)
@@ -373,22 +374,6 @@ target_link_libraries(main_preserving_mean_curv PUBLIC geometry-central polyscop
 # target_include_directories(main_cluster_field PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
 # target_link_libraries(main_cluster_field PUBLIC geometry-central polyscope arcsim)
 
-
-
-add_executable(Post_processing "${SRCSprocessing}")
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Post_processing)
-target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
-# target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src_arcsim/")
-
-target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
-target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps")
-
-# add the args.hxx project which we use for command line args
-target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
-
-# target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
-
-target_link_libraries(Post_processing PUBLIC geometry-central polyscope)
 
 
 
