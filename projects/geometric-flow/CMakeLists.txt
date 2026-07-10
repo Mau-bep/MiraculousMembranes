@@ -300,9 +300,6 @@ target_include_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/..
 target_include_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/")
 target_link_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/lib/")
 
-add_library(EigenRand INTERFACE)
-target_include_directories(EigenRand INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/EigenRand-0.5.1/")
-
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/lib")
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include")
 
