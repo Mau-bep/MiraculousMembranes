@@ -274,6 +274,31 @@ target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../.
 target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/")
 target_link_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/lib/")
 
+add_library(EigenRand INTERFACE)
+target_include_directories(EigenRand INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/EigenRand-0.5.1/")
+
+link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/lib")
+link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include")
+
+target_link_libraries(main_cluster PUBLIC geometry-central polyscope arcsim EigenRand ipopt)
+
+
+add_executable(PostProcessing "${SRCSprocessing}")
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT PostProcessing)
+target_include_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+target_include_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src_arcsim/")
+
+target_include_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
+target_include_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps")
+
+# target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/EigenRand/")
+# add the args.hxx project which we use for command line args
+target_include_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
+target_include_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
+
+target_include_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include/")
+target_include_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/")
+target_link_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/lib/")
 
 add_library(EigenRand INTERFACE)
 target_include_directories(EigenRand INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/EigenRand-0.5.1/")
@@ -281,27 +306,26 @@ target_include_directories(EigenRand INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/../.
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/lib")
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include")
 
-# target_link_libraries(main_cluster PUBLIC geometry-central polyscope arcsim EigenRand)
+target_link_libraries(PostProcessing PUBLIC geometry-central polyscope arcsim EigenRand ipopt)
 
-target_link_libraries(main_cluster PUBLIC geometry-central polyscope arcsim EigenRand ipopt)
 
-add_executable(Post_processing "${SRCSprocessing}")
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Post_processing)
-target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
-target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src_arcsim/")
+# add_executable(Post_processing "${SRCSprocessing}")
+# set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Post_processing)
+# target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+# target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src_arcsim/")
 
-target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
-target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps")
+# target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
+# target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps")
 
-# add the args.hxx project which we use for command line args
-target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
-target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include/")
-target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/")
-# target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
-link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/lib")
-link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include")
+# # add the args.hxx project which we use for command line args
+# target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
+# target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include/")
+# target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/")
+# # target_include_directories(Post_processing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
+# link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/lib")
+# link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include")
 
-target_link_libraries(Post_processing PUBLIC geometry-central polyscope)
+# target_link_libraries(Post_processing PUBLIC geometry-central polyscope)
 
 
 
