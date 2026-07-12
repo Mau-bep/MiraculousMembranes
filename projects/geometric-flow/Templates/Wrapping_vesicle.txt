@@ -33,7 +33,7 @@
         519000,
         25000
     ],
-    "momentum": false,
+    "momentum": false,  
     "rescale": 2.0,
     "Energies": [ 
         {"Name": "Surface_tension", "constants": [ {{KA}} ] },
