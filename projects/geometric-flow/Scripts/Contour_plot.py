@@ -174,8 +174,28 @@ def main():
 
 
 def main2():
+    filepath = "../Results/WrapPhase/Coverage_data.txt"
+
+    Data = np.loadtxt(filepath,delimiter = ' ', skiprows = 1, usecols = (1,2,3,4,5,6))
+    # 
+    plt.scatter(Data[:,2],Data[:,5])
+    plt.show()
     
+    lamda = np.sqrt(Data[:,1]/Data[:,0])
+    a = Data[:,3]
+
+    X = a/lamda 
+    Y = Data[:,2]/Data[:,0]
+
+    plt.scatter(X,Y,c=Data[:,5])
+    plt.show()
+
+    print("THe values of X are {}".format(X))
+    print("The values of Y are {}".format(Y))
+    return
+
+main2()
 
 
 
-main()
+# main()

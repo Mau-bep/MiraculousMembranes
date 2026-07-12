@@ -410,7 +410,7 @@ int main(int argc, char **argv)
     // SO until here we just the subdirectories we can start iterating over them
 
     // I think it would be better if we create a function that given a subirectory, return the desired quantities;
-    std::ofstream CoverageData(SimsDir + " Coverage_data.txt", std::ios_base::app);
+    std::ofstream CoverageData(SimsDir + "Coverage_data.txt", std::ios_base::app);
     CoverageData << "#### DIR KA KB KI BeadRadius rc CoveredArea\n";
 
     for (size_t i = 0; i < Subdirs.size(); i++)
