@@ -9,13 +9,13 @@ set Nsim=1
 # set Init_cond=1
 # foreach v ( 1.0 )
 # foreach Init_cond ( 2 )
-foreach Strg ( `seq 50 50 450`)
+foreach Strg ( 1 1.5 2 2.5 3 3.5 4 4.5 5  )
 # foreach Strg ( 400.0  )
-foreach KA ( 10 100 200 500 1000 1500  )
+foreach KA ( 1   )
 # foreach KA ( 0..045 50 )
 
-foreach radius ( 0.3 0.5 )
-foreach KB ( 10.0 20.0)
+foreach radius ( 1.0 )
+foreach KB ( 0.0001 0.0005 0.001 0.005 0.01 0.05 0.1 0.5 1.0   )
 #python3 Create_subjob.py ${v} ${c0} ${KA} ${KB}
 
 python3 Create_subjob_beads.py ${Strg} ${radius} ${KA} ${KB} ${Nsim}

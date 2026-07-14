@@ -294,7 +294,7 @@ double CalculateCoverage(std::string Simdir, int Step, Vector3 BeadPos, double r
             }
         }
     }
-    return A_covered;
+    return A_covered / (4 * PI * radius * radius);
 }
 
 std::vector<double> ReadCoverage(std::string Subdir)
@@ -359,7 +359,7 @@ std::vector<double> ReadCoverage(std::string Subdir)
 
     std::cout << "My old method said the last step is " << FinalStep << " and the new one says " << StepCurrent << " \n";
 
-    double A_covered = CalculateCoverage(Subdir, StepCurrent, BeadPos, r, rc);
+    double A_covered = CalculateCoverage(Subdir, FinalStep, BeadPos, r, rc);
     // Ok then we have everything no?
     Coverage_data.push_back(KA);
     Coverage_data.push_back(KB);
