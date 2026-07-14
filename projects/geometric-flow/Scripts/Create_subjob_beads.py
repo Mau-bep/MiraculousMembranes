@@ -63,7 +63,7 @@ def Create_json_wrapping_vesicle(ka,kb,r,inter_str):
     env = Environment(loader=FileSystemLoader('../Templates/'))
 
     template = env.get_template('Wrapping_vesicle.txt')
-    output_from_parsed_template = template.render(KA = ka, KB = kb,radius = r,rc=rad*1.25,xpos = 2.0+rad ,interaction=inter_str)
+    output_from_parsed_template = template.render(KA = ka, KB = kb,radius = r,rc=rad*1.25,xpos = 7.0+rad*1.1 ,interaction=inter_str)
 
     data = json.loads(output_from_parsed_template)
 
