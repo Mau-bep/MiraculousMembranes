@@ -174,7 +174,7 @@ def main():
 
 
 def main2():
-    filepath = "../Results/WrapPhase/Coverage_data.txt"
+    filepath = "../Results/WrapPhase2/Coverage_data.txt"
 
     Data = np.loadtxt(filepath,delimiter = ' ', skiprows = 1, usecols = (1,2,3,4,5,6))
     # 

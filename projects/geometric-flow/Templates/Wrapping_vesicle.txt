@@ -6,14 +6,14 @@
     "resize_vol": false,
     "remeshing": true,
     "Subfolder": "18/",
-    "Integration": "BFGS",
+    "Integration": "Gradient_descent",
     "BFGS_saved_states": 15,
     "remesh_every": 1,
     "backtrack": true,
     "Timestep": 1.0,
     "adapt_remesh": true,
     "Count_remesh": true,
-    "first_dir": "../Results/Wrapping_July_rescale/",
+    "first_dir": "../Results/Wrapping_July_PhaseRescale/",
     "boundary": false,
     "recentering": false,
     "saving_states": false,
@@ -26,18 +26,18 @@
         "Freeze_beads"
     ],
     "Switch_times": [
-        20000,
-        50000,
+        30000,
+        80000,
         510990,
         519090,
         519000,
-        50000
+        80000
     ],
     "momentum": false,  
     "rescale": 7.0,
     "Energies": [ 
         {"Name": "Surface_tension", "constants": [ {{KA}} ] },
-        {"Name": "Bending", "constants": [ {{KB}} , 0.0]},
+        {"Name": "Bending_tan", "constants": [ {{KB}} , 0.0]},
         {"Name": "Volume_constraint", "constants": [ 20000.0, -1.0]}
         ],
     "Beads":[
@@ -47,7 +47,7 @@
         "rc": {{rc}}, 
         "state" : "default" ,
         "Pos": [{{xpos}}, 0.0, 0.0], 
-        "mem_inter": "Frenkel",
+        "mem_inter": "Frenkel_Normal_nopush",
         "inter_str": {{ interaction }},
         "bonds": [],
         "bonds_constants":[],
@@ -55,7 +55,7 @@
         }
     ],
     "remesher":{
-        "aspect_min": 0.2, "refine_angle": 0.55, "refine_compression": 1e-4, "refine_velocity": 1.0, "size_max": 0.45, "size_min": 0.001
+        "aspect_min": 0.2, "refine_angle": 0.6, "refine_compression": 1e-4, "refine_velocity": 1.0, "size_max": 0.45, "size_min": 0.005
         }
     
 }

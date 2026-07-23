@@ -15,7 +15,7 @@ foreach KA ( 1   )
 # foreach KA ( 0..045 50 )
 
 foreach radius ( 1.0 )
-foreach KB ( 0.0001 0.0005 0.001 0.005 0.01 0.05 0.1 0.5 1.0   )
+foreach KB ( 0.005 0.01 0.05 0.1 0.5 1.0   )
 #python3 Create_subjob.py ${v} ${c0} ${KA} ${KB}
 
 python3 Create_subjob_beads.py ${Strg} ${radius} ${KA} ${KB} ${Nsim}
