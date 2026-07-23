@@ -316,7 +316,7 @@ std::vector<double> ReadCoverage(std::string Subdir)
     double KB = 0;
     for (auto Energy : Data["Energies"])
     {
-        if (Energy["Name"] == "Bending")
+        if (Energy["Name"] == "Bending" || Energy["Name"] == "Bending_tan")
         {
             KB = Energy["constants"][0];
         }
