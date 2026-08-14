@@ -1,14 +1,16 @@
 #pragma once
 
+
 #include "geometrycentral/surface/barycentric_coordinate_helpers.h"
 #include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/mutation_manager.h"
 #include "geometrycentral/surface/vertex_position_geometry.h"
-
 #include <deque>
+
 
 namespace geometrycentral {
 namespace surface {
+
 
 enum class RemeshBoundaryCondition { Fixed, Tangential, Free };
 enum class RemeshSmoothStyle { Circumcentric, Laplacian };
@@ -63,13 +65,14 @@ void remesh_smoothing(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, R
 // Returns the number of flips performed
 size_t fixDelaunay(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom);
 size_t fixDelaunay(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm);
+size_t fixDelaunay(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm, RemeshOptions options);
 
 // Average positions of vertices based on surrounding vertex positions
 // Returns the average amount each vertex was moved by
 double smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, double stepSize = 1,
-                         RemeshBoundaryCondition bc = RemeshBoundaryCondition::Tangential);
+                         RemeshBoundaryCondition bc = RemeshBoundaryCondition::Fixed);
 double smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
-                         double stepSize = 1, RemeshBoundaryCondition bc = RemeshBoundaryCondition::Tangential);
+                         double stepSize = 1, RemeshBoundaryCondition bc = RemeshBoundaryCondition::Fixed);
 
 // Average positions of vertices based on surrounding triangle circumenters as in [Chen & Holst 2011]
 // Returns the average amount each vertex was moved by
@@ -93,5 +96,8 @@ bool improveFaces(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Mutat
 int flipSubset(std::vector<Face> active, ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
                RemeshOptions options);
 void remeshSmallAngles(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOptions options);
+
+EdgeData<int> DelaunayEdge(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom);
+
 } // namespace surface
 } // namespace geometrycentral

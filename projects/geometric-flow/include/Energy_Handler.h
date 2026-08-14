@@ -54,6 +54,8 @@ public:
     virtual double E_Volume_constraint(std::vector<double> Constants) const;
     virtual double E_Area_constraint(std::vector<double> Constants) const;
     virtual double E_SurfaceTension(std::vector<double> Constants) const;
+    virtual VertexData<double> Ev_SurfaceTension(std::vector<double> Constants) const;
+
     virtual double E_MembraneTension(std::vector<double> Constants) const;
     virtual double E_ExcessTension(std::vector<double> Constants) const;
     virtual double E_Bending(std::vector<double> Constants) const;
@@ -63,6 +65,12 @@ public:
     virtual double E_Edge_reg(std::vector<double> Constants) const;
     virtual double E_Edge_reg_2(std::vector<double> Constants) const;
     virtual double E_Face_reg(std::vector<double> Constants) const;
+
+    virtual VertexData<double> Ev_Bending(std::vector<double> Constants) const;
+    virtual double V_Bending(std::vector<double> Constants, Vertex v) const;
+
+    virtual VertexData<double> Ev_Bending_tan(std::vector<double> Constants) const;
+    virtual double V_Bending_tan(std::vector<double> Constants, Vertex v) const;
 
     // We do the precomputed ones now
     // virtual double E_Area_constraint_precomp(std::vector<double> Constants) const;

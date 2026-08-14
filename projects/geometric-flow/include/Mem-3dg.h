@@ -2,9 +2,14 @@
 
 #include <Eigen/Core>
 #include <omp.h>
+#include "geometrycentral/surface/barycentric_coordinate_helpers.h"
 #include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/vertex_position_geometry.h"
+#include "geometrycentral/surface/mutation_manager.h"
+#include "geometrycentral/surface/remeshing.h"
+
 #include "Beads.h"
+#include <deque>
 #include "Energy_Handler.h"
 
 // #include "mean-curvature-flow.h"
@@ -13,6 +18,48 @@
 // #include <geometrycentral/utilities/vector3.h>
 using namespace geometrycentral;
 using namespace geometrycentral::surface;
+
+enum class RemeshBoundaryCondition2
+{
+  Fixed,
+  Tangential,
+  Free
+};
+enum class RemeshSmoothStyle2
+{
+  Circumcentric,
+  Laplacian
+};
+struct RemeshOptions2
+{
+  double targetEdgeLength = -1;    // the target edge length in flat regions. If `targetEdgeLength` is negative, the target
+                                   // edge length is set to relative the input mesh's mean edge length
+  size_t maxIterations = 10;       // the maximum number of iterations to run for
+  double curvatureAdaptation = 0;  // how much target length should vary due to curvature. Set curvatureAdaptation
+                                   // to 0 if you want lengths to be approximately targetEdgeLength everywhere
+  double minRelativeLength = 0.05; // the minimum possible edge length allowed in the output mesh. Defined relative to
+                                   // targetEdgeLength
+  double min_absolute_length =
+      0.001; // the minimum possible edge length allowed in the output mesh, as an absolute number
+  double max_absolute_length =
+      0.2;                   // the maximum possible edge length allowed in the output mesh, as an absolute number
+  double refine_angle = 0.7; // THe maximum dihedral angle allowed in the output mesh, in radians
+  double aspect_min = 0.2;
+  bool no_remesh_list = false;
+  int numberOp = 0;
+  float angleThresh = 0.15;
+
+  std::vector<Edge> Remesh_list_e;   // list of edges to remesh. If empty, all edges are considered for remeshing
+  std::vector<Vertex> Remesh_list_v; // list of vertices to remesh. If empty, all vertices are considered for remeshing
+  std::vector<Face> Remesh_list_f;   // list of faces to remesh. If empty, all faces are considered for remeshing
+
+  EdgeData<int> No_remesh_list;
+  VertexData<int> No_remesh_list_v;
+
+  RemeshSmoothStyle2 smoothStyle = RemeshSmoothStyle2::Circumcentric; // smoothing function to use
+  RemeshBoundaryCondition2 boundaryCondition =
+      RemeshBoundaryCondition2::Tangential; // allowed movement of boundary vertices
+};
 
 class Mem3DG
 {
@@ -181,4 +228,22 @@ public:
   double integrate_finite(double h, double V_bar, double nu, double c0, double P0, double KA, double KB, double Kd, std::ofstream &Sim_data, double time, std::ofstream &Gradient_file_vol, std::ofstream &Gradient_file_area, std::ofstream &Gradient_file_bending, bool Save);
 
   void Save_mesh(size_t current_t);
+
+  int remesh(ManifoldSurfaceMesh &mesh, VertexPositionGeometry &geom, RemeshOptions options);
+  int remesh(ManifoldSurfaceMesh &mesh, VertexPositionGeometry &geom, MutationManager &mm,
+             RemeshOptions options);
+
+  bool splitWorstEdges(ManifoldSurfaceMesh &mesh, VertexPositionGeometry &geom, MutationManager &mm,
+                       RemeshOptions options);
+  bool improveFaces(ManifoldSurfaceMesh &mesh, VertexPositionGeometry &geom, MutationManager &mm, RemeshOptions options);
+
+  size_t fixDelaunay(ManifoldSurfaceMesh &mesh, VertexPositionGeometry &geom);
+  size_t fixDelaunay(ManifoldSurfaceMesh &mesh, VertexPositionGeometry &geom, MutationManager &mm);
+  double smoothByLaplacian(ManifoldSurfaceMesh &mesh, VertexPositionGeometry &geom, MutationManager &mm,
+                           double stepSize = 1, RemeshBoundaryCondition2 bc = RemeshBoundaryCondition2::Tangential);
+
+  // Average positions of vertices based on surrounding triangle circumenters as in [Chen & Holst 2011]
+  // Returns the average amount each vertex was moved by
+  double smoothByCircumcenter(ManifoldSurfaceMesh &mesh, VertexPositionGeometry &geom, MutationManager &mm,
+                              double stepSize = 1, RemeshBoundaryCondition2 bc = RemeshBoundaryCondition2::Tangential);
 };

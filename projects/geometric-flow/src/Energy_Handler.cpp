@@ -125,22 +125,18 @@ double E_Handler::E_Area_constraint(std::vector<double> Constants) const
     return 0.5 * KA * (A - A_bar) * (A - A_bar) / (A_bar * A_bar);
 }
 
-// double E_Handler::E_Area_constraint_precomp(std::vector<double> Constants) const
-// {
-//     double KA = Constants[0];
-//     double A_bar = Constants[1];
-//     geometry->requireFaceAreas();
-//     double A = 0.0;
-//     for (Face f : mesh->faces())
-//         A += geometry->faceAreas[f];
-//     geometry->unrequireFaceAreas();
-//     // return 0.5*KA*A*A;
-//     return 0.5 * KA * (A - A_bar) * (A - A_bar) / (A_bar * A_bar);
-// }
-
 double E_Handler::E_SurfaceTension(std::vector<double> Constants) const
 {
     return geometry->totalArea() * Constants[0];
+}
+VertexData<double> E_Handler::Ev_SurfaceTension(std::vector<double> Constants) const
+{
+    VertexData<double> Ev(*mesh, 0.0);
+    for (Vertex v : mesh->vertices())
+    {
+        Ev[v] = Constants[0] * geometry->barycentricDualArea(v);
+    }
+    return Ev;
 }
 double E_Handler::E_MembraneTension(std::vector<double> Constants) const
 {
@@ -198,6 +194,46 @@ double E_Handler::E_Bending(std::vector<double> Constants) const
     }
 
     return Eb;
+}
+
+VertexData<double> E_Handler::Ev_Bending(std::vector<double> Constants) const
+{
+    double KB = Constants[0];
+    double H0 = Constants[1];
+    size_t index;
+
+    double H;
+    double r_eff2;
+    Vector3 Pos;
+    double A;
+    VertexData<double> Eb(*mesh, 0.0);
+    for (Vertex v : mesh->vertices())
+    {
+        Eb[v] += V_Bending(Constants, v);
+    }
+    return Eb;
+}
+
+double E_Handler::V_Bending(std::vector<double> Constants, Vertex v) const
+{
+    double KB = Constants[0];
+    double H0 = Constants[1];
+    Vector3 Pos;
+    size_t index;
+    double A;
+    double H;
+    index = v.getIndex();
+    Pos = geometry->inputVertexPositions[v];
+    double r_eff2;
+    r_eff2 = Pos.z * Pos.z + Pos.y * Pos.y;
+    // std::cout<<"boundary? \n";
+    if (v.isBoundary())
+        return 0.0;
+    A = geometry->barycentricDualArea(v);
+    H = (geometry->scalarMeanCurvature(v) / A - H0);
+    if (std::isnan(H))
+        return 0.0;
+    return KB * H * H * A;
 }
 // double E_Handler::E_Bending(std::vector<double> Constants) const
 // {
@@ -273,7 +309,45 @@ double E_Handler::E_Bending_tan(std::vector<double> Constants) const
 
     return Eb;
 }
+VertexData<double> E_Handler::Ev_Bending_tan(std::vector<double> Constants) const
+{
+    double KB = Constants[0];
+    double H0 = Constants[1];
+    size_t index;
+    VertexData<double> Eb(*mesh, 0.0);
+    double H;
+    double r_eff2;
+    Vector3 Pos;
+    double A;
+    for (Vertex v : mesh->vertices())
+    {
 
+        Eb[v] += V_Bending_tan(Constants, v);
+    }
+
+    return Eb;
+}
+double E_Handler::V_Bending_tan(std::vector<double> Constants, Vertex v) const
+{
+    double KB = Constants[0];
+    double H0 = Constants[1];
+    Vector3 Pos;
+    size_t index;
+    double A;
+    double H;
+    index = v.getIndex();
+    Pos = geometry->inputVertexPositions[v];
+    double r_eff2;
+    r_eff2 = Pos.z * Pos.z + Pos.y * Pos.y;
+    // std::cout<<"boundary? \n";
+    if (v.isBoundary())
+        return 0.0;
+    A = geometry->barycentricDualArea(v);
+    H = (geometry->scalarMeanCurvatureTan(v) / A - H0);
+    if (std::isnan(H))
+        return 0.0;
+    return KB * H * H * A;
+}
 double E_Handler::E_Laplace(std::vector<double> Constants) const
 {
 
@@ -605,7 +679,8 @@ VertexData<Vector3> E_Handler::F_SurfaceTension(std::vector<double> Constants) c
         Vertices[0] = he.vertex();
         Vertices[1] = he.next().vertex();
         Vertices[2] = he.next().next().vertex();
-
+        // if (Vertices[0].isBoundary() || Vertices[1].isBoundary() || Vertices[2].isBoundary())
+        //     continue;
         Positions << geometry->inputVertexPositions[Vertices[0]].x, geometry->inputVertexPositions[Vertices[0]].y, geometry->inputVertexPositions[Vertices[0]].z,
             geometry->inputVertexPositions[Vertices[1]].x, geometry->inputVertexPositions[Vertices[1]].y, geometry->inputVertexPositions[Vertices[1]].z,
             geometry->inputVertexPositions[Vertices[2]].x, geometry->inputVertexPositions[Vertices[2]].y, geometry->inputVertexPositions[Vertices[2]].z;
@@ -4477,7 +4552,7 @@ void E_Handler::Calculate_Jacobian()
                 Column[3 * vi + 1] = Pos.z;
                 Column[3 * vi + 2] = -Pos.y;
             }
-            for (size_t bi = 0; bi < N_beads; bi++)
+            for (int bi = 0; bi < N_beads; bi++)
             {
                 Pos = Beads[bi]->Pos;
                 Column[3 * (N_verts + bi) + 1] = Pos.z;

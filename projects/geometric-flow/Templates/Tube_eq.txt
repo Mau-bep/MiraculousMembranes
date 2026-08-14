@@ -1,0 +1,115 @@
+{
+    "init_file": "../../../input/disk_init.obj",
+    "save_interval": 250,
+    "timesteps": 100000,
+    "continue_sim": false,
+    "resize_vol": false,
+    "arcsim": true,
+    "remeshing": true,
+    "first_dir": {{Dir}},
+    "Subfolder": "27/",
+    "boundary": true,
+    "BFGS_saved_states": 5,
+    "remesh_every": 10,
+    "backtrack": true,
+    "Timestep": 1.0,
+    "adapt_remesh": false,
+    "Count_remesh": true,
+    "recentering": false,
+    "saving_states": false,
+    "momentum": true,
+    "Switches": [
+        "Save_all",
+        "BFGS",
+        "Adapt_remesh"
+    ],
+    "Switch_times": [
+        -1,
+        -1,
+        1000
+    ],
+    "rescale": 2.0,
+    "Energies": [
+        {
+            "Name": "Surface_tension",
+            "constants": [
+                {{KA}},
+                0.0
+            ]
+        },
+        {
+            "Name": "Bending",
+            "constants": [
+                {{KB}},
+                0.0
+            ]
+        }
+    ],
+    "Beads": [
+        {
+            "gradient_order": "Bead",
+            "radius": {{r}},
+            "state": "manual",
+            "Pos": [
+                {{Xini}},
+                0.0,
+                0.0
+            ],
+            "Velocity": [
+                1.0,
+                0.0,
+                0.0
+            ],
+            "FinalPos": [
+                {{Xfinal}},
+                0.0,
+                0.0
+            ],
+            "mem_inter": "LJ",
+            "shift": 10,
+            "inter_str": 10,
+            "bonds": [
+                "Lineal"
+            ],
+            "bonds_constants": [
+                [
+                    200.0
+                ]
+            ],
+            "Beads": [
+                1
+            ]
+        },
+        {
+            "gradient_order": "Bead",
+            "radius": 0.4,
+            "state": "froze",
+            "Pos": [
+                5.0,
+                0.0,
+                0.0
+            ],
+            "mem_inter": "None",
+            "inter_str": 0.0,
+            "bonds": [
+                "Lineal"
+            ],
+            "bonds_constants": [
+                [
+                    200.0
+                ]
+            ],
+            "Beads": [
+                0
+            ]
+        }
+    ],
+    "remesher": {
+        "aspect_min": 0.3,
+        "refine_angle": 0.4,
+        "refine_compression": 0.0001,
+        "refine_velocity": 1.0,
+        "size_max": 0.1,
+        "size_min": 0.001
+    }
+}

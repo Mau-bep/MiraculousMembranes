@@ -438,7 +438,7 @@ int main(int argc, char **argv)
         else
         {
 
-            if (Bead_data["mem_inter"] == "LJ")
+            if (Bead_data["mem_inter"] == "LJ" || Bead_data["mem_inter"] == "Shifted-LJ")
             {
                 Bead_params.push_back(radius * pow(2, 1.0 / 6.0));
             }
@@ -452,6 +452,67 @@ int main(int argc, char **argv)
             }
         }
 
+        if (interaction_mem == "Gravity")
+        {
+            // Now i need the position in the Z axis
+            Bead_params.push_back(BPos.z);
+            Bead_params.push_back(-1);
+            std::vector<double> Zaxis = Bead_data["Z_Axis"].get<std::vector<double>>();
+            Bead_params.push_back(Zaxis[0]);
+            Bead_params.push_back(Zaxis[1]);
+            Bead_params.push_back(Zaxis[2]);
+
+            std::cout << "THe interaction gravity takes " << Bead_params.size() << " parameters, expected 8 \n";
+
+            Interaction_container.push_back(std::move(make_unique<Gravity_Plane>(mesh, geometry, Bead_params)));
+
+            Beads.push_back(Bead());
+            Beads[bead_counter].mesh = mesh;
+            Beads[bead_counter].geometry = geometry;
+            Beads[bead_counter].Pos = BPos;
+            Beads[bead_counter].strength = Bead_params[0];
+            Beads[bead_counter].sigma = Bead_params[1];
+            Beads[bead_counter].rc = Bead_params[2];
+            Beads[bead_counter].interaction = interaction_mem;
+            std::cout << "Trivial assignments done\n";
+            Beads[bead_counter].Bead_I = Interaction_container[bead_counter].get();
+            std::cout << "Assigned Interaction \n";
+            Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
+            std::cout << "Assined bead of inter\n";
+            Beads[bead_counter].Bead_id = bead_counter;
+            // I need to check the plane params
+        }
+
+        if (interaction_mem == "Pinch")
+        {
+            // Now i need the position in the Z axis
+            Bead_params.push_back(BPos.z);
+            Bead_params.push_back(-1);
+            std::vector<double> Zaxis = Bead_data["Z_Axis"].get<std::vector<double>>();
+            Bead_params.push_back(Zaxis[0]);
+            Bead_params.push_back(Zaxis[1]);
+            Bead_params.push_back(Zaxis[2]);
+
+            std::cout << "THe interaction gravity takes " << Bead_params.size() << " parameters, expected 8 \n";
+
+            Interaction_container.push_back(std::move(make_unique<Pinch_Interaction>(mesh, geometry, Bead_params)));
+
+            Beads.push_back(Bead());
+            Beads[bead_counter].mesh = mesh;
+            Beads[bead_counter].geometry = geometry;
+            Beads[bead_counter].Pos = BPos;
+            Beads[bead_counter].strength = Bead_params[0];
+            Beads[bead_counter].sigma = Bead_params[1];
+            Beads[bead_counter].rc = Bead_params[2];
+            Beads[bead_counter].interaction = interaction_mem;
+            std::cout << "Trivial assignments done\n";
+            Beads[bead_counter].Bead_I = Interaction_container[bead_counter].get();
+            std::cout << "Assigned Interaction \n";
+            Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
+            std::cout << "Assined bead of inter\n";
+            Beads[bead_counter].Bead_id = bead_counter;
+            // I need to check the plane params
+        }
         if (interaction_mem == "Frenkel")
         {
 
@@ -1056,7 +1117,7 @@ int main(int argc, char **argv)
         Bead_filenames.push_back(basic_name + "Bead_" + std::to_string(i) + "_data.txt");
         Bead_datas = std::ofstream(Bead_filenames[i]);
 
-        Bead_datas << "####### This data is taken ever y" << save_interval << " steps just like the mesh radius is " << radius << " \n";
+        Bead_datas << "####### This data is taken every " << save_interval << " steps just like the mesh radius is " << radius << " \n";
         Bead_datas.close();
     }
 
@@ -1308,6 +1369,20 @@ int main(int argc, char **argv)
                 Options.min_absolute_length = Options.min_absolute_length / 2;
                 Switch_times_map[Switch] = -1;
             }
+            if (Switch == "Adapt_remesh" && current_t == Switch_t)
+            {
+                adapt_remesh = true;
+                remesh_every = 1;
+            }
+            if (Switch == "Break_bonds" && current_t == Switch_t)
+            {
+                for (size_t i = 0; i < Beads.size(); i++)
+                {
+                    // How do we break the bonds
+                    Sim_handler.Beads[i]->Beads.resize(0);
+                }
+                std::cout << "Bonds broke\n";
+            }
         }
 
         if (fabs(dA) > 1e-15)
@@ -1487,6 +1562,7 @@ int main(int argc, char **argv)
             }
         }
 
+        // std::cout<<
         start_time_control = chrono::steady_clock::now();
         if (Integration == "Gradient_descent")
         {
@@ -1502,9 +1578,10 @@ int main(int argc, char **argv)
                 M3DG.remesh_flag = false;
                 std::cout << "We need to remesh before we can continue with the iteration\n";
             }
-            if (M3DG.Turn_normal_iter)
+            if (M3DG.Turn_normal_iter && false)
             {
                 Integration = "BFGS-Normal";
+                M3DG.m = Stored_info;
                 M3DG.BFGS_iter = 0;
             }
         }
@@ -1944,6 +2021,7 @@ int main(int argc, char **argv)
             {
                 M3DG.Sim_handler->update_vertex_normals();
             }
+            M3DG.m = Stored_info;
             // std::cout<<"Integrating\n";
             dt_sim = M3DG.integrate_BFGS_Normal(Sim_data, time, Bead_filenames, Save_output_data);
 

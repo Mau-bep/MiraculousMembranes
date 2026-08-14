@@ -174,21 +174,28 @@ def main():
 
 
 def main2():
-    filepath = "../Results/WrapPhase2/Coverage_data.txt"
+    filepath = "../Results/Wrapping_PhaseLogscale/Coverage_data.txt"
 
     Data = np.loadtxt(filepath,delimiter = ' ', skiprows = 1, usecols = (1,2,3,4,5,6))
     # 
     plt.scatter(Data[:,2],Data[:,5])
-    plt.show()
+    # plt.show()
+    plt.clf()
     
     lamda = np.sqrt(Data[:,1]/Data[:,0])
     a = Data[:,3]
-
+    print(a)
     X = a/lamda 
     Y = Data[:,2]/Data[:,0]
 
     plt.scatter(X,Y,c=Data[:,5])
+    plt.xscale('log')
+
+    # plt.xlim(0.)
+    plt.axvline(x=4.4,ymin=0.0,ymax=0.3,ls='dashed',color='black')
+    plt.axhline(y=1.37,xmax=0.57,ls='dashed',color='black')
     plt.show()
+    
 
     print("THe values of X are {}".format(X))
     print("The values of Y are {}".format(Y))

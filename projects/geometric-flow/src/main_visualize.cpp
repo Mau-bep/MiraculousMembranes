@@ -225,24 +225,24 @@ void showSelected()
     showVerts->setColor(ORANGE_VEC);
 
     // Show selected edges.
-    // std::vector<Vector3> edgePos;
-    // std::vector<std::array<size_t, 2>> edgeInd;
-    // for (std::set<size_t>::iterator it = polyscope::state::subset.edges.begin();
-    //      it != polyscope::state::subset.edges.end(); ++it)
-    // {
-    //     // Edge e = mesh->edge(*it);
-    //     // std::cout << "Showing edge " << *it << "\n";
-    //     // std::cout << "Connected by " << e.firstVertex() << " and " << e.secondVertex() << "\n";
-    //     // std::cout<<"The vertices are" <<
-    //     edgePos.push_back(geometry->vertexPositions[e.firstVertex()]);
-    //     edgePos.push_back(geometry->vertexPositions[e.secondVertex()]);
-    //     size_t i = edgeInd.size();
-    //     edgeInd.push_back({2 * i, 2 * i + 1});
-    // }
-    // polyscope::SurfaceGraphQuantity *showEdges = psMesh->addSurfaceGraphQuantity("selected edges", edgePos, edgeInd);
-    // showEdges->setEnabled(true);
-    // showEdges->setRadius(edgeRadius);
-    // showEdges->setColor(ORANGE_VEC);
+    std::vector<Vector3> edgePos;
+    std::vector<std::array<size_t, 2>> edgeInd;
+    for (std::set<size_t>::iterator it = polyscope::state::subset.edges.begin();
+         it != polyscope::state::subset.edges.end(); ++it)
+    {
+        Edge e = mesh->edge(*it);
+        // std::cout << "Showing edge " << *it << "\n";
+        // std::cout << "Connected by " << e.firstVertex() << " and " << e.secondVertex() << "\n";
+        // std::cout<<"The vertices are" <<
+        edgePos.push_back(geometry->vertexPositions[e.firstVertex()]);
+        edgePos.push_back(geometry->vertexPositions[e.secondVertex()]);
+        size_t i = edgeInd.size();
+        edgeInd.push_back({2 * i, 2 * i + 1});
+    }
+    polyscope::SurfaceGraphQuantity *showEdges = psMesh->addSurfaceGraphQuantity("selected edges", edgePos, edgeInd);
+    showEdges->setEnabled(true);
+    showEdges->setRadius(edgeRadius);
+    showEdges->setColor(ORANGE_VEC);
 
     // Show selected faces.
     std::vector<std::array<double, 3>> faceColors(mesh->nFaces());
@@ -764,11 +764,17 @@ void Callback_qts()
     bool updateFrameData = false;
     bool currframeUpdated = false;
     bool integratorUpdate = false;
+    bool updateFrames = false;
+    if (ImGui::Button("Update frames"))
+    {
+        updateFrames = true;
+    }
 
-    if (integration_counter == integration_steps && integrating)
+    if ((integration_counter == integration_steps && integrating) || updateFrames)
     {
         integrating = false;
         integratorUpdate = true;
+
         std::cout << "Done integrating, we will update the files available.\n";
         DIR *FD;
         struct dirent *in_file;
@@ -830,7 +836,9 @@ void Callback_qts()
             frameBeadPos.push_back(BeadPosPair);
         }
         std::cout << "Filenames updated\n";
-        currFrame = currFrame + savedSteps;
+        if (!updateFrames)
+            currFrame = currFrame + savedSteps;
+        updateFrames = false;
     }
     ImGui::Checkbox("Autoplay", &autoPlaying);
     if (autoPlaying && frame_counter % 10 == 0)
@@ -990,7 +998,7 @@ void Callback_qts()
         integration_counter += 1;
         bool Save = integration_counter % save_interval == 0;
         // I should save before running
-        std::cout << "We are at t = " << current_t + integration_counter << " \n";
+        // std::cout << "We are at t = " << current_t + integration_counter << " \n";
 
         // i should add the small angle flag
         bool flagSmallAngle = false;
@@ -1189,8 +1197,47 @@ void Callback_qts()
             M3DG.Sim_handler->update_vertex_normals();
             psMesh->addVertexVectorQuantity("Normals", M3DG.Sim_handler->Vertex_normals);
         }
+        if (ImGui::TreeNodeEx("Inspection"))
+        {
+
+            if (ImGui::Button("Bending Energy"))
+            {
+                psMesh->addVertexScalarQuantity("Bending Energy", M3DG.Sim_handler->Ev_Bending(std::vector<double>{1.0, 0.0}));
+            }
+            if (ImGui::Button("Bending Energy tan"))
+            {
+                psMesh->addVertexScalarQuantity("Bending Energy Tan", M3DG.Sim_handler->Ev_Bending_tan(std::vector<double>{1.0, 0.0}));
+            }
+
+            ImGui::TreePop();
+        }
 
         ImGui::TreePop(); // This is required at the end of the if block
+    }
+
+    if (ImGui::TreeNodeEx("Geometry menu", flag))
+    {
+        if (ImGui::Button("Vertex valence"))
+        {
+            VertexData<int> Valence(*mesh, 0);
+            for (Vertex v : mesh->vertices())
+            {
+                for (Vertex v1 : v.adjacentVertices())
+                    Valence[v] += 1;
+            }
+
+            psMesh->addVertexScalarQuantity("Valence", Valence);
+        }
+
+        if (ImGui::Button("Mean Curvature"))
+        {
+            VertexData<double> H(*mesh, 0.0);
+            for (Vertex v : mesh->vertices())
+                H[v] = geometry->scalarMeanCurvature(v);
+            psMesh->addVertexScalarQuantity("H", H);
+        }
+
+        ImGui::TreePop();
     }
 
     ImGuiTreeNodeFlags flag3 = ImGuiTreeNodeFlags_None;
@@ -1198,6 +1245,12 @@ void Callback_qts()
     // so the thing is that every energy has a different function that gets called. And i want the correct one to be called.
     if (ImGui::TreeNodeEx("Energy menu", flag))
     {
+        if (ImGui::Button("Display energy"))
+        {
+            double E = 0;
+            Sim_handler.Calculate_energies(&E);
+            std::cout << "THe current energy is  " << E << " \n";
+        }
         // Here we show the full gradient too jeje
         if (ImGui::Button("Display gradient"))
         {
@@ -1356,6 +1409,95 @@ void Callback_qts()
             polyscope::state::edgePickIndStart = polyscope::state::facePickIndStart + mesh->nFaces();
             polyscope::state::halfedgePickIndStart = polyscope::state::edgePickIndStart + mesh->nEdges();
         }
+        if (ImGui::Button("Flip Edge selected"))
+        {
+            for (std::set<size_t>::iterator it = polyscope::state::subset.edges.begin();
+                 it != polyscope::state::subset.edges.end(); ++it)
+            {
+                Edge e = mesh->edge(*it);
+                // Ok here i want to flip the edge
+                MutationManager mm(*mesh, *geometry);
+                mm.flipEdge(e);
+            }
+            psMesh = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions, mesh->getFaceVertexList());
+        }
+        if (ImGui::Button("Collapse Edge selected"))
+        {
+            for (std::set<size_t>::iterator it = polyscope::state::subset.edges.begin();
+                 it != polyscope::state::subset.edges.end(); ++it)
+            {
+                std::cout << "Collapsing one edge\n";
+                Edge e = mesh->edge(*it);
+                // Ok here i want to flip the edge
+                MutationManager mm(*mesh, *geometry);
+                mm.collapseEdge(e, 0.5);
+
+                geometry->refreshQuantities();
+                mesh->compress();
+                geometry->inputVertexPositions = geometry->vertexPositions;
+            }
+            psMesh = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions, mesh->getFaceVertexList());
+        }
+        if (ImGui::Button("SaveMesh"))
+        {
+            // I want to save the mesh.
+            Save_mesh(basic_name, current_t);
+        }
+
+        if (ImGui::Button("FlipDelaunay"))
+        {
+
+            MutationManager mm(*mesh, *geometry);
+            fixDelaunay(*mesh, *geometry, mm, Options);
+        }
+        // Ok lets try it here
+        // if (ImGui::Button("Flip Edge Energy criterion"))
+        // {
+        //     MutationManager mm(*mesh, *geometry);
+        //     EdgeData<double> Energy_shift(*mesh, 0.0);
+        //     EdgeData<int> Delaunay2(*mesh, 1);
+
+        //     double Prev_Energy = 0.0;
+        //     double New_Energy = 0.0;
+        //     bool wasFlipped = false;
+        //     for (Edge e : mesh->edges())
+        //     {
+        //         // So
+        //         Prev_Energy = 0.0;
+        //         Sim_handler.Calculate_energies(&Prev_Energy);
+        //         wasFlipped = mm.flipEdge(e);
+        //         New_Energy = 0.0;
+        //         Sim_handler.Calculate_energies(&New_Energy);
+        //         Energy_shift[e] = New_Energy - Prev_Energy;
+        //         if (Energy_shift[e] < 0.0)
+        //         {
+        //             Delaunay2[e] = -1;
+        //             std::cout << "Flipping edge " << e << " is energetically favorable, we will flip it\n";
+        //         }
+        //         if (wasFlipped)
+        //         {
+        //             mm.flipEdge(e);
+        //         }
+        //     }
+
+        //     // Ok so now we will save the file
+        //     std::ofstream Energy_shift_file;
+        //     Energy_shift_file = std::ofstream(basic_name + "Energy_shift.txt", std::ios_base::app);
+        //     for (Edge e : mesh->edges())
+        //     {
+        //         Energy_shift_file << e << " " << Energy_shift[e] << "\n";
+        //     }
+        //     Energy_shift_file.close();
+        //     psMesh->addEdgeScalarQuantity("Energy shift", Energy_shift);
+        //     psMesh->addEdgeScalarQuantity("Energy criterion", Delaunay2);
+
+        //     // psMesh = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions, mesh->getFaceVertexList());
+        // }
+        // if (ImGui::Button("FLip delanauy criterrion"))
+        // {
+        //     EdgeData<int> Delaunay = DelaunayEdge(*mesh, *geometry);
+        //     psMesh->addEdgeScalarQuantity("Delaunay edges", Delaunay);
+        // }
 
         ImGui::TreePop();
     }
@@ -2193,6 +2335,65 @@ int main(int argc, char **argv)
             }
         }
 
+        if (interaction_mem == "Gravity")
+        {
+            // Now i need the position in the Z axis
+            Bead_params.push_back(BPos.z);
+            Bead_params.push_back(-1);
+            std::vector<double> Zaxis = Bead_data["Z_Axis"].get<std::vector<double>>();
+            Bead_params.push_back(Zaxis[0]);
+            Bead_params.push_back(Zaxis[1]);
+            Bead_params.push_back(Zaxis[2]);
+
+            std::cout << "THe interaction gravity takes " << Bead_params.size() << " parameters, expected 8 \n";
+
+            Interaction_container.push_back(std::move(make_unique<Gravity_Plane>(mesh, geometry, Bead_params)));
+
+            Beads.push_back(Bead());
+            Beads[bead_counter].mesh = mesh;
+            Beads[bead_counter].geometry = geometry;
+            Beads[bead_counter].Pos = BPos;
+            Beads[bead_counter].strength = Bead_params[0];
+            Beads[bead_counter].sigma = Bead_params[1];
+            Beads[bead_counter].rc = Bead_params[2];
+            Beads[bead_counter].interaction = interaction_mem;
+            std::cout << "Trivial assignments done\n";
+            Beads[bead_counter].Bead_I = Interaction_container[bead_counter].get();
+            std::cout << "Assigned Interaction \n";
+            Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
+            std::cout << "Assined bead of inter\n";
+            Beads[bead_counter].Bead_id = bead_counter;
+            // I need to check the plane params
+        }
+        if (interaction_mem == "Pinch")
+        {
+            // Now i need the position in the Z axis
+            Bead_params.push_back(BPos.z);
+            Bead_params.push_back(-1);
+            std::vector<double> Zaxis = Bead_data["Z_Axis"].get<std::vector<double>>();
+            Bead_params.push_back(Zaxis[0]);
+            Bead_params.push_back(Zaxis[1]);
+            Bead_params.push_back(Zaxis[2]);
+
+            std::cout << "THe interaction gravity takes " << Bead_params.size() << " parameters, expected 8 \n";
+
+            Interaction_container.push_back(std::move(make_unique<Pinch_Interaction>(mesh, geometry, Bead_params)));
+            Beads.push_back(Bead());
+            Beads[bead_counter].mesh = mesh;
+            Beads[bead_counter].geometry = geometry;
+            Beads[bead_counter].Pos = BPos;
+            Beads[bead_counter].strength = Bead_params[0];
+            Beads[bead_counter].sigma = Bead_params[1];
+            Beads[bead_counter].rc = Bead_params[2];
+            Beads[bead_counter].interaction = interaction_mem;
+            std::cout << "Trivial assignments done\n";
+            Beads[bead_counter].Bead_I = Interaction_container[bead_counter].get();
+            std::cout << "Assigned Interaction \n";
+            Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
+            std::cout << "Assined bead of inter\n";
+            Beads[bead_counter].Bead_id = bead_counter;
+            // I need to check the plane params
+        }
         if (interaction_mem == "Frenkel")
         {
 
@@ -2917,8 +3118,8 @@ int main(int argc, char **argv)
 
     // i JUST WANT SOMETHING ELSE HERE
     double lengthScale = geometry->meanEdgeLength();
-    vertexRadius = lengthScale * 0.02;
-    edgeRadius = lengthScale * 0.01;
+    vertexRadius = 0.002;
+    edgeRadius = 0.001;
 
     std::cout << "Calling the mesh\n";
     polyscope::show();

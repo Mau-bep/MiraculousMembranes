@@ -30,6 +30,8 @@ public:
     virtual double Bond_energy();
     virtual Vector3 Bond_force();
     virtual double Tot_Energy() = 0;
+    virtual VertexData<double> V_Tot_Energy() = 0;
+    virtual double V_Energy(Vertex v) = 0;
     virtual VertexData<Vector3> Gradient() = 0;
     virtual SparseMatrix<double> Hessian() = 0;
     virtual SparseMatrix<double> Hessian_IP() = 0;
@@ -38,6 +40,10 @@ public:
     virtual double E_r(double r, std::vector<double> Energy_constants) = 0;
     virtual double dE_r(double r, std::vector<double> Energy_constants) = 0;
     virtual double ddE_r(double r, std::vector<double> Energy_constants) = 0;
+
+    virtual double E_z(double r, std::vector<double> Energy_constants) = 0;
+    virtual double dE_z(double r, std::vector<double> Energy_constants) = 0;
+
     // virtual Vector3 F_r(double r,Vector3 r_vec, std::vector<double> Energy_constants) = 0;
 };
 
@@ -49,6 +55,15 @@ public:
     double Tot_Energy() override
     {
         return Bond_energy();
+    }
+    VertexData<double> V_Tot_Energy()
+    {
+        VertexData<double> V(*mesh, 0.0);
+        return V;
+    }
+    double V_Energy(Vertex v)
+    {
+        return 0.0;
     }
     virtual VertexData<Vector3> Gradient();
     virtual SparseMatrix<double> Hessian();
@@ -66,19 +81,229 @@ public:
     {
         return 0.0;
     }
+    virtual double E_z(double r, std::vector<double> Energy_constants) override
+    {
+        return 0.0;
+    }
+    virtual double dE_z(double r, std::vector<double> Energy_constants) override
+    {
+        return 0.0;
+    }
 };
+
+class Cilinder_Interaction : public Interaction
+{
+public:
+    Cilinder_Interaction() {};
+    virtual VertexData<double> V_Tot_Energy();
+    virtual double V_Energy(Vertex v);
+    virtual double Tot_Energy();
+    virtual VertexData<Vector3> Gradient();
+
+    // Mode selector for the radial energy function. Supported values:
+    // "Uniform" (default) and "ParabolaSection".
+    std::string cylinder_E_mode = "Uniform";
+
+    void setCylinderEMode(const std::string &mode)
+    {
+        cylinder_E_mode = mode;
+    }
+
+    virtual double Uniform(double r, std::vector<double> Energy_constants)
+    {
+        double rc = Energy_constants[2];
+        if (r < 0.0 || r > rc)
+            return 0.0;
+        return 1.0;
+    }
+    virtual double d_Uniform(double r, std::vector<double> Energy_constants)
+    {
+        double rc = Energy_constants[2];
+        if (r < 0.0 || r > rc)
+            return 0.0;
+        return 0.0;
+    }
+    virtual double ParabolaSection(double r, std::vector<double> Energy_constants)
+    {
+        // double eps = Energy_constants[0];
+        double rc = Energy_constants[2];
+
+        if (r < 0.0)
+            return 0.0;
+
+        if (r > 0 && r < rc / 2.0)
+            return r * r * 2 / (rc * rc) - 1;
+
+        if (r > rc / 2.0 && r < rc)
+            return -r * r * 2 / (rc * rc) + r * 4 / rc - 2;
+
+        return 0.0;
+    }
+
+    virtual double d_ParabolaSection(double r, std::vector<double> Energy_constants)
+    {
+        // double eps = Energy_constants[0];
+        double rc = Energy_constants[2];
+        if (r > 0 && r < rc / 2.0)
+            return r * 4 / (rc * rc);
+
+        if (r > rc / 2.0 && r < rc)
+            return -r * 4 / (rc * rc) + 4 / rc;
+
+        return 0.0;
+    }
+
+    virtual double Cubic(double r, std::vector<double> Energy_constants)
+    {
+        double rc = Energy_constants[2];
+        if (r < 0.0)
+            return 0.0;
+        if (r > 0 && r < rc)
+            return r * r * r * 2 / (rc * rc * rc) - r * r * 3 / (rc * rc) + 1;
+        return 0.0;
+    }
+
+    virtual double d_Cubic(double r, std::vector<double> Energy_constants)
+    {
+        double rc = Energy_constants[2];
+        if (r < 0.0)
+            return 0.0;
+        if (r > 0 && r < rc)
+            return 6 * r * r / (rc * rc * rc) - 6 * r / (rc * rc);
+        return 0.0;
+    }
+
+    SparseMatrix<double> Hessian()
+    {
+        SparseMatrix<double> Hessian(3, 3);
+        return Hessian;
+    }
+    SparseMatrix<double> Hessian_IP()
+    {
+        SparseMatrix<double> Hessian(3, 3);
+        return Hessian;
+    }
+    // Default dispatcher: picks the radial energy according to `cylinder_E_mode`.
+    double E_r(double r, std::vector<double> Energy_constants) = 0;
+    double dE_r(double r, std::vector<double> Energy_constants) = 0;
+    double E_z(double r, std::vector<double> Energy_constants) = 0;
+    double dE_z(double r, std::vector<double> Energy_constants) = 0;
+};
+
+class Plane_Interaction : public Cilinder_Interaction
+{
+public:
+    double E_r(double r, std::vector<double> Energy_constants) override
+    {
+        // return ParabolaSection(r, Energy_constants);
+        return Uniform(r, Energy_constants);
+    }
+    double dE_r(double r, std::vector<double> Energy_constants) override
+    {
+        // return d_ParabolaSection(r, Energy_constants);
+        return d_Uniform(r, Energy_constants);
+    }
+    double ddE_r(double r, std::vector<double> Energy_constants) override
+    {
+        return 0.0;
+    }
+
+    virtual double E_z(double r, std::vector<double> Energy_constants) = 0;
+    virtual double dE_z(double r, std::vector<double> Energy_constants) = 0;
+};
+
+class Gravity_Plane : public Plane_Interaction
+{
+
+public:
+    Gravity_Plane() {}
+
+    Gravity_Plane(std::vector<double> params)
+    {
+        Energy_constants = params;
+    }
+    Gravity_Plane(ManifoldSurfaceMesh *inputMesh, VertexPositionGeometry *inputGeo, std::vector<double> params)
+    {
+        Energy_constants = params;
+        mesh = inputMesh;
+        geometry = inputGeo;
+    }
+    double E_z(double r, std::vector<double> Energy_constants) override
+    {
+        // WHat is the energy
+        double eps = Energy_constants[0];
+        return -1.0 * eps * r;
+    }
+    double dE_z(double r, std::vector<double> Energy_constants) override
+    {
+        double eps = Energy_constants[0];
+        return -1.0 * eps;
+    }
+};
+
+class Pinch_Interaction : public Cilinder_Interaction
+{
+public:
+    Pinch_Interaction();
+    Pinch_Interaction(std::vector<double> params)
+    {
+        Energy_constants = params;
+    }
+    Pinch_Interaction(ManifoldSurfaceMesh *inputMesh, VertexPositionGeometry *inputGeo, std::vector<double> params)
+    {
+        Energy_constants = params;
+        mesh = inputMesh;
+        geometry = inputGeo;
+    }
+
+    double E_r(double r, std::vector<double> Energy_constants) override
+    {
+        return Cubic(r, Energy_constants);
+    }
+    double dE_r(double r, std::vector<double> Energy_constants) override
+    {
+        return d_Cubic(r, Energy_constants);
+    }
+    double ddE_r(double r, std::vector<double> Energy_constants) override
+    {
+        return 0.0;
+    }
+    double E_z(double r, std::vector<double> Energy_constants) override
+    {
+        // WHat is the energy
+        double eps = Energy_constants[0];
+        return -1.0 * eps * r;
+    }
+    double dE_z(double r, std::vector<double> Energy_constants) override
+    {
+        double eps = Energy_constants[0];
+        return -1.0 * eps;
+    }
+};
+
 class Integrated_Interaction : public Interaction
 {
 public:
     Integrated_Interaction() {};
 
     virtual double Tot_Energy();
+    virtual VertexData<double> V_Tot_Energy();
+    virtual double V_Energy(Vertex v);
     virtual VertexData<Vector3> Gradient();
     virtual SparseMatrix<double> Hessian();
     virtual SparseMatrix<double> Hessian_IP();
 
     virtual double E_r(double r, std::vector<double> Energy_constants) = 0;
     virtual double dE_r(double r, std::vector<double> Energy_constants) = 0;
+    virtual double E_z(double r, std::vector<double> Energy_constants) override
+    {
+        return 0.0;
+    }
+    virtual double dE_z(double r, std::vector<double> Energy_constants) override
+    {
+        return 0.0;
+    }
+
     virtual double ddE_r(double r, std::vector<double> Energy_constants) = 0;
     // virtual Vector3 F_r(double r, Vector3 r_vec, std::vector<double> Energy_constants) = 0;
 };
@@ -90,6 +315,8 @@ public:
     Normal_dot_Interaction() {};
 
     virtual double Tot_Energy();
+    virtual VertexData<double> V_Tot_Energy();
+    virtual double V_Energy(Vertex v);
     virtual VertexData<Vector3> Gradient();
     virtual SparseMatrix<double> Hessian();
     virtual SparseMatrix<double> Hessian_IP();
@@ -97,6 +324,14 @@ public:
     virtual double dE_r(double r, std::vector<double> Energy_constants) = 0;
     virtual double ddE_r(double r, std::vector<double> Energy_constants) = 0;
     // virtual Vector3 F_r(double r, Vector3 r_vec, std::vector<double> Energy_constants) = 0;
+    virtual double E_z(double r, std::vector<double> Energy_constants) override
+    {
+        return 0.0;
+    }
+    virtual double dE_z(double r, std::vector<double> Energy_constants) override
+    {
+        return 0.0;
+    }
 };
 
 class Frenkel : public Integrated_Interaction

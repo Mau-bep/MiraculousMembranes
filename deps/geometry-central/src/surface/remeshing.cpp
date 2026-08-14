@@ -544,6 +544,7 @@ size_t fixDelaunay(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Muta
     edgesToCheck.push_back(e);
   }
 
+
   // counter and limit for number of flips
   size_t flipMax = 100 * mesh.nVertices();
   size_t nFlips = 0;
@@ -560,6 +561,57 @@ size_t fixDelaunay(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Muta
     if (!wasFlipped) continue;
 
     nFlips++;
+
+    // Add neighbors to queue, as they may need flipping now
+    Halfedge he = e.halfedge();
+    std::array<Edge, 4> neighboringEdges{he.next().edge(), he.next().next().edge(), he.twin().next().edge(),
+                                         he.twin().next().next().edge()};
+    for (Edge nE : neighboringEdges) {
+      if (!inQueue[nE]) {
+        edgesToCheck.push_back(nE);
+        inQueue[nE] = true;
+      }
+    }
+  }
+  return nFlips;
+}
+
+size_t fixDelaunay(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
+                   RemeshOptions options) {
+  // Logic duplicated from surface/intrinsic_triangulation.cpp
+
+  std::deque<Edge> edgesToCheck;      // queue of edges to check if Delaunay
+  EdgeData<bool> inQueue(mesh, true); // true if edge is currently in edgesToCheck
+
+  // start with all edges
+  for (Edge e : mesh.edges()) {
+    edgesToCheck.push_back(e);
+  }
+  // We check all the vertices.
+  VertexData<double> vertexE(mesh);
+
+  double E = 0;
+  // Calculate the energy per vertex
+
+
+  // counter and limit for number of flips
+  size_t flipMax = 100 * mesh.nVertices();
+  size_t nFlips = 0;
+  while (!edgesToCheck.empty() && nFlips < flipMax) {
+    Edge e = edgesToCheck.front();
+    edgesToCheck.pop_front();
+    inQueue[e] = false;
+
+    // Now we do a function that checks if the ENergy decreases
+    if (e.isBoundary() || isDelaunay_improv(geom, e)) continue;
+
+    // if not Delaunay, try to flip edge
+    bool wasFlipped = mm.flipEdge(e);
+
+    if (!wasFlipped) continue;
+
+    nFlips++;
+
 
     // Add neighbors to queue, as they may need flipping now
     Halfedge he = e.halfedge();
@@ -623,8 +675,6 @@ double smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom
   MutationManager mm(mesh, geom);
   return smoothByLaplacian(mesh, geom, mm, stepSize, bc);
 }
-
-// doub;e smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPosi)
 
 double smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm, double stepSize,
                          RemeshBoundaryCondition bc) {
@@ -1183,7 +1233,7 @@ std::vector<Edge> findBadEdges(ManifoldSurfaceMesh& mesh, VertexPositionGeometry
     double E_sizing = geom.edgeLengths[e] *
                       sqrt(geom.vertexSizing[e.halfedge().vertex()] + geom.vertexSizing[e.halfedge().twin().vertex()]) /
                       (2.0);
-    if (E_sizing > 1) edgems.push_back(std::make_pair(E_sizing, e));
+    if (E_sizing > 1 && geom.edgeLengths[e] > 0.06) edgems.push_back(std::make_pair(E_sizing, e));
   }
 
   std::sort(edgems.begin(), edgems.end(), deterministic_sort);
@@ -1203,6 +1253,14 @@ bool splitWorstEdges(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Mu
   bool didSplit = false;
   std::vector<Edge> toSplit = findBadEdges(mesh, geom, mm, options);
   std::vector<Face> activeFaces;
+
+
+  // Here we will check
+  for (Edge e : toSplit) {
+    if (geom.edgeLengths[e] < 0.06) {
+      std::cout << "THere is an edge with unacceptable size in the queue\n";
+    }
+  }
 
   double newSizing;
   while (!toSplit.empty()) {
@@ -1345,6 +1403,24 @@ void remeshSmallAngles(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, 
   geom.unrequireEdgeLengths();
   geom.unrequireCornerAngles();
   if (didCollapse) mesh.compress();
+}
+
+
+EdgeData<int> DelaunayEdge(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom) {
+
+  EdgeData<int> Delaunay(mesh, 0);
+  for (Edge e : mesh.edges()) {
+    if (e.isBoundary()) {
+      Delaunay[e] = 1;
+    } else {
+      if (isDelaunay_improv(geom, e)) {
+        Delaunay[e] = 1;
+      } else {
+        Delaunay[e] = 0;
+      }
+    }
+  }
+  return Delaunay;
 }
 
 } // namespace surface

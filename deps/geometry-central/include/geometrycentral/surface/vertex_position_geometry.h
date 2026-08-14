@@ -64,6 +64,7 @@ public:
 
   double totalArea() const;
   double totalVolume() const;
+  double faceVolume(Face f) const;
   double cotan(Halfedge he) const;
   double barycentricDualArea(Vertex v) const;
   double angle(Corner c) const;

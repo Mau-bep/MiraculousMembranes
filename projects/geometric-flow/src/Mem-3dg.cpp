@@ -8,6 +8,7 @@
 
 #include <chrono>
 #include <Eigen/Core>
+#include "geometrycentral/surface/remeshing.h"
 // #include <geometrycentral/utilities/eigen_interop_helpers.h>
 // #include <geometrycentral/utilities/vector3.h>
 /* Constructor
@@ -1223,7 +1224,7 @@ double Mem3DG::Backtracking_grad_Normal_2(Eigen::VectorXd p_lambda, double Proje
 
   std::vector<Vector3> Bead_init;
 
-  for (size_t i = 0; i < N_beads; i++)
+  for (int i = 0; i < N_beads; i++)
     Bead_init.push_back(Beads[i]->Pos);
 
   Vector3 center;
@@ -1594,7 +1595,7 @@ double Mem3DG::Backtracking_grad_Normal(Eigen::VectorXd p_lambda, double Project
 
   std::vector<Vector3> Bead_init;
 
-  for (size_t i = 0; i < N_beads; i++)
+  for (int i = 0; i < N_beads; i++)
     Bead_init.push_back(Beads[i]->Pos);
 
   Vector3 center;
@@ -1898,7 +1899,7 @@ double Mem3DG::Backtracking_grad(Eigen::VectorXd p_lambda, double Projection, do
   VertexData<Vector3> Step_newton = Sim_handler->Current_grad;
   std::vector<Vector3> Step_beads(0);
 
-  for (size_t bi = 0; bi < N_beads; bi++)
+  for (int bi = 0; bi < N_beads; bi++)
     Step_beads.push_back(Beads[bi]->Total_force);
 
   double PrevNorm = Current_grad_norm;
@@ -3510,13 +3511,14 @@ double Mem3DG::integrate(std::ofstream &Sim_data, double time, std::vector<std::
     Sim_data << backtrackstep << " \n";
   }
 
-  if (Bead_data_filenames.size() != 0 && Save_output_data)
+  if (Save_output_data)
   {
-    // std::cout<<"Not here right?\n";
+    // std::cout << "SAVING THE BEAD DATA\n";
     std::ofstream Bead_data;
     for (size_t i = 0; i < Beads.size(); i++)
     {
       // Does this now the timestep
+      // std::cout << "Saving the bead come on\n";
       Bead_data = std::ofstream(Bead_data_filenames[i], std::ios_base::app);
       Bead_data << discreteTs << " " << Beads[i]->Pos.x << " " << Beads[i]->Pos.y << " " << Beads[i]->Pos.z << " " << Beads[i]->Total_force.x << " " << Beads[i]->Total_force.y << " " << Beads[i]->Total_force.z << " \n";
       Bead_data.close();
@@ -6444,6 +6446,913 @@ void Mem3DG::Save_mesh(size_t current_t)
 
   return;
 }
+
+int Mem3DG::remesh(ManifoldSurfaceMesh &mesh, VertexPositionGeometry &geom, RemeshOptions options)
+{
+  geometrycentral::surface::MutationManager mm(mesh, geom);
+  return this->remesh(mesh, geom, mm, options);
+}
+
+int Mem3DG::remesh(ManifoldSurfaceMesh &mesh, VertexPositionGeometry &geom, MutationManager &mm, RemeshOptions options)
+{
+  // std::cout << "Here\n";
+  geom.requireFaceSizing();
+  for (Face f : mesh.faces())
+  {
+    geom.faceSizing[f] = clamp(geom.faceSizing[f] / (options.refine_angle * options.refine_angle),
+                               1.0 / (options.max_absolute_length * options.max_absolute_length),
+                               1.0 / (options.min_absolute_length * options.min_absolute_length));
+  }
+
+  geom.requireVertexSizing();
+
+  bool doConnectivityChanges = true;
+
+  options.maxIterations = 1;
+  for (size_t iIt = 0; iIt < options.maxIterations; iIt++)
+  {
+    size_t nFlips = 10;
+    if (doConnectivityChanges)
+    {
+
+      splitWorstEdges(mesh, geom, mm, options);
+      nFlips = fixDelaunay(mesh, geom, mm);
+      options.numberOp += nFlips;
+      improveFaces(mesh, geom, mm, options);
+    }
+
+    nFlips = fixDelaunay(mesh, geom, mm);
+    // std::cout<<"The number of flips is "<< nFlips<<"\n";
+    options.numberOp += nFlips;
+
+    geom.inputVertexPositions = geom.vertexPositions;
+    mesh.compress();
+    geom.refreshQuantities();
+    double smoothing = smoothByLaplacian(mesh, geom, mm);
+    while (smoothing > 1e-4)
+      smoothing = smoothByLaplacian(mesh, geom, mm);
+  }
+  geom.unrequireFaceSizing();
+  geom.unrequireVertexSizing();
+  geom.inputVertexPositions = geom.vertexPositions;
+  geom.purgeQuantities();
+
+  return options.numberOp;
+}
+Vector3 vertexNormal(VertexPositionGeometry &geom, Vertex v, MutationManager &mm)
+{
+  Vector3 totalNormal = Vector3::zero();
+  for (Corner c : v.adjacentCorners())
+  {
+    Vector3 cornerNormal = geom.cornerAngle(c) * geom.faceNormal(c.face());
+    totalNormal += cornerNormal;
+  }
+  return normalize(totalNormal);
+}
+
+Vector3 boundaryVertexTangent(VertexPositionGeometry &geom, Vertex v, MutationManager &mm)
+{
+  if (v.isBoundary())
+  {
+    auto edgeVec = [&](Edge e) -> Vector3
+    {
+      return (geom.vertexPositions[e.halfedge().tipVertex()] - geom.vertexPositions[e.halfedge().tailVertex()])
+          .normalize();
+    };
+
+    Vector3 totalTangent = Vector3::zero();
+    for (Edge e : v.adjacentEdges())
+    {
+      if (e.isBoundary())
+      {
+        totalTangent += edgeVec(e);
+      }
+    }
+    return totalTangent.normalize();
+  }
+  else
+  {
+    return Vector3::zero();
+  }
+}
+
+inline Vector3 projectToPlane(Vector3 v, Vector3 norm) { return v - norm * dot(norm, v); }
+inline Vector3 projectToLine(Vector3 v, Vector3 tangent) { return tangent * dot(tangent, v); }
+
+bool isDelaunay_improv(VertexPositionGeometry &geom, Edge e)
+{
+  Halfedge he = e.halfedge();
+  Vector3 p0 = geom.vertexPositions[he.vertex()];
+  Vector3 p1 = geom.vertexPositions[he.next().vertex()];
+  Vector3 p2 = geom.vertexPositions[he.next().next().vertex()];
+  Vector3 p3 = geom.vertexPositions[he.twin().next().next().vertex()];
+
+  double la = (p0 - p1).norm();
+  double lb = (p1 - p2).norm();
+  double lc = (p2 - p0).norm();
+  double ld = (p3 - p1).norm();
+  double le = (p3 - p0).norm();
+
+  return (lb * lb + lc * lc - la * la) / (lb * lc) + (ld * ld + le * le - la * la) / (ld * le) >= -0.1;
+}
+inline double diamondAngle(Vector3 a, Vector3 b, Vector3 c, Vector3 d) // dihedral angle at edge a-b
+{
+  Vector3 n1 = cross(b - a, c - a);
+  Vector3 n2 = cross(b - d, a - d);
+  return PI - angle(n1, n2);
+}
+
+inline bool checkFoldover(Vector3 a, Vector3 b, Vector3 c, Vector3 x, double angle)
+{
+  return diamondAngle(a, b, c, x) < angle;
+}
+
+inline Vector3 edgeMidpoint(SurfaceMesh &mesh, VertexPositionGeometry &geom, Edge e)
+{
+  Vector3 endPos1 = geom.vertexPositions[e.halfedge().tailVertex()];
+  Vector3 endPos2 = geom.vertexPositions[e.halfedge().tipVertex()];
+  return (endPos1 + endPos2) / 2;
+}
+
+Vector3 findCircumcenter(Vector3 p1, Vector3 p2, Vector3 p3)
+{
+  // barycentric coordinates of circumcenter
+  double a = (p3 - p2).norm();
+  double b = (p3 - p1).norm();
+  double c = (p2 - p1).norm();
+  double a2 = a * a;
+  double b2 = b * b;
+  double c2 = c * c;
+  Vector3 circumcenterLoc{a2 * (b2 + c2 - a2), b2 * (c2 + a2 - b2), c2 * (a2 + b2 - c2)};
+  // normalize to sum of 1
+  circumcenterLoc = normalizeBarycentric(circumcenterLoc);
+
+  // change back to space
+  return circumcenterLoc[0] * p1 + circumcenterLoc[1] * p2 + circumcenterLoc[2] * p3;
+}
+
+Vector3 findCircumcenter(VertexPositionGeometry &geom, Face f)
+{
+  // retrieve the face's vertices
+  int index = 0;
+  Vector3 p[3];
+  for (Vertex v0 : f.adjacentVertices())
+  {
+    p[index] = geom.vertexPositions[v0];
+    index++;
+  }
+  return findCircumcenter(p[0], p[1], p[2]);
+}
+Vector3 findODTCenter(VertexPositionGeometry &geom, Face f, MutationManager &mm)
+{
+  Vector3 p0 = geom.vertexPositions[f.halfedge().tailVertex()];
+  Vector3 p1 = geom.vertexPositions[f.halfedge().tipVertex()];
+  Vector3 p2 = geom.vertexPositions[f.halfedge().next().tipVertex()];
+
+  for (Edge e : f.adjacentEdges())
+  {
+    if (e.isBoundary() || !mm.mayFlipEdge(e))
+    {
+      // e is not flippable. return barycenter
+      return (p0 + p1 + p2) / 3.;
+    }
+  }
+  return findCircumcenter(p0, p1, p2);
+}
+
+bool shouldCollapse(ManifoldSurfaceMesh &mesh, VertexPositionGeometry &geom, Edge e)
+{
+  std::vector<Halfedge> edgesToCheck;
+  Vertex v1 = e.halfedge().vertex();
+  Vertex v2 = e.halfedge().twin().vertex();
+
+  // find (halfedge) link around the edge, starting with those surrounding v1
+  for (Halfedge he : v1.outgoingHalfedges())
+  {
+    if (he.next().tailVertex() != v2 && he.next().tipVertex() != v2)
+    {
+      edgesToCheck.push_back(he.next());
+    }
+  }
+
+  // link around v2
+  for (Halfedge he : v2.outgoingHalfedges())
+  {
+    if (he.next().tailVertex() != v1 && he.next().tipVertex() != v1)
+    {
+      edgesToCheck.push_back(he.next());
+    }
+  }
+
+  // see if the point that would form after a collapse would cause a major foldover with surrounding edges
+  Vector3 midpoint = edgeMidpoint(mesh, geom, e);
+  // Vector3 butterfly = edgeButterfly(mesh,geom,e);
+  for (Halfedge he0 : edgesToCheck)
+  {
+    Halfedge heT = he0.twin();
+    Vertex v1 = heT.tailVertex();
+    Vertex v2 = heT.tipVertex();
+    Vertex v3 = heT.next().tipVertex();
+    Vector3 a = geom.vertexPositions[v1];
+    Vector3 b = geom.vertexPositions[v2];
+    Vector3 c = geom.vertexPositions[v3];
+    if (checkFoldover(a, b, c, midpoint, 2))
+    {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool shouldCollapse(ManifoldSurfaceMesh &mesh, VertexPositionGeometry &geom, Edge e, RemeshOptions options)
+{
+  std::vector<Halfedge> edgesToCheck;
+  Vertex v1 = e.halfedge().vertex();
+  Vertex v2 = e.halfedge().twin().vertex();
+
+  // find (halfedge) link around the edge, starting with those surrounding v1
+  for (Halfedge he : v1.outgoingHalfedges())
+  {
+    if (he.next().tailVertex() != v2 && he.next().tipVertex() != v2)
+    {
+      edgesToCheck.push_back(he.next());
+    }
+  }
+
+  // link around v2
+  for (Halfedge he : v2.outgoingHalfedges())
+  {
+    if (he.next().tailVertex() != v1 && he.next().tipVertex() != v1)
+    {
+      edgesToCheck.push_back(he.next());
+    }
+  }
+
+  // see if the point that would form after a collapse would cause a major foldover with surrounding edges
+  double area;
+  double perimeter;
+  double aspect;
+  double a0;
+  Vector3 midpoint = edgeMidpoint(mesh, geom, e);
+  double E_metric;
+  double NewSizing = std::max(geom.vertexSizing[v1], geom.vertexSizing[v2]);
+  // Vector3 butterfly = edgeButterfly(mesh,geom,e);
+  for (Halfedge he0 : edgesToCheck)
+  {
+    Halfedge heT = he0.twin();
+    Vertex v1 = heT.tailVertex();
+    Vertex v2 = heT.tipVertex();
+    Vertex v3 = heT.next().tipVertex();
+    Vector3 a = geom.vertexPositions[v1];
+    Vector3 b = geom.vertexPositions[v2];
+    Vector3 c = geom.vertexPositions[v3];
+    if (checkFoldover(a, b, c, midpoint, 2))
+    {
+      return false;
+    }
+
+    v1 = he0.next().tipVertex();
+    v2 = he0.tailVertex();
+    v3 = he0.tipVertex();
+
+    a = midpoint;
+    b = geom.vertexPositions[v2];
+    c = geom.vertexPositions[v3];
+
+    a0 = geom.faceAreas[he0.face()];
+    area = 0.5 * norm(cross(b - a, c - a));
+    perimeter = norm(b - a) + norm(c - a) + norm(c - b);
+    aspect = 12 * sqrt(3) * area / (perimeter * perimeter);
+    if ((area < a0 && area < 0.1 * options.min_absolute_length * options.min_absolute_length) ||
+        aspect < options.aspect_min)
+      return false;
+
+    // We check the metric is not too big
+    heT = he0;
+    if (geom.edgeLengths[heT.edge()] < 1e-10 || geom.edgeLengths[heT.next().edge()] < 1e-10 ||
+        geom.edgeLengths[heT.next().next().edge()] < 1e-10)
+      return false;
+
+    // Ok we need to change this
+
+    heT = heT.next();
+
+    E_metric = norm(c - a) * sqrt((NewSizing + geom.vertexSizing[heT.tailVertex()]) / 2.0);
+    if (E_metric > 0.9)
+      return false;
+
+    heT = heT.next();
+    E_metric = norm(b - a) * sqrt((NewSizing + geom.vertexSizing[heT.tipVertex()]) / 2.0);
+    if (E_metric > 0.9)
+      return false;
+
+    heT = heT.next();
+    E_metric = norm(b - c) * sqrt((geom.vertexSizing[heT.tailVertex()] + geom.vertexSizing[heT.tipVertex()]) / 2.0);
+    if (E_metric > 0.9)
+      return false;
+  }
+
+  return true;
+}
+
+struct Deterministic_sort2
+{
+  inline bool operator()(const std::pair<double, Edge> &left, const std::pair<double, Edge> &right)
+  {
+    return left.first < right.first;
+  }
+} deterministic_sort2;
+
+std::vector<Edge> findBadEdges(ManifoldSurfaceMesh &mesh, VertexPositionGeometry &geom, MutationManager &mm,
+                               RemeshOptions options)
+{
+
+  std::vector<std::pair<double, Edge>> edgems;
+  for (Edge e : mesh.edges())
+  {
+    // TODO add the no remesh option here (not necessary yet) This is the spirit
+    // if (options.no_remesh_list) {
+    //   for (Edge e : mesh.edges()) {
+
+    //     if (options.No_remesh_list[e] == 0) {
+
+    //       toSplit.push_back(e);
+    //     }
+    //   }
+    // } else {
+    //   for (Edge e : mesh.edges()) {
+    //     toSplit.push_back(e);
+    //   }
+    // }
+    double E_sizing = geom.edgeLengths[e] *
+                      sqrt(geom.vertexSizing[e.halfedge().vertex()] + geom.vertexSizing[e.halfedge().twin().vertex()]) /
+                      (2.0);
+    if (E_sizing > 1 && geom.edgeLengths[e] > 0.06)
+      edgems.push_back(std::make_pair(E_sizing, e));
+  }
+
+  std::sort(edgems.begin(), edgems.end(), deterministic_sort2);
+  std::vector<Edge> edges(edgems.size());
+  for (size_t e = 0; e < edgems.size(); e++)
+  {
+    edges[e] = edgems[edgems.size() - e - 1].second;
+  }
+  return edges;
+}
+
+bool Mem3DG::splitWorstEdges(ManifoldSurfaceMesh &mesh, VertexPositionGeometry &geom, MutationManager &mm,
+                             RemeshOptions options)
+{
+  geom.requireVertexDualAreas();
+  geom.requireVertexSizing();
+  geom.requireEdgeLengths();
+
+  bool didSplit = false;
+  std::vector<Edge> toSplit = findBadEdges(mesh, geom, mm, options);
+  std::vector<Face> activeFaces;
+
+  // Here we will check
+  for (Edge e : toSplit)
+  {
+    if (geom.edgeLengths[e] < 0.06)
+    {
+      std::cout << "THere is an edge with unacceptable size in the queue\n";
+    }
+  }
+
+  double newSizing;
+  while (!toSplit.empty())
+  {
+    Edge e = toSplit.back();
+    toSplit.pop_back();
+    double length_e = geom.edgeLength(e);
+
+    newSizing = (geom.vertexSizing[e.halfedge().vertex()] + geom.vertexSizing[e.halfedge().twin().vertex()]) / (2.0);
+
+    Vector3 newPos = edgeMidpoint(mesh, geom, e);
+    Halfedge he = mm.splitEdge(e, newPos);
+    if (he != Halfedge())
+    {
+      geom.vertexSizing[he.vertex()] = newSizing;
+      Halfedge heround = he;
+      int counter = 0;
+      do
+      {
+        activeFaces.push_back(heround.face());
+        counter += 1;
+        if (geom.edgeLengths[heround.edge()] < 1e-10)
+        {
+          geom.edgeLengths[heround.edge()] =
+              norm(geom.vertexPositions[heround.vertex()] - geom.vertexPositions[heround.tipVertex()]);
+        }
+        heround = heround.twin().next();
+      } while (heround != he);
+
+      didSplit = true;
+      options.numberOp += 1;
+      // flipSubset(activeFaces, mesh, geom, mm, options);
+    }
+  }
+
+  // We splitted everything
+  // return;
+  // std::cout<<"THe number of edges that i shall not collapse are"<<counter_vertex<<" this number shouuld be
+  // constant?\n"; actually collapsing
+  geom.unrequireEdgeLengths();
+  geom.unrequireVertexDualAreas();
+  geom.unrequireVertexSizing();
+  mesh.compress();
+  return didSplit;
+}
+bool Mem3DG::improveFaces(ManifoldSurfaceMesh &mesh, VertexPositionGeometry &geom, MutationManager &mm, RemeshOptions options)
+{
+  geom.requireVertexDualAreas();
+  geom.requireVertexSizing();
+  geom.requireEdgeLengths();
+
+  bool didCollapse = false;
+  // queues of edges to CHECK to change
+  std::vector<Edge> toCollapse;
+
+  if (options.no_remesh_list)
+  {
+    for (Edge e : mesh.edges())
+    {
+
+      if (options.No_remesh_list[e] == 0)
+      {
+        // std::cout<<"Not remeshing this edge "<<e.getIndex() <<"\n";
+        toCollapse.push_back(e);
+      }
+    }
+  }
+  else
+  {
+    for (Edge e : mesh.edges())
+    {
+      toCollapse.push_back(e);
+    }
+  }
+
+  size_t counter_vertex = 0;
+  // actually splitting
+  double E_sizing;
+  double newSizing;
+
+  while (!toCollapse.empty())
+  {
+
+    Edge e = toCollapse.back();
+    toCollapse.pop_back();
+    if (e == Edge() || e.isDead())
+      continue; // make sure it exists
+
+    // Now we do
+    if (geom.edgeLengths[e] < options.max_absolute_length)
+    {
+      if (geom.edgeLengths[e] < 1e-4)
+        std::cout << "THe edgelength check says " << geom.edgeLengths[e] << " \n";
+      Vector3 newPos = edgeMidpoint(mesh, geom, e);
+      newSizing = std::max(geom.vertexSizing[e.halfedge().tipVertex()], geom.vertexSizing[e.halfedge().tailVertex()]);
+      if (shouldCollapse(mesh, geom, e, options))
+      {
+        Vertex v = mm.collapseEdge(e, newPos);
+        if (v != Vertex())
+        {
+          options.numberOp += 1;
+          geom.vertexSizing[v] = newSizing;
+          // std::vector<Face> active_faces;
+          // for (Face f : v.adjacentFaces()) active_faces.push_back(f);
+          // flipSubset(active_faces, mesh, geom, mm, options);
+          didCollapse = true;
+        }
+      }
+    }
+  }
+  geom.unrequireEdgeLengths();
+  geom.unrequireVertexDualAreas();
+  geom.unrequireVertexSizing();
+  mesh.compress();
+  return didCollapse;
+}
+
+/*
+  This function is not actually working x.x the Energy criteria is coded but doesnt work :p
+*/
+size_t Mem3DG::fixDelaunay(ManifoldSurfaceMesh &mesh, VertexPositionGeometry &geom, MutationManager &mm)
+{
+  // Logic duplicated from surface/intrinsic_triangulation.cpp
+
+  // return 0;
+  std::deque<Edge> edgesToCheck;      // queue of edges to check if Delaunay
+  EdgeData<bool> inQueue(mesh, true); // true if edge is currently in edgesToCheck
+  Halfedge he;
+  Halfedge heS;
+  bool VConstraint = false;
+  int VConstraintIdx = 0;
+  double VolContrib = 0.0;
+  double NewVolContrib = 0.0;
+  // start with all edges
+  for (Edge e : mesh.edges())
+  {
+    edgesToCheck.push_back(e);
+  }
+
+  // First thing i need to do is get the total energy right. Or better yet.
+  std::vector<double> vertexEnergies(mesh.nVertices(), 0.0);
+  std::vector<double> Ones(mesh.nVertices(), 1.0);
+
+  // Function that calculates the energy per vertex
+  int BCounter = 0;
+  VertexData<double> vertexE(mesh, 0.0);
+  for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
+  {
+    if (Sim_handler->Energies[i] == "Bending")
+      vertexE += Sim_handler->Ev_Bending(Sim_handler->Energy_constants[i]);
+    if (Sim_handler->Energies[i] == "Bending_tan")
+      vertexE += Sim_handler->Ev_Bending_tan(Sim_handler->Energy_constants[i]);
+    if (Sim_handler->Energies[i] == "Surface_Tension")
+      vertexE += Sim_handler->Ev_SurfaceTension(Sim_handler->Energy_constants[i]);
+    if (Sim_handler->Energies[i] == "Volume_Constraint")
+    {
+      VConstraint = true;
+      VConstraintIdx = i;
+    }
+    if (Sim_handler->Energies[i] == "Bead")
+    {
+      // This is gonna be a hustle
+      vertexE += Sim_handler->Beads[BCounter]->Bead_I->V_Tot_Energy();
+      BCounter += 1;
+    }
+  }
+  BCounter = 0;
+  // Ok so these are the vertex energies
+  double Current_vol = geometry->totalVolume();
+  double Current_area = geometry->totalArea();
+
+  bool delaunay = true;
+  // OK great next thing is to calculate the energy. So Lets see
+  // Bending energy can be calculated per vertex easy.
+  // Surface tension can be calculated per vertex using dual areas
+  // Volume and area constraints can only be calculated as totals.
+
+  // counter and limit for number of flips
+  size_t flipMax = 100 * mesh.nVertices();
+  size_t nFlips = 0;
+
+  VertexData<int> CheckedV(mesh, 0);
+  std::vector<Vertex> VertToCheck(0);
+  std::vector<double> VertNewE(0);
+  // bool checkNeigh = false;
+  // return 0;
+  while (!edgesToCheck.empty() && nFlips < flipMax)
+  {
+    VertToCheck.resize(0);
+    VertNewE.resize(0);
+    Edge e = edgesToCheck.front();
+    edgesToCheck.pop_front();
+    inQueue[e] = false;
+
+    if (e.isBoundary())
+      continue;
+
+    // Sooo i need to decide which vertices will get explored
+    he = e.halfedge();
+
+    // VertToCheck.push_back(he.vertex());
+
+    for (int s = 0; s < 2; s++)
+    {
+
+      heS = he.next();
+      for (int f = 0; f < 2; f++)
+      {
+        for (Vertex v : heS.twin().face().adjacentVertices())
+        {
+          if (CheckedV[v] == 0)
+          {
+            VertToCheck.push_back(v);
+            VertNewE.push_back(0.0);
+            CheckedV[v] = 1;
+          }
+        }
+        heS = heS.next();
+      }
+      he = he.twin();
+    }
+
+    // So now i have all the vertices i want to check
+
+    // Next thing is to get the current energy of this configuration, but actually we already have that
+    double Curr_E = 0.0;
+    double New_E = 0.0;
+    for (Vertex v : VertToCheck)
+    {
+      Curr_E += vertexE[v];
+    }
+    // Ok and the volume if the constraint allows it
+    if (VConstraint)
+    {
+      VolContrib = 0.0;
+      // I need to put the volume contribution
+      he = e.halfedge();
+      VolContrib = geometry->faceVolume(he.face()) + geometry->faceVolume(he.twin().face());
+      //  In this case both faces contribute to the volume.
+    }
+
+    // Then we flip
+
+    bool ECheckFLip = mm.flipEdge(e);
+    // Ok its time to check the energy of the new configuration.
+    if (ECheckFLip)
+    {
+      BCounter = 0;
+      for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
+      {
+        if (Sim_handler->Energies[i] == "Bending")
+        {
+          for (size_t j = 0; j < VertToCheck.size(); j++)
+          {
+            Vertex v = VertToCheck[j];
+            double val = Sim_handler->V_Bending(Sim_handler->Energy_constants[i], v);
+            VertNewE[j] += val;
+            New_E += val;
+          }
+        }
+        if (Sim_handler->Energies[i] == "Bending_tan")
+        {
+          for (size_t j = 0; j < VertToCheck.size(); j++)
+          {
+            Vertex v = VertToCheck[j];
+            double val = Sim_handler->V_Bending_tan(Sim_handler->Energy_constants[i], v);
+            VertNewE[j] += val;
+            New_E += val;
+          }
+        }
+        if (Sim_handler->Energies[i] == "Surface_Tension")
+          for (size_t j = 0; j < VertToCheck.size(); j++)
+          {
+            Vertex v = VertToCheck[j];
+            double val = geometry->vertexDualArea(v) * Sim_handler->Energy_constants[i][0];
+            VertNewE[j] += val;
+            New_E += val;
+          }
+        if (Sim_handler->Energies[i] == "Bead")
+        {
+          for (size_t j = 0; j < VertToCheck.size(); j++)
+          {
+            Vertex v = VertToCheck[j];
+            double val = Sim_handler->Beads[BCounter]->Bead_I->V_Energy(v);
+            VertNewE[j] += val;
+            New_E += val;
+          }
+          BCounter += 1;
+        }
+      }
+      if (VConstraint)
+      {
+        NewVolContrib = 0.0;
+        he = e.halfedge();
+        NewVolContrib = geometry->faceVolume(he.face()) + geometry->faceVolume(he.twin().face());
+        // We also add the volume change
+        double KV = Sim_handler->Energy_constants[VConstraintIdx][0];
+        double V_bar = Sim_handler->Energy_constants[VConstraintIdx][1];
+      }
+
+      // Ok
+      // So i have CurrE and NewE
+      if (Curr_E - New_E > 1e-3)
+      {
+        // In this case the flip minimizes energy
+        nFlips++;
+
+        // Now i need to rewrite the edge energies
+        for (size_t k = 0; k < VertToCheck.size(); k++)
+        {
+          vertexE[VertToCheck[k]] = VertNewE[k];
+          CheckedV[VertToCheck[k]] = 0;
+          Current_vol = Current_vol - VolContrib + NewVolContrib;
+
+          // Here we will reset everything
+        }
+      }
+      else
+      {
+
+        // If the change in energy is not small and the
+        // We also want to keep this one
+        mm.flipEdge(e);
+        continue;
+      }
+    }
+    else
+    {
+      continue;
+    }
+
+    // bool delaunay = isDelaunay_improv(geom, e);
+
+    // if not Delaunay, try to flip edge
+    // bool wasFlipped = mm.flipEdge(e);
+
+    // if (!wasFlipped)
+    //   continue;
+
+    // nFlips++;
+
+    // Add neighbors to queue, as they may need flipping now
+    // he = e.halfedge();
+    // std::array<Edge, 4> neighboringEdges{he.next().edge(), he.next().next().edge(), he.twin().next().edge(),
+    //                                      he.twin().next().next().edge()};
+    // for (Edge nE : neighboringEdges)
+    // {
+    //   if (!inQueue[nE])
+    //   {
+    //     edgesToCheck.push_back(nE);
+    //     inQueue[nE] = true;
+    //   }
+    // }
+  }
+  return nFlips;
+}
+
+size_t fixDelaunay(ManifoldSurfaceMesh &mesh, VertexPositionGeometry &geom, MutationManager &mm,
+                   RemeshOptions options)
+{
+  // Logic duplicated from surface/intrinsic_triangulation.cpp
+
+  std::deque<Edge> edgesToCheck;      // queue of edges to check if Delaunay
+  EdgeData<bool> inQueue(mesh, true); // true if edge is currently in edgesToCheck
+
+  // start with all edges
+  for (Edge e : mesh.edges())
+  {
+    edgesToCheck.push_back(e);
+  }
+  // We check all the vertices.
+  VertexData<double> vertexE(mesh);
+
+  double E = 0;
+  // Calculate the energy per vertex
+
+  // counter and limit for number of flips
+  size_t flipMax = 100 * mesh.nVertices();
+  size_t nFlips = 0;
+  while (!edgesToCheck.empty() && nFlips < flipMax)
+  {
+    Edge e = edgesToCheck.front();
+    edgesToCheck.pop_front();
+    inQueue[e] = false;
+
+    // Now we do a function that checks if the ENergy decreases
+    if (e.isBoundary() || isDelaunay_improv(geom, e))
+      continue;
+
+    // if not Delaunay, try to flip edge
+    bool wasFlipped = mm.flipEdge(e);
+
+    if (!wasFlipped)
+      continue;
+
+    nFlips++;
+
+    // Add neighbors to queue, as they may need flipping now
+    Halfedge he = e.halfedge();
+    std::array<Edge, 4> neighboringEdges{he.next().edge(), he.next().next().edge(), he.twin().next().edge(),
+                                         he.twin().next().next().edge()};
+    for (Edge nE : neighboringEdges)
+    {
+      if (!inQueue[nE])
+      {
+        edgesToCheck.push_back(nE);
+        inQueue[nE] = true;
+      }
+    }
+  }
+  return nFlips;
+}
+
+// doub;e smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPosi)
+
+double Mem3DG::smoothByLaplacian(ManifoldSurfaceMesh &mesh, VertexPositionGeometry &geom, MutationManager &mm, double stepSize,
+                                 RemeshBoundaryCondition2 bc)
+{
+  VertexData<Vector3> vertexOffsets(mesh);
+  geom.requireVertexNormals();
+  geom.requireVertexPositions();
+
+  for (Vertex v : mesh.vertices())
+  {
+    // calculate average of surrounding vertices
+    Vector3 avgNeighbor = Vector3::zero();
+    for (Vertex j : v.adjacentVertices())
+    {
+      avgNeighbor += geom.vertexPositions[j];
+    }
+    avgNeighbor /= v.degree();
+
+    Vector3 updateDirection = avgNeighbor - geom.vertexPositions[v];
+
+    // project updateDirection onto space of allowed movements
+    Vector3 stepDir;
+    if (v.isBoundary())
+    {
+      switch (bc)
+      {
+      case RemeshBoundaryCondition2::Fixed:
+        stepDir = Vector3::zero();
+        break;
+      case RemeshBoundaryCondition2::Tangential:
+        // for free boundary vertices, project the average to the boundary tangent line
+        stepDir = projectToLine(updateDirection, boundaryVertexTangent(geom, v, mm));
+        break;
+      case RemeshBoundaryCondition2::Free:
+        // for free boundary vertices, project the average to the surface tangent plane
+        stepDir = projectToPlane(updateDirection, vertexNormal(geom, v, mm));
+        break;
+      }
+    }
+    else
+    {
+      // for interior vertices, project the average to the tangent plane
+      stepDir = projectToPlane(updateDirection, vertexNormal(geom, v, mm));
+    }
+    vertexOffsets[v] = stepSize * stepDir;
+  }
+
+  // update final vertices
+  double totalMovement = 0;
+  for (Vertex v : mesh.vertices())
+  {
+    bool didMove = mm.repositionVertex(v, vertexOffsets[v]);
+    if (didMove)
+    {
+      totalMovement += vertexOffsets[v].norm();
+    }
+  }
+  // geom.inputVertexPositions = geom.vertexPositions;
+  geom.unrequireVertexNormals();
+  geom.unrequireVertexPositions();
+  // What i would like to check is if there is any nAN VERTEX AFTERTHIS
+  return totalMovement / mesh.nVertices();
+}
+
+double Mem3DG::smoothByCircumcenter(ManifoldSurfaceMesh &mesh, VertexPositionGeometry &geom, MutationManager &mm,
+                                    double stepSize, RemeshBoundaryCondition2 bc)
+{
+  geom.requireFaceAreas();
+  VertexData<Vector3> vertexOffsets(mesh);
+  for (Vertex v : mesh.vertices())
+  {
+    Vector3 updateDirection = Vector3::zero();
+    for (Face f : v.adjacentFaces())
+    {
+      // add the circumcenter weighted by face area to the update direction
+      Vector3 circum = findODTCenter(geom, f, mm);
+      updateDirection += geom.faceArea(f) * (circum - geom.vertexPositions[v]);
+    }
+    updateDirection /= (6 * geom.vertexDualArea(v));
+
+    // project updateDirection onto space of allowed movements
+    Vector3 stepDir;
+    if (v.isBoundary())
+    {
+      switch (bc)
+      {
+      case RemeshBoundaryCondition2::Fixed:
+        stepDir = Vector3::zero();
+        break;
+      case RemeshBoundaryCondition2::Tangential:
+        // for free boundary vertices, project the average to the boundary tangent line
+        stepDir = projectToLine(updateDirection, boundaryVertexTangent(geom, v, mm));
+        break;
+      case RemeshBoundaryCondition2::Free:
+        // for free boundary vertices, project the average to the surface tangent plane
+        stepDir = projectToPlane(updateDirection, vertexNormal(geom, v, mm));
+        break;
+      }
+    }
+    else
+    {
+      // for interior vertices, project the average to the tangent plane
+      stepDir = projectToPlane(updateDirection, vertexNormal(geom, v, mm));
+    }
+    vertexOffsets[v] = stepSize * stepDir;
+  }
+
+  // update final vertices
+  double totalMovement = 0;
+  for (Vertex v : mesh.vertices())
+  {
+    bool didMove = mm.repositionVertex(v, vertexOffsets[v]);
+    if (didMove)
+    {
+      totalMovement += vertexOffsets[v].norm();
+    }
+  }
+  return totalMovement / mesh.nVertices();
+} // namespace surface
 
 // if (Field != "None" && false)
 // {

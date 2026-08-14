@@ -2424,10 +2424,12 @@ void Bead::update_state()
             Pos = FinalPos;
             if (Beads.size() > 0)
             {
-                for (size_t i = 0; i < Beads.size(); i++)
-                {
-                    Interaction_constants_vector[i][0] = 0;
-                }
+                // aLSO BREAKING THE BONDS
+                Beads.resize(0);
+                // for (size_t i = 0; i < Beads.size(); i++)
+                // {
+                //     Interaction_constants_vector[i][0] = 0;
+                // }
             }
         }
     }

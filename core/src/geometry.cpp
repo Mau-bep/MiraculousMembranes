@@ -104,6 +104,15 @@ namespace geometrycentral
             return total;
         }
 
+        double VertexPositionGeometry::faceVolume(Face f) const
+        {
+            Halfedge he = f.halfedge();
+            const Vector3 fi = inputVertexPositions[he.tailVertex()];
+            const Vector3 fj = inputVertexPositions[he.tipVertex()];
+            const Vector3 fk = inputVertexPositions[he.next().tipVertex()];
+            return (1 / 6.0) * dot(fi, cross(fj, fk));
+        }
+
         /*
          * Computes the cotangent of the angle opposite to a halfedge. (Do NOT use built-in function for this)
          *

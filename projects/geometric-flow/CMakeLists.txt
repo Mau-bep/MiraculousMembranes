@@ -97,9 +97,9 @@ set(SRCS
 
 set(SRCScluster 
   src/main_cluster.cpp  
+  src/Energy_Handler.cpp
   src/Mem-3dg.cpp
   src/Beads.cpp
-  src/Energy_Handler.cpp
   src/Interaction.cpp
   ../../utils/src/colormap.cpp
   # src/NormalNLP.cpp
@@ -107,18 +107,18 @@ set(SRCScluster
 )
 set(SRCSprocessing 
   src/Post_processing.cpp  
+  src/Energy_Handler.cpp
   src/Mem-3dg.cpp
   src/Beads.cpp
-    src/Energy_Handler.cpp
   src/Interaction.cpp
   ../../utils/src/colormap.cpp
 )
 
 set(SRCSvisualize 
   src/main_visualize.cpp  
+  src/Energy_Handler.cpp
   src/Mem-3dg.cpp
   src/Beads.cpp
-  src/Energy_Handler.cpp
   src/Interaction.cpp
   ../../utils/src/colormap.cpp
 )

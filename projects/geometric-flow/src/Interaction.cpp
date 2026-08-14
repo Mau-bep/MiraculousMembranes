@@ -79,6 +79,61 @@ std::vector<T> Interaction::Hessian_bonds_triplet()
     return tripletList;
 }
 
+VertexData<double> Normal_dot_Interaction::V_Tot_Energy()
+{
+
+    Vector3 vec_r;
+    Vector3 Normal;
+    double Q;
+    int outside = 1;
+    if (Energy_constants.size() > 3)
+        outside = static_cast<int>(Energy_constants[3]);
+
+    VertexData<double> VertexE(*mesh, 0.0);
+
+    for (Face f : mesh->faces())
+    {
+
+        Normal = geometry->faceNormal_vec(f);
+        vec_r = Bead_1->Pos - geometry->inputVertexPositions[f.halfedge().vertex()];
+        Q = outside * dot(Normal, vec_r);
+        if (Q < 0)
+            continue;
+        for (Vertex v : f.adjacentVertices())
+        {
+
+            vec_r = Bead_1->Pos - geometry->inputVertexPositions[v];
+            Q = outside * dot(Normal, vec_r); // I will need to check this
+            double r = vec_r.norm();
+            VertexE[v] += (1.0 / 6.0) * E_r(r, Energy_constants) * Q / r;
+        }
+    }
+
+    return VertexE;
+    //
+}
+
+double Normal_dot_Interaction::V_Energy(Vertex v)
+{
+    Vector3 vec_r;
+    Vector3 Normal;
+    double Q;
+    int outside = 1;
+    if (Energy_constants.size() > 3)
+        outside = static_cast<int>(Energy_constants[3]);
+    double Energy = 0.0;
+    for (Face f : v.adjacentFaces())
+    {
+        Normal = geometry->faceNormal_vec(f);
+        vec_r = Bead_1->Pos - geometry->inputVertexPositions[f.halfedge().vertex()];
+        Q = outside * dot(Normal, vec_r);
+        if (Q < 0)
+            continue;
+        double r = vec_r.norm();
+        Energy += (1.0 / 6.0) * E_r(r, Energy_constants) * Q / r;
+    }
+    return Energy;
+}
 double Normal_dot_Interaction::Tot_Energy()
 {
     // std::cout<<"THe total energy is being calculated\n";
@@ -103,6 +158,7 @@ double Normal_dot_Interaction::Tot_Energy()
         for (Vertex v : f.adjacentVertices())
         {
             vec_r = Bead_1->Pos - geometry->inputVertexPositions[v];
+            // Q should be recalculated here
             double r = vec_r.norm();
             Total_E += (1.0 / 6.0) * E_r(r, Energy_constants) * Q / r;
         }
@@ -644,6 +700,15 @@ double Integrated_Interaction::Tot_Energy()
 
     return Total_E;
 }
+VertexData<double> Integrated_Interaction::V_Tot_Energy()
+{
+    VertexData<double> vertexE(*mesh, 0.0);
+    return vertexE;
+}
+double Integrated_Interaction::V_Energy(Vertex v)
+{
+    return 0.0;
+}
 
 VertexData<Vector3> Integrated_Interaction::Gradient()
 {
@@ -698,12 +763,6 @@ VertexData<Vector3> Integrated_Interaction::Gradient()
         {
             Force_vector = {Grad_f[3 * i], Grad_f[3 * i + 1], Grad_f[3 * i + 2]};
             Force_vector *= (Energy_contribution[Vertices_triangle[0]] + Energy_contribution[Vertices_triangle[1]] + Energy_contribution[Vertices_triangle[2]]) / 3.0;
-            // if(geometry->inputVertexPositions[Vertices_triangle[i]].x>5.5){
-            //     std::cout<<"THis vertex is far and contributes with "<< Force_vector <<" ? \n";
-            //     std::cout<<"The position of the vertex is "<< geometry->inputVertexPositions[Vertices_triangle[i]] << " and the bead is at " << Bead_1->Pos << "\n";
-            //         std::cout<<"tHE distance is "<< distance_bead[Vertices_triangle[i]] << "\n";
-            //         std::cout<<"The cutoff distance is" << rc << "\n";
-            // }
             Force[Vertices_triangle[i]] -= Force_vector;
         }
 
@@ -1046,4 +1105,193 @@ SparseMatrix<double> No_mem_Inter::Hessian()
 SparseMatrix<double> No_mem_Inter::Hessian_IP()
 {
     return Hessian();
+}
+
+double Cilinder_Interaction::Tot_Energy()
+{
+
+    double Tot_E = 0;
+
+    double rc = Energy_constants[2];
+    double Zpos = Energy_constants[3];
+    double Zc = Energy_constants[4];
+    Vector3 Z_hat;
+    Z_hat.x = Energy_constants[5];
+    Z_hat.y = Energy_constants[6];
+    Z_hat.z = Energy_constants[7];
+    Eigen::Vector3d Z_axis;
+    Eigen::Vector3d Z_orig;
+    Z_orig << 0.0, 0.0, 1.0;
+    Z_axis << Z_hat.x, Z_hat.y, Z_hat.z;
+    // The next thing i need to do is to
+    double s = (Z_orig.cross(Z_axis)).norm();
+    double c = Z_axis[2];
+    Eigen::Matrix3d Z_X = geometry->Cross_product_matrix(Z_orig.cross(Z_axis));
+    Eigen::Matrix3d Rot = Eigen::Matrix3d::Identity() + Z_X + Z_X * Z_X * (1) / (1 + c);
+
+    double faceArea;
+    double rho;
+
+    VertexData<Vector3> vector_bead(*mesh);
+    VertexData<double> distance_bead(*mesh, 0.0);
+    VertexData<double> r_Energy_contribution(*mesh, 0.0);
+    VertexData<double> z_Energy_contribution(*mesh, 0.0);
+
+    Vector3 Force_vector;
+    Eigen::Vector3d VertPos;
+    for (Vertex v : mesh->vertices())
+    {
+
+        vector_bead[v] = geometry->inputVertexPositions[v];
+        VertPos << vector_bead[v].x, vector_bead[v].y, vector_bead[v].z;
+        VertPos = Rot.transpose() * VertPos;
+
+        distance_bead[v] = Zpos - VertPos[2];
+        rho = sqrt(VertPos[0] * VertPos[0] + VertPos[1] * VertPos[1]);
+        VertPos = Rot * Eigen::Vector3d(0.0, 0.0, distance_bead[v]);
+        vector_bead[v] = Vector3({VertPos[0], VertPos[1], VertPos[2]});
+
+        r_Energy_contribution[v] = E_r(rho, Energy_constants);
+
+        z_Energy_contribution[v] = E_z(distance_bead[v], Energy_constants);
+
+        Tot_E += geometry->vertexDualArea(v) * r_Energy_contribution[v] * z_Energy_contribution[v];
+
+        // std::cout<<"The distance for vertex "<< v.getIndex() << " is " << distance_bead[v] << " and the energy contribution is " << Energy_contribution[v] << "\n";
+    }
+    return Tot_E;
+}
+VertexData<double> Cilinder_Interaction::V_Tot_Energy()
+{
+    VertexData<double> vertexE(*mesh, 0.0);
+    return vertexE;
+}
+
+double Cilinder_Interaction::V_Energy(Vertex v)
+{
+    return 0.0;
+}
+
+VertexData<Vector3> Cilinder_Interaction::Gradient()
+{
+    VertexData<Vector3> Force(*mesh, {0.0, 0.0, 0.0});
+    Bead_1->Prev_Total_force = Bead_1->Total_force;
+    Bead_1->Total_force = {0.0, 0.0, 0.0};
+    // Bead_1->Total_force +=Bond_force();
+    // The first constant is the potential strength
+    double rc = Energy_constants[2];
+    double Zpos = Energy_constants[3];
+    double Zc = Energy_constants[4];
+    Vector3 Z_hat;
+    Z_hat.x = Energy_constants[5];
+    Z_hat.y = Energy_constants[6];
+    Z_hat.z = Energy_constants[7];
+    Eigen::Vector3d Z_axis;
+    Eigen::Vector3d Z_orig;
+    Z_orig << 0.0, 0.0, 1.0;
+    Z_axis << Z_hat.x, Z_hat.y, Z_hat.z;
+    // The next thing i need to do is to
+    double s = (Z_orig.cross(Z_axis)).norm();
+    double c = Z_axis[2];
+    Eigen::Matrix3d Z_X = geometry->Cross_product_matrix(Z_orig.cross(Z_axis));
+    Eigen::Matrix3d Rot = Eigen::Matrix3d::Identity() + Z_X + Z_X * Z_X * (1) / (1 + c);
+    // So if i have the rotation i just need to
+
+    // std::cout << "The rotation matrix is " << Rot << " \n";
+
+    // Should i just start doing stuff? well i guess i can
+
+    double faceArea;
+    double rho;
+    Halfedge he;
+    Eigen::Vector<double, 6> Positions_r;
+    Eigen::Vector<double, 9> Positions_f;
+    Eigen::Vector<double, 6> Grad_r;
+    Eigen::Vector<double, 9> Grad_f;
+    std::array<int, 3> Vertices_triangle;
+    VertexData<Vector3> vector_bead(*mesh);
+    VertexData<double> distance_bead(*mesh, 0.0);
+    VertexData<double> r_Energy_contribution(*mesh, 0.0);
+    VertexData<double> dr_Energy_contribution(*mesh, 0.0);
+
+    VertexData<double> z_Energy_contribution(*mesh, 0.0);
+    VertexData<double> dz_Energy_contribution(*mesh, 0.0);
+
+    Vector3 Force_vector;
+    Eigen::Vector3d VertPos;
+    // So the thing is that i
+    // Rot.transposeInPlace()
+    for (Vertex v : mesh->vertices())
+    {
+
+        vector_bead[v] = geometry->inputVertexPositions[v];
+        VertPos << vector_bead[v].x, vector_bead[v].y, vector_bead[v].z;
+        // VertPos = Rot.transpose() * VertPos;
+
+        distance_bead[v] = Zpos - VertPos[2];
+        rho = sqrt(VertPos[0] * VertPos[0] + VertPos[1] * VertPos[1]);
+        VertPos = Rot * Eigen::Vector3d(0.0, 0.0, distance_bead[v]);
+        vector_bead[v] = Vector3({VertPos[0], VertPos[1], VertPos[2]});
+
+        r_Energy_contribution[v] = E_r(rho, Energy_constants);
+        dr_Energy_contribution[v] = dE_r(rho, Energy_constants);
+
+        z_Energy_contribution[v] = E_z(distance_bead[v], Energy_constants);
+        dz_Energy_contribution[v] = dE_z(distance_bead[v], Energy_constants);
+        // std::cout<<"The distance for vertex "<< v.getIndex() << " is " << distance_bead[v] << " and the energy contribution is " << Energy_contribution[v] << "\n";
+    }
+
+    for (Face f : mesh->faces())
+    {
+        faceArea = geometry->faceArea(f);
+        he = f.halfedge();
+        Vertices_triangle[0] = he.vertex().getIndex();
+        Vertices_triangle[1] = he.next().vertex().getIndex();
+        Vertices_triangle[2] = he.next().next().vertex().getIndex();
+        Positions_f << geometry->inputVertexPositions[Vertices_triangle[0]].x, geometry->inputVertexPositions[Vertices_triangle[0]].y, geometry->inputVertexPositions[Vertices_triangle[0]].z,
+            geometry->inputVertexPositions[Vertices_triangle[1]].x, geometry->inputVertexPositions[Vertices_triangle[1]].y, geometry->inputVertexPositions[Vertices_triangle[1]].z,
+            geometry->inputVertexPositions[Vertices_triangle[2]].x, geometry->inputVertexPositions[Vertices_triangle[2]].y, geometry->inputVertexPositions[Vertices_triangle[2]].z;
+        Grad_f = geometry->gradient_triangle_area(Positions_f);
+
+        for (int i = 0; i < 3; i++)
+        {
+            // Now i need to
+            Force_vector = {Grad_f[3 * i], Grad_f[3 * i + 1], Grad_f[3 * i + 2]};
+            Force_vector *= (r_Energy_contribution[Vertices_triangle[0]] * z_Energy_contribution[Vertices_triangle[0]] + r_Energy_contribution[Vertices_triangle[1]] * z_Energy_contribution[Vertices_triangle[1]] + r_Energy_contribution[Vertices_triangle[2]] * z_Energy_contribution[Vertices_triangle[2]]) / 3.0;
+            Force[Vertices_triangle[i]] -= Force_vector;
+        }
+
+        for (Vertex v : f.adjacentVertices())
+        {
+            if (v.isBoundary())
+            {
+                Force[v] = {0.0, 0.0, 0.0};
+                continue;
+            }
+            double r = distance_bead[v];
+
+            VertPos = {geometry->inputVertexPositions[v].x, geometry->inputVertexPositions[v].y, geometry->inputVertexPositions[v].z};
+
+            VertPos = Rot.transpose() * VertPos;
+
+            rho = sqrt(VertPos[0] * VertPos[0] + VertPos[1] * VertPos[1]);
+            if (rho < rc || rc < 0.0)
+            {
+
+                // Positions_r << geometry->inputVertexPositions[v].x, geometry->inputVertexPositions[v].y, geometry->inputVertexPositions[v].z,
+                // Bead_pos.x, Bead_pos.y, Bead_pos.z;
+                Positions_r << 0.0, 0.0, 0.0,
+                    vector_bead[v].x, vector_bead[v].y, vector_bead[v].z;
+                // The positions r is a vector that has the coords of the vertex and the coords of the closes point
+                //
+                Grad_r = geometry->gradient_r(Positions_r, distance_bead[v]);
+                Force_vector = Vector3{Grad_r[0], Grad_r[1], Grad_r[2]};
+                Force_vector *= (1.0 / 3.0) * dz_Energy_contribution[v] * r_Energy_contribution[v] * faceArea;
+                Force[v] -= Force_vector;
+                Bead_1->Total_force += Force_vector;
+            }
+        }
+    }
+
+    return Force;
 }
