@@ -174,6 +174,7 @@ void Save_mesh(std::string basic_name, size_t current_t)
 {
     // Build member variables: mesh, geometry
     Vector3 Pos;
+    std::cout << "Saving mesh\n";
     std::ofstream o(basic_name + "Mem_" + std::to_string(current_t) + ".obj");
     o << "#This is a meshfile from a saved state\n";
 
@@ -1024,6 +1025,50 @@ int main(int argc, char **argv)
         if ((TotalForce1[v] - TotalForce2[v]).norm() > 1e-5)
             std::cout << "At vertex " << v.getIndex() << " the force difference is " << TotalForce1[v] - TotalForce2[v] << " \n";
     }
+
+    // Ok time to do our big one
+    // First i need to get a triangle flap
+
+    filepath = "../../../input/triangle_flap.obj";
+    std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
+    mesh = mesh_uptr.release();
+    geometry = geometry_uptr.release();
+
+    std::array<Vertex, 4> Vertices_dihedral;
+    Eigen::Vector<double, 12> Positions_dihedral;
+    Eigen::Vector<double, 12> Grad_dihedral;
+    Vector3 disp;
+    int step_sim = 0;
+    Save_mesh("../Results/triangle_flap/", step_sim);
+    step_sim += 1;
+    while (step_sim < 20)
+    {
+        for (Edge e : mesh->edges())
+        {
+            if (e.isBoundary())
+                continue;
+
+            Vertices_dihedral[0] = e.halfedge().vertex();
+            Vertices_dihedral[1] = e.halfedge().next().vertex();
+            Vertices_dihedral[3] = e.halfedge().next().next().vertex();
+            Vertices_dihedral[2] = e.halfedge().twin().next().next().vertex();
+            Positions_dihedral << geometry->inputVertexPositions[Vertices_dihedral[0]].x, geometry->inputVertexPositions[Vertices_dihedral[0]].y, geometry->inputVertexPositions[Vertices_dihedral[0]].z,
+                geometry->inputVertexPositions[Vertices_dihedral[1]].x, geometry->inputVertexPositions[Vertices_dihedral[1]].y, geometry->inputVertexPositions[Vertices_dihedral[1]].z,
+                geometry->inputVertexPositions[Vertices_dihedral[2]].x, geometry->inputVertexPositions[Vertices_dihedral[2]].y, geometry->inputVertexPositions[Vertices_dihedral[2]].z,
+                geometry->inputVertexPositions[Vertices_dihedral[3]].x, geometry->inputVertexPositions[Vertices_dihedral[3]].y, geometry->inputVertexPositions[Vertices_dihedral[3]].z;
+            Grad_dihedral = geometry->gradient_dihedral_angle(Positions_dihedral);
+            // So now i need to save this
+            disp = Vector3{Grad_dihedral[3 * 3], Grad_dihedral[3 * 3 + 1], Grad_dihedral[3 * 3 + 2]};
+            geometry->inputVertexPositions[Vertices_dihedral[3]] += 0.1 * disp;
+            disp = Vector3{Grad_dihedral[3 * 2], Grad_dihedral[3 * 2 + 1], Grad_dihedral[3 * 2 + 2]};
+            geometry->inputVertexPositions[Vertices_dihedral[2]] += 0.1 * disp;
+            Save_mesh("../Results/triangle_flap/", step_sim);
+            step_sim += 1;
+        }
+    }
+    // Ok i have the mesh, now i need tthe
+
+    //
 
     return 1;
 

@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt 
-
-
+import os 
+import json
 def main(folderpath,Nsims):
     
     dx = []
@@ -46,5 +46,44 @@ Nsims = np.unique(Nsims)
 
 
 
-main(folderpath="../Results/Tube_for_relaxation/",Nsims=Nsims)
+# main(folderpath="../Results/Tube_for_relaxation/",Nsims=Nsims)
 
+def Read_data(folderpath):
+    dirs = os.listdir(folderpath)
+    f = open(folderpath+"Force_data.csv","w+")
+    for dir in dirs:
+        # print(dir)
+        split_dir = dir.split(".")
+        if( len(split_dir) == 1):
+            # Tihs is where the directory is a simulation
+            # So now we need to read the file
+            Bead_file = folderpath+dir+"/Bead_0_data.txt"
+            # print(Bead_file)
+            Bead_f = np.loadtxt(Bead_file,skiprows = 1)
+            # print(Bead_f[-1]
+            lastrow = Bead_f[-1]
+            # I need the ka and the r 
+            with open(folderpath+dir+"/Input_file.json", 'r') as fjson:
+                d = json.load(fjson)
+
+            # print(d)
+            # print(d["Energies"])
+            # print(type(d))
+            # res = d.replace("'",'"')
+            # print(res)
+        
+            for Energie in d["Energies"]:
+                if(Energie["Name"]=="Surface_tension"):
+                    ka = Energie["constants"][0]
+            for Bead in d["Beads"]:
+                if(Bead["state"]=="manual"):
+                    r = Bead["radius"]
+            # Entonces d tiene el diccionario completo
+            
+
+
+            f.write("{0} {1} {2} {3} {4} {5} {6}\n".format(dir,ka, r, lastrow[1],lastrow[4],lastrow[5],lastrow[6]))
+
+    f.close()
+
+Read_data("../Results/Pulling_and_relaxing/")

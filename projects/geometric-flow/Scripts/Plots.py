@@ -184,7 +184,8 @@ def contour():
 
     plt.scatter(X,Y,c=Data[:,5])
     plt.xscale('log')
-
+    plt.ylabel(r"$\cfrac{K_I}{\sigma}$")
+    plt.xlabel(r"$a\,\sqrt{\cfrac{K_b}{\sigma}}$")
     # plt.xlim(0.)
     plt.axvline(x=4.4,ls='dashed',color='black')
     plt.axhline(y=1.37,ls='dashed',color='black')
@@ -198,3 +199,33 @@ def contour():
     return
 
 contour()
+
+def EdgePlot():
+    dir = "../Results/Mem_shape_PR/41/"
+    filepath = dir + "Edge_data_step_9850.txt"
+
+    E_data = np.loadtxt(filepath)   
+
+    # plt.scatter(E_data[:,1],np.abs(E_data[:,3]))
+    # plt.show()
+    plt.xlabel("Edge length")
+    plt.ylabel("Count")
+    plt.hist(E_data[:,1],bins='auto')
+    plt.show()
+
+    plt.hist(np.abs(E_data[:,2]),bins='auto')
+    plt.xlabel("Dihedral angle")
+    plt.ylabel("Count")
+    plt.show()
+
+    plt.hist(E_data[:,3],bins='auto')
+    plt.xlabel(r"$\bar{H}$")
+    plt.ylabel("Count")
+    plt.show()
+
+    plt.scatter(E_data[:,1],E_data[:,3])
+    plt.xlabel("Edge length")
+    plt.ylabel(r"$$\bar{H}$$")
+    plt.show()
+
+# EdgePlot()

@@ -76,10 +76,10 @@ os.makedirs('../Outputs/',exist_ok=True)
 Config_path, sim_path = Create_json_pulling()
 
 
-Output_name = 'output_tube_KA_{0}_KB_{1}_r_{2}XF_{3}.output'.format(KA,KB,radius,finalX)
+Output_name = 'output_tube_KA_{0}_KB_{1}_r_{2}_XF_{3}.output'.format(KA,KB,radius,finalX)
 Output_path = '../Outputs/'+Output_name
 
-f=open('../Subjobs/subjob_tube_KA_{0}_KB_{1}_r_{2}XF_{3}'.format(KA,KB,radius,finalX),mode='w+')
+f=open('../Subjobs/subjob_tube_KA_{0}_KB_{1}_r_{2}_XF_{3}'.format(KA,KB,radius,finalX),mode='w+')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')

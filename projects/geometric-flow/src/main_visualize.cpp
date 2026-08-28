@@ -1450,54 +1450,25 @@ void Callback_qts()
             MutationManager mm(*mesh, *geometry);
             fixDelaunay(*mesh, *geometry, mm, Options);
         }
-        // Ok lets try it here
-        // if (ImGui::Button("Flip Edge Energy criterion"))
-        // {
-        //     MutationManager mm(*mesh, *geometry);
-        //     EdgeData<double> Energy_shift(*mesh, 0.0);
-        //     EdgeData<int> Delaunay2(*mesh, 1);
+        ImGui::TreePop();
+    }
+    if (ImGui::TreeNodeEx("Dump menu", flag))
+    {
 
-        //     double Prev_Energy = 0.0;
-        //     double New_Energy = 0.0;
-        //     bool wasFlipped = false;
-        //     for (Edge e : mesh->edges())
-        //     {
-        //         // So
-        //         Prev_Energy = 0.0;
-        //         Sim_handler.Calculate_energies(&Prev_Energy);
-        //         wasFlipped = mm.flipEdge(e);
-        //         New_Energy = 0.0;
-        //         Sim_handler.Calculate_energies(&New_Energy);
-        //         Energy_shift[e] = New_Energy - Prev_Energy;
-        //         if (Energy_shift[e] < 0.0)
-        //         {
-        //             Delaunay2[e] = -1;
-        //             std::cout << "Flipping edge " << e << " is energetically favorable, we will flip it\n";
-        //         }
-        //         if (wasFlipped)
-        //         {
-        //             mm.flipEdge(e);
-        //         }
-        //     }
-
-        //     // Ok so now we will save the file
-        //     std::ofstream Energy_shift_file;
-        //     Energy_shift_file = std::ofstream(basic_name + "Energy_shift.txt", std::ios_base::app);
-        //     for (Edge e : mesh->edges())
-        //     {
-        //         Energy_shift_file << e << " " << Energy_shift[e] << "\n";
-        //     }
-        //     Energy_shift_file.close();
-        //     psMesh->addEdgeScalarQuantity("Energy shift", Energy_shift);
-        //     psMesh->addEdgeScalarQuantity("Energy criterion", Delaunay2);
-
-        //     // psMesh = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions, mesh->getFaceVertexList());
-        // }
-        // if (ImGui::Button("FLip delanauy criterrion"))
-        // {
-        //     EdgeData<int> Delaunay = DelaunayEdge(*mesh, *geometry);
-        //     psMesh->addEdgeScalarQuantity("Delaunay edges", Delaunay);
-        // }
+        if (ImGui::Button("Edge data"))
+        {
+            // OK so we dump the data
+            std::ofstream f(basic_name + "Edge_data_step_" + std::to_string(current_t) + ".txt", std::ios_base::app);
+            double H_e;
+            for (Edge e : mesh->edges())
+            {
+                // We need to calculate some of this stuff
+                H_e = geometry->scalarMeanCurvature(e.halfedge().vertex()) + geometry->scalarMeanCurvature(e.halfedge().twin().vertex());
+                H_e /= 2;
+                f << e.getIndex() << " " << geometry->edgeLength(e) << " " << geometry->dihedralAngle(e.halfedge()) << " " << H_e << "\n";
+            }
+            f.close();
+        }
 
         ImGui::TreePop();
     }

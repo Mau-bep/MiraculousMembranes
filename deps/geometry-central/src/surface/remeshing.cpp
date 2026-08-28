@@ -866,6 +866,15 @@ bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, 
     }
   }
 
+  // Load valences i guess
+  VertexData<int> Valence(mesh, 0);
+  for (Vertex v : mesh.vertices()) {
+    for (Face f : v.adjacentFaces()) {
+      Valence[v] += 1;
+    }
+    if (v.isBoundary()) Valence[v] += 5;
+  }
+
   while (!toCollapse.empty()) {
 
     Edge e = toCollapse.back();
@@ -877,9 +886,21 @@ bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, 
       if (geom.edgeLengths[e] < 1e-4) std::cout << "THe edgelength check says " << geom.edgeLengths[e] << " \n";
       Vector3 newPos = edgeMidpoint(mesh, geom, e);
       newSizing = std::max(geom.vertexSizing[e.halfedge().tipVertex()], geom.vertexSizing[e.halfedge().tailVertex()]);
+
+      if (e.halfedge().vertex().isBoundary() || e.halfedge().twin().vertex().isBoundary() || e.isBoundary()) continue;
+
+      // if (shouldCollapse(mesh, geom, e, options) ||
+      //     ((Valence[e.halfedge().vertex()] == 3 || Valence[e.halfedge().twin().vertex()] == 3 ||
+      //       Valence[e.halfedge().vertex()] == 4 || Valence[e.halfedge().twin().vertex()] == 4))) {
+
+
       if (shouldCollapse(mesh, geom, e, options)) {
+
+
         Vertex v = mm.collapseEdge(e, newPos);
         if (v != Vertex()) {
+          // Lets do the valence here
+          for (Face f : v.adjacentFaces()) Valence[v] += 1;
           geom.vertexSizing[v] = newSizing;
           didSplitOrCollapse = true;
         }
@@ -1233,7 +1254,8 @@ std::vector<Edge> findBadEdges(ManifoldSurfaceMesh& mesh, VertexPositionGeometry
     double E_sizing = geom.edgeLengths[e] *
                       sqrt(geom.vertexSizing[e.halfedge().vertex()] + geom.vertexSizing[e.halfedge().twin().vertex()]) /
                       (2.0);
-    if (E_sizing > 1 && geom.edgeLengths[e] > 0.06) edgems.push_back(std::make_pair(E_sizing, e));
+    if (E_sizing > 1 && geom.edgeLengths[e] > options.min_absolute_length * 2)
+      edgems.push_back(std::make_pair(E_sizing, e));
   }
 
   std::sort(edgems.begin(), edgems.end(), deterministic_sort);
@@ -1256,11 +1278,11 @@ bool splitWorstEdges(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Mu
 
 
   // Here we will check
-  for (Edge e : toSplit) {
-    if (geom.edgeLengths[e] < 0.06) {
-      std::cout << "THere is an edge with unacceptable size in the queue\n";
-    }
-  }
+  // for (Edge e : toSplit) {
+  //   if (geom.edgeLengths[e] < 0.06) {
+  //     std::cout << "THere is an edge with unacceptable size in the queue\n";
+  //   }
+  // }
 
   double newSizing;
   while (!toSplit.empty()) {
@@ -1331,6 +1353,13 @@ bool improveFaces(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Mutat
   double E_sizing;
   double newSizing;
 
+  VertexData<int> Valence(mesh, 0);
+  for (Vertex v : mesh.vertices()) {
+    for (Face f : v.adjacentFaces()) {
+      Valence[v] += 1;
+    }
+    if (v.isBoundary()) Valence[v] += 3;
+  }
 
   while (!toCollapse.empty()) {
 
@@ -1343,7 +1372,8 @@ bool improveFaces(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Mutat
       if (geom.edgeLengths[e] < 1e-4) std::cout << "THe edgelength check says " << geom.edgeLengths[e] << " \n";
       Vector3 newPos = edgeMidpoint(mesh, geom, e);
       newSizing = std::max(geom.vertexSizing[e.halfedge().tipVertex()], geom.vertexSizing[e.halfedge().tailVertex()]);
-      if (shouldCollapse(mesh, geom, e, options)) {
+      if (shouldCollapse(mesh, geom, e, options) || Valence[e.halfedge().vertex()] == 3 ||
+          Valence[e.halfedge().twin().vertex()] == 3) {
         Vertex v = mm.collapseEdge(e, newPos);
         if (v != Vertex()) {
           options.numberOp += 1;
