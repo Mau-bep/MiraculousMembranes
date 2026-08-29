@@ -1,7 +1,7 @@
 {
     "init_file": "../../../input/disk_init.obj",
-    "save_interval": 250,
-    "timesteps": 100000,
+    "save_interval": 500,
+    "timesteps": 500000,
     "continue_sim": false,
     "resize_vol": false,
     "arcsim": true,
@@ -10,14 +10,14 @@
     "Subfolder": "27/",
     "boundary": true,
     "BFGS_saved_states": 5,
-    "remesh_every": 10,
+    "remesh_every": 5,
     "backtrack": true,
     "Timestep": 1.0,
     "adapt_remesh": false,
     "Count_remesh": true,
     "recentering": false,
     "saving_states": false,
-    "momentum": true,
+    "momentum": false,
     "Switches": [
         "Save_all",
         "BFGS",
@@ -26,7 +26,7 @@
     "Switch_times": [
         -1,
         -1,
-        1000
+        5000
     ],
     "rescale": 2.0,
     "Energies": [
@@ -56,7 +56,7 @@
                 0.0
             ],
             "Velocity": [
-                1.0,
+                0.5,
                 0.0,
                 0.0
             ],

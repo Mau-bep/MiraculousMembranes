@@ -86,4 +86,21 @@ def Read_data(folderpath):
 
     f.close()
 
-Read_data("../Results/Pulling_and_relaxing/")
+# Read_data("../Results/Pulling_and_relaxing/")
+
+
+def Plot_data(directory):
+    # Ok so he datafile would be
+    Data = np.loadtxt(directory+"Force_data.csv")
+    Distance_x= []
+    Force_x = []
+    for i in range(len(Data)):
+        # Ok so thi is gonna go over whats in data
+        # print(Data[i,0])
+        if(Data[i,2]==0.3 ):
+            print(Data[i,3])
+            Distance_x.append(Data[i,3])
+            Force_x.append(-1*Data[i,4])
+    plt.scatter(Distance_x,Force_x)
+    plt.show()
+Plot_data("../Results/Pulling_and_relaxing/")

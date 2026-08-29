@@ -1358,7 +1358,7 @@ bool improveFaces(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Mutat
     for (Face f : v.adjacentFaces()) {
       Valence[v] += 1;
     }
-    if (v.isBoundary()) Valence[v] += 3;
+    if (v.isBoundary()) Valence[v] += 10;
   }
 
   while (!toCollapse.empty()) {
@@ -1373,7 +1373,12 @@ bool improveFaces(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Mutat
       Vector3 newPos = edgeMidpoint(mesh, geom, e);
       newSizing = std::max(geom.vertexSizing[e.halfedge().tipVertex()], geom.vertexSizing[e.halfedge().tailVertex()]);
       if (shouldCollapse(mesh, geom, e, options) || Valence[e.halfedge().vertex()] == 3 ||
-          Valence[e.halfedge().twin().vertex()] == 3) {
+          Valence[e.halfedge().twin().vertex()] == 3 || Valence[e.halfedge().vertex()] == 4 ||
+          Valence[e.halfedge().twin().vertex()] == 4) {
+        // I need to make sure that the edges are not boundary
+        //
+        if (Valence[e.halfedge().twin().vertex()] > 10 || Valence[e.halfedge().vertex()] > 10) continue;
+
         Vertex v = mm.collapseEdge(e, newPos);
         if (v != Vertex()) {
           options.numberOp += 1;
