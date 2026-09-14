@@ -1,6 +1,74 @@
 import numpy as np 
 import matplotlib.pyplot as plt 
 import os
+import matplotlib as mpl
+def load_pretty_figure_setup():
+    # if mpl seems to work with the wrong latex executable, uncomment and adapt path according to your installation
+    # os.environ["PATH"] = os.path.expanduser("~/texlive/bin/x86_64-linux") + ":" + os.environ["PATH"]
+    
+    _preamble_shared = R"""
+        \usepackage{graphicx}
+        \DeclareMathOperator{\arcsinh}{arcsinh}
+        \DeclareMathOperator{\km}{k_\mathrm{m}}
+        \DeclareMathOperator{\fbi}{f_\mathrm{bi}}
+        \DeclareMathOperator{\eps}{\epsilon_{\mathrm{mc}}}
+        \DeclareMathOperator{\epscrit}{\epsilon_{\mathrm{mc}}^*}
+        \DeclareMathOperator{\uf}{u_{\mathrm{f}}}
+        \DeclareMathOperator{\kBT}{k_\mathrm{B}T}
+        """[
+        1:
+    ]
+
+    def mpl_rcParams_avenir():
+        rcParams = {}
+        rcParams["font.family"] = "sans-serif"
+        rcParams["font.cursive"] = ["Optima"]
+        rcParams["text.usetex"] = True
+        # rcParams['text.latex.unicode']= True
+        rcParams["pgf.texsystem"] = "lualatex"
+        rcParams["pgf.rcfonts"] = False
+        rcParams["pgf.preamble"] = (
+            R"""
+        \usepackage[utf8x]{inputenc}
+        \usepackage[T1]{fontenc}
+        \usepackage{fontspec}
+        \usepackage{amsmath}
+        \setmainfont{Avenir}[Scale=.9]
+        \renewcommand{\setmainfont}{}
+        \renewcommand{\sffamily}{}
+        """[
+                1:
+            ]
+            + "\n"
+            + _preamble_shared
+        )
+        return rcParams
+    
+    def rc_params_setup():
+        mpl.rcParams["font.family"] = "serif"
+        mpl.rcParams["text.usetex"] = True
+        mpl.rcParams["figure.constrained_layout.use"] = True
+        mpl.rcParams.update(mpl_rcParams_avenir())
+        # mpl.rcParams["pgf.texsystem"] = "lualatex"
+        # mpl.rcParams["text.latex.preamble"] = mpl.rcParams['pgf.preamble'] #R"\usepackage{amsmath}\usepackage{lmodern}"
+        mpl.rcParams["text.latex.preamble"] = (
+            R"""
+        \usepackage{lmodern}
+        \usepackage{amsmath}
+        """
+            + "\n"
+            + _preamble_shared
+        )
+
+    rc_params_setup()
+    print("Pretty figure set-up loaded.")
+
+
+
+
+
+
+load_pretty_figure_setup()
 
 
 Strengths = [0.1, 0.25,0.5,0.75,1.0,1.25,1.75,2.0,2.25,2.5,2.75,3.0,3.25,3.5,3.75,4.0,4.25,4.5,5.75,5.0,5.25,5.5,5.75,6.0]
@@ -566,9 +634,9 @@ def fit2():
     y_fit = np.exp(y_fit)
     x_fit = np.exp(x_fit)
 
-    y_fit2 = np.sqrt( x_fit/(4*0.05))/100.0
-    y_fit3 = np.sqrt( x_fit/(4*0.1))/100.0
-    y_fit4 = np.sqrt( x_fit/(4*0.025))/100.0
+    y_fit2 = np.sqrt( x_fit/(4*0.05))/10.0
+    y_fit3 = np.sqrt( x_fit/(4*0.1))/10.0
+    y_fit4 = np.sqrt( x_fit/(4*0.025))/10.0
 
 
     # plt.plot(x_fit,y_fit,ls='dashed',color='magenta',label=" {}".format(p[0]))
@@ -577,17 +645,19 @@ def fit2():
     plt.plot(x_fit,y_fit2,ls='dashed',color='black', label = r'$\sigma = 5.0$')
     plt.plot(x_fit,y_fit3,ls='dashed',color='magenta', label = r'$\sigma = 10.0$')
     
-    plt.scatter(Strengths,radius,color='black')
+    plt.scatter(Strengths,radius*10,color='black')
     print(Strengths1)
     print(radius1)
-    plt.scatter(Strengths1,radius1,color="pink")
-    plt.scatter(Strengths2[1:],radius2[1:],color="magenta")
+    plt.scatter(Strengths1,np.array(radius1)*10,color="pink")
+    plt.scatter(Strengths2[1:],np.array(radius2[1:])*10,color="magenta")
     
-    plt.xlabel(r'$\kappa$',usetex =True,fontsize=20.0)
-    plt.ylabel(r'$r$', usetex = True,fontsize=20.0)
-
-    plt.legend(fontsize=12)
-    plt.savefig(folder_path_growth+"Fit_radius_curve.png",bbox_inches='tight')
+    # plt.xlabel(r'$\kappa_B$',usetex =True,fontsize=20.0)
+    # plt.ylabel(r'$r$', usetex = True,fontsize=20.0)
+    plt.xlabel(r'$\kappa_B$')
+    plt.ylabel(r'$r$')
+    
+    plt.legend()
+    plt.savefig(folder_path_growth+"Fit_radius_curve_2.pdf",bbox_inches='tight')
     plt.show()
 
 
@@ -648,21 +718,24 @@ def fit3():
 
     # plt.plot(x_fit,y_fit,ls='dashed',color='magenta',label=" {}".format(p[0]))
     
-    plt.plot(x_fit,y_fit4,ls='dashed',color='pink', label = r"""$\kappa = 5$""")
-    plt.plot(x_fit,y_fit2,ls='dashed',color='magenta', label = r'$\kappa = 10$')
+    plt.plot(x_fit,y_fit4*10,ls='dashed',color='pink', label = r"""$\kappa_B = 5$""")
+    plt.plot(x_fit,y_fit2*10,ls='dashed',color='magenta', label = r'$\kappa_B = 10$')
     # plt.plot(x_fit,y_fit3,ls='dashed',color='magenta', label = r'$\sigma = 0.1$')
     
     # plt.scatter(Strengths,radius,color='black')
     # print(Strengths1)
     # print(radius1)
-    plt.scatter(Strengths1,radius1,color="pink")
-    plt.scatter(Strengths2,radius2,color="magenta")
+    plt.scatter(Strengths1,np.array(radius1)*10,color="pink")
+    plt.scatter(Strengths2,np.array(radius2)*10,color="magenta")
     
-    plt.xlabel(r'$\sigma$',usetex =True,fontsize=20.0)
-    plt.ylabel(r'$r$', usetex = True,fontsize=20.0)
+    # plt.xlabel(r'$\sigma$',usetex =True,fontsize=20.0)
+    # plt.ylabel(r'$r$', usetex = True,fontsize=20.0)
 
-    plt.legend(fontsize=12)
-    plt.savefig(folder_path_growth+"Fit_radius_curve.png",bbox_inches='tight')
+    plt.xlabel(r'$\sigma$')
+    plt.ylabel(r'$r$')
+    
+    plt.legend()
+    plt.savefig(folder_path_growth+"Fit_radius_curve.pdf",bbox_inches='tight')
     plt.show()
 
 

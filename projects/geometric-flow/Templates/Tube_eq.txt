@@ -28,7 +28,7 @@
         -1,
         5000
     ],
-    "rescale": 2.0,
+    "rescale": 6.5,
     "Energies": [
         {
             "Name": "Surface_tension",
@@ -109,7 +109,7 @@
         "refine_angle": 0.4,
         "refine_compression": 0.0001,
         "refine_velocity": 1.0,
-        "size_max": 0.1,
+        "size_max": {{r}},
         "size_min": 0.001
     }
 }

@@ -97,6 +97,10 @@ int flipSubset(std::vector<Face> active, ManifoldSurfaceMesh& mesh, VertexPositi
                RemeshOptions options);
 void remeshSmallAngles(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOptions options);
 
+void deleteLowValence(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom,
+                      RemeshOptions options = defaultRemeshOptions);
+void deleteLowValence(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
+                      RemeshOptions options = defaultRemeshOptions);
 EdgeData<int> DelaunayEdge(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom);
 
 } // namespace surface

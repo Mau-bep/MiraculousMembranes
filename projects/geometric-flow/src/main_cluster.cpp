@@ -1459,7 +1459,8 @@ int main(int argc, char **argv)
 
             last_remesh = current_t;
             remesh_op = remesh(*mesh, *geometry, Options);
-
+            geometry->refreshQuantities();
+            deleteLowValence(*mesh, *geometry, Options);
             geometry->refreshQuantities();
             double output = 0.0;
             M3DG.BFGS_iter = 0;

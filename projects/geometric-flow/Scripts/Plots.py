@@ -168,7 +168,8 @@ def spacing_contour():
 
 
 def contour():
-    filepath = "../Results/Wrapping_PhaseLogscale/Coverage_data.txt"
+    folder = "../Results/Wrapping_PhaseLogscale/"
+    filepath = folder + "Coverage_data.txt"
 
     Data = np.loadtxt(filepath,delimiter = ' ', skiprows = 1, usecols = (1,2,3,4,5,6))
     # 
@@ -182,14 +183,31 @@ def contour():
     X = a/lamda 
     Y = Data[:,2]/Data[:,0]
 
-    plt.scatter(X,Y,c=Data[:,5])
+    # Create a pcolormesh by binning the scattered values (NumPy-only)
+    nx, ny = 13, 11
+    # use log-spaced x edges because X is plotted on a log scale
+    x_min, x_max = np.nanmin(X), np.nanmax(X)
+    if x_min <= 0:
+        x_min = np.nextafter(np.nanmin(X[X>0]), 0)
+    x_edges = np.logspace(np.log10(x_min), np.log10(x_max), nx + 1)
+    y_edges = np.linspace(np.nanmin(Y), np.nanmax(Y), ny + 1)
+
+    sum_grid, _, _ = np.histogram2d(X, Y, bins=[x_edges, y_edges], weights=Data[:,5])
+    cnt_grid, _, _ = np.histogram2d(X, Y, bins=[x_edges, y_edges])
+    avg_grid = np.full_like(sum_grid, np.nan, dtype=float)
+    mask = cnt_grid > 0
+    avg_grid[mask] = sum_grid[mask] / cnt_grid[mask]
+
+    Xe, Ye = np.meshgrid(x_edges, y_edges)
+    plt.pcolormesh(Xe, Ye, avg_grid.T, shading='auto', cmap='viridis')
     plt.xscale('log')
-    plt.ylabel(r"$\cfrac{K_I}{\sigma}$")
-    plt.xlabel(r"$a\,\sqrt{\cfrac{K_b}{\sigma}}$")
-    # plt.xlim(0.)
-    plt.axvline(x=4.4,ls='dashed',color='black')
-    plt.axhline(y=1.37,ls='dashed',color='black')
-    plt.colorbar()
+    plt.ylabel(r"$w/\sigma$")
+    plt.xlabel(r"$a\,\sqrt{\kappa_B/ \sigma}$")
+    # plt.axvline(x=4.4, ls='dashed', color='black')
+    # plt.axhline(y=1.37, ls='dashed', color='black')
+    cbar = plt.colorbar(ticks=[0.1*i for i in range(11)])
+    cbar.set_label('Wrapping fraction', rotation=90)
+    plt.savefig(folder + "PhaseSpaceVesicle.pdf",bbox_inches = 'tight')
     plt.show()
     
 

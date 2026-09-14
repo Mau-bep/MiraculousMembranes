@@ -1,6 +1,76 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+import matplotlib as mpl
+def load_pretty_figure_setup():
+    # if mpl seems to work with the wrong latex executable, uncomment and adapt path according to your installation
+    # os.environ["PATH"] = os.path.expanduser("~/texlive/bin/x86_64-linux") + ":" + os.environ["PATH"]
+    
+    _preamble_shared = R"""
+        \usepackage{graphicx}
+        \DeclareMathOperator{\arcsinh}{arcsinh}
+        \DeclareMathOperator{\km}{k_\mathrm{m}}
+        \DeclareMathOperator{\fbi}{f_\mathrm{bi}}
+        \DeclareMathOperator{\eps}{\epsilon_{\mathrm{mc}}}
+        \DeclareMathOperator{\epscrit}{\epsilon_{\mathrm{mc}}^*}
+        \DeclareMathOperator{\uf}{u_{\mathrm{f}}}
+        \DeclareMathOperator{\kBT}{k_\mathrm{B}T}
+        """[
+        1:
+    ]
+
+    def mpl_rcParams_avenir():
+        rcParams = {}
+        rcParams["font.family"] = "sans-serif"
+        rcParams["font.cursive"] = ["Optima"]
+        rcParams["text.usetex"] = True
+        # rcParams['text.latex.unicode']= True
+        rcParams["pgf.texsystem"] = "lualatex"
+        rcParams["pgf.rcfonts"] = False
+        rcParams["pgf.preamble"] = (
+            R"""
+        \usepackage[utf8x]{inputenc}
+        \usepackage[T1]{fontenc}
+        \usepackage{fontspec}
+        \usepackage{amsmath}
+        \setmainfont{Avenir}[Scale=.9]
+        \renewcommand{\setmainfont}{}
+        \renewcommand{\sffamily}{}
+        """[
+                1:
+            ]
+            + "\n"
+            + _preamble_shared
+        )
+        return rcParams
+    
+    def rc_params_setup():
+        mpl.rcParams["font.family"] = "serif"
+        mpl.rcParams["text.usetex"] = True
+        mpl.rcParams["figure.constrained_layout.use"] = True
+        mpl.rcParams.update(mpl_rcParams_avenir())
+        # mpl.rcParams["pgf.texsystem"] = "lualatex"
+        # mpl.rcParams["text.latex.preamble"] = mpl.rcParams['pgf.preamble'] #R"\usepackage{amsmath}\usepackage{lmodern}"
+        mpl.rcParams["text.latex.preamble"] = (
+            R"""
+        \usepackage{lmodern}
+        \usepackage{amsmath}
+        """
+            + "\n"
+            + _preamble_shared
+        )
+
+    rc_params_setup()
+    print("Pretty figure set-up loaded.")
+
+
+
+
+
+
+load_pretty_figure_setup()
+
+
 
 
 # i WANT THE DIRECTORY
@@ -994,25 +1064,56 @@ def Plotting_phase_space(dir):
     plt.xlim(0.75,1.5)
     plt.ylim(0,1.0)
     plt.axvline(1.0,ls = 'dashed',color='black')
-    plt.scatter(x_plot,y_plot,c=c_plot)
-    # plt.xlabel(r"$\frac{\omega}{\omega_c}$", usetex=True, fontsize = 30)
+    # plt.scatter(x_plot,y_plot,c=c_plot)
+    # plt.contour(x_plot,y_plot,c_plot)
+    # OK so now i have the x the y and the c_plot
+    # print(x_plot)
+    # print(y_p
+    # plt.pcolormesh(x_plot,y_plot,c_plot)
 
+    nx, ny = 8, 12
+    # compute bin edges
+    x_edges = np.linspace(min(x_plot), max(x_plot), nx+1)
+    y_edges = np.linspace(min(y_plot), max(y_plot), ny+1)
+
+    # sum of c in each bin
+    sum_grid, _, _ = np.histogram2d(x_plot, y_plot, bins=[x_edges, y_edges], weights=c_plot)
+    # counts per bin
+    cnt_grid, _, _ = np.histogram2d(x_plot, y_plot, bins=[x_edges, y_edges])
+    # average (avoid divide-by-zero)
+    avg_grid = np.zeros_like(sum_grid)
+    mask = cnt_grid > 0
+    avg_grid[mask] = sum_grid[mask] / cnt_grid[mask]
+    avg_grid[~mask] = np.nan
+
+    # pcolormesh expects the grid of edges; transpose avg_grid to match orientation
+    Xe, Ye = np.meshgrid(x_edges, y_edges)
+    plt.pcolormesh(Xe, Ye, avg_grid.T, shading='auto', cmap='viridis')
+    # plt.colorbar()
+    plt.xlabel(r'$ w/wc$ ')
+    plt.ylabel(r'$\sigma a^2 /\kappa_B$')
+    # plt.xlabel(r"$\frac{\omega}{\omega_c}$", usetex=True, fontsize = 30)
+    # plt.show()
     # plt.ylabel(r"$(\omega - \omega_c)\frac{a^2}{\kappa}",usetex=True, fontsize = 30)
     plt.legend()
-    plt.ylabel(r'$\propto$ Surface Tension',usetex = True, fontsize = 20)
-    plt.xlabel(r'$\propto$ Interaction Strength',usetex = True, fontsize = 20)
-    # plt.xlim(0.2,1.5)
-    plt.colorbar(ticks=[0.1*i for i in range(11)])
-    # plt.colorbar(vmin=0, vmax=1)
+    # plt.ylabel(r'$\sigma a^2 /\kappa_B$')
+    # plt.xlabel(r'$ w/wc$ ')
+    # plt.xlabel(r'$\propto$ Interaction Strength',usetex = True, fontsize = 20)
+    plt.ylim(0,np.max(y_edges))
 
-    plt.scatter(  88/wc,35*a*a/5, marker='*', s=200, c='black')
-    plt.scatter(  121/wc,35*a*a/5, marker='o', s=200, c='black')
-    plt.scatter(  154/wc,35*a*a/5, marker='^', s=200, c='black')
-    plt.scatter(  154/wc,10*a*a/5, marker='s', s=200, c='black')
+    plt.xlim(0.7,np.max(x_edges))
+    cbar = plt.colorbar(ticks=[0.1*i for i in range(11)])
+    cbar.set_label('Wrapping fraction', rotation=90)
+    # plt.colorbar(vmin=0, vmax=1)
+    # plt.show()
+    # plt.scatter(  88/wc,35*a*a/5, marker='*', s=200, c='black')
+    # plt.scatter(  121/wc,35*a*a/5, marker='o', s=200, c='black')
+    # plt.scatter(  154/wc,35*a*a/5, marker='^', s=200, c='black')
+    # plt.scatter(  154/wc,10*a*a/5, marker='s', s=200, c='black')
     # plt.colorbar()
 
     # plt.savefig("../Results/Some_pa")
-    plt.savefig("../Results/"+dir+"Wrapping_phasespace_newwwww.png", bbox_inches = 'tight')
+    plt.savefig("../Results/"+dir+"Wrapping_phasespace_newwwww.pdf", bbox_inches = 'tight')
 
 
     plt.show()

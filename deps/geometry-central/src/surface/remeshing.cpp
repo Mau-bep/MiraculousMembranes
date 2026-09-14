@@ -1090,6 +1090,7 @@ bool collapseSubset(std::vector<Face> activeFaces, ManifoldSurfaceMesh& mesh, Ve
   return didCollapse;
 }
 
+
 std::vector<Face> splitSubset(std::vector<Face> activeFaces, ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom,
                               MutationManager& mm, RemeshOptions options) {
 
@@ -1325,6 +1326,61 @@ bool splitWorstEdges(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Mu
   return didSplit;
 }
 
+void deleteLowValence(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOptions options) {
+  MutationManager mm(mesh, geom);
+  return deleteLowValence(mesh, geom, mm, options);
+}
+
+void deleteLowValence(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
+                      RemeshOptions options) {
+  geom.requireVertexDualAreas();
+  geom.requireVertexSizing();
+  geom.requireEdgeLengths();
+
+  bool didCollapse = false;
+  // queues of edges to CHECK to change
+  std::vector<Edge> toCollapse;
+
+  for (Edge e : mesh.edges()) {
+    if (geom.edgeLengths[e] < options.max_absolute_length) {
+      if (shouldCollapse(mesh, geom, e, options)) {
+        toCollapse.push_back(e);
+      }
+    }
+  }
+
+  // Now i need to add the valence bit
+  VertexData<int> Valence(mesh, 0);
+  for (Vertex v : mesh.vertices()) {
+    for (Face f : v.adjacentFaces()) {
+      Valence[v] += 1;
+    }
+    if (v.isBoundary()) Valence[v] += 10;
+  }
+
+  while (!toCollapse.empty()) {
+
+    Edge e = toCollapse.back();
+    toCollapse.pop_back();
+    if (e == Edge() || e.isDead()) continue; // make sure it exists
+
+    Vector3 newPos = edgeMidpoint(mesh, geom, e);
+    if (Valence[e.halfedge().vertex()] == 3 || Valence[e.halfedge().twin().vertex()] == 3 ||
+        Valence[e.halfedge().vertex()] == 4 || Valence[e.halfedge().twin().vertex()] == 4) {
+      if (Valence[e.halfedge().twin().vertex()] > 10 || Valence[e.halfedge().vertex()] > 10) continue;
+
+      Vertex v = mm.collapseEdge(e, newPos);
+      if (v != Vertex()) {
+        options.numberOp += 1;
+        didCollapse = true;
+      }
+    }
+  }
+  geom.unrequireEdgeLengths();
+  geom.unrequireVertexDualAreas();
+  geom.unrequireVertexSizing();
+  mesh.compress();
+}
 bool improveFaces(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm, RemeshOptions options) {
   geom.requireVertexDualAreas();
   geom.requireVertexSizing();
