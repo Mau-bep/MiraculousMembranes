@@ -1,5 +1,5 @@
 {
-    "init_file": "../../../input/disk_init.obj",
+    "init_file": "../../../input/Planar_mem.obj",
     "save_interval": 500,
     "timesteps": 500000,
     "continue_sim": false,
