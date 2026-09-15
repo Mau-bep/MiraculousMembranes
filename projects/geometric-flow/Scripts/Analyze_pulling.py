@@ -675,7 +675,7 @@ def fit3():
 
     folder_path_growth ="../Results/Barbell_tube_new/"
     [Strengths1,radius1,Strengths2,radius2] = Tube_growth_radius_4(folder_path_growth)
-
+ 
 
     plt.clf()
     plt.xlabel(r"""$\sigma $""",fontsize=15.0)
@@ -740,7 +740,7 @@ def fit3():
 
 
 
-fit3()
+# fit3()
 
 def Hist_sizing():
     folder_path_growth = "../Results/Mem3DG_Bead_pulling_radius_growth_arcsim/"
