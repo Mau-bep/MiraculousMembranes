@@ -36,7 +36,7 @@ def Create_json_pulling():
     
     location = [1,"outside","inside"]
 
-    dir = '"../Results/Pulling_and_relaxing_Sept/"'.format(KA,KB,radius,finalX)
+    dir = '"../Results/Pulling_and_relaxing_Sept_final/"'.format(KA,KB,radius,finalX)
 
     ka = float(KA)
     kb = float(KB)
