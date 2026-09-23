@@ -17,16 +17,16 @@
         "No_remesh",
         "Save_all",
         "Freeze_beads"],
-    "Switch_times": [3000,
-        7000,
+    "Switch_times": [20000,
+        70000,
         299990,
         299990,
         299990,
-        7000],
+        70000],
     "boundary": false,
     "recentering": false,
     "saving_states": false,
-    "rescale": 2.0,
+    "rescale": 7.0,
     "finish_sim": false,
     "theta": {{ dist }},
     "Displacement": [
@@ -38,13 +38,13 @@
         {
             "Name": "Bending",
             "constants": [
-                20.0 ,
+                0.025 ,
                 0.0
             ]
         },
         {
             "Name": "Volume_constraint",
-            "constants":[2000000.0, 32.9269]
+            "constants":[20000.0, -1]
         },
         {
             "Name": "Surface_tension",
@@ -63,7 +63,7 @@
                 {{ x1 }},0.0,0.0
             ],
             "mem_inter": "Frenkel",
-            "inter_str": 430,
+            "inter_str": 1.5,
             "rc" : {{ rc }},
             "bonds": [],
             "bonds_constants": [],
@@ -85,7 +85,7 @@
                 0.0
             ],
             "mem_inter": "Frenkel",
-            "inter_str": 430,
+            "inter_str": 1.5,
             "rc" : {{ rc }},
             "bonds": [],
             "bonds_constants": [],
@@ -100,7 +100,7 @@
         "refine_angle": 0.55,
         "refine_compression": 0.0001,
         "refine_velocity": 1.0,
-        "size_max": 0.15,
-        "size_min": 0.001
+        "size_max": 0.4,
+        "size_min": 0.005
     }
 }

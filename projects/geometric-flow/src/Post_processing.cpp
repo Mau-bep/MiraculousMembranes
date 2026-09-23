@@ -297,6 +297,120 @@ double CalculateCoverage(std::string Simdir, int Step, Vector3 BeadPos, double r
     return A_covered / (4 * PI * radius * radius);
 }
 
+// squared distance from point P to triangle (A,B,C) using Christer Ericson's algorithm
+static double pointTriangleDist2(const Vector3 &P, const Vector3 &A, const Vector3 &B, const Vector3 &C)
+{
+    Vector3 AB = B - A;
+    Vector3 AC = C - A;
+    Vector3 AP = P - A;
+
+    double d1 = dot(AB, AP);
+    double d2 = dot(AC, AP);
+    if (d1 <= 0.0 && d2 <= 0.0)
+        return (P - A).norm2();
+
+    Vector3 BP = P - B;
+    double d3 = dot(AB, BP);
+    double d4 = dot(AC, BP);
+    if (d3 >= 0.0 && d4 <= d3)
+        return (P - B).norm2();
+
+    double vc = d1 * d4 - d3 * d2;
+    if (vc <= 0.0 && d1 >= 0.0 && d3 <= 0.0)
+    {
+        double v = d1 / (d1 - d3);
+        Vector3 proj = A + AB * v;
+        return (P - proj).norm2();
+    }
+
+    Vector3 CP = P - C;
+    double d5 = dot(AB, CP);
+    double d6 = dot(AC, CP);
+    if (d6 >= 0.0 && d5 <= d6)
+        return (P - C).norm2();
+
+    double vb = d5 * d2 - d1 * d6;
+    if (vb <= 0.0 && d2 >= 0.0 && d6 <= 0.0)
+    {
+        double w = d2 / (d2 - d6);
+        Vector3 proj = A + AC * w;
+        return (P - proj).norm2();
+    }
+
+    double va = d3 * d6 - d5 * d4;
+    if (va <= 0.0 && (d4 - d3) >= 0.0 && (d5 - d6) >= 0.0)
+    {
+        double w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+        Vector3 proj = B + (C - B) * w;
+        return (P - proj).norm2();
+    }
+
+    // inside face region
+    double denom = 1.0 / (va + vb + vc);
+    double v = vb * denom;
+    double w = vc * denom;
+    Vector3 proj = A + AB * v + AC * w;
+    return (P - proj).norm2();
+}
+
+// Calculate coverage by summing solid angles of triangles near the bead
+// Uses formula (van Oosterom & Strackee):
+// Omega = 2 * atan2( a . (b x c), 1 + a.b + b.c + c.a ) for unit vectors a,b,c
+double CalculateCoverageSolidAngle(std::string Simdir, int Step, Vector3 BeadPos, double radius, double rc)
+{
+    std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(Simdir + "membrane_" + std::to_string(Step) + ".obj");
+    mesh = mesh_uptr.release();
+    geometry = geometry_uptr.release();
+
+    double totalOmega = 0.0;
+    // Vector3 FaceNormal;
+    double thresh2 = (radius + rc) * (radius + rc) / 4;
+    // I can also do an orientation check
+    for (Face f : mesh->faces())
+    {
+        // FaceNormal = geometry->faceNormal(f);
+
+        // get triangle vertices
+        std::array<Vector3, 3> P;
+        int i = 0;
+        for (Vertex v : f.adjacentVertices())
+        {
+            P[i++] = geometry->inputVertexPositions[v];
+            if (i >= 3)
+                break;
+        }
+
+        // coarse selection: squared distance from bead center to triangle
+        double d2 = pointTriangleDist2(BeadPos, P[0], P[1], P[2]);
+        if (d2 > thresh2)
+            continue;
+
+        // vectors from bead center to triangle vertices
+        Vector3 r0 = P[0] - BeadPos;
+        Vector3 r1 = P[1] - BeadPos;
+        Vector3 r2 = P[2] - BeadPos;
+
+        double n0 = r0.norm();
+        double n1 = r1.norm();
+        double n2 = r2.norm();
+        if (n0 <= 0.0 || n1 <= 0.0 || n2 <= 0.0)
+            continue;
+
+        Vector3 a = r0 / n0;
+        Vector3 b = r1 / n1;
+        Vector3 c = r2 / n2;
+
+        double numer = dot(a, cross(b, c));
+        double denom = 1.0 + dot(a, b) + dot(b, c) + dot(c, a);
+        double omega = 2.0 * std::atan2(numer, denom);
+        // omega can be negative depending on orientation; take abs
+        totalOmega += std::abs(omega);
+    }
+
+    double coveredFraction = totalOmega / (4.0 * PI);
+    return coveredFraction;
+}
+
 std::vector<double> ReadCoverage(std::string Subdir)
 {
     std::vector<double> Coverage_data(0);
@@ -351,6 +465,7 @@ std::vector<double> ReadCoverage(std::string Subdir)
         std::vector<std::string> splitted = split(line, " ");
         if (line[0] == '#')
             continue;
+        // std::cout << splitted[0] << " \n";
         StepCurrent = std::stoi(splitted[0]);
         BeadPos.x = std::stod(splitted[1]);
         BeadPos.y = std::stod(splitted[2]);
@@ -359,7 +474,9 @@ std::vector<double> ReadCoverage(std::string Subdir)
 
     std::cout << "My old method said the last step is " << FinalStep << " and the new one says " << StepCurrent << " \n";
 
-    double A_covered = CalculateCoverage(Subdir, FinalStep, BeadPos, r, rc);
+    // double A_covered = CalculateCoverage(Subdir, FinalStep, BeadPos, r, rc);
+    double A_covered = CalculateCoverageSolidAngle(Subdir, FinalStep, BeadPos, r, rc);
+
     // Ok then we have everything no?
     Coverage_data.push_back(KA);
     Coverage_data.push_back(KB);

@@ -12,7 +12,7 @@
     "saving_states": false,
     "Switches" : ["Newton"],
     "Switch_times" : [30000],
-    "rescale": 3.0,
+    "rescale": 7.0,
     "Displacement": [
         {{xdisp}},
         0.0,

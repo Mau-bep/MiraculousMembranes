@@ -55,8 +55,8 @@ def Create_json_wrapping_two(ka,kb,r,inter_str,angle):
     template = env.get_template('Two_beads.txt')
     
     # Radius of the position of the beads is R_v-2*r_b
-    R_vesicle = 3.0
-    r_bead = 0.3
+    R_vesicle = 7.0
+    r_bead = 1.0
     Rpos_beads = R_vesicle-r_bead*2
     xpos  = Rpos_beads*np.cos(theta)
     ypos1 = Rpos_beads*np.sin(theta)
@@ -104,24 +104,24 @@ def Create_json_wrapping_two_outside(angle, outside1, outside2):
     template = env.get_template('Wrapping_two_spring.txt')
     
     # Radius of the position of the beads is R_v-2*r_b
-    R_vesicle = 2.0
-    r_bead = 0.2
+    R_vesicle = 7.0
+    r_bead = 1.0
     
     location = [1,"outside","inside"]
 
     dir = '"../Results/Two_beads_{}_{}_BFGS_MAR3/"'.format(location[outside1],location[outside2])
 
-    v1x = 10.0*(outside1*-1)
-    x1 = 2.0 + 0.25*outside1 
+    v1x = 1.0*(outside1*-1)
+    x1 = R_vesicle + 1.1*r_bead*outside1 
 
-    r2 = 2.0 + 0.25*outside2
+    r2 = R_vesicle + 1.1*r_bead*outside2
     # We should do 
     x2 = r2*np.cos(theta)
     y2 = r2*np.sin(theta)
     Leq = (R_vesicle)*theta
 
-    v2x = 10*np.cos(theta)*outside2*-1
-    v2y = 10*np.sin(theta)*outside2*-1
+    v2x = 1*np.cos(theta)*outside2*-1
+    v2y = 1*np.sin(theta)*outside2*-1
 
     
     output_from_parsed_template = template.render(Dir = dir,theta =theta, outside1 = outside1, v1x = v1x, x1 = x1,L0 = Leq, outside2 = outside2, v2x = v2x, v2y = v2y,x2 = x2, y2 = y2 )
@@ -153,7 +153,7 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
     template = env.get_template('Wrapping_two_fixed.txt')
     
     # Radius of the position of the beads is R_v-2*r_b
-    R_vesicle = 2.0
+    R_vesicle = 7.0
     r_bead = radius*0.9
     
     location = [1,"outside","inside"]
@@ -179,7 +179,7 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
         disp = np.sqrt(  (R_vesicle+r_bead)**2 - (disp2+float(dist)/2)**2      ) 
 
     
-    return 
+    # return 
     # We should do  
     output_from_parsed_template = template.render(Dir = dir,r=radius,rc = radius*1.25,dist = dist, outside1 = outside1,disp = disp,disp2 = disp2, x1 = x1, outside2 = outside2, x2 = x2 , KA = ka)
 
@@ -190,7 +190,7 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
 
 
     # print("something\n")
-    Config_path = '../Config_files/Wrapping_two_{0:.2f}_{1}_{2}_{3}_BFGS_ST_{4}_May.json'.format(radius,angle,location[outside1],location[outside2],ka) 
+    Config_path = '../Config_files/Wrapping_two_{0:.2f}_{1}_{2}_{3}_BFGS_ST_{4}_NEW.json'.format(radius,angle,location[outside1],location[outside2],ka) 
     
     sim_path = data['first_dir']
     
@@ -218,10 +218,10 @@ Config_path, sim_path = Create_json_wrapping_two_fixed(angle,outside1,outside2)
 
 
 # # def main():
-Output_name = 'output_two_r_{0:.2f}_theta_{1}_{2}_{3}_BFGS_ST_{4}_May.output'.format(radius,angle,location[outside1],location[outside2],ka)
+Output_name = 'output_two_r_{0:.2f}_theta_{1}_{2}_{3}_BFGS_ST_{4}_NEW.output'.format(radius,angle,location[outside1],location[outside2],ka)
 Output_path = '../Outputs/'+Output_name
 
-f=open('../Subjobs/subjob_two_bead_r_{0:.2f}_theta_{1}_{2}_{3}_BFGS_ST_{4}_May'.format(radius,angle,location[outside1],location[outside2],ka),'w')
+f=open('../Subjobs/subjob_two_bead_r_{0:.2f}_theta_{1}_{2}_{3}_BFGS_ST_{4}_NEW'.format(radius,angle,location[outside1],location[outside2],ka),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')
