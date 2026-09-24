@@ -900,6 +900,7 @@ bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, 
         Vertex v = mm.collapseEdge(e, newPos);
         if (v != Vertex()) {
           // Lets do the valence here
+          Valence[v] = 0;
           for (Face f : v.adjacentFaces()) Valence[v] += 1;
           geom.vertexSizing[v] = newSizing;
           didSplitOrCollapse = true;
@@ -1076,6 +1077,7 @@ bool collapseSubset(std::vector<Face> activeFaces, ManifoldSurfaceMesh& mesh, Ve
         Vertex v = mm.collapseEdge(e, newPos);
         if (v != Vertex()) {
           options.numberOp += 1;
+
           // geom.vertexSizing[v] = newSizing;
           std::vector<Face> active_faces;
           // std::cout << "Flipping subset\n";
@@ -1357,7 +1359,7 @@ void deleteLowValence(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, M
     }
     if (v.isBoundary()) Valence[v] += 10;
   }
-
+  int ValenceNew = 0;
   while (!toCollapse.empty()) {
 
     Edge e = toCollapse.back();
@@ -1367,10 +1369,15 @@ void deleteLowValence(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, M
     Vector3 newPos = edgeMidpoint(mesh, geom, e);
     if (Valence[e.halfedge().vertex()] == 3 || Valence[e.halfedge().twin().vertex()] == 3 ||
         Valence[e.halfedge().vertex()] == 4 || Valence[e.halfedge().twin().vertex()] == 4) {
+
+
+      ValenceNew = Valence[e.halfedge().twin().vertex()] + Valence[e.halfedge().vertex()] - 4;
       if (Valence[e.halfedge().twin().vertex()] > 10 || Valence[e.halfedge().vertex()] > 10) continue;
 
       Vertex v = mm.collapseEdge(e, newPos);
       if (v != Vertex()) {
+        Valence[v] = 0;
+        for (Face f : v.adjacentFaces()) Valence[v] += 1;
         options.numberOp += 1;
         didCollapse = true;
       }
@@ -1416,7 +1423,7 @@ bool improveFaces(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Mutat
     }
     if (v.isBoundary()) Valence[v] += 10;
   }
-
+  int ValenceNew = 0;
   while (!toCollapse.empty()) {
 
     Edge e = toCollapse.back();
@@ -1433,10 +1440,13 @@ bool improveFaces(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Mutat
           Valence[e.halfedge().twin().vertex()] == 4) {
         // I need to make sure that the edges are not boundary
         //
+        ValenceNew = Valence[e.halfedge().twin().vertex()] + Valence[e.halfedge().vertex()] - 4;
         if (Valence[e.halfedge().twin().vertex()] > 10 || Valence[e.halfedge().vertex()] > 10) continue;
 
         Vertex v = mm.collapseEdge(e, newPos);
         if (v != Vertex()) {
+          Valence[v] = 0;
+          for (Face f : v.adjacentFaces()) Valence[v] += 1;
           options.numberOp += 1;
           geom.vertexSizing[v] = newSizing;
           // std::vector<Face> active_faces;
