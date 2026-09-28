@@ -27,7 +27,7 @@ angle = sys.argv[1]
 outside1 = int(sys.argv[2])
 outside2 = int(sys.argv[3])
 radius = float(sys.argv[4])
-ka = sys.argv[5]
+ka = 1.0
 Nsim = 1
 
 
@@ -158,7 +158,7 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
     
     location = [1,"outside","inside"]
 
-    dir = '"../Results/Two_beads_r_{0:.2f}_{1}_{2}_BFGS_Fixed_june/"'.format(radius,location[outside1],location[outside2])
+    dir = '"../Results/Two_beads_r_{0:.2f}_{1}_{2}_BFGS_Fixed_Sept/"'.format(radius,location[outside1],location[outside2])
 
     x1 = float(dist)/2.0
     x2 = -float(dist)/2.0 
@@ -181,7 +181,7 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
     
     # return 
     # We should do  
-    output_from_parsed_template = template.render(Dir = dir,r=radius,rc = radius*1.25,dist = dist, outside1 = outside1,disp = disp,disp2 = disp2, x1 = x1, outside2 = outside2, x2 = x2 , KA = ka)
+    output_from_parsed_template = template.render(Dir = dir,r=radius,rc = radius*1.25,dist = dist, outside1 = outside1,disp = disp,disp2 = disp2, x1 = x1, outside2 = outside2, x2 = x2 )
 
 
 
@@ -218,10 +218,10 @@ Config_path, sim_path = Create_json_wrapping_two_fixed(angle,outside1,outside2)
 
 
 # # def main():
-Output_name = 'output_two_r_{0:.2f}_theta_{1}_{2}_{3}_BFGS_ST_{4}_NEW.output'.format(radius,angle,location[outside1],location[outside2],ka)
+Output_name = 'output_two_r_{0:.2f}_theta_{1}_{2}_{3}_BFGS_Sept.output'.format(radius,angle,location[outside1],location[outside2])
 Output_path = '../Outputs/'+Output_name
 
-f=open('../Subjobs/subjob_two_bead_r_{0:.2f}_theta_{1}_{2}_{3}_BFGS_ST_{4}_NEW'.format(radius,angle,location[outside1],location[outside2],ka),'w')
+f=open('../Subjobs/subjob_two_bead_r_{0:.2f}_theta_{1}_{2}_{3}_BFGS_Sept'.format(radius,angle,location[outside1],location[outside2]),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')
@@ -236,11 +236,11 @@ f.write('#number of CPUs to be used\n')
 f.write('#SBATCH --ntasks=1\n')
 f.write('#Define the number of hours the job should run. \n')
 f.write('#Maximum runtime is limited to 10 days, ie. 240 hours\n')
-f.write('#SBATCH --time=6:01:20\n')
+f.write('#SBATCH --time=12:01:20\n')
 
 f.write('#\n')
 f.write('#Define the amount of system RAM used by your job in GigaBytes\n')
-f.write('#SBATCH --mem=2G\n')
+f.write('#SBATCH --mem=3G\n')
 f.write('#\n')
 
 #f.write('#Send emails when a job starts, it is finished or it exits\n')

@@ -3918,8 +3918,8 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
       }
       if (fabs(s_k.dot(Grad_vec)) < 1e-10 || isinf(rho_list[BFGS_iter % m]))
       {
-        std::cout << "THe value of s_k dot is " << s_k.dot(Grad_vec) << " \n";
-        std::cout << "Resetting bfgs iters\n";
+        // std::cout << "THe value of s_k dot is " << s_k.dot(Grad_vec) << " \n";
+        // std::cout << "Resetting bfgs iters\n";
         BFGS_iter = -1;
       }
     }

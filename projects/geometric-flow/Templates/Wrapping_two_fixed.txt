@@ -36,9 +36,9 @@
     ],
     "Energies": [
         {
-            "Name": "Bending",
+            "Name": "Bending_tan",
             "constants": [
-                0.025 ,
+                0.120978 ,
                 0.0
             ]
         },
@@ -48,7 +48,7 @@
         },
         {
             "Name": "Surface_tension",
-            "constants":[{{KA}}, 0.0,-1.0, 0.01]
+            "constants":[1.0, 0.0,-1.0, 0.01]
         }
         
     ],
@@ -62,8 +62,8 @@
             "Pos": [
                 {{ x1 }},0.0,0.0
             ],
-            "mem_inter": "Frenkel",
-            "inter_str": 1.5,
+            "mem_inter": "Frenkel_Normal_nopush",
+            "inter_str": 2.0,
             "rc" : {{ rc }},
             "bonds": [],
             "bonds_constants": [],
@@ -84,8 +84,8 @@
                 0.0,
                 0.0
             ],
-            "mem_inter": "Frenkel",
-            "inter_str": 1.5,
+            "mem_inter": "Frenkel_Normal_nopush",
+            "inter_str": 2.0,
             "rc" : {{ rc }},
             "bonds": [],
             "bonds_constants": [],
@@ -97,10 +97,10 @@
     ,
     "remesher": {
         "aspect_min": 0.2,
-        "refine_angle": 0.55,
+        "refine_angle": 0.6,
         "refine_compression": 0.0001,
         "refine_velocity": 1.0,
-        "size_max": 0.4,
-        "size_min": 0.005
+        "size_max": 0.45,
+        "size_min": 0.01
     }
 }
