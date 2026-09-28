@@ -363,12 +363,12 @@ double CalculateCoverageSolidAngle(std::string Simdir, int Step, Vector3 BeadPos
     geometry = geometry_uptr.release();
 
     double totalOmega = 0.0;
-    // Vector3 FaceNormal;
+    Vector3 FaceNormal;
     double thresh2 = (radius + rc) * (radius + rc) / 4;
     // I can also do an orientation check
     for (Face f : mesh->faces())
     {
-        // FaceNormal = geometry->faceNormal(f);
+        FaceNormal = geometry->faceNormal(f);
 
         // get triangle vertices
         std::array<Vector3, 3> P;
@@ -389,6 +389,13 @@ double CalculateCoverageSolidAngle(std::string Simdir, int Step, Vector3 BeadPos
         Vector3 r0 = P[0] - BeadPos;
         Vector3 r1 = P[1] - BeadPos;
         Vector3 r2 = P[2] - BeadPos;
+
+        FaceNormal = FaceNormal.unit();
+        Vector3 beadToFace = (P[0] + P[1] + P[2]) / 3.0 - BeadPos;
+        if (dot(FaceNormal, beadToFace) > 0.0)
+        {
+            continue; // triangle facing away from bead, it does not contribute
+        }
 
         double n0 = r0.norm();
         double n1 = r1.norm();

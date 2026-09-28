@@ -2058,7 +2058,17 @@ int main(int argc, char **argv)
         {
             std::cout << "Sim broke or timestep very small\n";
             std::cout << "At timestep " << current_t << " \n";
-            break;
+            if (Integration == "BFGS")
+            {
+                Integration = "BFGS-Normal";
+                std::cout << "Switching to BFGS-Normal\n";
+                M3DG.BFGS_iter = 0;
+            }
+            else
+            {
+
+                break;
+            }
         }
         else
         {

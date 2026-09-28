@@ -2313,9 +2313,7 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
   {
     if (isnan(Force[v].x) || isnan(Force[v].y) || isnan(Force[v].z))
     {
-
       std::cout << BFGS_iter << " " << v.getIndex() << " ";
-      // return 0.0;
     }
     // std::cout << " Is this force nan at vertex but norm2 is " << Force[v.getIndex()].norm2() << "\n";
   }
@@ -2394,7 +2392,7 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
     }
 
     alpha *= rho;
-    if ((abs((NewE - previousE) / previousE) < 1e-6 && Projection < 1e-3) || Projection < 1e-5)
+    if ((abs((NewE - previousE) / previousE) < 1e-6 && Projection < 1e-6) || Projection < 1e-6)
     {
       small_TS = true;
       std::cout << "The energy diff is quite small and so is the gradient\n";
