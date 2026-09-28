@@ -521,7 +521,7 @@ int main(int argc, char **argv)
     while ((in_file = readdir(FD)))
     {
         // Ok so here in_file->d_name is the name of the file. I only want to check the ones that can be converted into numbers
-        if (strlen(in_file->d_name) < 3 && isdigit(in_file->d_name[0]))
+        if (isdigit(in_file->d_name[0]))
         {
             // I would assume if the string is of lenght less than 3 then its a number
             std::cout << "The directory is " << in_file->d_name << "\n";
