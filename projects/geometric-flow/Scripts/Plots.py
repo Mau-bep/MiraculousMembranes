@@ -202,7 +202,7 @@ def contour():
     plt.pcolormesh(Xe, Ye, avg_grid.T, shading='auto', cmap='viridis')
     plt.xscale('log')
     plt.ylabel(r"$w/\sigma$")
-    plt.xlabel(r"$a\,\sqrt{\kappa_B/ \sigma}$")
+    plt.xlabel(r"$a\,\sqrt{ \sigma / \kappa_\text{B}}$")
     # plt.axvline(x=4.4, ls='dashed', color='black')
     # plt.axhline(y=1.37, ls='dashed', color='black')
     cbar = plt.colorbar(ticks=[0.1*i for i in range(11)])

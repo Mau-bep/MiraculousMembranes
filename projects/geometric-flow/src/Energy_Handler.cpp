@@ -421,35 +421,6 @@ double E_Handler::E_Edge_reg(std::vector<double> Constants) const
     return E_edge;
 }
 
-// double E_Handler::E_Edge_reg_precomp(std::vector<double> Constants) const
-// {
-
-//     double E_edge = 0.0;
-//     double KE = Constants[0];
-
-//     Halfedge he;
-//     Eigen::Vector<double, 9> Positions;
-//     Eigen::Vector<double, 3> Edge_lengths_prev;
-//     // EdgeData<double> Edge_lengths(*mesh);
-//     geometry->requireEdgeLengths();
-
-//     for (Face f : mesh->faces())
-//     {
-//         he = f.halfedge();
-//         if (he.edge().isBoundary() || he.next().edge().isBoundary() || he.next().next().edge().isBoundary())
-//             continue;
-//         Positions << geometry->inputVertexPositions[he.vertex()].x, geometry->inputVertexPositions[he.vertex()].y, geometry->inputVertexPositions[he.vertex()].z,
-//             geometry->inputVertexPositions[he.next().vertex()].x, geometry->inputVertexPositions[he.next().vertex()].y, geometry->inputVertexPositions[he.next().vertex()].z,
-//             geometry->inputVertexPositions[he.next().next().vertex()].x, geometry->inputVertexPositions[he.next().next().vertex()].y, geometry->inputVertexPositions[he.next().next().vertex()].z;
-//         Edge_lengths_prev << geometry->edgeLengths[he.edge()],
-//             geometry->edgeLengths[he.next().next().edge()],
-//             geometry->edgeLengths[he.next().edge()];
-//         E_edge += KE * geometry->Ej_edge_regular(Positions, Edge_lengths_prev);
-//     }
-//     geometry->unrequireEdgeLengths();
-//     return E_edge;
-// }
-
 double E_Handler::E_Edge_reg_2(std::vector<double> Constants) const
 {
 
