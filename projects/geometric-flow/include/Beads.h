@@ -20,6 +20,7 @@ public:
   Vector3 Pos;
   Vector3 Prev_Total_force;
   Vector3 Total_force;
+  Vector3 CoverageForce;
   double sigma;
   double strength;
 

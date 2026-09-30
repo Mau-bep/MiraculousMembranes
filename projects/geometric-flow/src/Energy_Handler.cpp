@@ -2,12 +2,15 @@
 
 #include "Energy_Handler.h"
 #include "Beads.h"
+#include "BeadGeometry.h"
 #include <fstream>
 #include <omp.h>
 
 #include <chrono>
 #include <Eigen/Core>
-
+#include <cmath>
+#include <iostream>
+#include <stdexcept>
 using namespace std;
 using namespace geometrycentral;
 using namespace geometrycentral::surface;
@@ -26,6 +29,34 @@ public:
         return (hash<int>()(p.first)) ^ (hash<int>()(p.second));
     }
 };
+
+namespace
+{
+
+    constexpr double COVERAGE_EPS = 1e-12;
+
+    void validateCoverageConstants(const std::vector<double> &Constants,
+                                   const std::vector<Bead *> &Beads)
+    {
+        if (Constants.size() != Beads.size() + 1)
+        {
+            throw std::invalid_argument(
+                "Coverage: Constants must have exactly Beads.size() + 1 values: "
+                "[K, cov_0, cov_1, ..., cov_(N-1)].");
+        }
+    }
+
+    /*
+     * -1: disabled bead
+     * [0,1]: valid target coverage
+     * otherwise: invalid
+     */
+    bool validCoverageTarget(double cov)
+    {
+        return cov == -1.0 || (cov >= 0.0 && cov <= 1.0);
+    }
+
+} // namespace
 
 E_Handler::E_Handler(ManifoldSurfaceMesh *inputMesh, VertexPositionGeometry *inputGeo)
 {
@@ -474,6 +505,217 @@ double E_Handler::E_Face_reg(std::vector<double> Constants) const
     }
 
     return E_face;
+}
+
+double E_Handler::E_Coverage(std::vector<double> Constants) const
+{
+    validateCoverageConstants(Constants, Beads);
+
+    const double K = Constants[0];
+    double totalEnergy = 0.0;
+
+    for (size_t beadIndex = 0; beadIndex < Beads.size(); ++beadIndex)
+    {
+        Bead *bead = Beads[beadIndex];
+        const double targetCoverage = Constants[beadIndex + 1];
+
+        if (!validCoverageTarget(targetCoverage))
+        {
+            std::cerr
+                << "Warning: Coverage target for bead "
+                << beadIndex
+                << " is "
+                << targetCoverage
+                << ". It must be in [0,1], or exactly -1 to disable "
+                   "Coverage for this bead. Skipping this bead.\n";
+
+            continue;
+        }
+
+        // -1 means Coverage is disabled for this bead.
+        if (targetCoverage == -1.0)
+        {
+            continue;
+        }
+
+        double Omega = 0.0;
+
+        for (Face f : mesh->faces())
+        {
+            Halfedge he = f.halfedge();
+
+            const Vertex v0 = he.vertex();
+            const Vertex v1 = he.next().vertex();
+            const Vertex v2 = he.next().next().vertex();
+
+            const Vector3 p0 = geometry->inputVertexPositions[v0];
+            const Vector3 p1 = geometry->inputVertexPositions[v1];
+            const Vector3 p2 = geometry->inputVertexPositions[v2];
+
+            const Vector3 centroid = (p0 + p1 + p2) / 3.0;
+            const Vector3 beadToCentroid = centroid - bead->Pos;
+            const double centroidDistance = norm(beadToCentroid);
+
+            if (centroidDistance < COVERAGE_EPS)
+            {
+                continue;
+            }
+            // std::cout << "Some vertices are worthy\n";
+            /*
+             * The shell is:
+             *
+             * sigma - 0.25 sigma < centroidDistance
+             *                       < sigma + 0.25 sigma.
+             */
+            const bead_geometry::FaceCoverageData faceData =
+                bead_geometry::evaluateFaceCoverage(
+                    *geometry,
+                    f,
+                    bead->Pos,
+                    bead->sigma);
+
+            if (!faceData.selected)
+            {
+                continue;
+            }
+            Omega +=
+                faceData.weight * faceData.omegaUnsigned / (4.0 * bead_geometry::PI_VALUE);
+        }
+
+        const double difference = Omega - targetCoverage;
+        totalEnergy += K * difference * difference;
+    }
+    // std::cout << "The total energy is " << totalEnergy << "\n";
+    return totalEnergy;
+}
+
+void E_Handler::Debug_Coverage(std::vector<double> Constants) const
+{
+    if (Constants.size() != Beads.size() + 1)
+    {
+        throw std::invalid_argument(
+            "Debug_Coverage: Constants must have Beads.size() + 1 entries.");
+    }
+
+    const double fourPi = 4.0 * PI;
+
+    std::cout << "\n========== Coverage diagnostic ==========\n";
+    std::cout << "K = " << Constants[0] << "\n";
+    std::cout << "Number of beads = " << Beads.size() << "\n";
+
+    for (size_t beadIndex = 0; beadIndex < Beads.size(); ++beadIndex)
+    {
+        Bead *bead = Beads[beadIndex];
+        const double cov = Constants[beadIndex + 1];
+
+        const double delta = 0.25 * bead->sigma;
+        const double rMin = bead->sigma - delta;
+        const double rMax = bead->sigma + delta;
+
+        size_t totalFaces = 0;
+        size_t shellFaces = 0;
+        size_t facingFaces = 0;
+        size_t validSolidAngleFaces = 0;
+
+        double minCentroidDistance = std::numeric_limits<double>::infinity();
+        double maxCentroidDistance = 0.0;
+        double Omega = 0.0;
+
+        std::cout << "\nBead " << beadIndex << "\n";
+        std::cout << "  Position = " << bead->Pos << "\n";
+        std::cout << "  sigma = " << bead->sigma << "\n";
+        std::cout << "  delta = " << delta << "\n";
+        std::cout << "  Coverage shell = (" << rMin << ", " << rMax << ")\n";
+        std::cout << "  cov target = " << cov << "\n";
+
+        if (cov == -1.0)
+        {
+            std::cout << "  Coverage is DISABLED for this bead.\n";
+            continue;
+        }
+
+        for (Face f : mesh->faces())
+        {
+            totalFaces++;
+
+            Halfedge he = f.halfedge();
+
+            Vertex v0 = he.vertex();
+            Vertex v1 = he.next().vertex();
+            Vertex v2 = he.next().next().vertex();
+
+            Vector3 p0 = geometry->inputVertexPositions[v0];
+            Vector3 p1 = geometry->inputVertexPositions[v1];
+            Vector3 p2 = geometry->inputVertexPositions[v2];
+
+            Vector3 centroid = (p0 + p1 + p2) / 3.0;
+            Vector3 beadToCentroid = centroid - bead->Pos;
+
+            double r = norm(beadToCentroid);
+
+            minCentroidDistance = std::min(minCentroidDistance, r);
+            maxCentroidDistance = std::max(maxCentroidDistance, r);
+
+            if (r <= rMin || r >= rMax)
+            {
+                continue;
+            }
+
+            shellFaces++;
+
+            Vector3 faceNormal = geometry->faceNormal(f);
+            double normalNorm = norm(faceNormal);
+
+            if (normalNorm < 1e-12 || r < 1e-12)
+            {
+                continue;
+            }
+
+            faceNormal /= normalNorm;
+            Vector3 radialDirection = beadToCentroid / r;
+
+            double facingDot = dot(radialDirection, faceNormal);
+
+            // External-bead convention.
+            if (facingDot >= 0.0)
+            {
+                continue;
+            }
+
+            facingFaces++;
+
+            const bead_geometry::FaceCoverageData faceData =
+                bead_geometry::evaluateFaceCoverage(
+                    *geometry,
+                    f,
+                    bead->Pos,
+                    bead->sigma);
+
+            if (!faceData.selected)
+            {
+                continue;
+            }
+            Omega +=
+                faceData.weight * faceData.omegaUnsigned / (4.0 * bead_geometry::PI_VALUE);
+        }
+
+        std::cout << "  Total faces: " << totalFaces << "\n";
+        std::cout << "  Centroid distance range: ["
+                  << minCentroidDistance << ", "
+                  << maxCentroidDistance << "]\n";
+        std::cout << "  Faces in radial shell: " << shellFaces << "\n";
+        std::cout << "  Faces passing facing test: " << facingFaces << "\n";
+        std::cout << "  Faces with valid solid angle: "
+                  << validSolidAngleFaces << "\n";
+        std::cout << "  Omega = " << Omega << "\n";
+
+        double energy = Constants[0] * (Omega - cov) * (Omega - cov);
+
+        std::cout << "  Coverage energy from this bead = "
+                  << energy << "\n";
+    }
+
+    std::cout << "==========================================\n";
 }
 
 VertexData<Vector3> E_Handler::F_Volume_constraint(std::vector<double> Constants) const
@@ -1437,7 +1679,224 @@ VertexData<Vector3> E_Handler::F_Face_reg(std::vector<double> Constants) const
 
     return Force;
 }
+VertexData<Vector3> E_Handler::F_Coverage(
+    std::vector<double> Constants)
+{
+    /*
+     * Constants:
+     *
+     * Constants[0]     = K
+     * Constants[1 + i] = target coverage for Beads[i]
+     *
+     * Valid coverage targets:
+     *
+     * -1.0      : Coverage disabled for this bead
+     * [0.0,1.0] : desired coverage
+     */
+    if (Constants.size() != Beads.size() + 1)
+    {
+        throw std::invalid_argument(
+            "F_Coverage: Constants must have exactly "
+            "Beads.size() + 1 entries: [K, cov_0, ..., cov_N].");
+    }
 
+    const double K = Constants[0];
+
+    if (K < 0.0)
+    {
+        throw std::invalid_argument(
+            "F_Coverage: K must be non-negative.");
+    }
+
+    const double fourPi = 4.0 * bead_geometry::PI_VALUE;
+
+    VertexData<Vector3> Force(
+        *mesh,
+        Vector3({0.0, 0.0, 0.0}));
+
+    /*
+     * First pass:
+     *
+     * Evaluate Omega independently for every active bead.
+     *
+     * The force needs the complete Omega because:
+     *
+     * dE/dOmega = 2 K (Omega - cov).
+     */
+    std::vector<double> omegas(Beads.size(), 0.0);
+    std::vector<bool> activeBead(Beads.size(), false);
+
+    for (size_t beadIndex = 0; beadIndex < Beads.size(); ++beadIndex)
+    {
+        Bead *bead = Beads[beadIndex];
+
+        if (bead == nullptr)
+        {
+            throw std::runtime_error(
+                "F_Coverage: null bead pointer in E_Handler::Beads.");
+        }
+
+        const double cov = Constants[beadIndex + 1];
+
+        if (cov == -1.0)
+        {
+            continue;
+        }
+
+        if (cov < 0.0 || cov > 1.0)
+        {
+            std::cerr
+                << "Warning: F_Coverage: bead " << beadIndex
+                << " has invalid target coverage " << cov
+                << ". Valid values are [0,1] or -1. "
+                << "This bead is ignored.\n";
+
+            continue;
+        }
+
+        activeBead[beadIndex] = true;
+
+        for (Face f : mesh->faces())
+        {
+            const bead_geometry::FaceCoverageData faceData =
+                bead_geometry::evaluateFaceCoverage(
+                    *geometry,
+                    f,
+                    bead->Pos,
+                    bead->sigma);
+
+            if (!faceData.selected)
+            {
+                continue;
+            }
+
+            omegas[beadIndex] +=
+                faceData.weight * faceData.omegaUnsigned / fourPi;
+        }
+    }
+
+    /*
+     * Second pass:
+     *
+     * Add vertex force contributions and calculate the corresponding
+     * force on each bead.
+     */
+    for (size_t beadIndex = 0; beadIndex < Beads.size(); ++beadIndex)
+    {
+        if (!activeBead[beadIndex])
+        {
+            continue;
+        }
+
+        Bead *bead = Beads[beadIndex];
+        const double cov = Constants[beadIndex + 1];
+
+        /*
+         * E = K (Omega - cov)^2
+         *
+         * dE/dOmega = 2 K (Omega - cov)
+         */
+        const double energyFactor =
+            2.0 * K * (omegas[beadIndex] - cov);
+
+        /*
+         * If Omega already equals cov, this bead contributes zero force.
+         */
+        if (std::abs(energyFactor) < bead_geometry::EPS)
+        {
+            continue;
+        }
+
+        Vector3 beadForce({0.0, 0.0, 0.0});
+
+        for (Face f : mesh->faces())
+        {
+            const bead_geometry::FaceCoverageData faceData =
+                bead_geometry::evaluateFaceCoverage(
+                    *geometry,
+                    f,
+                    bead->Pos,
+                    bead->sigma);
+
+            if (!faceData.selected)
+            {
+                continue;
+            }
+
+            Halfedge he = f.halfedge();
+
+            const Vertex v0 = he.vertex();
+            const Vertex v1 = he.next().vertex();
+            const Vertex v2 = he.next().next().vertex();
+
+            /*
+             * phi_f = w(r_f) |omega_f| / (4 pi)
+             *
+             * Omega = sum_f phi_f
+             *
+             * The centroid is:
+             *
+             * c = (p0 + p1 + p2) / 3
+             *
+             * Therefore:
+             *
+             * dr/dp_i = radialDirection / 3.
+             */
+            const Vector3 gradWeightPerVertex =
+                faceData.dWeightDr * faceData.radialDirection / 3.0;
+
+            /*
+             * dphi/dp_i =
+             *
+             * [ w d|omega|/dp_i + |omega| dw/dp_i ] / (4 pi)
+             */
+            const Vector3 dPhi_dp0 =
+                (faceData.weight * faceData.gradOmega0 + faceData.omegaUnsigned * gradWeightPerVertex) / fourPi;
+
+            const Vector3 dPhi_dp1 =
+                (faceData.weight * faceData.gradOmega1 + faceData.omegaUnsigned * gradWeightPerVertex) / fourPi;
+
+            const Vector3 dPhi_dp2 =
+                (faceData.weight * faceData.gradOmega2 + faceData.omegaUnsigned * gradWeightPerVertex) / fourPi;
+
+            /*
+             * F_vertex = -dE/dp_i
+             *
+             *           = -[dE/dOmega] [dphi/dp_i].
+             */
+            const Vector3 force0 = -energyFactor * dPhi_dp0;
+            const Vector3 force1 = -energyFactor * dPhi_dp1;
+            const Vector3 force2 = -energyFactor * dPhi_dp2;
+
+            Force[v0] += force0;
+            Force[v1] += force1;
+            Force[v2] += force2;
+
+            /*
+             * Since this face contribution depends only on relative
+             * positions p_i - beadPos:
+             *
+             * dphi/dq = -(dphi/dp0 + dphi/dp1 + dphi/dp2).
+             *
+             * Hence:
+             *
+             * F_bead = -(dE/dq)
+             *        = -(force0 + force1 + force2).
+             */
+            beadForce -= (force0 + force1 + force2);
+        }
+
+        /*
+         * Do NOT reset Total_force here.
+         *
+         * The reset must happen once, before the full gradient evaluation,
+         * in E_Handler::Calculate_gradient().
+         */
+        bead->Total_force += beadForce;
+    }
+
+    return Force;
+}
 SparseMatrix<double> E_Handler::H_SurfaceTension(std::vector<double> Constants)
 {
     // Ok so this functino will assemble the Hessi an for the surface tension energy
@@ -3619,6 +4078,13 @@ void E_Handler::Calculate_energies(double *E)
             *E += Energy_values[i];
             continue;
         }
+        if (Energies[i] == "Coverage")
+        {
+            // std::cout << "Calculating coverage energy\n";
+            Energy_values[i] = E_Coverage(Energy_constants[i]);
+            *E += Energy_values[i];
+            continue;
+        }
     }
 
     return;
@@ -4108,6 +4574,20 @@ void E_Handler::Calculate_gradient()
                 update_face_reference();
 
             Force_temp = F_Face_reg(Energy_constants[i]);
+            grad_norm = 0.0;
+            for (Vertex v : mesh->vertices())
+            {
+                grad_norm += Force_temp[v].norm2();
+            }
+
+            Gradient_norms[i] = grad_norm;
+
+            Current_grad += Force_temp;
+            continue;
+        }
+        if (Energies[i] == "Coverage")
+        {
+            Force_temp = F_Coverage(Energy_constants[i]);
             grad_norm = 0.0;
             for (Vertex v : mesh->vertices())
             {

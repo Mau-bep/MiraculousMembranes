@@ -25,6 +25,14 @@ radius = sys.argv[3]
 finalX = sys.argv[4]
 Nsim = 1
 
+# How do i do this, cause there may be more/less inputs 
+
+direction = sys.argv[5]
+# Now direction can be +1 or -1 or 0. 
+# If direction is 0, then we just do the first call
+
+
+
 def Create_json_pulling():
     # theta = float(angle)
     os.makedirs("../Config_files/",exist_ok = True)
@@ -60,6 +68,48 @@ def Create_json_pulling():
 
 
 
+def Create_json_pulling(direction):
+    # theta = float(angle)
+    os.makedirs("../Config_files/",exist_ok = True)
+    env = Environment(loader=FileSystemLoader('../Templates/'))
+
+
+    template = env.get_template('Tube_eq_continuation.txt')
+
+    if(direction == 1):
+        obj = "BeforeSnap.obj"
+    else:
+        obj = "AfterSnap.obj"
+    
+    location = [1,"outside","inside"]
+
+    dir = '"../Results/Pulling_and_relaxing_Sept_continuation/"'.format(KA,KB,radius,finalX)
+    
+    ka = float(KA)
+    kb = float(KB)
+    # I need the force 
+    x_ini = 1.9 
+    if(direction == -1):
+        x_ini = 2.0
+
+
+    vx = 0.5*direction
+    output_from_parsed_template = template.render(Dir = dir,OBJ = obj,KA=KA,KB=KB,r=radius,Xini = x_ini,Xfinal=finalX,vx = vx)
+
+    # print(output_from_parsed_template)
+    data = json.loads(output_from_parsed_template)
+
+    # print("something\n")
+    Config_path = '../Config_files/Tube_to_eq_{0}_{1}_{2}_{3}_direction_{4}.json'.format(KA,KB,radius,finalX,direction) 
+    
+    sim_path = data['first_dir']
+    
+    with open(Config_path, 'w') as file:
+        json.dump(data, file, indent=4)
+
+    return Config_path , sim_path
+
+
 
 
 
@@ -73,13 +123,17 @@ os.makedirs('../Outputs/',exist_ok=True)
 # # Hopefully this works
 # Config_path, sim_path = Create_json_wrapping_two_outside(angle,outside1,outside2)
 
-Config_path, sim_path = Create_json_pulling()
+if(int(direction) == 0):
+    Config_path, sim_path = Create_json_pulling()
+    Output_name = 'output_tube_KA_{0}_KB_{1}_r_{2}_XF_{3}.output'.format(KA,KB,radius,finalX)
+    f=open('../Subjobs/subjob_tube_KA_{0}_KB_{1}_r_{2}_XF_{3}'.format(KA,KB,radius,finalX),mode='w+')
+else:
+    Config_path, sim_path = Create_json_pulling(int(direction)) 
+    Output_name = 'output_tube_KA_{0}_KB_{1}_r_{2}_XF_{3}_direction_{4}.output'.format(KA,KB,radius,finalX,direction)
+    f=open('../Subjobs/subjob_tube_KA_{0}_KB_{1}_r_{2}_XF_{3}_direction_{4}'.format(KA,KB,radius,finalX,direction),mode='w+')
 
 
-Output_name = 'output_tube_KA_{0}_KB_{1}_r_{2}_XF_{3}.output'.format(KA,KB,radius,finalX)
 Output_path = '../Outputs/'+Output_name
-
-f=open('../Subjobs/subjob_tube_KA_{0}_KB_{1}_r_{2}_XF_{3}'.format(KA,KB,radius,finalX),mode='w+')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')

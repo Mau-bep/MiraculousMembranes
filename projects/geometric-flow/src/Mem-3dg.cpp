@@ -1,7 +1,12 @@
 // Implement member functions for MeanCurvatureFlow class.
 #include "Mem-3dg.h"
+
 #include "Energy_Handler.h"
 #include "Beads.h"
+#include "Interaction.h"
+
+#include "BeadGeometry.h"
+
 #include <fstream>
 #include <omp.h>
 #include <sys/stat.h>

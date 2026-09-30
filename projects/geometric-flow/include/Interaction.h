@@ -13,38 +13,61 @@ using namespace geometrycentral::surface;
 
 class Interaction
 {
-
 public:
-    ManifoldSurfaceMesh *mesh;
-    VertexPositionGeometry *geometry;
+    virtual ~Interaction() = default;
 
-    // The interaction needs to know which bead it is
-    Bead *Bead_1;
-    // What are the parameters for the interaction
+    // Non-owning references/pointers. These objects must outlive Interaction.
+    ManifoldSurfaceMesh *mesh = nullptr;
+    VertexPositionGeometry *geometry = nullptr;
+    Bead *Bead_1 = nullptr;
 
     std::vector<double> Energy_constants;
 
-    std::vector<std::string> E_Features;
-    std::vector<int> E_Features_val;
-
-    virtual double Bond_energy();
-    virtual Vector3 Bond_force();
+    // Total interaction energy.
     virtual double Tot_Energy() = 0;
+
+    // Optional diagnostic: a vertex-associated energy density.
+    // For face interactions, this can distribute each face contribution
+    // equally among its three vertices.
     virtual VertexData<double> V_Tot_Energy() = 0;
+
+    // Optional diagnostic contribution at one vertex.
     virtual double V_Energy(Vertex v) = 0;
+
+    // Returns membrane force, namely -dE/dx_vertex.
+    // Any bead force must be added using:
+    // Bead_1->Total_force += beadForce;
     virtual VertexData<Vector3> Gradient() = 0;
+
+    // Keep these for Newton/L-BFGS infrastructure.
+    // Initially, Adhesion can return a zero sparse matrix.
     virtual SparseMatrix<double> Hessian() = 0;
     virtual SparseMatrix<double> Hessian_IP() = 0;
+
+    // Bead–bead interactions; default is no bond contribution.
+    virtual double Bond_energy();
+
+    virtual Vector3 Bond_force();
+
     virtual std::vector<Eigen::Triplet<double>> Hessian_bonds_triplet();
+    // These radial-potential functions should remain temporarily because
+    // existing LJ/Frenkel/etc. classes use them.
+    virtual double E_r(double r, std::vector<double> constants) = 0;
+    virtual double dE_r(double r, std::vector<double> constants) = 0;
+    virtual double ddE_r(double r, std::vector<double> constants) = 0;
 
-    virtual double E_r(double r, std::vector<double> Energy_constants) = 0;
-    virtual double dE_r(double r, std::vector<double> Energy_constants) = 0;
-    virtual double ddE_r(double r, std::vector<double> Energy_constants) = 0;
+    virtual double E_z(double z, std::vector<double> constants)
+    {
+        return 0.0;
+    }
 
-    virtual double E_z(double r, std::vector<double> Energy_constants) = 0;
-    virtual double dE_z(double r, std::vector<double> Energy_constants) = 0;
+    virtual double dE_z(double z, std::vector<double> constants)
+    {
+        return 0.0;
+    }
 
-    // virtual Vector3 F_r(double r,Vector3 r_vec, std::vector<double> Energy_constants) = 0;
+protected:
+    void validateSetup() const;
 };
 
 class No_mem_Inter : public Interaction
@@ -188,6 +211,91 @@ public:
     double dE_r(double r, std::vector<double> Energy_constants) = 0;
     double E_z(double r, std::vector<double> Energy_constants) = 0;
     double dE_z(double r, std::vector<double> Energy_constants) = 0;
+};
+
+class Face_Integrated_Interaction : public Interaction
+{
+public:
+    virtual ~Face_Integrated_Interaction() = default;
+
+    /*
+     * Return the energy contribution of one face.
+     *
+     * This is mostly useful for diagnostics and V_Tot_Energy().
+     */
+    virtual double Face_Energy(Face f) = 0;
+
+    /*
+     * Add the membrane and bead force associated with one face.
+     *
+     * membraneForce is accumulated with vertex forces.
+     * beadForce is accumulated locally, then added once to Total_force
+     * after all faces have been processed.
+     */
+    virtual void Add_Face_Force(
+        Face f,
+        VertexData<Vector3> &membraneForce,
+        Vector3 &beadForce) = 0;
+
+    double Tot_Energy() override;
+
+    VertexData<double> V_Tot_Energy() override;
+
+    double V_Energy(Vertex v) override;
+
+    VertexData<Vector3> Gradient() override;
+
+    /*
+     * Initially return an empty/zero Hessian. This is preferable to
+     * pretending an incorrect analytic Hessian exists.
+     */
+    SparseMatrix<double> Hessian() override;
+    SparseMatrix<double> Hessian_IP() override;
+
+    /*
+     * Face-integrated interactions do not necessarily have a scalar E(r)
+     * representation. These implementations exist only because the
+     * current Interaction interface requires them.
+     */
+    double E_r(double, std::vector<double>) override
+    {
+        return 0.0;
+    }
+
+    double dE_r(double, std::vector<double>) override
+    {
+        return 0.0;
+    }
+
+    double ddE_r(double, std::vector<double>) override
+    {
+        return 0.0;
+    }
+};
+
+class Adhesion : public Face_Integrated_Interaction
+{
+public:
+    Adhesion() = default;
+
+    Adhesion(ManifoldSurfaceMesh *inputMesh,
+             VertexPositionGeometry *inputGeometry,
+             std::vector<double> constants)
+    {
+        mesh = inputMesh;
+        geometry = inputGeometry;
+        Energy_constants = constants;
+    }
+
+    double Face_Energy(Face f) override;
+
+    void Add_Face_Force(
+        Face f,
+        VertexData<Vector3> &membraneForce,
+        Vector3 &beadForce) override;
+
+private:
+    double strength() const;
 };
 
 class Plane_Interaction : public Cilinder_Interaction

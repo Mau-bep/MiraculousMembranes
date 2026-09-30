@@ -31,6 +31,7 @@
 #include "Mem-3dg.h"
 #include "Beads.h"
 #include "Energy_Handler.h"
+#include "Interaction.h"
 #include "math.h"
 
 #include "io.hpp"
@@ -782,7 +783,7 @@ int main(int argc, char **argv)
                 Beads[bead_counter].FinalPos = Vector3({Bead_data["FinalPos"][0], Bead_data["FinalPos"][1], Bead_data["FinalPos"][2]});
             }
         }
-
+        Beads[bead_counter].CoverageForce = Vector3({0.0, 0.0, 0.0});
         bead_counter += 1;
     }
     std::cout << "The bead counter is " << bead_counter << "\n";
@@ -1565,8 +1566,13 @@ int main(int argc, char **argv)
 
         // std::cout<<
         start_time_control = chrono::steady_clock::now();
+        // if (current_t % 100 == 0)
+        // {
+        //     M3DG.Sim_handler->Debug_Coverage(M3DG.Sim_handler->Energy_constants[3]);
+        // }
         if (Integration == "Gradient_descent")
         {
+
             dt_sim = M3DG.integrate(Sim_data, time, Bead_filenames, Save_output_data);
         }
         else if (Integration == "BFGS")

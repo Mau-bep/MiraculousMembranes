@@ -71,13 +71,16 @@ public:
 
     virtual VertexData<double> Ev_Bending_tan(std::vector<double> Constants) const;
     virtual double V_Bending_tan(std::vector<double> Constants, Vertex v) const;
+    virtual double E_Coverage(std::vector<double> Constants) const;
 
     // We do the precomputed ones now
     // virtual double E_Area_constraint_precomp(std::vector<double> Constants) const;
     // virtual double E_SurfaceTension_precomp(std::vector<double> Constants) const;
     // virtual double E_Bending_precomp(std::vector<double> Constants) const;
     // virtual double E_Edge_reg_precomp(std::vector<double> Constants) const;
+    virtual void Debug_Coverage(std::vector<double> Constants) const;
 
+    virtual VertexData<Vector3> F_Coverage(std::vector<double> Constants);
     virtual VertexData<Vector3> F_Volume_constraint(std::vector<double> Constants) const;
     virtual VertexData<Vector3> F_SurfaceTension(std::vector<double> Constants) const;
     virtual VertexData<Vector3> F_MembraneTension(std::vector<double> Constants) const;

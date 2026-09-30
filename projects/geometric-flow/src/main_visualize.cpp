@@ -480,6 +480,8 @@ VertexData<Vector3> EnergyGrad(std::string Energy, std::vector<double> energyCon
         return Sim_handler.F_Edge_reg(energyConstants);
     if (Energy == "Bead")
         return Sim_handler.Beads[beadCount]->Bead_I->Gradient();
+    if (Energy == "Coverage")
+        return Sim_handler.F_Coverage(energyConstants);
     // If it is unkown we return a 0.0 vector
     VertexData<Vector3> Force(*mesh, Vector3{0.0, 0.0, 0.0});
     // For the bead energy i need to check how to do it

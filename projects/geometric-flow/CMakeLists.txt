@@ -102,6 +102,7 @@ set(SRCScluster
   src/Beads.cpp
   src/Interaction.cpp
   ../../utils/src/colormap.cpp
+  src/BeadGeometry.cpp
   # src/NormalNLP.cpp
   # src/ShapeNLP.cpp
 )
@@ -112,6 +113,7 @@ set(SRCSprocessing
   src/Beads.cpp
   src/Interaction.cpp
   ../../utils/src/colormap.cpp
+      src/BeadGeometry.cpp
 )
 
 set(SRCSvisualize 
@@ -121,6 +123,7 @@ set(SRCSvisualize
   src/Beads.cpp
   src/Interaction.cpp
   ../../utils/src/colormap.cpp
+      src/BeadGeometry.cpp
 )
 
 set(SRCSmainpreserv 
@@ -129,6 +132,7 @@ set(SRCSmainpreserv
   src/Beads.cpp
   src/Interaction.cpp
   ../../utils/src/colormap.cpp
+      src/BeadGeometry.cpp
 )
 
 # set(SRCSclusterbeads 
@@ -161,6 +165,7 @@ set(SRCSprocessingtube
   src/Beads.cpp
   src/Interaction.cpp
   ../../utils/src/colormap.cpp
+      src/BeadGeometry.cpp
 )
 
 # set(SRCSclusterforcefield 
@@ -190,6 +195,7 @@ set(TEST_hessian_SRCS
   src/Energy_Handler.cpp
   src/Interaction.cpp
   ../../utils/src/colormap.cpp
+      src/BeadGeometry.cpp
 )
 
 set(TEST_Grad_th_SRCS 
@@ -198,6 +204,7 @@ set(TEST_Grad_th_SRCS
   src/Beads.cpp
   src/Interaction.cpp
   ../../utils/src/colormap.cpp
+      src/BeadGeometry.cpp
 )
 
 set(TEST_fan_SRCS 
@@ -206,6 +213,7 @@ set(TEST_fan_SRCS
   src/Beads.cpp
   src/Interaction.cpp
   ../../utils/src/colormap.cpp
+      src/BeadGeometry.cpp
 )
 
 
