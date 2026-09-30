@@ -12,17 +12,17 @@ using namespace geometrycentral::surface;
 class E_Handler
 {
 public:
-    ManifoldSurfaceMesh *mesh;
-    VertexPositionGeometry *geometry;
+    ManifoldSurfaceMesh *mesh = nullptr;
+    VertexPositionGeometry *geometry = nullptr;
 
     std::vector<std::string> Energies;
     std::vector<std::vector<double>> Energy_constants;
     std::vector<std::string> Constraints;
     Eigen::VectorXd Lagrange_mult;
-    int N_constraints;
-    double Trgt_vol;
-    double Trgt_area;
-    bool boundary;
+    int N_constraints = 0;
+    double Trgt_vol = 0.0;
+    double Trgt_area = 0.0;
+    bool boundary = false;
     std::vector<Bead *> Beads;
 
     std::vector<double> Energy_values;

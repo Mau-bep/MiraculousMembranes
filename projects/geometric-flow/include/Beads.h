@@ -15,37 +15,37 @@ class Bead
 {
 
 public:
-  int Bead_id;
-  int Total_beads;
-  Vector3 Pos;
-  Vector3 Prev_Total_force;
-  Vector3 Total_force;
-  Vector3 CoverageForce;
-  double sigma;
-  double strength;
+  int Bead_id = 0;
+  int Total_beads = 0;
+  Vector3 Pos{0.0, 0.0, 0.0};
+  Vector3 Prev_Total_force{0.0, 0.0, 0.0};
+  Vector3 Total_force{0.0, 0.0, 0.0};
+  Vector3 CoverageForce{0.0, 0.0, 0.0};
+  double sigma = 0.0;
+  double strength = 0.0;
 
-  double rc;
-  double prev_force;
-  double prev_E_stationary;
+  double rc = -1.0;
+  double prev_force = 0.0;
+  double prev_E_stationary = 0.0;
 
   std::string state;
-  Vector3 Velocity;
-  Vector3 FinalPos;
+  Vector3 Velocity{0.0, 0.0, 0.0};
+  Vector3 FinalPos{0.0, 0.0, 0.0};
 
-  Vector3 Stopping_pos;
+  Vector3 Stopping_pos{0.0, 0.0, 0.0};
 
-  ManifoldSurfaceMesh *mesh;
-  VertexPositionGeometry *geometry;
+  ManifoldSurfaceMesh *mesh = nullptr;
+  VertexPositionGeometry *geometry = nullptr;
   std::string interaction;
   std::vector<Bead *> Beads;
   std::vector<std::string> Bond_type;
   // std::vector<double> Interaction_constants;
   std::vector<std::vector<double>> Interaction_constants_vector;
 
-  std::string Constraint;
+  std::string Constraint = "None";
   std::vector<double> Constraint_constants;
 
-  Interaction *Bead_I;
+  Interaction *Bead_I = nullptr;
 
   // constructors
   Bead() {};

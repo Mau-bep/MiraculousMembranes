@@ -80,7 +80,7 @@ void E_Handler::update_face_reference()
     }
 
     // Now i need to calculate the difference between the current area and the target area
-    double Total_A;
+    double Total_A = 0.0;
     double A_face;
     for (Face f : mesh->faces())
     {
