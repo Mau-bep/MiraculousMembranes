@@ -1047,19 +1047,6 @@ double Mem3DG::integrate(std::ofstream &Sim_data, double time, std::vector<std::
   if (Save_output_data)
     write_bead_rows(Bead_data_filenames);
 
-  // for (size_t bi = 0; bi < Beads.size(); bi++)
-  // {
-  //   if (Beads[bi]->state == "manual")
-  //   {
-  //     Vector3 Bpos = Beads[bi]->Pos;
-  //     if ((Bpos.norm2() < 4.0 && dot(Bpos, Beads[bi]->Velocity) < 0) || (Bpos.norm2() > 4.0 && dot(Bpos, Beads[bi]->Velocity) > 0)) // The 2.0 here is hardcoded and it means the radius of the vesicle
-  //     {
-  //       std::cout << "\t\t Manual bead because it moved too much\n";
-  //       std::cout << "The bead positions 2 is" << sqrt(Bpos.norm2()) << " \n";
-  //       Beads[bi]->state = "default";
-  //     }
-  //   }
-  // }
 
   return backtrackstep;
 }
@@ -2195,18 +2182,6 @@ VertexData<Vector3> Mem3DG::Grad_Bead(std::ofstream &Gradient_file, bool Save, b
     {
       difference = grad + grad_theory;
 
-      // I can do this i have grad and grad_theory so i can actually compare them
-
-      // I want to know a little more abt this direction.
-
-      // r= Bead_1.Pos- geometry->inputVertexPositions[v];
-      // r_dist=r.norm();
-      // r= r.unit();
-      // Area_grad=Grad_area[v].unit();
-      // // Area_grad= geometry->vertexNormalMeanCurvature(v).unit();
-
-      // double E_v=4*1.0*(pow(1.0/r_dist,12)-pow(1.0/r_dist,6));
-      // Vector3 F2=E_v *-1*geometry->vertexNormalMeanCurvature(v);
 
       Gradient_file << difference.x << " " << difference.y << " " << difference.z << " " << difference.norm() / grad.norm() << " " << difference.norm() << " " << grad.norm() / grad_theory.norm() << " \n"; //<< dot(r.unit(),difference.unit())<<" " << dot(Area_grad,difference.unit())<<" "<< dot(Area_grad,r.unit())<<" \n";//<< dot(r,HN) <<" \n" ;
       // difference= grad_theory;

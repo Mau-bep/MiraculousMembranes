@@ -43,10 +43,7 @@ public:
 
     void Add_Bead(Bead *bead);
 
-    void Add_Energy(std::string Energy_name, std::vector<double> Constants);
 
-    SparseMatrix<double> H1_operator(bool CM, bool Vol_const, bool Area_const);
-    SparseMatrix<double> H2_operator(bool CM, bool Vol_const, bool Area_const);
 
     virtual void update_face_reference();
     virtual void update_vertex_normals();
@@ -54,7 +51,6 @@ public:
     virtual double E_Volume_constraint(std::vector<double> Constants) const;
     virtual double E_Area_constraint(std::vector<double> Constants) const;
     virtual double E_SurfaceTension(std::vector<double> Constants) const;
-    virtual VertexData<double> Ev_SurfaceTension(std::vector<double> Constants) const;
 
     virtual double E_MembraneTension(std::vector<double> Constants) const;
     virtual double E_ExcessTension(std::vector<double> Constants) const;
@@ -63,7 +59,6 @@ public:
     // virtual double E_Bending_2(std::vector<double> Constants) const;
     virtual double E_Laplace(std::vector<double> Constants) const;
     virtual double E_Edge_reg(std::vector<double> Constants) const;
-    virtual double E_Edge_reg_2(std::vector<double> Constants) const;
     virtual double E_Face_reg(std::vector<double> Constants) const;
 
     virtual VertexData<double> Ev_Bending(std::vector<double> Constants) const;
@@ -103,23 +98,16 @@ public:
     // virtual VertexData<Vector3> F_SurfaceTension_precomp(std::vector<double> Constants) const;
 
     virtual SparseMatrix<double> H_SurfaceTension(std::vector<double> Constants);
-    virtual SparseMatrix<double> H_SurfaceTension_Verts(std::vector<double> Constants);
-    virtual SparseMatrix<double> H_SurfaceTension_Normal(std::vector<double> Constants);
     virtual SparseMatrix<double> H_Bending(std::vector<double> Constants);
     virtual SparseMatrix<double> H_Bending_tan(std::vector<double> Constants);
-    virtual SparseMatrix<double> H_Bending_2(std::vector<double> Constants);
     virtual SparseMatrix<double> H_Volume(std::vector<double> Constants);
-    virtual SparseMatrix<double> H_Volume_Verts(std::vector<double> Constants);
-    virtual SparseMatrix<double> H_Volume_Normal(std::vector<double> Constants);
 
     virtual SparseMatrix<double> H_Laplace(std::vector<double> Constants);
     virtual SparseMatrix<double> H_Edge_reg(std::vector<double> Constants);
-    virtual SparseMatrix<double> H_Edge_reg_2(std::vector<double> Constants);
     virtual SparseMatrix<double> H_Face_reg(std::vector<double> Constants);
 
     virtual void Calculate_energies(double *E);
     virtual void Calculate_Lag_norm(double *Norm);
-    virtual void Calculate_Merit(double *Norm);
     virtual void Calculate_Lag_norm_Normal(double *Norm);
 
     // THis function saves the value of the gradient to current gradient but before saves current gradient to previous gradient
@@ -135,11 +123,7 @@ public:
     virtual SparseMatrix<double> Calculate_Hessian_Normal();
     virtual SparseMatrix<double> Calculate_Hessian_Normal_clipped();
     virtual SparseMatrix<double> Calculate_Hessian_E();
-    virtual SparseMatrix<double> Calculate_Hessian_E_Verts();
     virtual SparseMatrix<double> Calculate_Hessian_Constraints();
-    virtual SparseMatrix<double> Calculate_Hessian_Constraints_Verts();
     virtual SparseMatrix<double> Calculate_Hessian_E_Normal();
-    virtual SparseMatrix<double> Calculate_Hessian_Constraints_Normal();
 
-    virtual void Do_nothing();
 };

@@ -1,0 +1,2122 @@
+// Legacy E_Handler code, not compiled.
+//
+// Functions nobody calls any more, moved out of src/Energy_Handler.cpp during the
+// cleanup, plus the commented-out code that was left in that file.
+
+void E_Handler::Add_Energy(std::string Energy_name, std::vector<double> Constants)
+{
+    Energies.push_back(Energy_name);
+    Energy_constants.push_back(Constants);
+}
+
+VertexData<double> E_Handler::Ev_SurfaceTension(std::vector<double> Constants) const
+{
+    VertexData<double> Ev(*mesh, 0.0);
+    for (Vertex v : mesh->vertices())
+    {
+        Ev[v] = Constants[0] * geometry->barycentricDualArea(v);
+    }
+    return Ev;
+}
+
+double E_Handler::E_Edge_reg_2(std::vector<double> Constants) const
+{
+
+    double E_edge = 0.0;
+    double KE = Constants[0];
+
+    // Ok perfect so now we add the energy
+    Halfedge he;
+    Eigen::Vector<double, 12> Positions;
+    Eigen::Vector<double, 5> Edge_lengths_prev;
+
+    EdgeData<double> Edge_lengths(*mesh);
+    for (Edge e : mesh->edges())
+    {
+        Edge_lengths[e] = geometry->edgeLength(e);
+    }
+
+    for (Edge e : mesh->edges())
+    {
+        if (e.isBoundary())
+            continue;
+        // I need to get the edge length
+        he = e.halfedge();
+
+        Positions << geometry->inputVertexPositions[he.vertex()].x, geometry->inputVertexPositions[he.vertex()].y, geometry->inputVertexPositions[he.vertex()].z,
+            geometry->inputVertexPositions[he.next().vertex()].x, geometry->inputVertexPositions[he.next().vertex()].y, geometry->inputVertexPositions[he.next().vertex()].z,
+            geometry->inputVertexPositions[he.next().next().vertex()].x, geometry->inputVertexPositions[he.next().next().vertex()].y, geometry->inputVertexPositions[he.next().next().vertex()].z,
+            geometry->inputVertexPositions[he.twin().next().next().vertex()].x, geometry->inputVertexPositions[he.twin().next().next().vertex()].y, geometry->inputVertexPositions[he.twin().next().next().vertex()].z;
+        Edge_lengths_prev << Edge_lengths[he.edge()],
+            Edge_lengths[he.next().next().edge()],
+            Edge_lengths[he.twin().next().edge()],
+            Edge_lengths[he.next().edge()],
+            Edge_lengths[he.twin().next().next().edge()];
+
+        E_edge += KE * geometry->Ej_edge_regular(Positions, Edge_lengths_prev);
+    }
+
+    return E_edge;
+}
+
+SparseMatrix<double> E_Handler::H_SurfaceTension_Verts(std::vector<double> Constants)
+{
+    // Ok so this functino will assemble the Hessi an for the surface tension energy
+    int nVerts = mesh->nVertices();
+    int nBeads = Beads.size();
+    double KA = Constants[0];
+    // Eigen::MatrixXd Hessian = Eigen::MatrixXd::Zero(nVerts,nVerts);
+    SparseMatrix<double> Hessian(3 * (nVerts), 3 * (nVerts));
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+    // Eigen::Matrix<double, nVerts, nVerts> Hessian;
+    Vertex v1;
+    Vertex v2;
+    Vertex v3;
+    Halfedge he;
+    size_t index1;
+    size_t index2;
+    size_t index3;
+    array<int, 3> indices;
+    //
+    for (Face f : mesh->faces())
+    {
+        //
+        he = f.halfedge();
+        v1 = he.vertex();
+        v2 = he.next().vertex();
+        v3 = he.next().next().vertex();
+        indices[0] = v1.getIndex();
+        indices[1] = v2.getIndex();
+        indices[2] = v3.getIndex();
+
+        // So we will add a modification for boundaries then check if it works :p
+        if (v1.isBoundary() || v2.isBoundary() || v3.isBoundary())
+            continue;
+
+        Eigen::Vector<double, 9> Positions;
+
+        Positions << geometry->inputVertexPositions[v1].x, geometry->inputVertexPositions[v1].y, geometry->inputVertexPositions[v1].z,
+            geometry->inputVertexPositions[v2].x, geometry->inputVertexPositions[v2].y, geometry->inputVertexPositions[v2].z,
+            geometry->inputVertexPositions[v3].x, geometry->inputVertexPositions[v3].y, geometry->inputVertexPositions[v3].z;
+
+        Eigen::Matrix<double, 9, 9> Hessian_block = geometry->hessian_triangle_area(Positions);
+        // Now i need to load this quantities onto a bigger matrix ...
+        for (int i = 0; i < 9; i++)
+        {
+            for (int j = 0; j < 9; j++)
+            {
+
+                // So i am at vertex ij  now the i and j correspond to a vertex  i = 0 1 2 (vertex 1 )  3 4 5 (vertex 2 ) 6 7 8 (vertex 3)
+                if (Hessian_block(i, j) > 1e-12 || Hessian_block(i, j) < -1e-12)
+                    tripletList.push_back(T(indices[i / 3] * 3 + i % 3, indices[j / 3] * 3 + j % 3, Hessian_block(i, j)));
+            }
+        }
+    }
+
+    for (auto &t : tripletList)
+    {
+        assert(t.row() >= 0 && t.row() < 3 * (nVerts) && "Row index OOB sur");
+        assert(t.col() >= 0 && t.col() < 3 * (nVerts) && "Col index OOB sur");
+    }
+    Hessian.setFromTriplets(tripletList.begin(), tripletList.end());
+    // That gives me the hessian of the surface tension :O.
+
+    return KA * Hessian;
+}
+
+SparseMatrix<double> E_Handler::H_SurfaceTension_Normal(std::vector<double> Constants)
+{
+    SparseMatrix<double> Hessian = H_SurfaceTension(Constants);
+    int N_verts = mesh->nVertices();
+    SparseMatrix<double> Normal_Hess(mesh->nVertices(), mesh->nVertices());
+
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+    double val;
+    Eigen::Vector<double, 3> Normal_i;
+    Eigen::Vector<double, 3> Normal_j;
+    Eigen::Matrix<double, 3, 3> Block;
+
+    std::unordered_set<std::pair<int, int>, MyHashForPairs> visited_pairs;
+
+    size_t row;
+    size_t col;
+    std::pair<int, int> current_pair;
+    for (int k = 0; k < Hessian.outerSize(); ++k)
+        for (SparseMatrix<double>::InnerIterator it(Hessian, k); it; ++it)
+        {
+            it.value();
+            row = it.row(); // row index
+            col = it.col(); // col index (here it is equal to k)
+
+            current_pair = make_pair(row / 3, col / 3);
+            //
+            if (visited_pairs.find(current_pair) != visited_pairs.end())
+            {
+                // This means that the pair has already been visited and we can skip it
+                continue;
+            }
+            else
+            {
+                visited_pairs.insert(current_pair);
+
+                Normal_i << Vertex_normals[row / 3].x, Vertex_normals[row / 3].y, Vertex_normals[row / 3].z;
+                Normal_j << Vertex_normals[col / 3].x, Vertex_normals[col / 3].y, Vertex_normals[col / 3].z;
+                Block = Hessian.block(row, col, 3, 3);
+                val = Normal_i.transpose() * Block * Normal_j;
+                // if (val > 1e-12 || val < -1e-12)
+                tripletList.push_back(T(row / 3, col / 3, val));
+            }
+            // And this is how u turn the block into the thing
+        }
+
+    Normal_Hess.setFromTriplets(tripletList.begin(), tripletList.end());
+    // std::cout<<"Hessian volume done\n";
+    return Normal_Hess;
+}
+
+SparseMatrix<double> E_Handler::H_Bending_2(std::vector<double> Constants)
+{
+    double KB = Constants[0];
+    double H0 = Constants[1];
+
+    int N_verts = mesh->nVertices();
+    int N_beads = Beads.size();
+    // std::cout<<"The number of beads is "<< N_beads <<"\n";
+    SparseMatrix<double> Hessian(3 * (N_verts + N_beads), 3 * (N_verts + N_beads));
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+
+    Eigen::Vector<double, 6> Positions_edge;
+    Eigen::Vector<double, 9> Positions_face;
+    Eigen::Vector<double, 12> Positions_dihedral;
+
+    Eigen::Vector<double, 6> Grad_edge;
+    Eigen::Vector<double, 9> Grad_face;
+    Eigen::Vector<double, 12> Grad_dihedral;
+
+    std::array<Vertex, 2> Vertices_edge;
+    std::array<Vertex, 3> Vertices_face;
+    std::array<Vertex, 4> Vertices_dihedral;
+
+    std::array<Vertex, 3> Vertices_face_2;
+    std::array<Vertex, 2> Vertices_edge_2;
+    std::array<Vertex, 4> Vertices_dihedral_2;
+
+    Eigen::Matrix<double, 6, 6> Hessian_block_edge;
+    Eigen::Matrix<double, 9, 9> Hessian_block_face;
+    Eigen::Matrix<double, 12, 12> Hessian_block_dihedral;
+
+    Halfedge he;
+    double constant;
+
+    VertexData<double> Dual_areas(*mesh, 0.0);
+    VertexData<double> Scalar_MC(*mesh, 0.0);
+    EdgeData<double> Edge_lengths(*mesh, 0.0);
+    EdgeData<double> Dihedral_angles(*mesh, 0.0);
+
+    for (Vertex v : mesh->vertices())
+    {
+        Dual_areas[v] = geometry->barycentricDualArea(v);
+        Scalar_MC[v] = geometry->scalarMeanCurvature(v);
+    }
+
+    for (Edge e : mesh->edges())
+    {
+        Edge_lengths[e] = geometry->edgeLength(e);
+        Dihedral_angles[e] = geometry->dihedralAngle(e.halfedge());
+    }
+
+    std::vector<Eigen::Vector<double, 9>> Gradients_areas;
+    std::vector<Eigen::Vector<double, 6>> Gradients_edges;
+    std::vector<Eigen::Vector<double, 12>> Gradients_dihedrals;
+
+    int id = 0;
+    for (Face f : mesh->faces())
+    {
+
+        he = f.halfedge();
+
+        Vertices_face[0] = he.vertex();
+        Vertices_face[1] = he.next().vertex();
+        Vertices_face[2] = he.next().next().vertex();
+        Positions_face << geometry->inputVertexPositions[Vertices_face[0]].x, geometry->inputVertexPositions[Vertices_face[0]].y, geometry->inputVertexPositions[Vertices_face[0]].z,
+            geometry->inputVertexPositions[Vertices_face[1]].x, geometry->inputVertexPositions[Vertices_face[1]].y, geometry->inputVertexPositions[Vertices_face[1]].z,
+            geometry->inputVertexPositions[Vertices_face[2]].x, geometry->inputVertexPositions[Vertices_face[2]].y, geometry->inputVertexPositions[Vertices_face[2]].z;
+
+        Grad_face = geometry->gradient_triangle_area(Positions_face);
+        Gradients_areas.push_back(Grad_face);
+    }
+
+    double dih1 = 0.0;
+    double dih2 = 0.0;
+    for (Edge e : mesh->edges())
+    {
+        Vertices_edge[0] = e.halfedge().vertex();
+        Vertices_edge[1] = e.halfedge().twin().vertex();
+
+        Vertices_dihedral[0] = e.halfedge().vertex();
+        Vertices_dihedral[1] = e.halfedge().next().vertex();
+        Vertices_dihedral[3] = e.halfedge().next().next().vertex();
+        Vertices_dihedral[2] = e.halfedge().twin().next().next().vertex();
+
+        Positions_edge << geometry->inputVertexPositions[Vertices_edge[0]].x, geometry->inputVertexPositions[Vertices_edge[0]].y, geometry->inputVertexPositions[Vertices_edge[0]].z,
+            geometry->inputVertexPositions[Vertices_edge[1]].x, geometry->inputVertexPositions[Vertices_edge[1]].y, geometry->inputVertexPositions[Vertices_edge[1]].z;
+        Positions_dihedral << geometry->inputVertexPositions[Vertices_dihedral[0]].x, geometry->inputVertexPositions[Vertices_dihedral[0]].y, geometry->inputVertexPositions[Vertices_dihedral[0]].z,
+            geometry->inputVertexPositions[Vertices_dihedral[1]].x, geometry->inputVertexPositions[Vertices_dihedral[1]].y, geometry->inputVertexPositions[Vertices_dihedral[1]].z,
+            geometry->inputVertexPositions[Vertices_dihedral[2]].x, geometry->inputVertexPositions[Vertices_dihedral[2]].y, geometry->inputVertexPositions[Vertices_dihedral[2]].z,
+            geometry->inputVertexPositions[Vertices_dihedral[3]].x, geometry->inputVertexPositions[Vertices_dihedral[3]].y, geometry->inputVertexPositions[Vertices_dihedral[3]].z;
+
+        Grad_edge = geometry->gradient_edge_length(Positions_edge);
+        Gradients_edges.push_back(Grad_edge);
+
+        Grad_dihedral = geometry->gradient_dihedral_angle(Positions_dihedral);
+        Gradients_dihedrals.push_back(Grad_dihedral);
+        // std::cout<<"The edge " << e.getIndex() << "has a edge grad = " << Gradients_edges[e.getIndex()].transpose() <<"\n and dihedral = " << Gradients_dihedrals[e.getIndex()].transpose()<< "\n";
+    }
+
+    // I have calculated all the quantities that i will be needing, this takes a lot of memory but lets hope its worth it ahah
+
+    // Lets iterate over the faces
+    Eigen::Matrix<double, 9, 12> M_9_12;
+    Eigen::Matrix<double, 9, 6> M_9_6;
+    Eigen::Matrix<double, 9, 9> M_9_9;
+    Eigen::Matrix<double, 6, 6> M_6_6;
+    Eigen::Matrix<double, 6, 12> M_6_12;
+    Eigen::Matrix<double, 12, 6> M_12_6;
+    Eigen::Matrix<double, 12, 12> M_12_12;
+    Eigen::Matrix<double, 6, 9> M_6_9;
+    Eigen::Matrix<double, 12, 9> M_12_9;
+    size_t max_id = 0;
+    for (Face f : mesh->faces())
+    {
+
+        he = f.halfedge();
+        Grad_face = Gradients_areas[f.getIndex()];
+
+        Vertices_face[0] = he.vertex();
+        Vertices_face[1] = he.next().vertex();
+        Vertices_face[2] = he.next().next().vertex();
+
+        if (Vertices_face[0].isBoundary() || Vertices_face[1].isBoundary() || Vertices_face[2].isBoundary())
+            continue;
+
+        for (Vertex v : f.adjacentVertices())
+        {
+
+            constant = -1 * (1.0 / 6.0) * (Scalar_MC[v.getIndex()] - H0) / (Dual_areas[v.getIndex()] * Dual_areas[v.getIndex()]);
+            for (Edge e : v.adjacentEdges())
+            {
+                he = e.halfedge();
+                Vertices_dihedral[0] = he.vertex();
+                Vertices_dihedral[1] = he.next().vertex();
+                Vertices_dihedral[3] = he.next().next().vertex();
+                Vertices_dihedral[2] = he.twin().next().next().vertex();
+
+                Vertices_edge[0] = he.vertex();
+                Vertices_edge[1] = he.next().vertex();
+
+                M_9_12 = constant * Edge_lengths[e.getIndex()] * Grad_face * Gradients_dihedrals[e.getIndex()].transpose();
+
+                for (size_t row = 0; row < 9; row++)
+                {
+                    for (size_t col = 0; col < 12; col++)
+                    {
+                        tripletList.push_back(T(Vertices_face[row / 3].getIndex() * 3 + row % 3, Vertices_dihedral[col / 3].getIndex() * 3 + col % 3, M_9_12(row, col)));
+                    }
+                }
+
+                M_9_6 = constant * Dihedral_angles[e] * Grad_face * Gradients_edges[e.getIndex()].transpose();
+
+                for (size_t row = 0; row < 9; row++)
+                {
+                    for (size_t col = 0; col < 6; col++)
+                    {
+                        tripletList.push_back(T(Vertices_face[row / 3].getIndex() * 3 + row % 3, Vertices_edge[col / 3].getIndex() * 3 + col % 3, M_9_6(row, col)));
+                    }
+                }
+
+                M_6_9 = constant * Dihedral_angles[e] * Gradients_edges[e.getIndex()] * Grad_face.transpose();
+
+                for (size_t row = 0; row < 6; row++)
+                {
+                    for (size_t col = 0; col < 9; col++)
+                    {
+                        tripletList.push_back(T(Vertices_edge[row / 3].getIndex() * 3 + row % 3, Vertices_face[col / 3].getIndex() * 3 + col % 3, M_6_9(row, col)));
+                    }
+                }
+
+                M_12_9 = constant * Edge_lengths[e.getIndex()] * Gradients_dihedrals[e.getIndex()] * Grad_face.transpose();
+
+                for (size_t row = 0; row < 12; row++)
+                {
+                    for (size_t col = 0; col < 9; col++)
+                    {
+                        tripletList.push_back(T(Vertices_dihedral[row / 3].getIndex() * 3 + row % 3, Vertices_face[col / 3].getIndex() * 3 + col % 3, M_12_9(row, col)));
+                    }
+                }
+            }
+
+            constant = (2.0 / 9.0) * (Scalar_MC[v.getIndex()] - H0) * (Scalar_MC[v.getIndex()] - H0) / (Dual_areas[v.getIndex()] * Dual_areas[v.getIndex()] * Dual_areas[v.getIndex()]);
+
+            for (Face f2 : v.adjacentFaces())
+            {
+                he = f2.halfedge();
+
+                Vertices_face_2[0] = he.vertex();
+                Vertices_face_2[1] = he.next().vertex();
+                Vertices_face_2[2] = he.next().next().vertex();
+
+                M_9_9 = constant * Grad_face * Gradients_areas[f2.getIndex()].transpose();
+                for (size_t row = 0; row < 9; row++)
+                {
+                    for (size_t col = 0; col < 9; col++)
+                    {
+
+                        tripletList.push_back(T(Vertices_face[row / 3].getIndex() * 3 + row % 3, Vertices_face_2[col / 3].getIndex() * 3 + col % 3, M_9_9(row, col)));
+                        // if(isnan(M_9_9(row,col))) std::cout<<" nan flag 3 \n";
+                    }
+                }
+            }
+
+            // And last but not least we have the hessian term
+
+            constant = -1 * (1.0 / 3.0) * (Scalar_MC[v.getIndex()] - H0) * (Scalar_MC[v.getIndex()] - H0) / (Dual_areas[v.getIndex()] * Dual_areas[v.getIndex()]);
+
+            Positions_face << geometry->inputVertexPositions[Vertices_face[0]].x, geometry->inputVertexPositions[Vertices_face[0]].y, geometry->inputVertexPositions[Vertices_face[0]].z,
+                geometry->inputVertexPositions[Vertices_face[1]].x, geometry->inputVertexPositions[Vertices_face[1]].y, geometry->inputVertexPositions[Vertices_face[1]].z,
+                geometry->inputVertexPositions[Vertices_face[2]].x, geometry->inputVertexPositions[Vertices_face[2]].y, geometry->inputVertexPositions[Vertices_face[2]].z;
+
+            M_9_9 = constant * geometry->hessian_triangle_area(Positions_face);
+
+            for (size_t row = 0; row < 9; row++)
+            {
+                for (size_t col = 0; col < 9; col++)
+                {
+                    tripletList.push_back(T(Vertices_face[row / 3].getIndex() * 3 + row % 3, Vertices_face[col / 3].getIndex() * 3 + col % 3, M_9_9(row, col)));
+                    // if(isnan(M_9_9(row,col))) std::cout<<" nan flag 4 \n";
+                }
+            }
+        }
+    }
+    // And those are all the terms at the sum over all the vertices (On paper is term I)
+
+    for (Edge e : mesh->edges())
+    {
+        he = e.halfedge();
+
+        Vertices_edge[0] = he.vertex();
+        Vertices_edge[1] = he.twin().vertex();
+
+        Vertices_dihedral[0] = he.vertex();
+        Vertices_dihedral[1] = he.next().vertex();
+        Vertices_dihedral[3] = he.next().next().vertex();
+        Vertices_dihedral[2] = he.twin().next().next().vertex();
+
+        if (Vertices_edge[0].isBoundary() || Vertices_edge[1].isBoundary() || Vertices_dihedral[2].isBoundary() || Vertices_dihedral[3].isBoundary())
+            continue;
+
+        for (Vertex v : e.adjacentVertices())
+        {
+            constant = 1.0 / (8.0 * Dual_areas[v.getIndex()]);
+            for (Edge e2 : v.adjacentEdges())
+            {
+                Vertices_edge_2[0] = e2.halfedge().vertex();
+                Vertices_edge_2[1] = e2.halfedge().twin().vertex();
+
+                M_6_6 = constant * Dihedral_angles[e.getIndex()] * Dihedral_angles[e2.getIndex()] * Gradients_edges[e.getIndex()] * Gradients_edges[e2.getIndex()].transpose();
+
+                for (size_t row = 0; row < 6; row++)
+                {
+                    for (size_t col = 0; col < 6; col++)
+                    {
+                        tripletList.push_back(T(Vertices_edge[row / 3].getIndex() * 3 + row % 3, Vertices_edge_2[col / 3].getIndex() * 3 + col % 3, M_6_6(row, col)));
+                        // if(isnan(M_6_6(row,col))) std::cout<<" nan flag 5 \n";
+                    }
+                }
+
+                he = e2.halfedge();
+                Vertices_dihedral_2[0] = he.vertex();
+                Vertices_dihedral_2[1] = he.next().vertex();
+                Vertices_dihedral_2[3] = he.next().next().vertex();
+                Vertices_dihedral_2[2] = he.twin().next().next().vertex();
+
+                M_6_12 = constant * Dihedral_angles[e.getIndex()] * Edge_lengths[e2.getIndex()] * Gradients_edges[e.getIndex()] * Gradients_dihedrals[e2.getIndex()].transpose();
+
+                for (size_t row = 0; row < 6; row++)
+                {
+                    for (size_t col = 0; col < 12; col++)
+                    {
+                        tripletList.push_back(T(Vertices_edge[row / 3].getIndex() * 3 + row % 3, Vertices_dihedral_2[col / 3].getIndex() * 3 + col % 3, M_6_12(row, col)));
+                        // if(isnan(M_6_12(row,col))) std::cout<<" nan flag 6 \n";
+                    }
+                }
+
+                M_12_6 = constant * Edge_lengths[e.getIndex()] * Dihedral_angles[e2.getIndex()] * Gradients_dihedrals[e.getIndex()] * Gradients_edges[e2.getIndex()].transpose();
+
+                for (size_t row = 0; row < 12; row++)
+                {
+                    for (size_t col = 0; col < 6; col++)
+                    {
+                        tripletList.push_back(T(Vertices_dihedral[row / 3].getIndex() * 3 + row % 3, Vertices_edge_2[col / 3].getIndex() * 3 + col % 3, M_12_6(row, col)));
+                        // if(isnan(M_12_6(row,col))) std::cout<<" nan flag 7 \n";
+                    }
+                }
+
+                M_12_12 = constant * Edge_lengths[e.getIndex()] * Edge_lengths[e2.getIndex()] * Gradients_dihedrals[e.getIndex()] * Gradients_dihedrals[e2.getIndex()].transpose();
+
+                for (size_t row = 0; row < 12; row++)
+                {
+                    for (size_t col = 0; col < 12; col++)
+                    {
+                        tripletList.push_back(T(Vertices_dihedral[row / 3].getIndex() * 3 + row % 3, Vertices_dihedral_2[col / 3].getIndex() * 3 + col % 3, M_12_12(row, col)));
+                        // if(isnan(M_12_12(row,col))) std::cout<<"  8 \n";
+                    }
+                }
+            }
+
+            // Those are the first terms
+            // I MOVED THIS TERMS TO THE OTHER SUMMATION
+
+            constant = (1.0 / 2.0) * (Scalar_MC[v.getIndex()] - H0) / (Dual_areas[v.getIndex()]);
+
+            M_6_12 = constant * Gradients_edges[e.getIndex()] * Gradients_dihedrals[e.getIndex()].transpose();
+
+            for (size_t row = 0; row < 6; row++)
+            {
+                for (size_t col = 0; col < 12; col++)
+                {
+                    tripletList.push_back(T(Vertices_edge[row / 3].getIndex() * 3 + row % 3, Vertices_dihedral[col / 3].getIndex() * 3 + col % 3, M_6_12(row, col)));
+                }
+            }
+
+            M_12_6 = constant * Gradients_dihedrals[e.getIndex()] * Gradients_edges[e.getIndex()].transpose();
+
+            for (size_t row = 0; row < 12; row++)
+            {
+                for (size_t col = 0; col < 6; col++)
+                {
+                    tripletList.push_back(T(Vertices_dihedral[row / 3].getIndex() * 3 + row % 3, Vertices_edge[col / 3].getIndex() * 3 + col % 3, M_12_6(row, col)));
+                }
+            }
+
+            Positions_dihedral << geometry->inputVertexPositions[Vertices_dihedral[0]].x, geometry->inputVertexPositions[Vertices_dihedral[0]].y, geometry->inputVertexPositions[Vertices_dihedral[0]].z,
+                geometry->inputVertexPositions[Vertices_dihedral[1]].x, geometry->inputVertexPositions[Vertices_dihedral[1]].y, geometry->inputVertexPositions[Vertices_dihedral[1]].z,
+                geometry->inputVertexPositions[Vertices_dihedral[2]].x, geometry->inputVertexPositions[Vertices_dihedral[2]].y, geometry->inputVertexPositions[Vertices_dihedral[2]].z,
+                geometry->inputVertexPositions[Vertices_dihedral[3]].x, geometry->inputVertexPositions[Vertices_dihedral[3]].y, geometry->inputVertexPositions[Vertices_dihedral[3]].z;
+
+            M_12_12 = constant * Edge_lengths[e.getIndex()] * geometry->hessian_dihedral_angle(Positions_dihedral);
+
+            for (size_t row = 0; row < 12; row++)
+            {
+                for (size_t col = 0; col < 12; col++)
+                {
+                    if (M_12_12(row, col) > 1e-12 || M_12_12(row, col) < -1e-12)
+                        tripletList.push_back(T(Vertices_dihedral[row / 3].getIndex() * 3 + row % 3, Vertices_dihedral[col / 3].getIndex() * 3 + col % 3, M_12_12(row, col)));
+                }
+            }
+
+            Positions_edge << geometry->inputVertexPositions[Vertices_edge[0]].x, geometry->inputVertexPositions[Vertices_edge[0]].y, geometry->inputVertexPositions[Vertices_edge[0]].z,
+                geometry->inputVertexPositions[Vertices_edge[1]].x, geometry->inputVertexPositions[Vertices_edge[1]].y, geometry->inputVertexPositions[Vertices_edge[1]].z;
+
+            M_6_6 = constant * Dihedral_angles[e.getIndex()] * geometry->hessian_edge_length(Positions_edge);
+
+            for (size_t row = 0; row < 6; row++)
+            {
+                for (size_t col = 0; col < 6; col++)
+                {
+                    tripletList.push_back(T(Vertices_edge[row / 3].getIndex() * 3 + row % 3, Vertices_edge[col / 3].getIndex() * 3 + col % 3, M_6_6(row, col)));
+                }
+            }
+
+        } // Sumation over adjacent vertices
+
+        // Here we do the last terms
+
+    } // Summation over edges
+
+    Hessian.setFromTriplets(tripletList.begin(), tripletList.end());
+
+    return KB * Hessian;
+}
+
+SparseMatrix<double> E_Handler::H_Volume_Verts(std::vector<double> Constants)
+{
+    // std::cout<<"Hessian volume\n";
+    double KV = Constants[0];
+
+    int N_verts = mesh->nVertices();
+    int N_beads = Beads.size();
+    SparseMatrix<double> Hessian(3 * (N_verts), 3 * (N_verts));
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+
+    Eigen::Matrix<double, 9, 9> Hessian_block_vol;
+    Eigen::Vector<double, 9> Positions;
+    std::vector<Vertex> Vertices(3);
+    Halfedge he;
+    Eigen::Matrix3d Zeros = Eigen::Matrix3d::Zero();
+
+    for (Face f : mesh->faces())
+    {
+        he = f.halfedge();
+        Vertices[0] = he.vertex();
+        Vertices[1] = he.next().vertex();
+        Vertices[2] = he.next().next().vertex();
+
+        Positions << geometry->inputVertexPositions[Vertices[0]].x, geometry->inputVertexPositions[Vertices[0]].y, geometry->inputVertexPositions[Vertices[0]].z,
+            geometry->inputVertexPositions[Vertices[1]].x, geometry->inputVertexPositions[Vertices[1]].y, geometry->inputVertexPositions[Vertices[1]].z,
+            geometry->inputVertexPositions[Vertices[2]].x, geometry->inputVertexPositions[Vertices[2]].y, geometry->inputVertexPositions[Vertices[2]].z;
+
+        // Now we do the hesian thingy
+        Hessian_block_vol = geometry->hessian_volume(Positions);
+
+        for (size_t row = 0; row < 9; row++)
+        {
+            for (size_t col = 0; col < 9; col++)
+            {
+                if (Hessian_block_vol(row, col) > 1e-12 || Hessian_block_vol(row, col) < -1e-12)
+                    tripletList.push_back(T(Vertices[row / 3].getIndex() * 3 + row % 3, Vertices[col / 3].getIndex() * 3 + col % 3, Hessian_block_vol(row, col)));
+            }
+        }
+    }
+
+    for (auto &t : tripletList)
+    {
+        assert(t.row() >= 0 && t.row() < 3 * (N_verts) && "Row index OOB VOL");
+        assert(t.col() >= 0 && t.col() < 3 * (N_verts) && "Col index OOB VOL");
+    }
+    Hessian.setFromTriplets(tripletList.begin(), tripletList.end());
+
+    // std::cout<<"Hessian volume done\n";
+    return KV * Hessian;
+}
+
+SparseMatrix<double> E_Handler::H_Volume_Normal(std::vector<double> Constants)
+{
+    SparseMatrix<double> Hessian = H_Volume(Constants);
+    int N_verts = mesh->nVertices();
+    SparseMatrix<double> Normal_Hess(mesh->nVertices(), mesh->nVertices());
+
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+    double val;
+    Eigen::Vector<double, 3> Normal_i;
+    Eigen::Vector<double, 3> Normal_j;
+    Eigen::Matrix<double, 3, 3> Block;
+
+    std::unordered_set<std::pair<int, int>, MyHashForPairs> visited_pairs;
+
+    size_t row;
+    size_t col;
+    std::pair<int, int> current_pair;
+    for (int k = 0; k < Hessian.outerSize(); ++k)
+        for (SparseMatrix<double>::InnerIterator it(Hessian, k); it; ++it)
+        {
+            it.value();
+            row = it.row(); // row index
+            col = it.col(); // col index (here it is equal to k)
+
+            current_pair = make_pair(row / 3, col / 3);
+            //
+            if (visited_pairs.find(current_pair) != visited_pairs.end())
+            {
+                // This means that the pair has already been visited and we can skip it
+                continue;
+            }
+            else
+            {
+                visited_pairs.insert(current_pair);
+
+                Normal_i << Vertex_normals[row / 3].x, Vertex_normals[row / 3].y, Vertex_normals[row / 3].z;
+                Normal_j << Vertex_normals[col / 3].x, Vertex_normals[col / 3].y, Vertex_normals[col / 3].z;
+                Block = Hessian.block(row, col, 3, 3);
+                val = Normal_i.transpose() * Block * Normal_j;
+                // if (val > 1e-12 || val < -1e-12)
+                tripletList.push_back(T(row / 3, col / 3, val));
+            }
+            // And this is how u turn the block into the thing
+        }
+
+    Normal_Hess.setFromTriplets(tripletList.begin(), tripletList.end());
+    // std::cout<<"Hessian volume done\n";
+    return Normal_Hess;
+}
+
+SparseMatrix<double> E_Handler::H_Edge_reg_2(std::vector<double> Constants)
+{
+    // Lets get this hessian
+    double KE = Constants[0];
+
+    int N_verts = mesh->nVertices();
+    int N_beads = Beads.size();
+    SparseMatrix<double> Hessian(3 * (N_verts + N_beads), 3 * (N_verts + N_beads));
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+
+    Eigen::Matrix<double, 12, 12> Hessian_block_edge;
+    Eigen::Vector<double, 12> Positions;
+    std::vector<Vertex> Vertices(4);
+    Halfedge he;
+    Eigen::Matrix3d Zeros = Eigen::Matrix3d::Zero();
+
+    EdgeData<double> Edge_lengths(*mesh, 0.0);
+
+    Eigen::Vector<double, 5> Edge_lengths_prev;
+
+    for (Edge e : mesh->edges())
+    {
+        Edge_lengths[e] = geometry->edgeLength(e);
+        // std::cout<<"" << e.getIndex() << " and its length is " << Edge_lengths[e] << "\n";
+    }
+
+    for (Edge e : mesh->edges())
+    {
+        he = e.halfedge();
+        Vertices[0] = he.vertex();
+        Vertices[1] = he.next().vertex();
+        Vertices[2] = he.next().next().vertex();
+        Vertices[3] = he.twin().next().next().vertex();
+
+        Positions << geometry->inputVertexPositions[Vertices[0]].x, geometry->inputVertexPositions[Vertices[0]].y, geometry->inputVertexPositions[Vertices[0]].z,
+            geometry->inputVertexPositions[Vertices[1]].x, geometry->inputVertexPositions[Vertices[1]].y, geometry->inputVertexPositions[Vertices[1]].z,
+            geometry->inputVertexPositions[Vertices[2]].x, geometry->inputVertexPositions[Vertices[2]].y, geometry->inputVertexPositions[Vertices[2]].z,
+            geometry->inputVertexPositions[Vertices[3]].x, geometry->inputVertexPositions[Vertices[3]].y, geometry->inputVertexPositions[Vertices[3]].z;
+
+        Edge_lengths_prev << Edge_lengths[he.edge()],
+            Edge_lengths[he.next().next().edge()],
+            Edge_lengths[he.twin().next().edge()],
+            Edge_lengths[he.next().edge()],
+            Edge_lengths[he.twin().next().next().edge()];
+        // Now we do the hesian thingy
+        Hessian_block_edge = geometry->hessian_edge_regular(Positions, Edge_lengths_prev);
+        // std::cout<<"block calculated\n";
+        for (size_t row = 0; row < 12; row++)
+        {
+            for (size_t col = 0; col < 12; col++)
+            {
+                if (Hessian_block_edge(row, col) > 1e-12 || Hessian_block_edge(row, col) < -1e-12)
+                    tripletList.push_back(T(Vertices[row / 3].getIndex() * 3 + row % 3, Vertices[col / 3].getIndex() * 3 + col % 3, Hessian_block_edge(row, col)));
+            }
+        }
+    }
+
+    Hessian.setFromTriplets(tripletList.begin(), tripletList.end());
+
+    return KE * Hessian;
+}
+
+void E_Handler::Calculate_Merit(double *Norm)
+{
+    *Norm = 0;
+    Energy_values.resize(Energies.size());
+
+    int bead_count = 0;
+    for (size_t i = 0; i < Energies.size(); i++)
+    {
+        if (Energies[i] == "Volume_constraint")
+        {
+            if (Energy_constants[i][0] > 1e-5)
+                Energy_values[i] = E_Volume_constraint(Energy_constants[i]);
+            else
+                Energy_values[i] = 0.0;
+            *Norm += Energy_values[i];
+            continue;
+        }
+        if (Energies[i] == "Area_constraint")
+        {
+            if (Energy_constants[i][0] > 1e-5)
+                Energy_values[i] = E_Area_constraint(Energy_constants[i]);
+            else
+                Energy_values[i] = 0.0;
+
+            // std::cout<<"THe target area is " << Energy_constants[i][1] <<" \n";
+            *Norm += Energy_values[i];
+            continue;
+        }
+        if (Energies[i] == "Surface_tension" || Energies[i] == "H1_Surface_tension" || Energies[i] == "H2_Surface_tension")
+        {
+            if (Energy_constants[i][0] < 1e-5)
+            {
+                Energy_values[i] = 0.0;
+                continue;
+            }
+            Energy_values[i] = E_SurfaceTension(Energy_constants[i]);
+            *Norm += Energy_values[i];
+            continue;
+        }
+        if (Energies[i] == "Bending" || Energies[i] == "H1_Bending" || Energies[i] == "H2_Bending")
+        {
+            if (Energy_constants[i][0] < 1e-5)
+            {
+                Energy_values[i] = 0.0;
+                continue;
+            }
+
+            Energy_values[i] = E_Bending(Energy_constants[i]);
+            *Norm += Energy_values[i];
+            continue;
+        }
+        if (Energies[i] == "Bending_tan")
+        {
+            if (Energy_constants[i][0] < 1e-5)
+            {
+                Energy_values[i] = 0.0;
+                continue;
+            }
+
+            Energy_values[i] = E_Bending_tan(Energy_constants[i]);
+            *Norm += Energy_values[i];
+            continue;
+        }
+        if (Energies[i] == "Bead" || Energies[i] == "H1_Bead" || Energies[i] == "H2_Bead")
+        {
+            Energy_values[i] = Beads[bead_count]->Bead_I->Tot_Energy();
+            *Norm += Energy_values[i];
+            bead_count++;
+            continue;
+        }
+        if (Energies[i] == "Laplace")
+        {
+            Energy_values[i] = E_Laplace(Energy_constants[i]);
+            *Norm += Energy_values[i];
+            continue;
+        }
+
+        if (Energies[i] == "Edge_reg")
+        {
+            Energy_values[i] = E_Edge_reg(Energy_constants[i]);
+            *Norm += Energy_values[i];
+            continue;
+        }
+        if (Energies[i] == "Face_reg")
+        {
+            if (Face_reference.size() == 0)
+            {
+                update_face_reference();
+            }
+            Energy_values[i] = E_Face_reg(Energy_constants[i]);
+            *Norm += Energy_values[i];
+            continue;
+        }
+    }
+
+    double val;
+    // I need to add the beads
+    for (int i = 0; i < N_constraints; i++)
+    {
+        if (Constraints[i] == "Volume")
+        {
+            val = (geometry->totalVolume() - Trgt_vol);
+            *Norm += val * val;
+        }
+        if (Constraints[i] == "Area")
+        {
+            val = (geometry->totalArea() - Trgt_area);
+            *Norm += val * val;
+        }
+    }
+}
+
+SparseMatrix<double> E_Handler::Calculate_Hessian_E_Verts()
+{
+    SparseMatrix<double> Hessian_Verts(mesh->nVertices() * 3, mesh->nVertices() * 3);
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+    SparseMatrix<double> Full_hessian = Calculate_Hessian_E();
+    size_t row;
+    size_t col;
+    for (int k = 0; k < Full_hessian.outerSize(); ++k)
+        for (SparseMatrix<double>::InnerIterator it(Full_hessian, k); it; ++it)
+        {
+            it.value();
+            row = it.row(); // row index
+            col = it.col(); // col index (here it is equal to k)
+
+            if (row < mesh->nVertices() * 3 && col < mesh->nVertices() * 3)
+            {
+                tripletList.push_back(T(row, col, it.value()));
+            }
+        }
+    Hessian_Verts.setFromTriplets(tripletList.begin(), tripletList.end());
+    return Hessian_Verts;
+}
+
+SparseMatrix<double> E_Handler::Calculate_Hessian_Constraints_Verts()
+{
+    SparseMatrix<double> Hessian_Verts(mesh->nVertices() * 3, mesh->nVertices() * 3);
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+    SparseMatrix<double> Full_hessian = Calculate_Hessian_Constraints();
+    size_t row;
+    size_t col;
+    for (int k = 0; k < Full_hessian.outerSize(); ++k)
+        for (SparseMatrix<double>::InnerIterator it(Full_hessian, k); it; ++it)
+        {
+            it.value();
+            row = it.row(); // row index
+            col = it.col(); // col index (here it is equal to k)
+
+            if (row < mesh->nVertices() * 3 && col < mesh->nVertices() * 3)
+            {
+                tripletList.push_back(T(row, col, it.value()));
+            }
+        }
+    Hessian_Verts.setFromTriplets(tripletList.begin(), tripletList.end());
+    return Hessian_Verts;
+}
+
+SparseMatrix<double> E_Handler::Calculate_Hessian_Constraints_Normal()
+{
+    // This hessian uses the vertex normals that have been previously calculated and stored in M3DG
+    int N_verts = mesh->nVertices();
+    // int N_beads = Beads.size();
+    std::vector<double> Energy_constants_val;
+    SparseMatrix<double> Hessian(N_verts, N_verts);
+
+    SparseMatrix<double> Full_hessian = Calculate_Hessian_Constraints();
+
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+
+    double val;
+    Eigen::Vector<double, 3> Normal_i;
+    Eigen::Vector<double, 3> Normal_j;
+    Eigen::Matrix<double, 3, 3> Block;
+
+    std::unordered_set<std::pair<int, int>, MyHashForPairs> visited_pairs;
+
+    size_t row;
+    size_t col;
+    std::pair<int, int> current_pair;
+    for (int k = 0; k < Full_hessian.outerSize(); ++k)
+        for (SparseMatrix<double>::InnerIterator it(Full_hessian, k); it; ++it)
+        {
+            it.value();
+            row = it.row(); // row index
+            col = it.col(); // col index (here it is equal to k)
+
+            current_pair = make_pair(row / 3, col / 3);
+            //
+            if (current_pair.first >= N_verts || current_pair.second >= N_verts)
+            {
+                // This means that we are in the bead part of the hessian and we can skip it
+                std::cout << "Skipping bead part of the hessian THAT DOESNT EXIST\n";
+                continue;
+            }
+            if (visited_pairs.find(current_pair) != visited_pairs.end())
+            {
+                // This means that the pair has already been visited and we can skip it
+                continue;
+            }
+            else
+            {
+                visited_pairs.insert(current_pair);
+
+                Normal_i << Vertex_normals[row / 3].x, Vertex_normals[row / 3].y, Vertex_normals[row / 3].z;
+                Normal_j << Vertex_normals[col / 3].x, Vertex_normals[col / 3].y, Vertex_normals[col / 3].z;
+                Block = Full_hessian.block(row, col, 3, 3);
+                val = Normal_i.transpose() * Block * Normal_j;
+                // if (val > 1e-12 || val < -1e-12)
+                tripletList.push_back(T(row / 3, col / 3, val));
+            }
+            // And this is how u turn the block into the thing
+        }
+
+    Hessian.setFromTriplets(tripletList.begin(), tripletList.end());
+    return Hessian;
+}
+
+void E_Handler::Do_nothing()
+{
+    // This function does nothing, it is just a placeholder
+    return;
+}
+
+// ---- from Energy_Handler.cpp, around line 255
+// double E_Handler::E_Bending(std::vector<double> Constants) const
+// {
+//     double KB = Constants[0];
+//     double H0 = Constants[1];
+//     size_t index;
+//     double Eb = 0;
+//     double H;
+//     double r_eff2;
+//     Vector3 Pos;
+//     double A;
+//     geometry->requireVertexDualAreas();
+//     geometry->requireVertexMeanCurvatures(); // Ineed to make sure that its he same value as the one i use
+//     for (Vertex v : mesh->vertices())
+//     {
+//         // boundary_fix
+//         if (v.isBoundary())
+//             continue;
+
+//         index = v.getIndex();
+//         Pos = geometry->inputVertexPositions[v];
+//         r_eff2 = Pos.z * Pos.z + Pos.y * Pos.y;
+//         if (r_eff2 > 1.6 && boundary)
+//             continue;
+
+//         A = geometry->vertexDualAreas[v];
+//         H = (geometry->vertexMeanCurvatures[v] / A - H0);
+
+//         if (std::isnan(H))
+//             continue;
+
+//         Eb += KB * H * H * A;
+//     }
+//     geometry->unrequireVertexDualAreas();
+//     geometry->unrequireVertexMeanCurvatures();
+//     return Eb;
+// }
+
+// ---- from Energy_Handler.cpp, around line 695
+// VertexData<Vector3> E_Handler::F_Volume_constraint_precomp(std::vector<double> Constants) const
+// {
+//     double KV = Constants[0];
+//     double V_bar = Constants[1];
+//     double V = geometry->totalVolume();
+
+//     size_t index;
+//     Vector3 Normal;
+//     size_t N_vert = mesh->nVertices();
+//     geometry->requireFaceAreas();
+//     geometry->requireFaceNormals();
+//     VertexData<Vector3> Force(*mesh);
+//     for (Vertex v : mesh->vertices())
+//     {
+//         // do science here
+//         index = v.getIndex();
+//         Normal = {0, 0, 0};
+//         for (Face f : v.adjacentFaces())
+//         {
+//             Normal += geometry->faceAreas[f] * geometry->faceNormals[f];
+//         }
+//         // Force[v.getIndex()]=D_P*Normal/3.0;
+//         Force[v.getIndex()] = Normal / 3.0;
+//     }
+//     geometry->unrequireFaceAreas();
+//     geometry->unrequireFaceNormals();
+
+//     return -1 * KV * ((V - V_bar) / (V_bar * V_bar)) * Force;
+// }
+
+// ---- from Energy_Handler.cpp, around line 803
+// VertexData<Vector3> E_Handler::F_SurfaceTension(std::vector<double> Constants) const
+// {
+
+//     double sigma = Constants[0];
+
+//     size_t index;
+//     Vector3 Normal;
+//     size_t N_vert = mesh->nVertices();
+//     VertexData<Vector3> Force(*mesh);
+//     Vector3 u;
+//     Halfedge he_grad;
+
+//     for (Vertex v : mesh->vertices())
+//     {
+//         Force[v] = -1 * 2 * geometry->vertexNormalMeanCurvature(v);
+//     }
+//     // std::cout<< "THe surface tension force in magnitude is: "<< -1*lambda*sqrt(Force.transpose()*Force) <<"\n";
+//     return sigma * Force;
+// }
+
+// ---- from Energy_Handler.cpp, around line 1023
+// VertexData<Vector3> E_Handler::F_Bending_precomp(std::vector<double> Constants) const
+// {
+
+//     double KB = Constants[0];
+//     double H0 = Constants[1];
+
+//     VertexData<Vector3> Force(*mesh);
+
+//     Eigen::Vector<double, 6> Positions_edge;
+//     Eigen::Vector<double, 9> Positions_face;
+//     Eigen::Vector<double, 12> Positions_dihedral;
+
+//     Eigen::Vector<double, 6> Grad_edge;
+//     Eigen::Vector<double, 9> Grad_face;
+//     Eigen::Vector<double, 12> Grad_dihedral;
+
+//     std::array<Vertex, 2> Vertices_edge;
+//     std::array<Vertex, 3> Vertices_face;
+//     std::array<Vertex, 4> Vertices_dihedral;
+
+//     Halfedge he;
+//     Vector3 Force_vector;
+
+//     double constant;
+
+//     // So there are two terms, one that is the sum on the faces and one that is the sum on the edges, lets do the faces first
+//     // I think its best if i store the dual areas and the scalar mean curvatures in vectors.
+//     geometry->requireVertexDualAreas();
+//     geometry->requireVertexMeanCurvatures();
+//     geometry->requireEdgeDihedralAngles();
+//     geometry->requireEdgeLengths();
+//     // VertexData<double> Dual_areas(*mesh, 0.0);
+//     // VertexData<double> Scalar_MC(*mesh, 0.0);
+//     // for (Vertex v : mesh->vertices())
+//     // {
+//     //     Dual_areas[v] = geometry->barycentricDualArea(v); // Ai
+//     //     Scalar_MC[v] = geometry->scalarMeanCurvature(v);  // Hi
+//     // }
+
+//     for (Face f : mesh->faces())
+//     {
+//         he = f.halfedge();
+
+//         Vertices_face[0] = he.vertex();
+//         Vertices_face[1] = he.next().vertex();
+//         Vertices_face[2] = he.next().next().vertex();
+
+//         if (Vertices_face[0].isBoundary() || Vertices_face[1].isBoundary() || Vertices_face[2].isBoundary())
+//             continue;
+
+//         Positions_face << geometry->inputVertexPositions[Vertices_face[0]].x, geometry->inputVertexPositions[Vertices_face[0]].y, geometry->inputVertexPositions[Vertices_face[0]].z,
+//             geometry->inputVertexPositions[Vertices_face[1]].x, geometry->inputVertexPositions[Vertices_face[1]].y, geometry->inputVertexPositions[Vertices_face[1]].z,
+//             geometry->inputVertexPositions[Vertices_face[2]].x, geometry->inputVertexPositions[Vertices_face[2]].y, geometry->inputVertexPositions[Vertices_face[2]].z;
+
+//         Grad_face = geometry->gradient_triangle_area(Positions_face);
+
+//         constant = -1 * (geometry->vertexMeanCurvatures[Vertices_face[0]] * geometry->vertexMeanCurvatures[Vertices_face[0]] / (geometry->vertexDualAreas[Vertices_face[0]] * geometry->vertexDualAreas[Vertices_face[0]]) - H0 * H0) / 3.0 - 1 * (geometry->vertexMeanCurvatures[Vertices_face[1]] * geometry->vertexMeanCurvatures[Vertices_face[1]] / (geometry->vertexDualAreas[Vertices_face[1]] * geometry->vertexDualAreas[Vertices_face[1]]) - H0 * H0) / 3.0 - 1 * (geometry->vertexMeanCurvatures[Vertices_face[2]] * geometry->vertexMeanCurvatures[Vertices_face[2]] / (geometry->vertexDualAreas[Vertices_face[2]] * geometry->vertexDualAreas[Vertices_face[2]]) - H0 * H0) / 3.0;
+
+//         Grad_face *= constant;
+//         for (size_t i = 0; i < 3; i++)
+//         {
+//             Force_vector = Vector3{Grad_face[3 * i], Grad_face[3 * i + 1], Grad_face[3 * i + 2]};
+//             if (Vertices_face[i].isBoundary())
+//                 Force[Vertices_face[i]] = {0, 0, 0};
+//             else
+//                 Force[Vertices_face[i]] += -1 * KB * Force_vector;
+//         }
+//     }
+
+//     // Now we need the quantities for the second term which is a summation on the edges
+//     double dih;
+//     double lij;
+
+//     Vector3 Vectorsum1 = {0, 0, 0};
+//     Vector3 Vectorsum2 = {0, 0, 0};
+
+//     for (Edge e : mesh->edges())
+//     {
+
+//         if (e.isBoundary())
+//             continue;
+
+//         Vertices_edge[0] = e.halfedge().vertex();
+//         Vertices_edge[1] = e.halfedge().twin().vertex();
+
+//         Positions_edge << geometry->inputVertexPositions[Vertices_edge[0]].x, geometry->inputVertexPositions[Vertices_edge[0]].y, geometry->inputVertexPositions[Vertices_edge[0]].z,
+//             geometry->inputVertexPositions[Vertices_edge[1]].x, geometry->inputVertexPositions[Vertices_edge[1]].y, geometry->inputVertexPositions[Vertices_edge[1]].z;
+
+//         Vertices_dihedral[0] = e.halfedge().vertex();
+//         Vertices_dihedral[1] = e.halfedge().next().vertex();
+//         Vertices_dihedral[3] = e.halfedge().next().next().vertex();
+//         Vertices_dihedral[2] = e.halfedge().twin().next().next().vertex();
+
+//         Positions_dihedral << geometry->inputVertexPositions[Vertices_dihedral[0]].x, geometry->inputVertexPositions[Vertices_dihedral[0]].y, geometry->inputVertexPositions[Vertices_dihedral[0]].z,
+//             geometry->inputVertexPositions[Vertices_dihedral[1]].x, geometry->inputVertexPositions[Vertices_dihedral[1]].y, geometry->inputVertexPositions[Vertices_dihedral[1]].z,
+//             geometry->inputVertexPositions[Vertices_dihedral[2]].x, geometry->inputVertexPositions[Vertices_dihedral[2]].y, geometry->inputVertexPositions[Vertices_dihedral[2]].z,
+//             geometry->inputVertexPositions[Vertices_dihedral[3]].x, geometry->inputVertexPositions[Vertices_dihedral[3]].y, geometry->inputVertexPositions[Vertices_dihedral[3]].z;
+
+//         Grad_edge = geometry->gradient_edge_length(Positions_edge, geometry->edgeLengths[e]);
+//         Grad_dihedral = geometry->gradient_dihedral_angle(Positions_dihedral);
+
+//         dih = geometry->edgeDihedralAngles[e];
+//         lij = geometry->edgeLengths[e];
+
+//         // std::cout<<"THis is one dihedral" << dih <<" and the other one is " << geometry->Dihedral_angle(Positions_dihedral) <<" \n";
+
+//         constant = (0.5) * (geometry->vertexMeanCurvatures[Vertices_edge[0]] / (geometry->vertexDualAreas[Vertices_edge[0]]) - H0) +
+//                    (0.5) * (geometry->vertexMeanCurvatures[Vertices_edge[1]] / (geometry->vertexDualAreas[Vertices_edge[1]]) - H0);
+
+//         Grad_edge *= constant * dih;
+//         Grad_dihedral *= constant * lij;
+
+//         // Vectorsum1={0, 0, 0};
+//         for (size_t i = 0; i < 2; i++)
+//         {
+//             Force_vector = Vector3{Grad_edge[3 * i], Grad_edge[3 * i + 1], Grad_edge[3 * i + 2]};
+//             if (Vertices_edge[i].isBoundary())
+//                 Force[Vertices_edge[i]] = {0, 0, 0};
+//             else
+//                 Force[Vertices_edge[i]] += -1 * KB * Force_vector;
+//         }
+
+//         for (size_t i = 0; i < 4; i++)
+//         {
+//             Force_vector = Vector3{Grad_dihedral[3 * i], Grad_dihedral[3 * i + 1], Grad_dihedral[3 * i + 2]};
+
+//             if (Vertices_dihedral[i].isBoundary())
+//                 Force[Vertices_dihedral[i]] = {0, 0, 0};
+//             else
+//                 Force[Vertices_dihedral[i]] += -1 * KB * Force_vector;
+//         }
+//     }
+
+//     return Force;
+// }
+
+// ---- from Energy_Handler.cpp, around line 1470
+// VertexData<Vector3> E_Handler::F_Edge_reg_precomp(std::vector<double> Constants) const
+// {
+
+//     VertexData<Vector3> Force(*mesh);
+//     double KE = Constants[0];
+
+//     // Ok perfect so now we add the energy
+//     Halfedge he;
+
+//     Eigen::Vector<double, 9> Positions;
+//     Eigen::Vector<double, 3> Edge_lengths_prev;
+//     Eigen::Vector<double, 9> Grad_E;
+
+//     std::array<Vertex, 3> Vertices;
+//     Vector3 Force_vector;
+//     EdgeData<double> Edge_lengths(*mesh);
+//     for (Edge e : mesh->edges())
+//     {
+//         Edge_lengths[e] = geometry->edgeLength(e);
+//     }
+//     // Till here everything is the same
+//     for (Face f : mesh->faces())
+//     {
+
+//         // I need to get the edge length
+//         he = f.halfedge();
+
+//         Vertices[0] = he.vertex();
+//         Vertices[1] = he.next().vertex();
+//         Vertices[2] = he.next().next().vertex();
+//         if (Vertices[0].isBoundary() || Vertices[1].isBoundary() || Vertices[2].isBoundary())
+//             continue;
+
+//         Positions << geometry->inputVertexPositions[he.vertex()].x, geometry->inputVertexPositions[he.vertex()].y, geometry->inputVertexPositions[he.vertex()].z,
+//             geometry->inputVertexPositions[he.next().vertex()].x, geometry->inputVertexPositions[he.next().vertex()].y, geometry->inputVertexPositions[he.next().vertex()].z,
+//             geometry->inputVertexPositions[he.next().next().vertex()].x, geometry->inputVertexPositions[he.next().next().vertex()].y, geometry->inputVertexPositions[he.next().next().vertex()].z;
+//         Edge_lengths_prev << Edge_lengths[he.edge()],
+//             Edge_lengths[he.next().next().edge()],
+//             Edge_lengths[he.next().edge()];
+
+//         Grad_E = geometry->gradient_edge_regular(Positions, Edge_lengths_prev);
+
+//         // Now we have the gradient of the edge regularization energy, we need to add it to the force
+//         for (size_t i = 0; i < 3; i++)
+//         {
+//             Force_vector = Vector3{Grad_E[3 * i], Grad_E[3 * i + 1], Grad_E[3 * i + 2]};
+//             Force_vector *= KE;
+//             if (Vertices[i].isBoundary())
+//                 Force[Vertices[i]] = {0, 0, 0};
+//             else
+//                 Force[Vertices[i]] -= Force_vector;
+//         }
+//     }
+
+//     return Force;
+// }
+
+// ---- from Energy_Handler.cpp, around line 3396
+// void E_Handler::Calculate_energies_precomp(double *E)
+
+// {
+
+//     *E = 0;
+//     Energy_values.resize(Energies.size());
+
+//     int bead_count = 0;
+//     for (size_t i = 0; i < Energies.size(); i++)
+//     {
+//         if (Energies[i] == "Volume_constraint")
+//         {
+//             if (Energy_constants[i][0] > 1e-5)
+//                 Energy_values[i] = E_Volume_constraint(Energy_constants[i]);
+//             else
+//                 Energy_values[i] = 0.0;
+//             *E += Energy_values[i];
+//             continue;
+//         }
+//         if (Energies[i] == "Area_constraint")
+//         {
+//             if (Energy_constants[i][0] > 1e-5)
+//                 Energy_values[i] = E_Area_constraint_precomp(Energy_constants[i]);
+//             else
+//                 Energy_values[i] = 0.0;
+
+//             // std::cout<<"THe target area is " << Energy_constants[i][1] <<" \n";
+//             *E += Energy_values[i];
+//             continue;
+//         }
+//         if (Energies[i] == "Surface_tension" || Energies[i] == "H1_Surface_tension" || Energies[i] == "H2_Surface_tension")
+//         {
+//             if (Energy_constants[i][0] < 1e-5)
+//             {
+//                 Energy_values[i] = 0.0;
+//                 continue;
+//             }
+//             Energy_values[i] = E_SurfaceTension_precomp(Energy_constants[i]);
+//             *E += Energy_values[i];
+//             continue;
+//         }
+//         if (Energies[i] == "Bending" || Energies[i] == "H1_Bending" || Energies[i] == "H2_Bending")
+//         {
+//             if (Energy_constants[i][0] < 1e-5)
+//             {
+//                 Energy_values[i] = 0.0;
+//                 continue;
+//             }
+
+//             Energy_values[i] = E_Bending_precomp(Energy_constants[i]);
+//             *E += Energy_values[i];
+//             continue;
+//         }
+//         if (Energies[i] == "Bending_tan")
+//         {
+//             if (Energy_constants[i][0] < 1e-5)
+//             {
+//                 Energy_values[i] = 0.0;
+//                 continue;
+//             }
+
+//             Energy_values[i] = E_Bending_tan(Energy_constants[i]);
+//             *E += Energy_values[i];
+//             continue;
+//         }
+//         if (Energies[i] == "Bead" || Energies[i] == "H1_Bead" || Energies[i] == "H2_Bead")
+//         {
+//             Energy_values[i] = Beads[bead_count]->Bead_I->Tot_Energy();
+//             *E += Energy_values[i];
+//             bead_count++;
+//             continue;
+//         }
+//         if (Energies[i] == "Laplace")
+//         {
+//             Energy_values[i] = E_Laplace(Energy_constants[i]);
+//             *E += Energy_values[i];
+//             continue;
+//         }
+
+//         if (Energies[i] == "Edge_reg")
+//         {
+//             Energy_values[i] = E_Edge_reg_precomp(Energy_constants[i]);
+//             *E += Energy_values[i];
+//             continue;
+//         }
+//         if (Energies[i] == "Face_reg")
+//         {
+//             if (Face_reference.size() == 0)
+//             {
+//                 update_face_reference();
+//             }
+//             Energy_values[i] = E_Face_reg(Energy_constants[i]);
+//             *E += Energy_values[i];
+//             continue;
+//         }
+//     }
+
+//     return;
+// }
+
+// ---- from Energy_Handler.cpp, around line 3815
+// void E_Handler::Calculate_gradient_precomp()
+// {
+//     Previous_grad = Current_grad;
+//     Current_grad = VertexData<Vector3>(*mesh, Vector3{0.0, 0.0, 0.0});
+//     VertexData<Vector3> Force_temp(*mesh, Vector3{0.0, 0.0, 0.0});
+//     int bead_count = 0;
+//     double grad_norm = 0;
+//     for (size_t i = 0; i < Energies.size(); i++)
+//     {
+//         if (Energies[i] == "Volume_constraint")
+//         {
+//             if (Energy_constants[i][0] < 1e-5)
+//             {
+//                 if (Gradient_norms.size() == i)
+//                 {
+//                     Gradient_norms.push_back(0.0);
+//                 }
+//                 else
+//                 {
+//                     Gradient_norms[i] = 0.0;
+//                 }
+//                 continue;
+//             }
+//             Force_temp = F_Volume_constraint_precomp(Energy_constants[i]);
+//             grad_norm = 0.0;
+//             for (Vertex v : mesh->vertices())
+//             {
+//                 grad_norm += Force_temp[v].norm2();
+//             }
+//             if (Gradient_norms.size() == i)
+//             {
+//                 Gradient_norms.push_back(grad_norm);
+//             }
+//             else
+//             {
+//                 Gradient_norms[i] = grad_norm;
+//             }
+//             Current_grad += Force_temp;
+//             continue;
+//         }
+//         if (Energies[i] == "Area_constraint")
+//         {
+//             if (Energy_constants[i][0] < 1e-5)
+//             {
+//                 if (Energy_constants[i][0] < 1e-5)
+//                 {
+//                     if (Gradient_norms.size() == i)
+//                     {
+//                         Gradient_norms.push_back(0.0);
+//                     }
+//                     else
+//                     {
+//                         Gradient_norms[i] = 0.0;
+//                     }
+//                     continue;
+//                 }
+//                 continue;
+//             }
+//             Force_temp = F_Area_constraint(Energy_constants[i]);
+//             grad_norm = 0.0;
+//             for (Vertex v : mesh->vertices())
+//             {
+//                 grad_norm += Force_temp[v].norm2();
+//             }
+//             if (Gradient_norms.size() == i)
+//             {
+//                 Gradient_norms.push_back(grad_norm);
+//             }
+//             else
+//             {
+//                 Gradient_norms[i] = grad_norm;
+//             }
+
+//             Current_grad += Force_temp;
+
+//             continue;
+//         }
+
+//         if (Energies[i] == "Surface_tension")
+//         {
+//             Force_temp = F_SurfaceTension(Energy_constants[i]);
+//             grad_norm = 0.0;
+//             for (Vertex v : mesh->vertices())
+//             {
+//                 grad_norm += Force_temp[v].norm2();
+//             }
+//             if (Gradient_norms.size() == i)
+//             {
+//                 Gradient_norms.push_back(grad_norm);
+//             }
+//             else
+//             {
+//                 Gradient_norms[i] = grad_norm;
+//             }
+//             Current_grad += Force_temp;
+//             continue;
+//         }
+//         if (Energies[i] == "Bending")
+//         {
+//             Force_temp = F_Bending_precomp(Energy_constants[i]);
+//             grad_norm = 0.0;
+//             for (Vertex v : mesh->vertices())
+//             {
+//                 grad_norm += Force_temp[v].norm2();
+//             }
+//             if (Gradient_norms.size() == i)
+//             {
+//                 Gradient_norms.push_back(grad_norm);
+//             }
+//             else
+//             {
+//                 Gradient_norms[i] = grad_norm;
+//             }
+//             Current_grad += Force_temp;
+//             continue;
+//         }
+//         if (Energies[i] == "Bending_tan")
+//         {
+//             Force_temp = F_Bending_tan(Energy_constants[i]);
+//             grad_norm = 0.0;
+//             for (Vertex v : mesh->vertices())
+//             {
+//                 grad_norm += Force_temp[v].norm2();
+//             }
+//             if (Gradient_norms.size() == i)
+//             {
+//                 Gradient_norms.push_back(grad_norm);
+//             }
+//             else
+//             {
+//                 Gradient_norms[i] = grad_norm;
+//             }
+//             Current_grad += Force_temp;
+//             continue;
+//         }
+//         if (Energies[i] == "Bead")
+//         {
+//             // std::cout << "Bead E\n";
+//             Force_temp = Beads[bead_count]->Bead_I->Gradient();
+
+//             grad_norm = 0;
+//             for (size_t j = 0; j < mesh->nVertices(); j++)
+//             {
+//                 grad_norm += Force_temp[j].norm2();
+//             }
+//             // std::cout<<"not this \n";
+//             if (Gradient_norms.size() == i)
+//             {
+//                 Gradient_norms.push_back(grad_norm);
+//             }
+//             else
+//             {
+//                 Gradient_norms[i] = grad_norm;
+//             }
+//             // std::cout<<"? ?\n";
+
+//             Current_grad += Force_temp;
+//             bead_count += 1;
+//             continue;
+//         }
+
+//         if (Energies[i] == "Laplace")
+//         {
+//             Force_temp = F_Laplace(Energy_constants[i]);
+//             grad_norm = 0.0;
+//             for (Vertex v : mesh->vertices())
+//             {
+//                 grad_norm += Force_temp[v].norm2();
+//             }
+//             if (Gradient_norms.size() == i)
+//             {
+//                 Gradient_norms.push_back(grad_norm);
+//             }
+//             else
+//             {
+//                 Gradient_norms[i] = grad_norm;
+//             }
+//             Current_grad += Force_temp;
+//             continue;
+//         }
+//         if (Energies[i] == "Edge_reg")
+//         {
+//             Force_temp = F_Edge_reg_precomp(Energy_constants[i]);
+//             grad_norm = 0.0;
+//             for (Vertex v : mesh->vertices())
+//             {
+//                 grad_norm += Force_temp[v].norm2();
+//             }
+//             if (Gradient_norms.size() == i)
+//             {
+//                 Gradient_norms.push_back(grad_norm);
+//             }
+//             else
+//             {
+//                 Gradient_norms[i] = grad_norm;
+//             }
+//             Current_grad += Force_temp;
+//             continue;
+//         }
+//         if (Energies[i] == "Face_reg")
+//         {
+//             if (Face_reference.size() == 0)
+//                 update_face_reference();
+
+//             Force_temp = F_Face_reg(Energy_constants[i]);
+//             grad_norm = 0.0;
+//             for (Vertex v : mesh->vertices())
+//             {
+//                 grad_norm += Force_temp[v].norm2();
+//             }
+//             if (Gradient_norms.size() == i)
+//             {
+//                 Gradient_norms.push_back(grad_norm);
+//             }
+//             else
+//             {
+//                 Gradient_norms[i] = grad_norm;
+//             }
+//             Current_grad += Force_temp;
+//             continue;
+//         }
+//     }
+//     grad_norm = 0.0;
+//     for (size_t i = 0; i < mesh->nVertices(); i++)
+//     {
+//         grad_norm += Current_grad[i].norm2();
+//     }
+//     // std::cout << "6 \n";
+//     if (Gradient_norms.size() == Energies.size())
+//     {
+//         Gradient_norms.push_back(grad_norm);
+//     }
+//     else
+//     {
+//         Gradient_norms[Energies.size()] = grad_norm;
+//     }
+
+//     return;
+// }
+
+// ---- from Energy_Handler.cpp, around line 4770
+                // if (current_pair.first < N_verts && current_pair.second >= N_verts)
+                // {
+                //     Normal_i << Vertex_normals[current_pair.first].x, Vertex_normals[current_pair.first].y, Vertex_normals[current_pair.first].z;
+
+                //     Block = Full_hessian.block(3 * current_pair.first, 3 * current_pair.second, 3, 3);
+
+                //     Row_vec = Block.transpose() * Normal_i;
+                //     // std::cout << "Rowvec is " << Row_vec.transpose() << "\n";
+                //     Bead_id = (col / 3) - N_verts;
+                //     if (Bead_id >= 1)
+                //         std::cout << "The bead id is " << Bead_id << " \n";
+                //     for (int i = 0; i < 3; i++)
+                //     {
+                //         tripletList.push_back(T(current_pair.first, N_verts + Bead_id * 3 + i, Row_vec[i]));
+                //     }
+                // }
+
+// ---- from Energy_Handler.cpp, around line 4863
+//   for(size_t i = 0; i < Energies.size(); i++){
+
+// if(Energies[i]=="H1_Bead"){
+//   if(!H1_grad){
+//     construction_start = chrono::steady_clock::now();
+//     H1_grad = true;
+
+//     H1_mat = H1_operator(Energy_constants[i][1],Energy_constants[i][2],Energy_constants[i][3]);
+//     construction_end = chrono::steady_clock::now();
+//     time_construct += std::chrono::duration_cast<std::chrono::milliseconds>(construction_end - construction_start).count();
+
+//     construction_start = chrono::steady_clock::now();
+//     solverH1.compute(H1_mat);
+//     construction_end = chrono::steady_clock::now();
+//     time_compute += std::chrono::duration_cast<std::chrono::milliseconds>(construction_end - construction_start).count();
+
+//   }
+
+//   Energy_vals[i] = Beads[bead_count]->Energy();
+//   // std::cout<<"Bead count is" << bead_count <<"\n";
+//   Force_temp = Beads[bead_count]->Gradient();
+//   Beads[bead_count]->Bead_interactions();
+
+//   solve_start = chrono::steady_clock::now();
+//   Vector<double> RHS = Vector<double>(N_vert*3+N_constraints);
+//   for(size_t index = 0; index < mesh->nVertices(); index++){
+//     RHS[3*index] = Force_temp[index].x;
+//     RHS[3*index+1] = Force_temp[index].y;
+//     RHS[3*index+2] = Force_temp[index].z;
+//   }
+//   for(int index = 0; index < N_constraints; index++){
+//     RHS[3*N_vert+index] = 0.0;
+//   }
+
+//   Vector<double> Solution = solverH1.solve(RHS);
+//   for(size_t index = 0; index < mesh->nVertices(); index++){
+//     Force_temp[index] = Vector3({Solution.coeff(3*index),Solution.coeff(3*index+1),Solution.coeff(3*index+2)});
+//     // std::cout<< Force_temp[index].norm2() << " ";
+//   }
+//   solve_end = chrono::steady_clock::now();
+//   time_solve += std::chrono::duration_cast<std::chrono::milliseconds>(solve_end - solve_start).count();
+
+//   grad_value = 0;
+//   for(size_t j = 0; j < mesh->nVertices(); j++){
+//     grad_value+= Force_temp[j].norm2();
+//   }
+//   Gradient_norms.push_back(grad_value);
+//   Force+=Force_temp;
+//   bead_count +=1;
+//   continue;
+
+// }
+// if(Energies[i]=="H2_Bead"){
+
+//   if(!H2_grad){
+//     construction_start = chrono::steady_clock::now();
+//     H2_grad = true;
+//     N_constraints = 3*Energy_constants[i][1]+Energy_constants[i][2]+Energy_constants[i][3];
+
+//     H2_mat = H2_operator(Energy_constants[i][1],Energy_constants[i][2],Energy_constants[i][3]);
+//     construction_end = chrono::steady_clock::now();
+//     time_construct += std::chrono::duration_cast<std::chrono::milliseconds>(construction_end - construction_start).count();
+
+//     construction_start = chrono::steady_clock::now();
+//     solverH2.compute(H2_mat);
+//     construction_end = chrono::steady_clock::now();
+//     time_compute += std::chrono::duration_cast<std::chrono::milliseconds>(construction_end - construction_start).count();
+
+//   }
+
+//   Energy_vals[i] = Beads[bead_count]->Energy();
+//   // std::cout<<"Bead count is" << bead_count <<"\n";
+//   Force_temp = Beads[bead_count]->Gradient();
+//   Beads[bead_count]->Bead_interactions();
+
+//   solve_start = chrono::steady_clock::now();
+//   Vector<double> RHS = Vector<double>(N_vert*3+N_constraints);
+//   for(size_t index = 0; index < mesh->nVertices(); index++){
+//     RHS[3*index] = Force_temp[index].x;
+//     RHS[3*index+1] = Force_temp[index].y;
+//     RHS[3*index+2] = Force_temp[index].z;
+//   }
+//   for(int index = 0; index < N_constraints; index++){
+//     RHS[3*N_vert+index] = 0.0;
+//   }
+
+//   Vector<double> Solution = solverH2.solve(RHS);
+//   for(size_t index = 0; index < mesh->nVertices(); index++){
+//     Force_temp[index] = Vector3({Solution.coeff(3*index),Solution.coeff(3*index+1),Solution.coeff(3*index+2)});
+//     // std::cout<< Force_temp[index].norm2() << " ";
+//   }
+//   solve_end = chrono::steady_clock::now();
+//   time_solve += std::chrono::duration_cast<std::chrono::milliseconds>(solve_end - solve_start).count();
+
+//   grad_value = 0;
+//   for(size_t j = 0; j < mesh->nVertices(); j++){
+//     grad_value+= Force_temp[j].norm2();
+//   }
+//   Gradient_norms.push_back(grad_value);
+//   Force+=Force_temp;
+//   bead_count +=1;
+//   // std::cout<<"Here\n";
+//   continue;
+
+// }
+
+// if(Energies[i]=="H2_Bending"){
+//   // std::cout<<"THe beding energy is hereee\n";
+//   if(!H2_grad){
+//     construction_start = chrono::steady_clock::now();
+//     H2_grad = true;
+//     N_constraints = 3*Energy_constants[i][1]+Energy_constants[i][2]+Energy_constants[i][3];
+
+//     H2_mat = H2_operator(Energy_constants[i][1],Energy_constants[i][2],Energy_constants[i][3]);
+//     construction_end = chrono::steady_clock::now();
+//     time_construct += std::chrono::duration_cast<std::chrono::milliseconds>(construction_end - construction_start).count();
+
+//     construction_start = chrono::steady_clock::now();
+//     solverH2.compute(H2_mat);
+//     construction_end = chrono::steady_clock::now();
+//     time_compute += std::chrono::duration_cast<std::chrono::milliseconds>(construction_end - construction_start).count();
+//     // std::cout<<"Solving possible\n";
+//   }
+
+//   double KB = Energy_constants[i][0];
+//   Energy_vals[i] = E_Bending(0.0,KB);
+//   // Now i need to compute the original gradient
+//   Force_temp = KB*Bending(0.0);
+
+//   // I would say the solve considers the construction?
+
+//   N_constraints = 3*Energy_constants[i][1]+Energy_constants[i][2]+Energy_constants[i][3];
+//   solve_start = chrono::steady_clock::now();
+//   Vector<double> RHS = Vector<double>(N_vert*3+N_constraints);
+//   for(size_t index = 0; index < mesh->nVertices(); index++){
+//     RHS[3*index] = Force_temp[index].x;
+//     RHS[3*index+1] = Force_temp[index].y;
+//     RHS[3*index+2] = Force_temp[index].z;
+//     // std::cout<<"Force temp has magnitude" << Force_temp[index].norm2() <<"and barycentric " << Barycentric_area[index]<<"\n";
+//   }
+//   // std::cout<<"THe number of constraints is " << N_constraints<<" duh\n";
+//   for(int index = 0; index < N_constraints; index++){
+//     RHS[3*N_vert+index] = 0.0;
+//   }
+//   // std::cout<<"The RHS is readyy\n";
+//   // std::cout<<"Some components are " << RHS[0] <<" "<< RHS[1] <<" "<< RHS[2] <<" \n";
+//   // The RHS is readyy
+//   // std::cout<<"Solving RHS\n";
+
+//   Vector<double> Solution = solverH2.solve(RHS);
+//   // std::cout<<"Solved\n";
+//   // std::cout<<"The solution is ready\n";
+//   // std::cout<<"Some components of the solution are " << Solution[0] <<" "<< Solution[1] <<" "<< Solution[2] <<" \n";
+//   // std::cout<<"The forces are ";
+//   for(size_t index = 0; index < mesh->nVertices(); index++){
+//     Force_temp[index] = Vector3({Solution.coeff(3*index),Solution.coeff(3*index+1),Solution.coeff(3*index+2)});
+//     // std::cout<< Force_temp[index].norm2() << " ";
+//   }
+//   solve_end = chrono::steady_clock::now();
+//   time_solve += std::chrono::duration_cast<std::chrono::milliseconds>(solve_end - solve_start).count();
+
+//   // SO i have calculated the new force
+//   grad_value = 0;
+//   for(size_t j = 0; j < mesh->nVertices(); j++){
+//     grad_value+= Force_temp[j].norm2();
+//   }
+//   // std::cout<<"THe grad value is " << grad_value <<" \n";
+//   Gradient_norms.push_back(grad_value);
+//   Force+=Force_temp;
+
+//   continue;
+
+// }
+// if(Energies[i]=="H1_Bending"){
+//   // std::cout<<"THe beding energy is hereee\n";
+//   if(!H1_grad){
+//     construction_start = chrono::steady_clock::now();
+//     H1_grad = true;
+//     N_constraints = 3*Energy_constants[i][1]+Energy_constants[i][2]+Energy_constants[i][3];
+
+//     // I need to build the sobolev operator
+//     // H2_mat = SparseMatrix<double>(N_vert*3+N_constraints,N_vert*3+N_constraints);
+//     H1_mat = H1_operator(Energy_constants[i][1],Energy_constants[i][2],Energy_constants[i][3]);
+//     construction_end = chrono::steady_clock::now();
+//     time_construct += std::chrono::duration_cast<std::chrono::milliseconds>(construction_end - construction_start).count();
+
+//     // std::cout<<"THe solver is being solved\n";
+//     // std::cout<<"THe matrix has some nonzero components" << H2_mat.nonZeros() <<"\n";
+//     construction_start = chrono::steady_clock::now();
+//     solverH1.compute(H1_mat);
+//     construction_end = chrono::steady_clock::now();
+//     time_compute += std::chrono::duration_cast<std::chrono::milliseconds>(construction_end - construction_start).count();
+//     // std::cout<<"Solving possible\n";
+//   }
+
+//   double KB = Energy_constants[i][0];
+//   Energy_vals[i] = E_Bending(0.0,KB);
+//   // Now i need to compute the original gradient
+//   Force_temp = KB*Bending(0.0);
+
+//   // double temp_grad = 0;
+//   // for(size_t j = 0; j < mesh->nVertices(); j++){
+//   //   temp_grad += Force_temp[j].norm2();
+//   // }
+//   // std::cout<<"Temp grad is " << temp_grad <<" \n";
+//   //Now i need to add the constraint
+
+//   // I would say the solve considers the construction?
+
+//   N_constraints = 3*Energy_constants[i][1]+Energy_constants[i][2]+Energy_constants[i][3];
+//   solve_start = chrono::steady_clock::now();
+//   Vector<double> RHS = Vector<double>(N_vert*3+N_constraints);
+//   for(size_t index = 0; index < mesh->nVertices(); index++){
+//     RHS[3*index] = Force_temp[index].x;
+//     RHS[3*index+1] = Force_temp[index].y;
+//     RHS[3*index+2] = Force_temp[index].z;
+//     // std::cout<<"Force temp has magnitude" << Force_temp[index].norm2() <<"and barycentric " << Barycentric_area[index]<<"\n";
+//   }
+//   // std::cout<<"THe number of constraints is " << N_constraints<<" duh\n";
+//   for(int index = 0; index < N_constraints; index++){
+//     RHS[3*N_vert+index] = 0.0;
+//   }
+//   // std::cout<<"The RHS is readyy\n";
+//   // std::cout<<"Some components are " << RHS[0] <<" "<< RHS[1] <<" "<< RHS[2] <<" \n";
+//   // The RHS is readyy
+//   // std::cout<<"Solving RHS\n";
+
+//   Vector<double> Solution = solverH1.solve(RHS);
+//   // std::cout<<"Solved\n";
+//   // std::cout<<"The solution is ready\n";
+//   // std::cout<<"Some components of the solution are " << Solution[0] <<" "<< Solution[1] <<" "<< Solution[2] <<" \n";
+//   // std::cout<<"The forces are ";
+//   for(size_t index = 0; index < mesh->nVertices(); index++){
+//     Force_temp[index] = Vector3({Solution.coeff(3*index),Solution.coeff(3*index+1),Solution.coeff(3*index+2)});
+//     // std::cout<< Force_temp[index].norm2() << " ";
+//   }
+//   solve_end = chrono::steady_clock::now();
+//   time_solve += std::chrono::duration_cast<std::chrono::milliseconds>(solve_end - solve_start).count();
+
+//   // SO i have calculated the new force
+//   grad_value = 0;
+//   for(size_t j = 0; j < mesh->nVertices(); j++){
+//     grad_value+= Force_temp[j].norm2();
+//   }
+//   // std::cout<<"THe grad value is " << grad_value <<" \n";
+//   Gradient_norms.push_back(grad_value);
+//   Force+=Force_temp;
+
+//   continue;
+
+// }
+// if(Energies[i]=="H2_Surface_tension"){
+//   if(!H2_grad){
+//     construction_start = chrono::steady_clock::now();
+
+//     H2_grad = true;
+//     N_constraints = 3*Energy_constants[i][1]+Energy_constants[i][2]+Energy_constants[i][3];
+
+//     // I need to build the sobolev operator
+//     // H2_mat = SparseMatrix<double>(N_vert*3+N_constraints,N_vert*3+N_constraints);
+//     H2_mat = H2_operator(Energy_constants[i][1],Energy_constants[i][2],Energy_constants[i][3]);
+
+//     construction_end = chrono::steady_clock::now();
+//     time_construct += std::chrono::duration_cast<std::chrono::milliseconds>(construction_end - construction_start).count();
+
+//     construction_start = chrono::steady_clock::now();
+//     solverH2.compute(H2_mat);
+//     construction_end = chrono::steady_clock::now();
+//     time_compute += std::chrono::duration_cast<std::chrono::milliseconds>(construction_end - construction_start).count();
+
+//     // std::cout<<"Solving possible\n";
+//   }
+//   double sigma = Energy_constants[i][0];
+//   A = geometry->totalArea();
+//   Energy_vals[i] = A*sigma;
+//   Force_temp = sigma*SurfaceGrad();
+
+//   // I need to multiply by the mass dont I?
+
+//   N_constraints = 3*Energy_constants[i][1]+Energy_constants[i][2]+Energy_constants[i][3];
+
+//   Vector<double> RHS = Vector<double>(N_vert*3+N_constraints);
+//   for (size_t i = 0; i < mesh->nVertices(); i++)
+//   {
+//     RHS[3*i] = Force_temp[i].x;
+//     RHS[3*i+1] = Force_temp[i].y;
+//     RHS[3*i+2] = Force_temp[i].z;
+//   }
+//   for(int index = 0; index < N_constraints; index++){
+//     RHS[3*N_vert+index] = 0.0;
+//   }
+
+//   solve_start = chrono::steady_clock::now();
+//   Vector<double> Solution = solverH2.solve(RHS);
+//   solve_end = chrono::steady_clock::now();
+//   time_solve += std::chrono::duration_cast<std::chrono::milliseconds>(solve_end - solve_start).count();
+
+//   for(size_t index = 0; index < mesh->nVertices(); index++){
+//     Force_temp[index] = Vector3({Solution.coeff(3*index),Solution.coeff(3*index+1),Solution.coeff(3*index+2)});
+//   }
+
+//   grad_value  = 0.0;
+//   for(size_t j = 0; j < mesh->nVertices(); j++){
+//     grad_value+= Force_temp[j].norm2();
+//   }
+//   Gradient_norms.push_back(grad_value);
+//   Force+=Force_temp;
+//   continue;
+
+// }
+
+// if(Energies[i]=="H1_Surface_tension"){
+//   if(!H1_grad){
+//     construction_start = chrono::steady_clock::now();
+
+//     H1_grad = true;
+//     N_constraints = 3*Energy_constants[i][1]+Energy_constants[i][2]+Energy_constants[i][3];
+
+//     // I need to build the sobolev operator
+//     // H2_mat = SparseMatrix<double>(N_vert*3+N_constraints,N_vert*3+N_constraints);
+//     H1_mat = H1_operator(Energy_constants[i][1],Energy_constants[i][2],Energy_constants[i][3]);
+
+//     construction_end = chrono::steady_clock::now();
+//     time_construct += std::chrono::duration_cast<std::chrono::milliseconds>(construction_end - construction_start).count();
+
+//     construction_start = chrono::steady_clock::now();
+//     solverH1.compute(H1_mat);
+//     construction_end = chrono::steady_clock::now();
+//     time_compute += std::chrono::duration_cast<std::chrono::milliseconds>(construction_end - construction_start).count();
+
+//     // std::cout<<"Solving possible\n";
+//   }
+//   double sigma = Energy_constants[i][0];
+//   A = geometry->totalArea();
+//   Energy_vals[i] = A*sigma;
+//   Force_temp = sigma*SurfaceGrad();
+
+//   // I need to multiply by the mass dont I?
+
+//   N_constraints = 3*Energy_constants[i][1]+Energy_constants[i][2]+Energy_constants[i][3];
+
+//   Vector<double> RHS = Vector<double>(N_vert*3+N_constraints);
+//   for (size_t i = 0; i < mesh->nVertices(); i++)
+//   {
+//     RHS[3*i] = Barycentric_area[i]*Force_temp[i].x;
+//     RHS[3*i+1] = Barycentric_area[i]*Force_temp[i].y;
+//     RHS[3*i+2] = Barycentric_area[i]*Force_temp[i].z;
+//   }
+//   for(int index = 0; index < N_constraints; index++){
+//     RHS[3*N_vert+index] = 0.0;
+//   }
+
+//   solve_start = chrono::steady_clock::now();
+//   Vector<double> Solution = solverH1.solve(RHS);
+//   solve_end = chrono::steady_clock::now();
+//   time_solve += std::chrono::duration_cast<std::chrono::milliseconds>(solve_end - solve_start).count();
+
+//   for(size_t index = 0; index < mesh->nVertices(); index++){
+//     Force_temp[index] = Vector3({Solution.coeff(3*index),Solution.coeff(3*index+1),Solution.coeff(3*index+2)});
+//   }
+
+//   grad_value  = 0.0;
+//   for(size_t j = 0; j < mesh->nVertices(); j++){
+//     grad_value+= Force_temp[j].norm2();
+//   }
+//   Gradient_norms.push_back(grad_value);
+//   Force+=Force_temp;
+//   continue;
+
+// }
+
+//   }
+
+// VertexData<Vector3> E_Handler::F_Bending_2(std::vector<double> Constants) const
+// {
+
+//     double KB = Constants[0];
+//     double H0 = Constants[1];
+
+//     VertexData<Vector3> Force(*mesh);
+
+//     Eigen::Vector<double, 6> Positions_edge;
+//     Eigen::Vector<double, 9> Positions_face;
+//     Eigen::Vector<double, 12> Positions_dihedral;
+
+//     Eigen::Vector<double, 6> Grad_edge;
+//     Eigen::Vector<double, 9> Grad_face;
+//     Eigen::Vector<double, 12> Grad_dihedral;
+
+//     std::array<Vertex, 2> Vertices_edge;
+//     std::array<Vertex, 3> Vertices_face;
+//     std::array<Vertex, 4> Vertices_dihedral;
+
+//     Halfedge he;
+//     Vector3 Force_vector;
+
+//     double constant;
+
+//     // So there are two terms, one that is the sum on the faces and one that is the sum on the edges, lets do the faces first
+//     // I think its best if i store the dual areas and the scalar mean curvatures in vectors.
+//     VertexData<double> Dual_areas(*mesh, 0.0);
+//     VertexData<double> Scalar_MC(*mesh, 0.0);
+//     for (Vertex v : mesh->vertices())
+//     {
+//         Dual_areas[v] = geometry->barycentricDualArea(v);
+//         Scalar_MC[v] = geometry->scalarMeanCurvature(v);
+//     }
+
+//     for (Face f : mesh->faces())
+//     {
+//         he = f.halfedge();
+
+//         Vertices_face[0] = he.vertex();
+//         Vertices_face[1] = he.next().vertex();
+//         Vertices_face[2] = he.next().next().vertex();
+
+//         if (Vertices_face[0].isBoundary() || Vertices_face[1].isBoundary() || Vertices_face[2].isBoundary())
+//             continue;
+
+//         Positions_face << geometry->inputVertexPositions[Vertices_face[0]].x, geometry->inputVertexPositions[Vertices_face[0]].y, geometry->inputVertexPositions[Vertices_face[0]].z,
+//             geometry->inputVertexPositions[Vertices_face[1]].x, geometry->inputVertexPositions[Vertices_face[1]].y, geometry->inputVertexPositions[Vertices_face[1]].z,
+//             geometry->inputVertexPositions[Vertices_face[2]].x, geometry->inputVertexPositions[Vertices_face[2]].y, geometry->inputVertexPositions[Vertices_face[2]].z;
+
+//         Grad_face = geometry->gradient_triangle_area(Positions_face);
+
+//         constant = -1 * (Scalar_MC[Vertices_face[0]] - H0) * (Scalar_MC[Vertices_face[0]] - H0) / (3.0 * Dual_areas[Vertices_face[0]] * Dual_areas[Vertices_face[0]]) - 1 * (Scalar_MC[Vertices_face[1]] - H0) * (Scalar_MC[Vertices_face[1]] - H0) / (3.0 * Dual_areas[Vertices_face[1]] * Dual_areas[Vertices_face[1]]) - 1 * (Scalar_MC[Vertices_face[2]] - H0) * (Scalar_MC[Vertices_face[2]] - H0) / (3.0 * Dual_areas[Vertices_face[2]] * Dual_areas[Vertices_face[2]]);
+
+//         Grad_face *= constant;
+//         for (size_t i = 0; i < 3; i++)
+//         {
+//             Force_vector = Vector3{Grad_face[3 * i], Grad_face[3 * i + 1], Grad_face[3 * i + 2]};
+//             if (Vertices_face[i].isBoundary())
+//                 Force[Vertices_face[i]] = {0, 0, 0};
+//             else
+//                 Force[Vertices_face[i]] += -1 * KB * Force_vector;
+//         }
+//     }
+
+//     // Now we need the quantities for the second term which is a summation on the edges
+//     double dih;
+//     double lij;
+
+//     Vector3 Vectorsum1 = {0, 0, 0};
+//     Vector3 Vectorsum2 = {0, 0, 0};
+
+//     for (Edge e : mesh->edges())
+//     {
+
+//         if (e.isBoundary())
+//             continue;
+
+//         Vertices_edge[0] = e.halfedge().vertex();
+//         Vertices_edge[1] = e.halfedge().twin().vertex();
+
+//         Positions_edge << geometry->inputVertexPositions[Vertices_edge[0]].x, geometry->inputVertexPositions[Vertices_edge[0]].y, geometry->inputVertexPositions[Vertices_edge[0]].z,
+//             geometry->inputVertexPositions[Vertices_edge[1]].x, geometry->inputVertexPositions[Vertices_edge[1]].y, geometry->inputVertexPositions[Vertices_edge[1]].z;
+
+//         Vertices_dihedral[0] = e.halfedge().vertex();
+//         Vertices_dihedral[1] = e.halfedge().next().vertex();
+//         Vertices_dihedral[3] = e.halfedge().next().next().vertex();
+//         Vertices_dihedral[2] = e.halfedge().twin().next().next().vertex();
+
+//         Positions_dihedral << geometry->inputVertexPositions[Vertices_dihedral[0]].x, geometry->inputVertexPositions[Vertices_dihedral[0]].y, geometry->inputVertexPositions[Vertices_dihedral[0]].z,
+//             geometry->inputVertexPositions[Vertices_dihedral[1]].x, geometry->inputVertexPositions[Vertices_dihedral[1]].y, geometry->inputVertexPositions[Vertices_dihedral[1]].z,
+//             geometry->inputVertexPositions[Vertices_dihedral[2]].x, geometry->inputVertexPositions[Vertices_dihedral[2]].y, geometry->inputVertexPositions[Vertices_dihedral[2]].z,
+//             geometry->inputVertexPositions[Vertices_dihedral[3]].x, geometry->inputVertexPositions[Vertices_dihedral[3]].y, geometry->inputVertexPositions[Vertices_dihedral[3]].z;
+
+//         Grad_edge = geometry->gradient_edge_length(Positions_edge);
+//         Grad_dihedral = geometry->gradient_dihedral_angle(Positions_dihedral);
+
+//         dih = geometry->dihedralAngle(e.halfedge());
+//         lij = geometry->edgeLength(e);
+
+//         // std::cout<<"THis is one dihedral" << dih <<" and the other one is " << geometry->Dihedral_angle(Positions_dihedral) <<" \n";
+
+//         constant = (0.5) * (Scalar_MC[Vertices_edge[0]] - H0) / (Dual_areas[Vertices_edge[0]]) +
+//                    (0.5) * (Scalar_MC[Vertices_edge[1]] - H0) / (Dual_areas[Vertices_edge[1]]);
+
+//         Grad_edge *= constant * dih;
+//         Grad_dihedral *= constant * lij;
+
+//         // Vectorsum1={0, 0, 0};
+//         for (size_t i = 0; i < 2; i++)
+//         {
+//             Force_vector = Vector3{Grad_edge[3 * i], Grad_edge[3 * i + 1], Grad_edge[3 * i + 2]};
+//             if (Vertices_edge[i].isBoundary())
+//                 Force[Vertices_edge[i]] = {0, 0, 0};
+//             else
+//                 Force[Vertices_edge[i]] += -1 * KB * Force_vector;
+//         }
+//         for (size_t i = 0; i < 4; i++)
+//         {
+//             Force_vector = Vector3{Grad_dihedral[3 * i], Grad_dihedral[3 * i + 1], Grad_dihedral[3 * i + 2]};
+//             if (Vertices_dihedral[i].isBoundary())
+//                 Force[Vertices_dihedral[i]] = {0, 0, 0};
+//             else
+//                 Force[Vertices_dihedral[i]] += -1 * KB * Force_vector;
+//         }
+//     }
+
+//     return Force;
+// }
+
+// double E_Handler::E_Bending_2(std::vector<double> Constants) const
+// {
+//     double KB = Constants[0];
+//     double H0 = Constants[1];
+//     size_t index;
+//     double Eb = 0;
+//     double H;
+//     double r_eff2;
+//     Vector3 Pos;
+//     for (Vertex v : mesh->vertices())
+//     {
+//         // boundary_fix
+//         //  std::cout<<"boundary \n";
+//         if (v.isBoundary())
+//             continue;
+//         // std::cout<<" indxe\n";
+
+//         index = v.getIndex();
+//         // std::cout<<" pos\n";
+//         Pos = geometry->inputVertexPositions[v];
+//         // std::cout<<"reff \n";
+//         r_eff2 = Pos.z * Pos.z + Pos.y * Pos.y;
+//         // std::cout<<"boundary? \n";
+//         if (r_eff2 > 1.6 && boundary)
+//             continue;
+//         // std::cout<<" MC and dual area\n";
+//         H = (geometry->scalarMeanCurvature(v) - H0);
+//         // std::cout<<" isnan\n";
+//         if (std::isnan(H))
+//         {
+//             continue;
+//         }
+//         Eb += KB * H * H / geometry->barycentricDualArea(v);
+//     }
+//     return Eb;
+// }
+
