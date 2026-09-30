@@ -313,10 +313,12 @@ int main(int argc, char **argv)
     std::vector<std::string> Energies(0);
     std::vector<std::vector<double>> Energy_constants(0);
     std::vector<double> Constants(0);
-
+    bool Coverage_E = false;
     for (auto Energy : Data["Energies"])
     {
         Energies.push_back(Energy["Name"]);
+        if (Energies.back() == "Coverage")
+            Coverage_E = true;
         Constants = Energy["constants"].get<std::vector<double>>();
         std::cout << "The constants for " << Energy["Name"] << " are ";
         for (size_t z = 0; z < Constants.size(); z++)
@@ -1566,10 +1568,10 @@ int main(int argc, char **argv)
 
         // std::cout<<
         start_time_control = chrono::steady_clock::now();
-        // if (current_t % 100 == 0)
-        // {
-        //     M3DG.Sim_handler->Debug_Coverage(M3DG.Sim_handler->Energy_constants[3]);
-        // }
+        if (current_t % 100 == 0 && Coverage_E)
+        {
+            M3DG.Sim_handler->Debug_Coverage(M3DG.Sim_handler->Energy_constants[3]);
+        }
         if (Integration == "Gradient_descent")
         {
 
