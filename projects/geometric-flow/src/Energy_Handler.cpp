@@ -2,6 +2,7 @@
 
 #include "Energy_Handler.h"
 #include "Beads.h"
+#include "Interaction.h"
 #include "BeadGeometry.h"
 #include "GeometryHelpers.h"
 #include <fstream>

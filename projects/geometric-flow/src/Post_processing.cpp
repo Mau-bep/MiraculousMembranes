@@ -31,6 +31,7 @@
 
 #include "Mem-3dg.h"
 #include "Beads.h"
+#include "Interaction.h"
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;

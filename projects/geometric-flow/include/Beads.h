@@ -3,9 +3,7 @@
 #include <Eigen/Core>
 #include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/vertex_position_geometry.h"
-// #include "Mem-3dg.h"
-#include "Interaction.h"
-
+// Bead only stores an Interaction pointer; the .cpp files include Interaction.h
 class Interaction;
 
 using namespace geometrycentral;

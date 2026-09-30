@@ -32,6 +32,7 @@
 
 #include "Mem-3dg.h"
 #include "Beads.h"
+#include "Interaction.h"
 #include "Energy_Handler.h"
 #include "SimConfig.h"
 #include "math.h"

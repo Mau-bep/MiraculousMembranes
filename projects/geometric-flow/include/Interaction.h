@@ -4,8 +4,7 @@
 #include <omp.h>
 #include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/vertex_position_geometry.h"
-#include "Beads.h"
-
+// Interaction only stores a Bead pointer; the .cpp files include Beads.h
 class Bead;
 
 using namespace geometrycentral;
