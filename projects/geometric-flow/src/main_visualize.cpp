@@ -65,7 +65,7 @@ std::vector<Bead> &Beads = sim.Beads;
 std::vector<std::string> &Energies = sim.Energies;
 std::vector<std::vector<double>> &Energy_constants = sim.Energy_constants;
 RemeshOptions &Options = sim.Options;
-float &V_bar = sim.V_bar;
+double &V_bar = sim.V_bar;
 double &A_bar = sim.A_bar;
 double &dA = sim.dA;
 

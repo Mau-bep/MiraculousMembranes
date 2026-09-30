@@ -147,7 +147,7 @@ struct Simulation
 
     std::vector<std::string> Energies;
     std::vector<std::vector<double>> Energy_constants;
-    float V_bar = 0.0; // target volume (float as in the original mains; see Phase 5)
+    double V_bar = 0.0; // target volume
     double A_bar = 0.0; // final target area
     double dA = 0.0;    // per-step change of the area target (Area_constraint with nu > 0)
 
