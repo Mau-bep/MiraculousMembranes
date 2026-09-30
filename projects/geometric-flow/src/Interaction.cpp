@@ -782,7 +782,7 @@ VertexData<Vector3> Integrated_Interaction::Gradient()
 
         // Ineed to check here something
 
-        Positions_f = stack_positions(*geometry, Vertices_triangle, 3);
+        Positions_f = stack_positions<3>(*geometry, Vertices_triangle);
         Grad_f = geometry->gradient_triangle_area(Positions_f);
         //
         for (int i = 0; i < 3; i++)
@@ -868,7 +868,7 @@ SparseMatrix<double> Integrated_Interaction::Hessian()
         Vertices_triangle[1] = he.next().vertex().getIndex();
         Vertices_triangle[2] = he.next().next().vertex().getIndex();
 
-        Positions_f = stack_positions(*geometry, Vertices_triangle, 3);
+        Positions_f = stack_positions<3>(*geometry, Vertices_triangle);
         Grad_f = geometry->gradient_triangle_area(Positions_f);
 
         Hessian_block_f = geometry->hessian_triangle_area(Positions_f);
@@ -1008,7 +1008,7 @@ SparseMatrix<double> Integrated_Interaction::Hessian_IP()
         Vertices_triangle[1] = he.next().vertex().getIndex();
         Vertices_triangle[2] = he.next().next().vertex().getIndex();
 
-        Positions_f = stack_positions(*geometry, Vertices_triangle, 3);
+        Positions_f = stack_positions<3>(*geometry, Vertices_triangle);
         Grad_f = geometry->gradient_triangle_area(Positions_f);
 
         Hessian_block_f = geometry->hessian_triangle_area(Positions_f);
@@ -1376,7 +1376,7 @@ VertexData<Vector3> Cilinder_Interaction::Gradient()
         Vertices_triangle[0] = he.vertex().getIndex();
         Vertices_triangle[1] = he.next().vertex().getIndex();
         Vertices_triangle[2] = he.next().next().vertex().getIndex();
-        Positions_f = stack_positions(*geometry, Vertices_triangle, 3);
+        Positions_f = stack_positions<3>(*geometry, Vertices_triangle);
         Grad_f = geometry->gradient_triangle_area(Positions_f);
 
         for (int i = 0; i < 3; i++)

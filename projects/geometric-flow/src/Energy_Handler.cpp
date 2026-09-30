@@ -657,7 +657,7 @@ VertexData<Vector3> E_Handler::F_Volume_constraint_2(std::vector<double> Constan
         Vertices[1] = he.next().vertex();
         Vertices[2] = he.next().next().vertex();
 
-        Positions = stack_positions(*geometry, Vertices, 3);
+        Positions = stack_positions<3>(*geometry, Vertices);
 
         Grad = geometry->gradient_volume(Positions);
         for (size_t i = 0; i < 3; i++)
@@ -693,7 +693,7 @@ VertexData<Vector3> E_Handler::F_Volume(std::vector<double> Constants) const
         Vertices[1] = he.next().vertex();
         Vertices[2] = he.next().next().vertex();
 
-        Positions = stack_positions(*geometry, Vertices, 3);
+        Positions = stack_positions<3>(*geometry, Vertices);
 
         Grad = geometry->gradient_volume(Positions);
         // std::cout<<"Grad is "<< Grad.transpose() << "\n";
@@ -730,7 +730,7 @@ VertexData<Vector3> E_Handler::F_SurfaceTension(std::vector<double> Constants) c
         Vertices[2] = he.next().next().vertex();
         // if (Vertices[0].isBoundary() || Vertices[1].isBoundary() || Vertices[2].isBoundary())
         //     continue;
-        Positions = stack_positions(*geometry, Vertices, 3);
+        Positions = stack_positions<3>(*geometry, Vertices);
         Grad = geometry->gradient_triangle_area(Positions);
         for (size_t i = 0; i < 3; i++)
         {
@@ -822,7 +822,7 @@ VertexData<Vector3> E_Handler::F_Bending(std::vector<double> Constants) const
         if (Vertices_face[0].isBoundary() || Vertices_face[1].isBoundary() || Vertices_face[2].isBoundary())
             continue;
 
-        Positions_face = stack_positions(*geometry, Vertices_face, 3);
+        Positions_face = stack_positions<3>(*geometry, Vertices_face);
 
         Grad_face = geometry->gradient_triangle_area(Positions_face);
 
@@ -855,14 +855,14 @@ VertexData<Vector3> E_Handler::F_Bending(std::vector<double> Constants) const
         Vertices_edge[0] = e.halfedge().vertex();
         Vertices_edge[1] = e.halfedge().twin().vertex();
 
-        Positions_edge = stack_positions(*geometry, Vertices_edge, 2);
+        Positions_edge = stack_positions<2>(*geometry, Vertices_edge);
 
         Vertices_dihedral[0] = e.halfedge().vertex();
         Vertices_dihedral[1] = e.halfedge().next().vertex();
         Vertices_dihedral[3] = e.halfedge().next().next().vertex();
         Vertices_dihedral[2] = e.halfedge().twin().next().next().vertex();
 
-        Positions_dihedral = stack_positions(*geometry, Vertices_dihedral, 4);
+        Positions_dihedral = stack_positions<4>(*geometry, Vertices_dihedral);
 
         Grad_edge = geometry->gradient_edge_length(Positions_edge);
         Grad_dihedral = geometry->gradient_dihedral_angle(Positions_dihedral);
@@ -948,7 +948,7 @@ VertexData<Vector3> E_Handler::F_Bending_tan(std::vector<double> Constants) cons
         if (Vertices_face[0].isBoundary() || Vertices_face[1].isBoundary() || Vertices_face[2].isBoundary())
             continue;
 
-        Positions_face = stack_positions(*geometry, Vertices_face, 3);
+        Positions_face = stack_positions<3>(*geometry, Vertices_face);
 
         Grad_face = geometry->gradient_triangle_area(Positions_face);
 
@@ -982,14 +982,14 @@ VertexData<Vector3> E_Handler::F_Bending_tan(std::vector<double> Constants) cons
         Vertices_edge[0] = e.halfedge().vertex();
         Vertices_edge[1] = e.halfedge().twin().vertex();
 
-        Positions_edge = stack_positions(*geometry, Vertices_edge, 2);
+        Positions_edge = stack_positions<2>(*geometry, Vertices_edge);
 
         Vertices_dihedral[0] = e.halfedge().vertex();
         Vertices_dihedral[1] = e.halfedge().next().vertex();
         Vertices_dihedral[3] = e.halfedge().next().next().vertex();
         Vertices_dihedral[2] = e.halfedge().twin().next().next().vertex();
 
-        Positions_dihedral = stack_positions(*geometry, Vertices_dihedral, 4);
+        Positions_dihedral = stack_positions<4>(*geometry, Vertices_dihedral);
 
         Grad_edge = geometry->gradient_edge_length(Positions_edge);
         Grad_dihedral = geometry->gradient_dihedral_angle(Positions_dihedral);
@@ -1093,7 +1093,7 @@ VertexData<Vector3> E_Handler::F_Laplace(std::vector<double> Constants) const
             Vertices_face[1] = he.next().vertex();
             Vertices_face[2] = he.next().next().vertex();
 
-            Positions_face = stack_positions(*geometry, Vertices_face, 3);
+            Positions_face = stack_positions<3>(*geometry, Vertices_face);
 
             Grad_face = geometry->gradient_triangle_area(Positions_face);
 
@@ -1120,7 +1120,7 @@ VertexData<Vector3> E_Handler::F_Laplace(std::vector<double> Constants) const
             Vertices_quad[2] = he.next().next().vertex();
             Vertices_quad[3] = he.twin().next().next().vertex();
 
-            Positions_quad = stack_positions(*geometry, Vertices_quad, 4);
+            Positions_quad = stack_positions<4>(*geometry, Vertices_quad);
 
             Grad_quad = geometry->gradient_cotan_weight(Positions_quad);
 
@@ -1286,7 +1286,7 @@ VertexData<Vector3> E_Handler::F_Face_reg(std::vector<double> Constants) const
         Vertices[1] = he.next().vertex();
         Vertices[2] = he.next().next().vertex();
 
-        Positions = stack_positions(*geometry, Vertices, 3);
+        Positions = stack_positions<3>(*geometry, Vertices);
         Grad = geometry->gradient_triangle_area(Positions);
         for (size_t i = 0; i < 3; i++)
         {
@@ -1652,7 +1652,7 @@ SparseMatrix<double> E_Handler::H_Bending_impl(const std::vector<double> &Consta
         Vertices_face[0] = he.vertex();
         Vertices_face[1] = he.next().vertex();
         Vertices_face[2] = he.next().next().vertex();
-        Positions_face = stack_positions(*geometry, Vertices_face, 3);
+        Positions_face = stack_positions<3>(*geometry, Vertices_face);
 
         Grad_face = geometry->gradient_triangle_area(Positions_face);
         Gradients_areas.push_back(Grad_face);
@@ -1670,8 +1670,8 @@ SparseMatrix<double> E_Handler::H_Bending_impl(const std::vector<double> &Consta
         Vertices_dihedral[3] = e.halfedge().next().next().vertex();
         Vertices_dihedral[2] = e.halfedge().twin().next().next().vertex();
 
-        Positions_edge = stack_positions(*geometry, Vertices_edge, 2);
-        Positions_dihedral = stack_positions(*geometry, Vertices_dihedral, 4);
+        Positions_edge = stack_positions<2>(*geometry, Vertices_edge);
+        Positions_dihedral = stack_positions<4>(*geometry, Vertices_dihedral);
 
         Grad_edge = geometry->gradient_edge_length(Positions_edge);
         Gradients_edges.push_back(Grad_edge);
@@ -1789,7 +1789,7 @@ SparseMatrix<double> E_Handler::H_Bending_impl(const std::vector<double> &Consta
 
             constant = -1 * (1.0 / 3.0) * (Scalar_MC[v.getIndex()] * Scalar_MC[v.getIndex()] / (Dual_areas[v.getIndex()] * Dual_areas[v.getIndex()]) - H0 * H0);
 
-            Positions_face = stack_positions(*geometry, Vertices_face, 3);
+            Positions_face = stack_positions<3>(*geometry, Vertices_face);
 
             M_9_9 = constant * geometry->hessian_triangle_area(Positions_face);
 
@@ -1904,7 +1904,7 @@ SparseMatrix<double> E_Handler::H_Bending_impl(const std::vector<double> &Consta
                 }
             }
 
-            Positions_dihedral = stack_positions(*geometry, Vertices_dihedral, 4);
+            Positions_dihedral = stack_positions<4>(*geometry, Vertices_dihedral);
 
             if (tan_version)
                 M_12_12 = constant * Edge_lengths[e.getIndex()] * (tan_weight(e.getIndex()) * geometry->hessian_dihedral_angle(Positions_dihedral) + 0.5 * Dihedral_angles[e.getIndex()] * tan_weight(e.getIndex()) * Gradients_dihedrals[e.getIndex()] * Gradients_dihedrals[e.getIndex()].transpose());
@@ -1920,7 +1920,7 @@ SparseMatrix<double> E_Handler::H_Bending_impl(const std::vector<double> &Consta
                 }
             }
 
-            Positions_edge = stack_positions(*geometry, Vertices_edge, 2);
+            Positions_edge = stack_positions<2>(*geometry, Vertices_edge);
 
             M_6_6 = constant * Dihedral_angles[e.getIndex()] * geometry->hessian_edge_length(Positions_edge);
 
@@ -1985,7 +1985,7 @@ SparseMatrix<double> E_Handler::H_Volume(std::vector<double> Constants)
         Vertices[1] = he.next().vertex();
         Vertices[2] = he.next().next().vertex();
 
-        Positions = stack_positions(*geometry, Vertices, 3);
+        Positions = stack_positions<3>(*geometry, Vertices);
 
         // Now we do the hesian thingy
         Hessian_block_vol = geometry->hessian_volume(Positions);
@@ -2075,7 +2075,7 @@ SparseMatrix<double> E_Handler::H_Laplace(std::vector<double> Constants)
         Vertices_face[0] = he.vertex();
         Vertices_face[1] = he.next().vertex();
         Vertices_face[2] = he.next().next().vertex();
-        Positions_face = stack_positions(*geometry, Vertices_face, 3);
+        Positions_face = stack_positions<3>(*geometry, Vertices_face);
 
         Grad_face = geometry->gradient_triangle_area(Positions_face);
         Gradients_areas.push_back(Grad_face);
@@ -2095,7 +2095,7 @@ SparseMatrix<double> E_Handler::H_Laplace(std::vector<double> Constants)
         Vertices_cotan[2] = he.next().next().vertex();
         Vertices_cotan[3] = he.twin().next().next().vertex();
 
-        Positions_cotan = stack_positions(*geometry, Vertices_cotan, 4);
+        Positions_cotan = stack_positions<4>(*geometry, Vertices_cotan);
 
         Grad_cotan_sample = geometry->gradient_cotan_weight(Positions_cotan);
         // std::cout<<"Grad cotan is" << Grad_cotan_sample.transpose() << "\n";
@@ -2133,7 +2133,7 @@ SparseMatrix<double> E_Handler::H_Laplace(std::vector<double> Constants)
             Vertices_face[0] = he.vertex();
             Vertices_face[1] = he.next().vertex();
             Vertices_face[2] = he.next().next().vertex();
-            Positions_face = stack_positions(*geometry, Vertices_face, 3);
+            Positions_face = stack_positions<3>(*geometry, Vertices_face);
 
             // std::cout<<"1\n";
 
@@ -2416,7 +2416,7 @@ SparseMatrix<double> E_Handler::H_Laplace(std::vector<double> Constants)
             }
 
             // Out last one is
-            Positions_cotan = stack_positions(*geometry, Vertices_cotan, 4);
+            Positions_cotan = stack_positions<4>(*geometry, Vertices_cotan);
 
             M_12_12 = constant * geometry->hessian_cotan_weight(Positions_cotan) * (Qs[v.getIndex()].transpose() * dX);
 
@@ -2470,7 +2470,7 @@ SparseMatrix<double> E_Handler::H_Edge_reg(std::vector<double> Constants)
         if (Vertices[0].isBoundary() || Vertices[1].isBoundary() || Vertices[2].isBoundary())
             continue;
 
-        Positions = stack_positions(*geometry, Vertices, 3);
+        Positions = stack_positions<3>(*geometry, Vertices);
         Edge_lengths_prev << Edge_lengths[he.edge()],
             Edge_lengths[he.next().next().edge()],
             Edge_lengths[he.twin().next().edge()];
