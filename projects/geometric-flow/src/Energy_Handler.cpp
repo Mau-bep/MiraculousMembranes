@@ -1505,12 +1505,10 @@ VertexData<Vector3> E_Handler::F_Coverage(
         }
 
         /*
-         * Do NOT reset Total_force here.
-         *
-         * The reset must happen once, before the full gradient evaluation,
-         * in E_Handler::Calculate_gradient().
+         * Stored separately: the bead's interaction Gradient() resets
+         * Total_force and then adds CoverageForce.
          */
-        bead->Total_force += beadForce;
+        bead->CoverageForce += beadForce;
     }
 
     return Force;
@@ -2791,6 +2789,8 @@ void E_Handler::Calculate_Lag_norm_Normal(double *Norm)
 
 void E_Handler::Calculate_gradient()
 {
+    for (Bead *bead : Beads)
+        bead->CoverageForce = Vector3({0.0, 0.0, 0.0});
     Previous_grad = Current_grad;
     Current_grad = VertexData<Vector3>(*mesh, Vector3{0.0, 0.0, 0.0});
     VertexData<Vector3> Force_temp(*mesh, Vector3{0.0, 0.0, 0.0});
