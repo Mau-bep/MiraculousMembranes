@@ -55,17 +55,17 @@ void remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOptio
             std::vector<Face> activeFaces);
 
 void dynamic_remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom,
-                    RemeshOptions options = defaultRemeshOptions);
+                    const RemeshOptions& options = defaultRemeshOptions);
 void dynamic_remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
                     RemeshOptions options = defaultRemeshOptions);
 
 
-void remesh_smoothing(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOptions options);
+void remesh_smoothing(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, const RemeshOptions& options);
 // Try to make all triangles Delaunay
 // Returns the number of flips performed
 size_t fixDelaunay(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom);
 size_t fixDelaunay(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm);
-size_t fixDelaunay(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm, RemeshOptions options);
+size_t fixDelaunay(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm, const RemeshOptions& options);
 
 // Average positions of vertices based on surrounding vertex positions
 // Returns the average amount each vertex was moved by
@@ -83,11 +83,11 @@ double smoothByCircumcenter(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& g
 
 // applies splits and collapses to adjust edge lengths based on the curvature
 bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom,
-                       RemeshOptions options = defaultRemeshOptions);
+                       const RemeshOptions& options = defaultRemeshOptions);
 bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
-                       RemeshOptions options = defaultRemeshOptions);
+                       const RemeshOptions& options = defaultRemeshOptions);
 std::vector<Face> splitSubset(std::vector<Face> activeFaces, ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom,
-                              MutationManager& mm, RemeshOptions options);
+                              MutationManager& mm, const RemeshOptions& options);
 bool collapseSubset(std::vector<Face> activeFaces, ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom,
                     MutationManager& mm, RemeshOptions options);
 bool splitWorstEdges(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
@@ -95,10 +95,10 @@ bool splitWorstEdges(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Mu
 bool improveFaces(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm, RemeshOptions options);
 int flipSubset(std::vector<Face> active, ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
                RemeshOptions options);
-void remeshSmallAngles(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOptions options);
+void remeshSmallAngles(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, const RemeshOptions& options);
 
 void deleteLowValence(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom,
-                      RemeshOptions options = defaultRemeshOptions);
+                      const RemeshOptions& options = defaultRemeshOptions);
 void deleteLowValence(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
                       RemeshOptions options = defaultRemeshOptions);
 EdgeData<int> DelaunayEdge(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom);

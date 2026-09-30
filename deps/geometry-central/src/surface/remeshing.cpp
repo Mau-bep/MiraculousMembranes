@@ -67,7 +67,7 @@ void remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOptio
   mesh.compress();
 }
 
-void dynamic_remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOptions options) {
+void dynamic_remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, const RemeshOptions& options) {
   MutationManager mm(mesh, geom);
   return dynamic_remesh(mesh, geom, mm, options);
 }
@@ -115,7 +115,7 @@ void dynamic_remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Mut
 }
 
 
-void remesh_smoothing(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOptions options) {
+void remesh_smoothing(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, const RemeshOptions& options) {
   MutationManager mm(mesh, geom);
 
   // std::cout<<"The number of flips is "<< nFlips<<"\n";
@@ -303,8 +303,8 @@ bool shouldCollapse(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Edg
   return true;
 }
 
-bool shouldCollapse(VertexData<double> SubsetSizingV, ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Edge e,
-                    RemeshOptions options) {
+bool shouldCollapse(const VertexData<double>& SubsetSizingV, ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Edge e,
+                    const RemeshOptions& options) {
   std::vector<Halfedge> edgesToCheck;
   Vertex v1 = e.halfedge().vertex();
   Vertex v2 = e.halfedge().twin().vertex();
@@ -386,7 +386,7 @@ bool shouldCollapse(VertexData<double> SubsetSizingV, ManifoldSurfaceMesh& mesh,
   return true;
 }
 
-bool shouldCollapse(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Edge e, RemeshOptions options) {
+bool shouldCollapse(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Edge e, const RemeshOptions& options) {
   std::vector<Halfedge> edgesToCheck;
   Vertex v1 = e.halfedge().vertex();
   Vertex v2 = e.halfedge().twin().vertex();
@@ -468,7 +468,7 @@ bool shouldCollapse(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Edg
   return true;
 }
 
-bool shouldCollapseSimple(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Edge e, RemeshOptions options) {
+bool shouldCollapseSimple(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Edge e, const RemeshOptions& options) {
   std::vector<Halfedge> edgesToCheck;
   Vertex v1 = e.halfedge().vertex();
   Vertex v2 = e.halfedge().twin().vertex();
@@ -577,7 +577,7 @@ size_t fixDelaunay(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Muta
 }
 
 size_t fixDelaunay(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
-                   RemeshOptions options) {
+                   const RemeshOptions& options) {
   // Logic duplicated from surface/intrinsic_triangulation.cpp
 
   std::deque<Edge> edgesToCheck;      // queue of edges to check if Delaunay
@@ -679,7 +679,6 @@ double smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom
 double smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm, double stepSize,
                          RemeshBoundaryCondition bc) {
   VertexData<Vector3> vertexOffsets(mesh);
-  geom.requireVertexNormals();
   geom.requireVertexPositions();
 
   for (Vertex v : mesh.vertices()) {
@@ -724,7 +723,6 @@ double smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom
     }
   }
   // geom.inputVertexPositions = geom.vertexPositions;
-  geom.unrequireVertexNormals();
   geom.unrequireVertexPositions();
   // What i would like to check is if there is any nAN VERTEX AFTERTHIS
   return totalMovement / mesh.nVertices();
@@ -784,13 +782,13 @@ double smoothByCircumcenter(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& g
 } // namespace surface
 
 
-bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOptions options) {
+bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, const RemeshOptions& options) {
   MutationManager mm(mesh, geom);
   return adjustEdgeLengths(mesh, geom, mm, options);
 }
 
 bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
-                       RemeshOptions options) {
+                       const RemeshOptions& options) {
   geom.requireVertexDualAreas();
   geom.requireVertexSizing();
   geom.requireEdgeLengths();
@@ -976,7 +974,7 @@ double Face_sizing(Face f, VertexPositionGeometry& geom) {
   return std::max(fabs(eigenvalues[0]), fabs(eigenvalues[1]));
 }
 
-bool independent(const Edge edge, const std::vector<Edge> edges) {
+bool independent(const Edge edge, const std::vector<Edge>& edges) {
   for (size_t i = 0; i < edges.size(); i++) {
     Edge edge1 = edges[i];
     if (edge.firstVertex() == edge1.firstVertex() || edge.firstVertex() == edge1.secondVertex() ||
@@ -985,10 +983,19 @@ bool independent(const Edge edge, const std::vector<Edge> edges) {
   }
   return true;
 }
-std::vector<Edge> independent_edges(const std::vector<Edge> edges) {
+// Greedy set of edges that share no vertex, in input order (linear time).
+std::vector<Edge> independent_edges(const std::vector<Edge>& edges) {
   std::vector<Edge> iedges;
-  for (size_t e = 0; e < edges.size(); e++)
-    if (independent(edges[e], iedges)) iedges.push_back(edges[e]);
+  if (edges.empty()) return iedges;
+  VertexData<char> used(*edges[0].getMesh(), false);
+  for (Edge e : edges) {
+    Vertex a = e.firstVertex();
+    Vertex b = e.secondVertex();
+    if (used[a] || used[b]) continue;
+    used[a] = true;
+    used[b] = true;
+    iedges.push_back(e);
+  }
   return iedges;
 }
 
@@ -1094,7 +1101,7 @@ bool collapseSubset(std::vector<Face> activeFaces, ManifoldSurfaceMesh& mesh, Ve
 
 
 std::vector<Face> splitSubset(std::vector<Face> activeFaces, ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom,
-                              MutationManager& mm, RemeshOptions options) {
+                              MutationManager& mm, const RemeshOptions& options) {
 
   FaceData<double> SubsetSizingF(mesh, 0.0);
   VertexData<double> SubsetSizingV(mesh, 0.0);
@@ -1236,7 +1243,7 @@ struct Deterministic_sort {
 
 
 std::vector<Edge> findBadEdges(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
-                               RemeshOptions options) {
+                               const RemeshOptions& options) {
 
   std::vector<std::pair<double, Edge>> edgems;
   for (Edge e : mesh.edges()) {
@@ -1328,7 +1335,7 @@ bool splitWorstEdges(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Mu
   return didSplit;
 }
 
-void deleteLowValence(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOptions options) {
+void deleteLowValence(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, const RemeshOptions& options) {
   MutationManager mm(mesh, geom);
   return deleteLowValence(mesh, geom, mm, options);
 }
@@ -1463,7 +1470,7 @@ bool improveFaces(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Mutat
   mesh.compress();
   return didCollapse;
 }
-void remeshSmallAngles(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOptions options) {
+void remeshSmallAngles(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, const RemeshOptions& options) {
 
   MutationManager mm = MutationManager(mesh, geom);
   bool didCollapse = false;

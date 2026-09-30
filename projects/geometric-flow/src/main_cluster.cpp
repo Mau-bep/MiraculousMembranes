@@ -288,7 +288,6 @@ namespace
         run.last_remesh = current_t;
         run.remesh_op = remesh(*sim.mesh, *sim.geometry, sim.Options);
         sim.geometry->refreshQuantities();
-        sim.geometry->refreshQuantities();
         sim.M3DG.BFGS_iter = 0;
         sim.Sim_handler.update_vertex_normals();
 
