@@ -1,0 +1,36 @@
+{
+    "init_file": "/home/mrojasve/Documents/DDG/MiraculousMembranes/input/Simplesphere.obj",
+    "first_dir": "OVERRIDDEN/",
+    "save_interval": 50,
+    "timesteps": 300,
+    "remeshing": true,
+    "remesh_every": 5,
+    "adapt_remesh": true,
+    "Count_remesh": true,
+    "Integration": "BFGS",
+    "BFGS_saved_states": 10,
+    "backtrack": true,
+    "Timestep": 1.0,
+    "boundary": false,
+    "recentering": false,
+    "saving_states": true,
+    "momentum": false,
+    "rescale": 3.0,
+    "Switches": ["Freeze_beads"],
+    "Switch_times": [200],
+    "Energies": [
+        {"Name": "Bending_tan", "constants": [5.0, 0.0]},
+        {"Name": "Surface_tension", "constants": [0.1, 0.0]},
+        {"Name": "Volume_constraint", "constants": [1000.0, -1.0]}
+    ],
+    "Beads": [
+        {"gradient_order": "Bead", "radius": 0.5, "state": "manual",
+         "Pos": [3.6, 0.0, 0.0], "Velocity": [-0.2, 0.0, 0.0], "FinalPos": [3.2, 0.0, 0.0],
+         "mem_inter": "LJ", "shift": 1.0, "inter_str": 1.0,
+         "bonds": ["Lineal"], "bonds_constants": [[50.0]], "Beads": [1]},
+        {"gradient_order": "Bead", "radius": 0.4, "state": "froze",
+         "Pos": [5.0, 0.0, 0.0], "mem_inter": "None", "inter_str": 0.0,
+         "bonds": ["Lineal"], "bonds_constants": [[50.0]], "Beads": [0]}
+    ],
+    "remesher": {"aspect_min": 0.2, "refine_angle": 0.6, "size_max": 0.45, "size_min": 0.05}
+}
