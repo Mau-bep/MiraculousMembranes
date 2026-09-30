@@ -1510,6 +1510,10 @@ void remeshSmallAngles(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, 
   }
   geom.unrequireEdgeLengths();
   geom.unrequireCornerAngles();
+  // The MutationManager moves vertexPositions; copy them back like remesh()
+  // does, or the next refreshQuantities() puts the collapsed vertex back at
+  // its old position instead of the edge midpoint.
+  geom.inputVertexPositions = geom.vertexPositions;
   if (didCollapse) mesh.compress();
 }
 
