@@ -33,6 +33,7 @@
 #include "Mem-3dg.h"
 #include "Beads.h"
 #include "Energy_Handler.h"
+#include "SimConfig.h"
 #include "math.h"
 
 #include "io.hpp"
@@ -53,14 +54,24 @@ std::unique_ptr<T> make_unique(Args &&...args)
     return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
 
-// == Geometry-central data
+// Everything loaded from the input file lives in sim (SimConfig.h). The
+// viewer callbacks use the short names below, which alias into it.
+Simulation sim;
+ManifoldSurfaceMesh *&mesh = sim.mesh;
+VertexPositionGeometry *&geometry = sim.geometry;
+Mem3DG &M3DG = sim.M3DG;
+E_Handler &Sim_handler = sim.Sim_handler;
+std::vector<Bead> &Beads = sim.Beads;
+std::vector<std::string> &Energies = sim.Energies;
+std::vector<std::vector<double>> &Energy_constants = sim.Energy_constants;
+RemeshOptions &Options = sim.Options;
+float &V_bar = sim.V_bar;
+double &A_bar = sim.A_bar;
+double &dA = sim.dA;
+
+// Used when loading saved frames
 std::unique_ptr<ManifoldSurfaceMesh> mesh_uptr;
 std::unique_ptr<VertexPositionGeometry> geometry_uptr;
-// so we can more easily pass these to different classes
-ManifoldSurfaceMesh *mesh;
-VertexPositionGeometry *geometry;
-
-std::vector<std::unique_ptr<Interaction>> Interaction_container;
 
 polyscope::PointCloud *psCloud;
 SimplePolygonMesh Saved_mesh;
@@ -80,9 +91,6 @@ float kappa = 1.0;
 bool first_newton = true;
 
 float H0 = 1.0;
-float V_bar = (4 / 3) * PI * 10;
-float A_bar;
-double dA;
 double Area;
 double origA;
 bool Area_constraint = false;
@@ -123,8 +131,6 @@ float Tx = 0.0;
 float Ty = 0.0;
 float Tz = 0.0;
 
-Mem3DG M3DG;
-E_Handler Sim_handler;
 VertexData<Vector3> NewtonStepSaved;
 float NewtonTs = 1.0;
 
@@ -132,8 +138,6 @@ std::string basic_name;
 int Save_slot = 0;
 int Load_slot = 0;
 
-std::vector<std::string> Energies(0);
-std::vector<std::vector<double>> Energy_constants(0);
 std::vector<std::vector<double>> Og_Energy_constants(0);
 std::vector<double> Constants(0);
 std::ofstream Sim_data;
@@ -141,7 +145,6 @@ std::vector<std::string> Bead_filenames;
 std::ofstream Bead_datas;
 // std::vector<Be>
 std::vector<std::string> Constraints(0);
-std::vector<Bead> Beads;
 std::vector<std::string> bonds;
 std::vector<std::vector<double>> constants;
 // std::vector<Interaction *> Bead_Interactions(0);
@@ -163,8 +166,6 @@ polyscope::SurfaceVertexColorQuantity *vertexColors;
 polyscope::SurfaceFaceColorQuantity *faceColors;
 double vertexRadius;
 double edgeRadius;
-
-RemeshOptions Options;
 
 enum shadeTpe
 {
@@ -281,26 +282,7 @@ void redraw()
 
 void Save_mesh(std::string basic_name, size_t current_t)
 {
-    Vector3 Pos;
-    std::ofstream o(basic_name + "membrane_" + std::to_string(current_t) + ".obj");
-    o << "#This is a meshfile from a saved state\n";
-    for (Vertex v : mesh->vertices())
-    {
-        Pos = geometry->inputVertexPositions[v];
-        o << "v " << Pos.x << " " << Pos.y << " " << Pos.z << "\n";
-    }
-    // Saving faces
-    for (Face f : mesh->faces())
-    {
-        o << "f";
-
-        for (Vertex v : f.adjacentVertices())
-        {
-            o << " " << v.getIndex() + 1;
-        }
-        o << "\n";
-    }
-    return;
+    Save_mesh(mesh, geometry, basic_name, current_t);
 }
 
 void Save_dihedrals(std::string basic_name)
@@ -2026,952 +2008,72 @@ void functionCallback()
 
 int main(int argc, char **argv)
 {
-
-    bool Eigenvals = true;
-    std::fstream JsonFile;
-
-    JsonFile.open(argv[1], std::ios::in);
-    int Nsim = std::stoi(argv[2]);
-    json Data = json::parse(JsonFile);
-    std::string first_dir;
-
-    bool loaded = false;
-    if (Data.contains("Subfolder"))
+    if (argc < 3)
     {
-        loaded = true;
-        std::string subfolder = Data["Subfolder"];
-        std::cout << "Loaded the subfolder " << subfolder << "\n";
-        first_dir = Data["first_dir"];
-        basic_name = first_dir + subfolder;
-        std::cout << "THe basic name is " << basic_name << "\n";
-        JsonFile.close();
-        std::cout << "Closed the json\n";
-        std::cout << "The candidate for file is " << basic_name + "Input_file.json" << "\n";
-        JsonFile.open(basic_name + "/Input_file.json", std::ios::in);
-        Data = json::parse(JsonFile);
+        std::cerr << "Usage: " << argv[0] << " <input.json> <Nsim>\n";
+        return EXIT_FAILURE;
     }
+    int Nsim = std::stoi(argv[2]);
+
+    try
+    {
+        // With "Subfolder" the run in first_dir/Subfolder is reopened and continued
+        build_simulation(load_config(argv[1], true), sim);
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << "Error setting up the simulation: " << e.what() << "\n";
+        return EXIT_FAILURE;
+    }
+    const SimConfig &cfg = sim.cfg;
+    const bool loaded = cfg.loaded_from_subfolder;
 
     Switch = "None";
     Switch_t = 0;
+    Integration = cfg.integration;
+    save_interval = cfg.save_interval;
+    remesh_every = cfg.remesh_every;
+    adapt_remesh = cfg.adapt_remesh;
+    Count_remesh = cfg.count_remesh;
+    Og_Energy_constants = Energy_constants;
 
-    bool finish_sim = false;
-    if (Data.contains("finish_sim"))
+    // Constraints and area schedule used by the Newton tools and updateTargetArea
+    origA = geometry->totalArea();
+    for (size_t i = 0; i < Energies.size(); i++)
     {
-        finish_sim = Data["finish_sim"];
-    }
-    else
-    {
-        std::cout << "The simulation will finish when the timestep decreases\n";
-    }
-
-    std::string filepath = Data["init_file"];
-    save_interval = Data["save_interval"];
-    bool remesher = Data["remeshing"];
-
-    if (Data.contains("Integration"))
-    {
-        Integration = Data["Integration"];
-    }
-    else
-    {
-        std::cout << "The integration method is not defined, using Gradient descent\n";
-    }
-    int Stored_info = 10;
-    if (Data.contains("BFGS_saved_states"))
-    {
-        Stored_info = Data["BFGS_saved_states"];
-    }
-
-    // Switches handling
-    std::vector<std::string> Switches(0);
-    std::string Switch = "None";
-    int Switch_t = 0;
-    std::unordered_map<std::string, int> Switch_times_map;
-
-    if (Data.contains("Switches"))
-    {
-        for (auto sw : Data["Switches"])
-            Switches.push_back(sw);
-
-        int switch_counter = 0;
-        for (auto t : Data["Switch_times"])
-        {
-            Switch_times_map[Switches[switch_counter]] = t;
-            switch_counter += 1;
-        }
-    }
-    else
-    {
-        std::cout << "No switches in this run";
-    }
-
-    std::cout << "THe number of switches is " << Switches.size() << "\n";
-    for (int i = 0; i < Switches.size(); i++)
-    {
-        std::cout << "The switch " << Switches[i] << " happens at time " << Switch_times_map[Switches[i]] << "\n";
-    }
-
-    if (Data.contains("remesh_every"))
-        remesh_every = Data["remesh_every"];
-    std::cout << "Remeshing every " << remesh_every << " steps " << std::endl;
-
-    if (Data.contains("adapt_remesh"))
-        adapt_remesh = Data["adapt_remesh"];
-
-    Vector3 Recenter{0.0, 0.0, 0.0};
-    if (Data.contains("Displacement"))
-    {
-        Recenter.x = Data["Displacement"][0];
-        Recenter.y = Data["Displacement"][1];
-        Recenter.z = Data["Displacement"][2];
-        std::cout << "Displacing the membrane by " << Recenter << " \n";
-    }
-
-    double scale_factor = 1.0;
-    if (Data.contains("rescale"))
-    {
-        scale_factor = Data["rescale"];
-    }
-
-    bool Saving_last_states = Data["saving_states"];
-    size_t Final_t = Data["timesteps"];
-
-    // Here i will load the geometry
-    std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
-    mesh = mesh_uptr.release();
-    geometry = geometry_uptr.release();
-
-    // Recenter and rescale.
-
-    if (Recenter.norm() > 0)
-    {
-        geometry->normalize(Recenter);
-    }
-    geometry->rescale(scale_factor);
-    geometry->refreshQuantities();
-
-    V_bar = geometry->totalVolume();
-    A_bar = geometry->totalArea();
-
-    // We will deal with the energies now
-
-    for (auto Energy : Data["Energies"])
-    {
-        Energies.push_back(Energy["Name"]);
-        Constants = Energy["constants"].get<std::vector<double>>();
-        std::cout << "The constants for " << Energy["Name"] << " are ";
-        for (size_t z = 0; z < Constants.size(); z++)
-            std::cout << Constants[z] << " ";
-        std::cout << " \n";
-
-        // I want to add here something
-        if (Energy["Name"] == "Volume_constraint")
-        {
+        if (Energies[i] == "Volume_constraint")
             Constraints.push_back("Volume");
-            if (Constants[1] < 0)
-            {
-                Constants[1] = geometry->totalVolume();
-                std::cout << "Setting the target volume to current volume \n";
-            }
-            V_bar = Constants[1];
-        }
-        if (Energy["Name"] == "Area_constraint")
+        if (Energies[i] == "Area_constraint")
         {
             Area_constraint = true;
-            // std::cout << "\tThe area constraint is active\n";
             Constraints.push_back("Area");
-            // The format for the area constraint is KA A_bar nu dA
-            origA = geometry->totalArea();
-            if (Constants[2] > 0)
-            {
-                double nu = Constants[2];
-                A_bar = pow(36 * PI * V_bar * V_bar / (nu * nu), 1.0 / 3.0);
-                Area = geometry->totalArea();
-                std::cout << "The target Area is " << A_bar << " from nu " << nu << "\n";
-                std::cout << "The current Area is " << Area << "\n";
-
-                dA = Constants[3];
-                if ((A_bar - Area) * dA < 0)
-                    dA = -dA;
-                minStepsReq = int(fabs((A_bar - origA) / dA));
-                // First problem
-                Constants[1] = Area + (dA / (fabs(dA))) * std::min(fabs(dA), fabs(A_bar - Area));
-            }
-            else
-            {
-                if (Constants[1] > 0)
-                {
-                    A_bar = Constants[1];
-                    dA = 0;
-                    minStepsReq = 0;
-                }
-                else
-                {
-                    dA = 0;
-                    minStepsReq = 0;
-                    A_bar = geometry->totalArea();
-                    Constants[1] = A_bar;
-                }
-            }
-            //
-
-            std::cout << "The target area is " << A_bar << "\n";
-            std::cout << "The current reduced volume is " << 3 * V_bar / (4 * PI * pow((Area / (4 * PI)), 1.5)) << "\n";
-            // Ok but the thing is that we cannot do A_bar, because A_bar can be too different, so we need a A_bar_current
-        }
-        if (Energy["Name"] == "Membrane_tension")
-        {
-            // OK so
-            double R0 = pow(0.75 * geometry->totalVolume() / PI, 1.0 / 3.0);
-            // std::cout << "R0 is " << R0 << " \n";
-            double A0 = 4 * PI * R0 * R0;
-            Constants[1] = A0 * Constants[1];
-        }
-        Energy_constants.push_back(Constants);
-        Constants.resize(0);
-    }
-
-    // We add the turning constraints
-    Constraints.push_back("CMx");
-    Constraints.push_back("CMy");
-    Constraints.push_back("CMz");
-    Constraints.push_back("Rx");
-    Constraints.push_back("Ry");
-    Constraints.push_back("Rz");
-
-    Vector3 BPos;
-    double radius;
-    double interaction_str;
-    std::string state;
-    std::string interaction_mem;
-    std::string Constraint;
-    std::vector<double> Constraint_constants;
-    Bead PBead;
-    Interaction *PInteraction;
-
-    int bead_counter = 0;
-    for (auto Bead_data : Data["Beads"])
-    {
-        std::cout << "Adding a bead\n";
-        std::cout << "THe bead is " << Bead_data["mem_inter"] << " \n";
-        if (Bead_data.contains("gradient_order"))
-        {
-            Energies.push_back(Bead_data["gradient_order"]);
-        }
-        else
-        {
-            Energies.push_back("Bead");
-        }
-
-        if (Bead_data.contains("Constraint"))
-        {
-            Constraint = Bead_data["Constraint"];
-            Constraint_constants = Bead_data["Constraint_constants"].get<std::vector<double>>();
-        }
-        else
-        {
-            Constraint = "None";
-            Constraint_constants = {};
-        }
-
-        Energy_constants.push_back(Constants);
-
-        BPos = Vector3({Bead_data["Pos"][0], Bead_data["Pos"][1], Bead_data["Pos"][2]});
-        radius = Bead_data["radius"];
-        state = Bead_data["state"];
-        interaction_str = Bead_data["inter_str"];
-        interaction_mem = Bead_data["mem_inter"];
-
-        std::vector<double> Bead_params(0);
-        Bead_params.push_back(interaction_str);
-        Bead_params.push_back(radius);
-        // Bead_params.push_back(2.0);
-
-        if (Bead_data.contains("rc"))
-        {
-            Bead_params.push_back(Bead_data["rc"]);
-        }
-        else
-        {
-
-            if (Bead_data["mem_inter"] == "LJ")
-            {
-                Bead_params.push_back(radius * pow(2, 1.0 / 6.0));
-            }
-            else if (Bead_data["mem_inter"] == "Frenkel" || Bead_data["mem_inter"] == "Frenkel_Normal_nopush")
-            {
-                Bead_params.push_back(radius * 2.0);
-            }
-            else
-            {
-                Bead_params.push_back(-1);
-            }
-        }
-
-        if (interaction_mem == "Gravity")
-        {
-            // Now i need the position in the Z axis
-            Bead_params.push_back(BPos.z);
-            Bead_params.push_back(-1);
-            std::vector<double> Zaxis = Bead_data["Z_Axis"].get<std::vector<double>>();
-            Bead_params.push_back(Zaxis[0]);
-            Bead_params.push_back(Zaxis[1]);
-            Bead_params.push_back(Zaxis[2]);
-
-            std::cout << "THe interaction gravity takes " << Bead_params.size() << " parameters, expected 8 \n";
-
-            Interaction_container.push_back(std::move(make_unique<Gravity_Plane>(mesh, geometry, Bead_params)));
-
-            Beads.push_back(Bead());
-            Beads[bead_counter].mesh = mesh;
-            Beads[bead_counter].geometry = geometry;
-            Beads[bead_counter].Pos = BPos;
-            Beads[bead_counter].strength = Bead_params[0];
-            Beads[bead_counter].sigma = Bead_params[1];
-            Beads[bead_counter].rc = Bead_params[2];
-            Beads[bead_counter].interaction = interaction_mem;
-            std::cout << "Trivial assignments done\n";
-            Beads[bead_counter].Bead_I = Interaction_container[bead_counter].get();
-            std::cout << "Assigned Interaction \n";
-            Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
-            std::cout << "Assined bead of inter\n";
-            Beads[bead_counter].Bead_id = bead_counter;
-            // I need to check the plane params
-        }
-        if (interaction_mem == "Pinch")
-        {
-            // Now i need the position in the Z axis
-            Bead_params.push_back(BPos.z);
-            Bead_params.push_back(-1);
-            std::vector<double> Zaxis = Bead_data["Z_Axis"].get<std::vector<double>>();
-            Bead_params.push_back(Zaxis[0]);
-            Bead_params.push_back(Zaxis[1]);
-            Bead_params.push_back(Zaxis[2]);
-
-            std::cout << "THe interaction gravity takes " << Bead_params.size() << " parameters, expected 8 \n";
-
-            Interaction_container.push_back(std::move(make_unique<Pinch_Interaction>(mesh, geometry, Bead_params)));
-            Beads.push_back(Bead());
-            Beads[bead_counter].mesh = mesh;
-            Beads[bead_counter].geometry = geometry;
-            Beads[bead_counter].Pos = BPos;
-            Beads[bead_counter].strength = Bead_params[0];
-            Beads[bead_counter].sigma = Bead_params[1];
-            Beads[bead_counter].rc = Bead_params[2];
-            Beads[bead_counter].interaction = interaction_mem;
-            std::cout << "Trivial assignments done\n";
-            Beads[bead_counter].Bead_I = Interaction_container[bead_counter].get();
-            std::cout << "Assigned Interaction \n";
-            Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
-            std::cout << "Assined bead of inter\n";
-            Beads[bead_counter].Bead_id = bead_counter;
-            // I need to check the plane params
-        }
-        if (interaction_mem == "Frenkel")
-        {
-
-            if (Bead_data.contains("outside"))
-            {
-                Bead_params.push_back(Bead_data["outside"]);
-            }
-            else
-            {
-                Bead_params.push_back(1.0); // default outside
-            }
-
-            Interaction_container.push_back(std::move(make_unique<Frenkel>(mesh, geometry, Bead_params)));
-
-            Beads.push_back(Bead());
-            Beads[bead_counter].mesh = mesh;
-            Beads[bead_counter].geometry = geometry;
-            Beads[bead_counter].Pos = BPos;
-            Beads[bead_counter].strength = Bead_params[0];
-            Beads[bead_counter].sigma = Bead_params[1];
-            Beads[bead_counter].rc = Bead_params[2];
-            Beads[bead_counter].interaction = interaction_mem;
-            std::cout << "Trivial assignments done\n";
-            Beads[bead_counter].Bead_I = Interaction_container[bead_counter].get();
-            std::cout << "Assigned INter \n";
-            Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
-            std::cout << "Assined bead of inter\n";
-            Beads[bead_counter].Bead_id = bead_counter;
-
-            std::cout << "The energy constants are ";
-            for (size_t i = 0; i < Interaction_container[bead_counter].get()->Energy_constants.size(); i++)
-            {
-                std::cout << Interaction_container[bead_counter].get()->Energy_constants[i] << " ";
-            }
-            std::cout << "\n";
-        }
-
-        if (interaction_mem == "Frenkel_Normal_nopush")
-        {
-
-            if (Bead_data.contains("outside"))
-            {
-                Bead_params.push_back(Bead_data["outside"]);
-            }
-            else
-            {
-                Bead_params.push_back(1.0); // default outside
-            }
-
-            Interaction_container.push_back(std::move(make_unique<Frenkel_Normal>(mesh, geometry, Bead_params)));
-
-            Beads.push_back(Bead());
-            Beads[bead_counter].mesh = mesh;
-            Beads[bead_counter].geometry = geometry;
-            Beads[bead_counter].Pos = BPos;
-            Beads[bead_counter].strength = Bead_params[0];
-            Beads[bead_counter].sigma = Bead_params[1];
-            Beads[bead_counter].rc = Bead_params[2];
-            Beads[bead_counter].interaction = interaction_mem;
-            std::cout << "Trivial assignments done\n";
-            Beads[bead_counter].Bead_I = Interaction_container[bead_counter].get();
-            std::cout << "Assigned INter \n";
-            Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
-            std::cout << "Assined bead of inter\n";
-            Beads[bead_counter].Bead_id = bead_counter;
-
-            std::cout << "The energy constants are ";
-            for (size_t i = 0; i < Interaction_container[bead_counter].get()->Energy_constants.size(); i++)
-            {
-                std::cout << Interaction_container[bead_counter].get()->Energy_constants[i] << " ";
-            }
-            std::cout << "\n";
-        }
-
-        if (interaction_mem == "Linear")
-        {
-
-            if (Bead_data.contains("outside"))
-            {
-                Bead_params.push_back(Bead_data["outside"]);
-            }
-            else
-            {
-                Bead_params.push_back(1.0); // default outside
-            }
-
-            Interaction_container.push_back(std::move(make_unique<Linear>(mesh, geometry, Bead_params)));
-
-            Beads.push_back(Bead());
-            Beads[bead_counter].mesh = mesh;
-            Beads[bead_counter].geometry = geometry;
-            Beads[bead_counter].Pos = BPos;
-            Beads[bead_counter].strength = Bead_params[0];
-            Beads[bead_counter].sigma = Bead_params[1];
-            Beads[bead_counter].rc = Bead_params[2];
-            Beads[bead_counter].interaction = interaction_mem;
-            std::cout << "Trivial assignments done\n";
-            Beads[bead_counter].Bead_I = Interaction_container[bead_counter].get();
-            std::cout << "Assigned INter \n";
-            Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
-            std::cout << "Assined bead of inter\n";
-            Beads[bead_counter].Bead_id = bead_counter;
-
-            std::cout << "The energy constants are ";
-            for (size_t i = 0; i < Interaction_container[bead_counter].get()->Energy_constants.size(); i++)
-            {
-                std::cout << Interaction_container[bead_counter].get()->Energy_constants[i] << " ";
-            }
-            std::cout << "\n";
-        }
-        if (interaction_mem == "Linear_Normal")
-        {
-
-            if (Bead_data.contains("outside"))
-            {
-                Bead_params.push_back(Bead_data["outside"]);
-            }
-            else
-            {
-                Bead_params.push_back(1.0); // default outside
-            }
-
-            Interaction_container.push_back(std::move(make_unique<Linear_Normal>(mesh, geometry, Bead_params)));
-
-            Beads.push_back(Bead());
-            Beads[bead_counter].mesh = mesh;
-            Beads[bead_counter].geometry = geometry;
-            Beads[bead_counter].Pos = BPos;
-            Beads[bead_counter].strength = Bead_params[0];
-            Beads[bead_counter].sigma = Bead_params[1];
-            Beads[bead_counter].rc = Bead_params[2];
-            Beads[bead_counter].interaction = interaction_mem;
-            std::cout << "Trivial assignments done\n";
-            Beads[bead_counter].Bead_I = Interaction_container[bead_counter].get();
-            std::cout << "Assigned INter \n";
-            Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
-            std::cout << "Assined bead of inter\n";
-            Beads[bead_counter].Bead_id = bead_counter;
-
-            std::cout << "The energy constants are ";
-            for (size_t i = 0; i < Interaction_container[bead_counter].get()->Energy_constants.size(); i++)
-            {
-                std::cout << Interaction_container[bead_counter].get()->Energy_constants[i] << " ";
-            }
-            std::cout << "\n";
-        }
-
-        if (interaction_mem == "LJ")
-        {
-
-            if (Bead_data.contains("shift"))
-            {
-                Bead_params.push_back(Bead_data["shift"]);
-            }
-            else
-            {
-                Bead_params.push_back(0.0); // default shift
-            }
-            std::cout << "The bead params are " << Bead_params[0] << " " << Bead_params[1] << " " << Bead_params[2] << " " << Bead_params[3] << "\n";
-
-            Interaction_container.push_back(std::move(make_unique<LJ>(mesh, geometry, Bead_params)));
-
-            // std::cout<<"THe frenkel uptr points to"<< Interaction_container[bead_counter].get() <<"\n";
-
-            Beads.push_back(Bead());
-            Beads[bead_counter].mesh = mesh;
-            Beads[bead_counter].geometry = geometry;
-            Beads[bead_counter].Pos = BPos;
-            Beads[bead_counter].strength = Bead_params[0];
-            Beads[bead_counter].sigma = Bead_params[1];
-            Beads[bead_counter].rc = Bead_params[2];
-            Beads[bead_counter].interaction = interaction_mem;
-            Beads[bead_counter].Bead_I = Interaction_container[bead_counter].get();
-            Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
-            Beads[bead_counter].Bead_id = bead_counter;
-
-            std::cout << "The energy at the cutfoff is" << Beads[bead_counter].Bead_I->E_r(Bead_params[2], Bead_params) << " and at more than the cutoff is " << Beads[bead_counter].Bead_I->E_r(1.5 * Bead_params[2], Bead_params) << "\n";
-
-            std::cout << "The dE_r at the cutfoff is" << Beads[bead_counter].Bead_I->dE_r(Bead_params[2], Bead_params) << " and at more than the cutoff is " << Beads[bead_counter].Bead_I->dE_r(1.5 * Bead_params[2], Bead_params) << "\n";
-
-            std::cout << "The ddE_r at the cutfoff is" << Beads[bead_counter].Bead_I->ddE_r(Bead_params[2], Bead_params) << " and at more than the cutoff is " << Beads[bead_counter].Bead_I->ddE_r(1.5 * Bead_params[2], Bead_params) << "\n";
-        }
-        if (interaction_mem == "One_over_r_x")
-        {
-
-            if (Bead_data.contains("outside"))
-            {
-                Bead_params.push_back(Bead_data["outside"]);
-            }
-            else
-            {
-                Bead_params.push_back(1.0); // default outside
-            }
-            Interaction_container.push_back(std::move(make_unique<One_over_r_Normal>(mesh, geometry, Bead_params)));
-
-            std::cout << "THe  uptr points to" << Interaction_container[bead_counter].get() << "\n";
-
-            Beads.push_back(Bead());
-            Beads[bead_counter].mesh = mesh;
-            Beads[bead_counter].geometry = geometry;
-            Beads[bead_counter].Pos = BPos;
-            Beads[bead_counter].strength = Bead_params[0];
-            Beads[bead_counter].sigma = Bead_params[1];
-            Beads[bead_counter].rc = Bead_params[2];
-            Beads[bead_counter].interaction = interaction_mem;
-
-            Beads[bead_counter].Bead_I = Interaction_container[bead_counter].get();
-            Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
-            Beads[bead_counter].Bead_id = bead_counter;
-        }
-
-        if (interaction_mem == "One_over_r")
-        {
-
-            Interaction_container.push_back(std::move(make_unique<One_over_r>(mesh, geometry, Bead_params)));
-
-            std::cout << "THe  uptr points to" << Interaction_container[bead_counter].get() << "\n";
-
-            Beads.push_back(Bead());
-            Beads[bead_counter].mesh = mesh;
-            Beads[bead_counter].geometry = geometry;
-            Beads[bead_counter].Pos = BPos;
-            Beads[bead_counter].strength = Bead_params[0];
-            Beads[bead_counter].sigma = Bead_params[1];
-            Beads[bead_counter].rc = Bead_params[2];
-            Beads[bead_counter].interaction = interaction_mem;
-
-            Beads[bead_counter].Bead_I = Interaction_container[bead_counter].get();
-            Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
-            Beads[bead_counter].Bead_id = bead_counter;
-        }
-
-        if (interaction_mem == "None")
-        {
-            std::cout << "Adding a no mem interaction\n";
-            Interaction_container.push_back(std::move(make_unique<No_mem_Inter>()));
-
-            Beads.push_back(Bead());
-            Beads[bead_counter].mesh = mesh;
-            Beads[bead_counter].geometry = geometry;
-            Beads[bead_counter].Pos = BPos;
-            Beads[bead_counter].strength = Bead_params[0];
-            Beads[bead_counter].sigma = Bead_params[1];
-            Beads[bead_counter].rc = Bead_params[2];
-            Beads[bead_counter].interaction = interaction_mem;
-
-            Beads[bead_counter].Bead_I = Interaction_container[bead_counter].get();
-            Beads[bead_counter].Bead_I->Bead_1 = &Beads[bead_counter];
-            Beads[bead_counter].Bead_id = bead_counter;
-        }
-        // BEA.interaction = interaction_mem;
-        Beads[bead_counter].Bond_type = Bead_data["bonds"].get<vector<std::string>>();
-        Beads[bead_counter].Interaction_constants_vector = Bead_data["bonds_constants"].get<std::vector<std::vector<double>>>();
-        Beads[bead_counter].state = state;
-
-        Beads[bead_counter].Constraint = Constraint;
-        Beads[bead_counter].Constraint_constants = Constraint_constants;
-        std::cout << "The bead has radius" << Beads[bead_counter].sigma << " cutoff of " << Beads[bead_counter].rc << " \n";
-
-        // Lets add the manual movement here
-        if (Beads[bead_counter].state == "manual")
-        {
-            // We need to set the velocity of the bead
-            Beads[bead_counter].Velocity = Vector3({Bead_data["Velocity"][0], Bead_data["Velocity"][1], Bead_data["Velocity"][2]});
-            if (Bead_data.contains("FinalPos"))
-            {
-                Beads[bead_counter].FinalPos = Vector3({Bead_data["FinalPos"][0], Bead_data["FinalPos"][1], Bead_data["FinalPos"][2]});
-            }
-        }
-
-        bead_counter += 1;
-    }
-    std::cout << "The bead counter is " << bead_counter << "\n";
-
-    for (int bi = 0; bi < Beads.size(); bi++)
-    {
-        std::cout << "The bead " << bi << " points to " << Beads[bi].Bead_I->Bead_1 << " and state " << Beads[bi].state << " \n";
-    }
-
-    // M3DG.Sim_handler->Calculate_ener
-
-    std::vector<int> BeadBonds(0);
-    size_t counter = 0;
-    for (auto Bead_data : Data["Beads"])
-    {
-        // I am iterating again but i only care about the bonds
-        BeadBonds = Bead_data["Beads"].get<std::vector<int>>();
-        for (size_t i = 0; i < BeadBonds.size(); i++)
-        {
-            Beads[counter].Beads.push_back(&Beads[BeadBonds[i]]);
-            counter += 1;
+            minStepsReq = fabs(dA) > 0 ? size_t(fabs((A_bar - origA) / dA)) : 0;
         }
     }
-    std::cout << "There are " << counter / 2 << " bonds \n";
-
-    if (counter > 0)
-        std::cout << "The bead with radius " << Beads[0].sigma << " is connected to the bead with radius " << Beads[0].Beads[0]->sigma << " \n";
-
-    for (size_t i = 0; i < Beads.size(); i++)
-    {
-        std::cout << "The bead has " << Beads[i].Bond_type.size() << " bonds and interaction " << Beads[i].interaction << " \n";
-        std::cout << "The bead is at position " << Beads[i].Pos << "\n";
-    }
-    // Now the beads point to each other ()
-
-    // Lets define our integrator and all its values
-
-    int N_beads = Beads.size();
-    for (int i = 0; i < N_beads; i++)
-    {
-        Beads[i].Total_beads = N_beads;
-        Beads[i].Bead_id = i;
-    }
-
-    M3DG = Mem3DG(mesh, geometry);
-    Sim_handler = E_Handler(mesh, geometry, Energies, Energy_constants);
-    Og_Energy_constants = Energy_constants;
-    Sim_handler.Trgt_vol = V_bar;
-    Sim_handler.Trgt_area = A_bar;
-    M3DG.recentering = Data["recentering"];
-    M3DG.boundary = Data["boundary"];
-    Sim_handler.boundary = Data["boundary"];
-
-    for (size_t i = 0; i < Beads.size(); i++)
-    {
-        M3DG.Add_bead(&Beads[i]);
-        Sim_handler.Add_Bead(&Beads[i]);
-        // Beads[i].mesh = mesh;
-        // Beads[i].geometry = geometry;
-    }
-
-    M3DG.Sim_handler = &Sim_handler;
-
-    if (Data.contains("Field"))
-    {
-        M3DG.Field = Data["Field"];
-        M3DG.Field_vals = Data["Field_vals"].get<std::vector<double>>();
-        std::cout << "The field is " << M3DG.Field << " and the values are ";
-        for (size_t i = 0; i < M3DG.Field_vals.size(); i++)
-            std::cout << M3DG.Field_vals[i] << " ";
-        std::cout << "\n";
-    }
-    else
-    {
-        M3DG.Field = "None";
-    }
-
-    if (Data.contains("backtrack"))
-    {
-        M3DG.backtrack = Data["backtrack"];
-        if (Data.contains("Timestep"))
-        {
-            M3DG.timestep = Data["Timestep"];
-        }
-        else
-        {
-            M3DG.timestep = 1e-4;
-        }
-    }
-    else
-    {
-        M3DG.backtrack = true;
-    }
-
-    if (Data.contains("momentum"))
-    {
-        M3DG.momentum = Data["momentum"];
-        std::cout << "Momentum is " << M3DG.momentum << "\n";
-    }
-
-    if (Data.contains("remesher"))
-    {
-        Options.max_absolute_length = Data["remesher"]["size_max"];
-        Options.min_absolute_length = Data["remesher"]["size_min"];
-        Options.refine_angle = Data["remesher"]["refine_angle"];
-        Options.aspect_min = Data["remesher"]["aspect_min"];
-        Options.maxIterations = 1;
-    }
-
-    int saved_mesh_idx = 0;
-    std::vector<Vector3> Bead_pos_saved(6);
-
-    auto start = chrono::steady_clock::now();
-    auto end = chrono::steady_clock::now();
-
-    auto start_full = chrono::steady_clock::now();
-    auto end_full = chrono::steady_clock::now();
-
-    auto start_time_control = chrono::steady_clock::now();
-    auto end_time_control = chrono::steady_clock::now();
-
-    double remeshing_elapsed_time = 0;
-    double integrate_elapsed_time = 0;
-    double saving_mesh_time = 0;
-
-    std::cout << "Current path is " << argv[0];
-
-    std::cout << "The energy elements are \n";
-
-    for (size_t z = 0; z < Energies.size(); z++)
-    {
-        std::cout << Energies[z] << " ";
-    }
-    std::cout << "\n";
-
-    std::cout << "Minimum edge length allowed is " << Options.min_absolute_length << " muak\n";
-
-    double avg_dih = 0;
-    double max_dih = 0;
-    double min_dih = 0.1;
-    double dih;
-
-    for (Edge e : mesh->edges())
-    {
-        dih = fabs(geometry->dihedralAngle(e.halfedge()));
-        avg_dih += dih;
-        if (dih > max_dih)
-            max_dih = dih;
-        if (dih < min_dih)
-            min_dih = dih;
-    }
-    std::cout << "First checkThe average dihedral is" << avg_dih / mesh->nEdges() << " \n";
-    std::cout << "The min dih is" << min_dih << " and the max dih is " << max_dih << " \n";
-    avg_dih = 0.0;
-
-    FaceData<double> F_sizings = M3DG.Face_sizings();
-    VertexData<double> Sizings = M3DG.Vert_sizing(F_sizings);
-    double max_sizing = 0.0;
-    double min_sizing = 1e4;
-    double sizing;
-
-    for (Vertex v : mesh->vertices())
-    {
-        //
-        sizing = Sizings[v];
-        if (sizing > max_sizing)
-            max_sizing = sizing;
-        if (sizing < min_sizing)
-            min_sizing = sizing;
-    }
-    std::cout << "My algorithm says\n";
-    std::cout << "The max sizing is " << max_sizing << " and the min sizing is " << min_sizing << " \n";
+    for (const char *name : {"CMx", "CMy", "CMz", "Rx", "Ry", "Rz"})
+        Constraints.push_back(name);
 
     ORIG_VPOS = geometry->inputVertexPositions;
     CoM = geometry->centerOfMass();
 
-    // How do we create a name that makes sense
-    // I can do something like E _ param_ param_ E_ param_param _Nsim_
-
-    std::string Directory = "";
-    std::stringstream stream;
-    std::string s;
-    bead_counter = 0;
-    for (size_t z = 0; z < Energies.size(); z++)
-    {
-        Directory = Directory + Energies[z] + "_";
-
-        if (Energies[z] == "Bead" || Energies[z] == "H1_Bead" || Energies[z] == "H2_Bead")
-        {
-            stream.str(std::string());
-            stream << std::fixed << std::setprecision(4) << Beads[bead_counter].sigma;
-            Directory = Directory + "radius_" + stream.str() + "_";
-
-            stream.str(std::string());
-            stream << std::fixed << std::setprecision(4) << Beads[bead_counter].strength;
-            Directory = Directory + "str_" + stream.str() + "_";
-
-            if (Beads[bead_counter].Constraint == "Radial")
-            {
-                stream.str(std::string());
-                stream << std::fixed << std::setprecision(4) << Beads[bead_counter].Constraint_constants[0];
-                Directory = Directory + "theta_const_" + stream.str() + "_";
-            }
-            bead_counter += 1;
-        }
-        for (size_t j = 0; j < Energy_constants[z].size(); j++)
-        {
-            stream.str(std::string());
-            stream << std::fixed << std::setprecision(4) << Energy_constants[z][j];
-
-            Directory = Directory + stream.str() + "_";
-            // stream << std::fixed << std::setprecision(2) << pi;
-        }
-    }
-    if (Data.contains("Field"))
-    {
-
-        Directory = Directory + M3DG.Field + "_";
-        for (size_t i = 0; i < M3DG.Field_vals.size(); i++)
-        {
-            stream.str(std::string());
-            stream << std::fixed << std::setprecision(4) << M3DG.Field_vals[i];
-            Directory = Directory + stream.str() + "_";
-        }
-    }
-
-    Count_remesh = false;
-    if (Data.contains("Count_remesh"))
-    {
-        Count_remesh = Data["Count_remesh"];
-        std::cout << "The remeshing counting is " << Count_remesh << "\n";
-        Remeshing_count = std::ofstream(basic_name + "Remeshing_count.txt", std::ios_base::app);
-        Remeshing_count << "#### timestep remeshing_operations nVertices nEdges nFaces \n";
-        Remeshing_count.close();
-    }
-
-    bool bonds_exist = false;
-    for (size_t z = 0; z < Beads.size(); z++)
-    {
-        if (Beads[z].Bond_type.size() > 0 && bonds_exist == false)
-        {
-            Directory = Directory + "Bonds_";
-            bonds_exist = true;
-        }
-        for (size_t j = 0; j < Beads[z].Bond_type.size(); j++)
-        {
-            stream.str(std::string());
-            stream << std::fixed << std::setprecision(4) << Beads[z].Interaction_constants_vector[j][0];
-            Directory = Directory + Beads[z].Bond_type[j] + "_" + stream.str() + "_";
-        }
-    }
-
-    if (Switch != "None")
-    {
-        Directory = Directory + "Switch_" + Switch + "_";
-        stream.str(std::string());
-        stream << std::fixed << std::setprecision(1) << Switch_t;
-        Directory = Directory + "Switch_t_" + stream.str() + "_";
-    }
-
-    Directory = Directory + "Nsim_" + std::to_string(Nsim) + "/";
-
-    std::cout << "Directory is " << Directory << " \n";
-
-    //
-
-    first_dir = Data["first_dir"];
-
-    int status = mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-
-    // std::string filename;
     if (loaded)
     {
-        filename = basic_name + "Output_data.txt";
-        Sim_data = std::ofstream(filename, std::ios_base::app);
-        Sim_data.close();
+        basic_name = cfg.subfolder_dir;
     }
     else
     {
-
-        basic_name = first_dir + Directory;
-
-        status = mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-
-        std::cout << "\nIf this number is 0 the directory was created succesfully " << status << "\n";
-
-        filename = basic_name + "Output_data.txt";
-
-        Sim_data = std::ofstream(filename, std::ios_base::app);
-        Sim_data << "time step Volume Area ";
-        for (size_t i = 0; i < Energies.size(); i++)
-        {
-            Sim_data << Energies[i] << " ";
-        }
-        Sim_data << " Total_E grad_norm backtrackstep\n";
-        Sim_data.close();
+        mkdir(cfg.first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        basic_name = cfg.first_dir + build_descriptive_name(sim, Nsim);
+        mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     }
-
-    std::cout << "Here1\n";
-
-    // std::vector<std::string> Bead_filenames;
-    // std::ofstream Bead_datas;
-
-    std::cout << "Here2\n";
-
-    for (size_t i = 0; i < Beads.size(); i++)
-    {
-        Bead_filenames.push_back(basic_name + "Bead_" + std::to_string(i) + "_data.txt");
-        Bead_datas = std::ofstream(Bead_filenames[i], std::ios_base::app);
-        if (!Data.contains("Subfolder"))
-        {
-            Bead_datas << "####### This data is taken ever y" << save_interval << " steps just like the mesh radius is " << radius << " \n";
-        }
-        Bead_datas.close();
-    }
-
-    Count_remesh = false;
-    std::ofstream Remeshing_count;
-    if (Data.contains("Count_remesh"))
-    {
-        Count_remesh = Data["Count_remesh"];
-        std::cout << "The remeshing counting is " << Count_remesh << "\n";
-        Remeshing_count = std::ofstream(basic_name + "Remeshing_count.txt", std::ios_base::app);
-        Remeshing_count << "#### timestep remeshing_operations nVertices nEdges nFaces \n";
-        Remeshing_count.close();
-    }
-
-    std::cout << "Here3\n";
+    std::cout << "The output directory is " << basic_name << "\n";
+    filename = basic_name + "Output_data.txt";
+    Bead_filenames = open_output_files(sim, basic_name, loaded);
 
     Bead_filenames.push_back(basic_name + "Simulation_timings.txt");
     Bead_datas = std::ofstream(Bead_filenames[Beads.size()], std::ios_base::app);
     Bead_datas << "Remeshing_time Gradients Backtracking  Construction compute Solve \n";
     Bead_datas.close();
-
-    std::cout << "Here4\n";
 
     polyscope::state::facePickIndStart = mesh->nVertices();
     polyscope::state::edgePickIndStart = polyscope::state::facePickIndStart + mesh->nFaces();

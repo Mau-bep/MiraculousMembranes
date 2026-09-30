@@ -33,7 +33,7 @@ direction = sys.argv[5]
 
 
 
-def Create_json_pulling():
+def Create_json_tube_eq():
     # theta = float(angle)
     os.makedirs("../Config_files/",exist_ok = True)
     env = Environment(loader=FileSystemLoader('../Templates/'))
@@ -68,7 +68,7 @@ def Create_json_pulling():
 
 
 
-def Create_json_pulling(direction):
+def Create_json_tube_continuation(direction):
     # theta = float(angle)
     os.makedirs("../Config_files/",exist_ok = True)
     env = Environment(loader=FileSystemLoader('../Templates/'))
@@ -124,11 +124,11 @@ os.makedirs('../Outputs/',exist_ok=True)
 # Config_path, sim_path = Create_json_wrapping_two_outside(angle,outside1,outside2)
 
 if(int(direction) == 0):
-    Config_path, sim_path = Create_json_pulling()
+    Config_path, sim_path = Create_json_tube_eq()
     Output_name = 'output_tube_KA_{0}_KB_{1}_r_{2}_XF_{3}.output'.format(KA,KB,radius,finalX)
     f=open('../Subjobs/subjob_tube_KA_{0}_KB_{1}_r_{2}_XF_{3}'.format(KA,KB,radius,finalX),mode='w+')
 else:
-    Config_path, sim_path = Create_json_pulling(int(direction)) 
+    Config_path, sim_path = Create_json_tube_continuation(int(direction))
     Output_name = 'output_tube_KA_{0}_KB_{1}_r_{2}_XF_{3}_direction_{4}.output'.format(KA,KB,radius,finalX,direction)
     f=open('../Subjobs/subjob_tube_KA_{0}_KB_{1}_r_{2}_XF_{3}_direction_{4}'.format(KA,KB,radius,finalX,direction),mode='w+')
 
