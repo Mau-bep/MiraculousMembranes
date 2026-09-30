@@ -239,4 +239,19 @@ namespace bead_geometry
         return result;
     }
 
+    void validateCoverageConstants(const std::vector<double> &Constants, size_t nBeads)
+    {
+        if (Constants.size() != nBeads + 1)
+        {
+            throw std::invalid_argument(
+                "Coverage: Constants must have exactly Beads.size() + 1 values: "
+                "[K, cov_0, cov_1, ..., cov_(N-1)].");
+        }
+    }
+
+    bool validCoverageTarget(double cov)
+    {
+        return cov == -1.0 || (cov >= 0.0 && cov <= 1.0);
+    }
+
 } // namespace bead_geometry

@@ -6,6 +6,7 @@
 #include <fstream>
 #include <omp.h>
 #include "Interaction.h"
+#include "GeometryHelpers.h"
 #include "Beads.h"
 
 using namespace geometrycentral;
@@ -14,185 +15,6 @@ typedef Eigen::Triplet<double> T;
 
 #include <stdexcept>
 
-namespace
-{
-
-    constexpr double COVERAGE_EPS = 1e-12;
-
-    /*
-     * Smooth shell centered at sigma.
-     *
-     * Support:
-     *
-     *     sigma - delta < r < sigma + delta
-     *
-     * where:
-     *
-     *     delta = 0.25 * sigma.
-     *
-     * The function returns w(r), and writes dw_dr.
-     */
-    double coverageShellWeight(double r, double sigma, double &dw_dr)
-    {
-        if (sigma <= 0.0)
-        {
-            throw std::invalid_argument(
-                "Coverage: bead sigma must be strictly positive.");
-        }
-
-        const double delta = 0.25 * sigma;
-        const double x = (r - sigma) / delta;
-
-        dw_dr = 0.0;
-
-        // Outside the shell [sigma-delta, sigma+delta].
-        if (std::abs(x) >= 1.0)
-        {
-            return 0.0;
-        }
-
-        /*
-         * w = 0.5 * (1 + cos(pi*x))
-         *
-         * w = 1 at r = sigma
-         * w = 0 at r = sigma +/- delta
-         */
-        const double w = 0.5 * (1.0 + std::cos(PI * x));
-
-        /*
-         * dw/dr = -pi/(2 delta) sin(pi*x)
-         */
-        dw_dr = -0.5 * PI * std::sin(PI * x) / delta;
-
-        return w;
-    }
-
-    /*
-     * Calculates a signed solid angle and its derivatives with respect
-     * to the three triangle positions.
-     *
-     * For:
-     *
-     *   a = p0 - q
-     *   b = p1 - q
-     *   c = p2 - q
-     *
-     * omega = 2 atan2(N, D)
-     *
-     * N = a . (b x c)
-     * D = |a||b||c| + (a.b)|c| + (b.c)|a| + (c.a)|b|
-     */
-    struct SolidAngleResult
-    {
-        double omegaSigned;
-        Vector3 grad0;
-        Vector3 grad1;
-        Vector3 grad2;
-        bool valid;
-    };
-
-    SolidAngleResult triangleSolidAngleGradient(const Vector3 &p0,
-                                                const Vector3 &p1,
-                                                const Vector3 &p2,
-                                                const Vector3 &beadPos)
-    {
-        SolidAngleResult result;
-
-        result.omegaSigned = 0.0;
-        result.grad0 = Vector3({0.0, 0.0, 0.0});
-        result.grad1 = Vector3({0.0, 0.0, 0.0});
-        result.grad2 = Vector3({0.0, 0.0, 0.0});
-        result.valid = false;
-
-        const Vector3 a = p0 - beadPos;
-        const Vector3 b = p1 - beadPos;
-        const Vector3 c = p2 - beadPos;
-
-        const double ra = norm(a);
-        const double rb = norm(b);
-        const double rc = norm(c);
-
-        if (ra < COVERAGE_EPS ||
-            rb < COVERAGE_EPS ||
-            rc < COVERAGE_EPS)
-        {
-            return result;
-        }
-
-        const double ab = dot(a, b);
-        const double bc = dot(b, c);
-        const double ca = dot(c, a);
-
-        // N = det(a,b,c) = a . (b x c)
-        const double N = dot(a, cross(b, c));
-
-        const double D =
-            ra * rb * rc + ab * rc + bc * ra + ca * rb;
-
-        const double denominator = D * D + N * N;
-
-        if (denominator < COVERAGE_EPS)
-        {
-            return result;
-        }
-
-        result.omegaSigned = 2.0 * std::atan2(N, D);
-
-        /*
-         * Gradients of N.
-         */
-        const Vector3 gradN_a = cross(b, c);
-        const Vector3 gradN_b = cross(c, a);
-        const Vector3 gradN_c = cross(a, b);
-
-        /*
-         * Gradients of D.
-         */
-        const Vector3 gradD_a =
-            (rb * rc + bc) * a / ra + rc * b + rb * c;
-
-        const Vector3 gradD_b =
-            (ra * rc + ca) * b / rb + rc * a + ra * c;
-
-        const Vector3 gradD_c =
-            (ra * rb + ab) * c / rc + ra * b + rb * a;
-
-        /*
-         * d omega = 2 (D dN - N dD) / (D^2 + N^2)
-         */
-        const double prefactor = 2.0 / denominator;
-
-        result.grad0 = prefactor * (D * gradN_a - N * gradD_a);
-        result.grad1 = prefactor * (D * gradN_b - N * gradD_b);
-        result.grad2 = prefactor * (D * gradN_c - N * gradD_c);
-
-        result.valid = true;
-
-        return result;
-    }
-
-    void validateCoverageConstants(const std::vector<double> &Constants,
-                                   const std::vector<Bead *> &Beads)
-    {
-        if (Constants.size() != Beads.size() + 1)
-        {
-            throw std::invalid_argument(
-                "Coverage: Constants must have exactly Beads.size() + 1 values: "
-                "[K, cov_0, cov_1, ..., cov_(N-1)].");
-        }
-    }
-
-    /*
-     * -1: disabled bead
-     * [0,1]: valid target coverage
-     * otherwise: invalid
-     */
-    bool validCoverageTarget(double cov)
-    {
-        return cov == -1.0 || (cov >= 0.0 && cov <= 1.0);
-    }
-
-} // namespace
 
 void Interaction::validateSetup() const
 {
@@ -960,9 +782,7 @@ VertexData<Vector3> Integrated_Interaction::Gradient()
 
         // Ineed to check here something
 
-        Positions_f << geometry->inputVertexPositions[Vertices_triangle[0]].x, geometry->inputVertexPositions[Vertices_triangle[0]].y, geometry->inputVertexPositions[Vertices_triangle[0]].z,
-            geometry->inputVertexPositions[Vertices_triangle[1]].x, geometry->inputVertexPositions[Vertices_triangle[1]].y, geometry->inputVertexPositions[Vertices_triangle[1]].z,
-            geometry->inputVertexPositions[Vertices_triangle[2]].x, geometry->inputVertexPositions[Vertices_triangle[2]].y, geometry->inputVertexPositions[Vertices_triangle[2]].z;
+        Positions_f = stack_positions(*geometry, Vertices_triangle, 3);
         Grad_f = geometry->gradient_triangle_area(Positions_f);
         //
         for (int i = 0; i < 3; i++)
@@ -1048,9 +868,7 @@ SparseMatrix<double> Integrated_Interaction::Hessian()
         Vertices_triangle[1] = he.next().vertex().getIndex();
         Vertices_triangle[2] = he.next().next().vertex().getIndex();
 
-        Positions_f << geometry->inputVertexPositions[Vertices_triangle[0]].x, geometry->inputVertexPositions[Vertices_triangle[0]].y, geometry->inputVertexPositions[Vertices_triangle[0]].z,
-            geometry->inputVertexPositions[Vertices_triangle[1]].x, geometry->inputVertexPositions[Vertices_triangle[1]].y, geometry->inputVertexPositions[Vertices_triangle[1]].z,
-            geometry->inputVertexPositions[Vertices_triangle[2]].x, geometry->inputVertexPositions[Vertices_triangle[2]].y, geometry->inputVertexPositions[Vertices_triangle[2]].z;
+        Positions_f = stack_positions(*geometry, Vertices_triangle, 3);
         Grad_f = geometry->gradient_triangle_area(Positions_f);
 
         Hessian_block_f = geometry->hessian_triangle_area(Positions_f);
@@ -1190,9 +1008,7 @@ SparseMatrix<double> Integrated_Interaction::Hessian_IP()
         Vertices_triangle[1] = he.next().vertex().getIndex();
         Vertices_triangle[2] = he.next().next().vertex().getIndex();
 
-        Positions_f << geometry->inputVertexPositions[Vertices_triangle[0]].x, geometry->inputVertexPositions[Vertices_triangle[0]].y, geometry->inputVertexPositions[Vertices_triangle[0]].z,
-            geometry->inputVertexPositions[Vertices_triangle[1]].x, geometry->inputVertexPositions[Vertices_triangle[1]].y, geometry->inputVertexPositions[Vertices_triangle[1]].z,
-            geometry->inputVertexPositions[Vertices_triangle[2]].x, geometry->inputVertexPositions[Vertices_triangle[2]].y, geometry->inputVertexPositions[Vertices_triangle[2]].z;
+        Positions_f = stack_positions(*geometry, Vertices_triangle, 3);
         Grad_f = geometry->gradient_triangle_area(Positions_f);
 
         Hessian_block_f = geometry->hessian_triangle_area(Positions_f);
@@ -1560,9 +1376,7 @@ VertexData<Vector3> Cilinder_Interaction::Gradient()
         Vertices_triangle[0] = he.vertex().getIndex();
         Vertices_triangle[1] = he.next().vertex().getIndex();
         Vertices_triangle[2] = he.next().next().vertex().getIndex();
-        Positions_f << geometry->inputVertexPositions[Vertices_triangle[0]].x, geometry->inputVertexPositions[Vertices_triangle[0]].y, geometry->inputVertexPositions[Vertices_triangle[0]].z,
-            geometry->inputVertexPositions[Vertices_triangle[1]].x, geometry->inputVertexPositions[Vertices_triangle[1]].y, geometry->inputVertexPositions[Vertices_triangle[1]].z,
-            geometry->inputVertexPositions[Vertices_triangle[2]].x, geometry->inputVertexPositions[Vertices_triangle[2]].y, geometry->inputVertexPositions[Vertices_triangle[2]].z;
+        Positions_f = stack_positions(*geometry, Vertices_triangle, 3);
         Grad_f = geometry->gradient_triangle_area(Positions_f);
 
         for (int i = 0; i < 3; i++)

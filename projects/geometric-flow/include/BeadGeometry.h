@@ -123,4 +123,11 @@ namespace bead_geometry
         const Vector3 &beadPosition,
         double sigma);
 
+    // Coverage constants are [K, cov_0, ..., cov_(N-1)], one target per bead.
+    // Throws std::invalid_argument if the count does not match.
+    void validateCoverageConstants(const std::vector<double> &Constants, size_t nBeads);
+
+    // Valid coverage targets: -1 (bead disabled) or a value in [0, 1].
+    bool validCoverageTarget(double cov);
+
 } // namespace bead_geometry

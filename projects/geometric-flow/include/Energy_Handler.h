@@ -99,6 +99,7 @@ public:
 
     virtual SparseMatrix<double> H_SurfaceTension(std::vector<double> Constants);
     virtual SparseMatrix<double> H_Bending(std::vector<double> Constants);
+    SparseMatrix<double> H_Bending_impl(const std::vector<double> &Constants, bool tan_version);
     virtual SparseMatrix<double> H_Bending_tan(std::vector<double> Constants);
     virtual SparseMatrix<double> H_Volume(std::vector<double> Constants);
 
