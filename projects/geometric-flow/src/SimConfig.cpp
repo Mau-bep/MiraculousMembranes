@@ -81,6 +81,9 @@ namespace
         spec.bonds = require(b, "bonds", where).get<std::vector<std::string>>();
         spec.bonds_constants = require(b, "bonds_constants", where).get<std::vector<std::vector<double>>>();
         spec.partners = require(b, "Beads", where).get<std::vector<int>>();
+        if (spec.partners.size() != spec.bonds.size() || spec.bonds.size() != spec.bonds_constants.size())
+            throw std::runtime_error("Input file: " + where + " needs one \"bonds\" type and one \"bonds_constants\" "
+                                     "entry per bead listed in \"Beads\"");
 
         if (spec.state == "manual")
         {
@@ -233,6 +236,11 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
         size_t i = 0;
         for (const json &b : data["Beads"])
             cfg.beads.push_back(parse_bead(b, i++));
+        for (size_t k = 0; k < cfg.beads.size(); k++)
+            for (int partner : cfg.beads[k].partners)
+                if (partner < 0 || size_t(partner) >= cfg.beads.size() || size_t(partner) == k)
+                    throw std::runtime_error("Input file: Beads[" + std::to_string(k) + "] is bonded to bead " +
+                                             std::to_string(partner) + ", which does not exist");
     }
 
     cfg.raw = data;
@@ -411,16 +419,11 @@ namespace
                       << " state " << bead.state << "\n";
         }
 
-        // Bonds. NOTE: the bead index advances once per bond, not once per bead,
-        // so this is only right when every bonded bead has exactly one bond.
-        size_t counter = 0;
-        for (const BeadSpec &spec : specs)
+        // Bonds: bead i is connected to every bead listed in its "Beads" entry
+        for (size_t i = 0; i < specs.size(); i++)
         {
-            for (int partner : spec.partners)
-            {
-                sim.Beads[counter].Beads.push_back(&sim.Beads[partner]);
-                counter += 1;
-            }
+            for (int partner : specs[i].partners)
+                sim.Beads[i].Beads.push_back(&sim.Beads[partner]);
         }
 
         for (size_t i = 0; i < sim.Beads.size(); i++)
