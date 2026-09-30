@@ -112,11 +112,17 @@ public:
   void write_output_row(std::ofstream &Sim_data, double t, double Volume, double Area, double tot_E, double step) const;
   void write_bead_rows(const std::vector<std::string> &Bead_data_filenames) const;
 
+  Eigen::VectorXd lbfgs_direction(Eigen::VectorXd &q) const;
+
+  double constraint_rhs(const std::string &name, double area) const;
+
   // Line searches
   Vector3 recenter_membrane(bool field_aware);
   double Backtracking();
   double Backtracking_grad(Eigen::VectorXd pk, double Projection, double Current_grad_norm);
   double Backtracking_grad_Normal(Eigen::VectorXd pk, double Projection, double Current_grad_norm);
+  double Backtracking_newton(Eigen::VectorXd pk, double Projection, double Current_grad_norm, bool normal);
+  double lagrangian_norm(bool normal);
   double Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3> Bead_forces);
 
   // Remeshing sizing field (diagnostics and main_visualize)
