@@ -509,7 +509,7 @@ namespace frenkel_potential
         double dQ2 = -2 * rc2 / (r2 * r);
         double dQ3 = sigma * sigma * (-2) * rc2 / (r2 * r) - 4 * rc2 * sigma * sigma / (r2 * r);
 
-        return dQ1 * Q2 * Q3 + Q1 * dQ2 * Q3 + Q1 * Q2 * dQ3;
+        return epsilon * (dQ1 * Q2 * Q3 + Q1 * dQ2 * Q3 + Q1 * Q2 * dQ3);
     }
 } // namespace frenkel_potential
 
