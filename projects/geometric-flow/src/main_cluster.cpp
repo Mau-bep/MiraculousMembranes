@@ -420,7 +420,7 @@ namespace
                 Sim_handler.Calculate_gradient();
                 size_t nV = Sim_handler.mesh->nVertices();
                 Eigen::MatrixXd Jt = Sim_handler.Jacobian_constraints.transpose();
-                Jt = Jt.block(0, 0, nV, 1);
+                Jt = Jt.block(0, 0, nV, 1).eval(); // eval: the block aliases Jt
                 Eigen::VectorXd df(nV);
                 for (size_t i = 0; i < nV; i++)
                     df(i) = dot(Sim_handler.Current_grad[i], Sim_handler.Vertex_normals[i]);

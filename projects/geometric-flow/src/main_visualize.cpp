@@ -573,7 +573,7 @@ double Integration_step(int timestep, bool Save, bool First_iter)
             Sim_handler.Calculate_gradient();
             // std::cout << "We called our gradients \n";
             Eigen::MatrixXd Jt = Sim_handler.Jacobian_constraints.transpose();
-            Jt = Jt.block(0, 0, Sim_handler.mesh->nVertices(), 1);
+            Jt = Jt.block(0, 0, Sim_handler.mesh->nVertices(), 1).eval(); // eval: the block aliases Jt
             Eigen::VectorXd df(Sim_handler.mesh->nVertices());
             // std::cout << "The cuantities have been defined\n";
             std::cout << "The shape of Jt is" << Jt.rows() << " " << Jt.cols() << "\n";
@@ -650,7 +650,7 @@ VertexData<Vector3> NewtonStep()
     Sim_handler.Calculate_gradient();
     // std::cout << "We called our gradients \n";
     Eigen::MatrixXd Jt = Sim_handler.Jacobian_constraints.transpose();
-    Jt = Jt.block(0, 0, Sim_handler.mesh->nVertices(), 2);
+    Jt = Jt.block(0, 0, Sim_handler.mesh->nVertices(), 2).eval(); // eval: the block aliases Jt
     Eigen::VectorXd df(Sim_handler.mesh->nVertices());
 
     // std::cout << "The cuantities have been defined\n";
