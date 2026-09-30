@@ -1177,23 +1177,25 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
       Grad_E[v.getIndex()] = dot((Sim_handler->Current_grad[v] - Sim_handler->Previous_grad[v]), Sim_handler->Vertex_normals[v]);
     }
 
-    if (BFGS_iter < m)
+    // BFGS_iter < 0: Backtracking_BFGS asked for a reset, the history is
+    // rebuilt next step (indexing rho_list with it would read out of bounds)
+    if (BFGS_iter >= 0)
     {
-      s_list.push_back(s_k);
-      y_list.push_back(Grad_E);
-      rho_list.push_back(1.0 / (s_k.dot(Grad_E)));
-    }
-    else
-    {
-      s_list[BFGS_iter % m] = s_k;
-      y_list[BFGS_iter % m] = Grad_E;
+      if (BFGS_iter < m)
+      {
+        s_list.push_back(s_k);
+        y_list.push_back(Grad_E);
+        rho_list.push_back(1.0 / (s_k.dot(Grad_E)));
+      }
+      else
+      {
+        s_list[BFGS_iter % m] = s_k;
+        y_list[BFGS_iter % m] = Grad_E;
+        rho_list[BFGS_iter % m] = 1.0 / (s_k.dot(Grad_E));
+      }
 
-      rho_list[BFGS_iter % m] = 1.0 / (s_k.dot(Grad_E));
-    }
-
-    if (fabs(s_k.dot(Grad_E)) < 1e-10 || isinf(rho_list[BFGS_iter % m]) || isnan(rho_list[BFGS_iter % m]))
-    {
-      BFGS_iter = -1;
+      if (fabs(s_k.dot(Grad_E)) < 1e-10 || isinf(rho_list[BFGS_iter % m]) || isnan(rho_list[BFGS_iter % m]))
+        BFGS_iter = -1;
     }
   }
   // std::cout<<"DOne with iteration\n";
@@ -1319,7 +1321,7 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
     y_list.push_back(Aux_vector);
 
     double rho_i = 1.0 / (s_list[0].dot(y_list[0]));
-    if (isnan(rho_i) || isinf(rho_i || fabs(s_list[0].dot(y_list[0])) < 1e-10))
+    if (isnan(rho_i) || isinf(rho_i) || fabs(s_list[0].dot(y_list[0])) < 1e-10)
     {
       std::cout << "\tThe value of rho_ i  is something " << rho_i << "\n";
       BFGS_iter = -1;
@@ -1382,24 +1384,23 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
         Grad_vec[3 * N_vert + 3 * bi + 2] = Beads[bi]->Total_force.z - Beads[bi]->Prev_Total_force.z;
       }
 
-      if (BFGS_iter < m)
+      // BFGS_iter < 0: Backtracking_BFGS asked for a reset (see BFGS-Normal)
+      if (BFGS_iter >= 0)
       {
-        s_list.push_back(s_k);
-        y_list.push_back(Grad_vec);
-        rho_list.push_back(1.0 / (s_k.dot(Grad_vec)));
-      }
-      else
-      {
-        // In case this is not the case we do
-        s_list[BFGS_iter % m] = s_k;
-        y_list[BFGS_iter % m] = Grad_vec;
-        rho_list[BFGS_iter % m] = 1.0 / (s_k.dot(Grad_vec));
-      }
-      if (fabs(s_k.dot(Grad_vec)) < 1e-10 || isinf(rho_list[BFGS_iter % m]))
-      {
-        // std::cout << "THe value of s_k dot is " << s_k.dot(Grad_vec) << " \n";
-        // std::cout << "Resetting bfgs iters\n";
-        BFGS_iter = -1;
+        if (BFGS_iter < m)
+        {
+          s_list.push_back(s_k);
+          y_list.push_back(Grad_vec);
+          rho_list.push_back(1.0 / (s_k.dot(Grad_vec)));
+        }
+        else
+        {
+          s_list[BFGS_iter % m] = s_k;
+          y_list[BFGS_iter % m] = Grad_vec;
+          rho_list[BFGS_iter % m] = 1.0 / (s_k.dot(Grad_vec));
+        }
+        if (fabs(s_k.dot(Grad_vec)) < 1e-10 || isinf(rho_list[BFGS_iter % m]))
+          BFGS_iter = -1;
       }
     }
   }
