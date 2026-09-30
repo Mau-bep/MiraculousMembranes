@@ -753,7 +753,8 @@ VertexData<Vector3> E_Handler::F_MembraneTension(std::vector<double> Constants) 
     if (A < At)
         return Force;
 
-    return F_SurfaceTension({KA}) * (A - At) / (At);
+    // E = KA (A - At)^2 / At, so dE/dA = 2 KA (A - At) / At
+    return F_SurfaceTension({KA}) * 2.0 * (A - At) / (At);
 }
 
 VertexData<Vector3> E_Handler::F_ExcessTension(std::vector<double> Constants) const
