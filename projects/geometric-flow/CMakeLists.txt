@@ -129,7 +129,7 @@ set(SRCSvisualize
 )
 
 set(SRCSmainpreserv 
-  src/main_preserving_mean_curv.cpp  
+  legacy/main_preserving_mean_curv.cpp
   src/Mem-3dg.cpp
   src/Beads.cpp
   src/Interaction.cpp
@@ -201,7 +201,7 @@ set(TEST_hessian_SRCS
 )
 
 set(TEST_Grad_th_SRCS 
-  src/E_test_2.cpp
+  legacy/E_test_2.cpp
   src/Mem-3dg.cpp
   src/Beads.cpp
   src/Interaction.cpp
@@ -353,13 +353,14 @@ target_include_directories(main_visualize PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/..
 target_link_libraries(main_visualize PUBLIC geometry-central polyscope arcsim)
 
 
-add_executable(main_preserving_mean_curv "${SRCSmainpreserv}")
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT main_preserving_mean_curv)
-target_include_directories(main_preserving_mean_curv PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
-target_include_directories(main_preserving_mean_curv PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
-# add the args.hxx project which we use for command line args
-target_include_directories(main_preserving_mean_curv PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
-target_link_libraries(main_preserving_mean_curv PUBLIC geometry-central polyscope)
+# Uses the legacy Mem3DG API (see legacy/), disabled
+# add_executable(main_preserving_mean_curv "${SRCSmainpreserv}")
+# set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT main_preserving_mean_curv)
+# target_include_directories(main_preserving_mean_curv PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+# target_include_directories(main_preserving_mean_curv PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
+# # add the args.hxx project which we use for command line args
+# target_include_directories(main_preserving_mean_curv PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
+# target_link_libraries(main_preserving_mean_curv PUBLIC geometry-central polyscope)
 
 
 
@@ -465,18 +466,19 @@ target_link_libraries(Processing_tube PUBLIC geometry-central polyscope)
 # target_link_libraries(Grad_tests geometry-central polyscope)
 
 
-add_executable(Grad_tests_th "${TEST_Grad_th_SRCS}")
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Grad_tests_th)
-target_include_directories(Grad_tests_th PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
-target_include_directories(Grad_tests_th PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
-target_include_directories(Grad_tests_th PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src_arcsim/")
+# Uses the legacy Mem3DG API (see legacy/), disabled
+# add_executable(Grad_tests_th "${TEST_Grad_th_SRCS}")
+# set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Grad_tests_th)
+# target_include_directories(Grad_tests_th PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+# target_include_directories(Grad_tests_th PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
+# target_include_directories(Grad_tests_th PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src_arcsim/")
 
-target_include_directories(Grad_tests_th PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps")
+# target_include_directories(Grad_tests_th PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps")
 # add the args.hxx project which we use for command line args
-target_include_directories(Grad_tests_th PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
-target_include_directories(Grad_tests_th PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
+# target_include_directories(Grad_tests_th PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
+# target_include_directories(Grad_tests_th PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
 
-target_link_libraries(Grad_tests_th PUBLIC geometry-central polyscope arcsim)
+# target_link_libraries(Grad_tests_th PUBLIC geometry-central polyscope arcsim)
 
 
 add_executable(Test_hessian "${TEST_hessian_SRCS}")
