@@ -369,9 +369,11 @@ namespace
             run.Switch_times_map["Newton"] = -1;
         }
 
+        // Rebuilt every step (with a boundary it used to grow by six entries per step)
         std::vector<std::string> &Constraints = run.Constraints;
+        Constraints.clear();
         if (!sim.M3DG.boundary)
-            Constraints = std::vector<std::string>{"Volume"};
+            Constraints.push_back("Volume");
         for (const std::string &name : sim.Energies)
             if (name == "Area_constraint")
                 Constraints.push_back("Area");
