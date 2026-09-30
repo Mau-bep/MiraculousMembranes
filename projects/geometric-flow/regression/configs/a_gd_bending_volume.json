@@ -11,17 +11,44 @@
     "backtrack": true,
     "Timestep": 1.0,
     "boundary": false,
-    "recentering": false,
+    "recentering": true,
     "saving_states": false,
     "momentum": false,
     "rescale": 3.0,
-    "Switches": [],
-    "Switch_times": [],
+    "Switches": [
+        "Newton"
+    ],
+    "Switch_times": [
+        60
+    ],
     "Energies": [
-        {"Name": "Bending", "constants": [1.0, 0.0]},
-        {"Name": "Surface_tension", "constants": [0.1, 0.0]},
-        {"Name": "Volume_constraint", "constants": [1000.0, 90.0]}
+        {
+            "Name": "Bending",
+            "constants": [
+                1.0,
+                0.0
+            ]
+        },
+        {
+            "Name": "Surface_tension",
+            "constants": [
+                0.1,
+                0.0
+            ]
+        },
+        {
+            "Name": "Volume_constraint",
+            "constants": [
+                1000.0,
+                90.0
+            ]
+        }
     ],
     "Beads": [],
-    "remesher": {"aspect_min": 0.2, "refine_angle": 0.6, "size_max": 0.45, "size_min": 0.05}
+    "remesher": {
+        "aspect_min": 0.2,
+        "refine_angle": 0.6,
+        "size_max": 0.45,
+        "size_min": 0.05
+    }
 }

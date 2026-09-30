@@ -123,6 +123,30 @@ void Mem3DG::Add_bead(Bead *bead)
 }
 
 
+// Recentering between steps. The membrane is moved back to the origin; with a
+// field (and field_aware) its leftmost vertex is moved to x = -1 instead.
+// Returns the value the beads are shifted back by: the old centre of mass, or
+// the field displacement.
+Vector3 Mem3DG::recenter_membrane(bool field_aware)
+{
+  if (field_aware && Field != "None")
+  {
+    Vector3 leftmost = Vector3({1e10, 1e10, 1e10});
+    for (Vertex v : mesh->vertices())
+    {
+      if (geometry->inputVertexPositions[v].x < leftmost.x)
+        leftmost = geometry->inputVertexPositions[v];
+    }
+    leftmost = Vector3({-1.0, 0.0, 0.0}) - leftmost;
+    VertexData<Vector3> Displacement(*mesh, leftmost);
+    geometry->inputVertexPositions += Displacement;
+    return leftmost;
+  }
+  Vector3 CoM = geometry->centerOfMass();
+  geometry->normalize(Vector3({0.0, 0.0, 0.0}), false);
+  return CoM;
+}
+
 VertexData<Vector3> Mem3DG::SurfaceGrad() const
 {
 
@@ -187,25 +211,7 @@ double Mem3DG::Backtracking()
   double NewE;
   VertexData<Vector3> initial_pos(*mesh);
   if (recentering)
-  {
-    if (Field != "None")
-    {
-      Vector3 leftmost = Vector3({1e10, 1e10, 1e10});
-      for (Vertex v : mesh->vertices())
-      {
-        if (geometry->inputVertexPositions[v].x < leftmost.x)
-          leftmost = geometry->inputVertexPositions[v];
-      }
-      leftmost = Vector3({-1.0, 0.0, 0.0}) - leftmost;
-      VertexData<Vector3> Displacement(*mesh, leftmost);
-      geometry->inputVertexPositions += Displacement;
-    }
-    else
-    {
-      Vector3 CoM = geometry->centerOfMass();
-      geometry->normalize(Vector3({0.0, 0.0, 0.0}), false);
-    }
-  }
+    recenter_membrane(true);
   Vector3 CoM = geometry->centerOfMass();
 
   initial_pos = geometry->inputVertexPositions;
@@ -356,38 +362,13 @@ double Mem3DG::Backtracking()
   }
   if (recentering)
   {
-
     if (alpha <= 0.0)
-    {
       std::cout << "NotRecentering after crisis\n";
-    }
     else
     {
-      CoM = geometry->centerOfMass();
-
-      if (Field != "None")
-      {
-        Vector3 leftmost = Vector3({1e10, 1e10, 1e10});
-        for (Vertex v : mesh->vertices())
-        {
-          if (geometry->inputVertexPositions[v].x < leftmost.x)
-            leftmost = geometry->inputVertexPositions[v];
-        }
-        // I have the leftmost vertex, the position of this vertex should be P
-        leftmost = Vector3({-1.0, 0.0, 0.0}) - leftmost;
-        CoM = leftmost;
-        VertexData<Vector3> Displacement(*mesh, leftmost);
-        geometry->inputVertexPositions += Displacement;
-      }
-      else
-      {
-        geometry->normalize(Vector3({0.0, 0.0, 0.0}), false);
-      }
-
+      CoM = recenter_membrane(true);
       for (size_t i = 0; i < Beads.size(); i++)
-      {
         Beads[i]->Pos -= CoM;
-      }
     }
   }
 
@@ -431,30 +412,7 @@ double Mem3DG::Backtracking_grad_Normal(Eigen::VectorXd p_lambda, double Project
   backtrack_log << PrevNorm << " ";
 
   if (recentering)
-  {
-    if (Field != "None")
-    {
-      // std::cout<<"THere is a field\n";
-      Vector3 leftmost = Vector3({1e10, 1e10, 1e10});
-      for (Vertex v : mesh->vertices())
-      {
-        if (geometry->inputVertexPositions[v].x < leftmost.x)
-          leftmost = geometry->inputVertexPositions[v];
-      }
-      // I have the leftmost vertex, the position of this vertex should be P
-      leftmost = Vector3({-1.0, 0.0, 0.0}) - leftmost;
-      VertexData<Vector3> Displacement(*mesh, leftmost);
-      geometry->inputVertexPositions += Displacement;
-    }
-    else
-    {
-      // Ok so if there is a field the way we normalize is different.
-      //
-      Vector3 CoM = geometry->centerOfMass();
-
-      geometry->normalize(Vector3({0.0, 0.0, 0.0}), false);
-    }
-  }
+    recenter_membrane(true);
   Vector3 CoM = geometry->centerOfMass();
 
   initial_pos = geometry->inputVertexPositions;
@@ -705,49 +663,14 @@ double Mem3DG::Backtracking_grad_Normal(Eigen::VectorXd p_lambda, double Project
   }
   if (recentering)
   {
-
     if (alpha <= 0.0)
-    {
       std::cout << "NotRecentering after crisis\n";
-    }
     else
     {
-      // std::cout<<"rENORMALIZING\n";
-      CoM = geometry->centerOfMass();
-
-      if (Field != "None")
-      {
-        // std::cout<<"THere is a field\n";
-        Vector3 leftmost = Vector3({1e10, 1e10, 1e10});
-        for (Vertex v : mesh->vertices())
-        {
-          if (geometry->inputVertexPositions[v].x < leftmost.x)
-            leftmost = geometry->inputVertexPositions[v];
-        }
-        // I have the leftmost vertex, the position of this vertex should be P
-        leftmost = Vector3({-1.0, 0.0, 0.0}) - leftmost;
-        CoM = leftmost;
-        VertexData<Vector3> Displacement(*mesh, leftmost);
-        geometry->inputVertexPositions += Displacement;
-      }
-      else
-      {
-        geometry->normalize(Vector3({0.0, 0.0, 0.0}), false);
-      }
-      // CoM = geometry->centerOfMass();
-
+      CoM = recenter_membrane(true);
       for (size_t i = 0; i < Beads.size(); i++)
-      {
-
-        // Here i need to move the bead
-        // if(Beads[i]->state!= "froze"){
         Beads[i]->Pos -= CoM;
-        // }
-      }
-      // }
-      //
     }
-    // geometry->refreshQuantities();
   }
 
   // std::cout<<"The difference in energy is " << fabs(NewE-previousE) <<"(: \n";
@@ -791,30 +714,7 @@ double Mem3DG::Backtracking_grad(Eigen::VectorXd p_lambda, double Projection, do
   backtrack_log << PrevNorm << " " << Projection << " ";
 
   if (recentering)
-  {
-    if (Field != "None")
-    {
-      // std::cout<<"THere is a field\n";
-      Vector3 leftmost = Vector3({1e10, 1e10, 1e10});
-      for (Vertex v : mesh->vertices())
-      {
-        if (geometry->inputVertexPositions[v].x < leftmost.x)
-          leftmost = geometry->inputVertexPositions[v];
-      }
-      // I have the leftmost vertex, the position of this vertex should be P
-      leftmost = Vector3({-1.0, 0.0, 0.0}) - leftmost;
-      VertexData<Vector3> Displacement(*mesh, leftmost);
-      geometry->inputVertexPositions += Displacement;
-    }
-    else
-    {
-      // Ok so if there is a field the way we normalize is different.
-      //
-      Vector3 CoM = geometry->centerOfMass();
-
-      geometry->normalize(Vector3({0.0, 0.0, 0.0}), false);
-    }
-  }
+    recenter_membrane(true);
   Vector3 CoM = geometry->centerOfMass();
 
   // std::cout<<"Saving initial condition \n";
@@ -1084,49 +984,14 @@ double Mem3DG::Backtracking_grad(Eigen::VectorXd p_lambda, double Projection, do
   }
   if (recentering)
   {
-
     if (alpha <= 0.0)
-    {
       std::cout << "NotRecentering after crisis\n";
-    }
     else
     {
-      // std::cout<<"rENORMALIZING\n";
-      CoM = geometry->centerOfMass();
-
-      if (Field != "None")
-      {
-        // std::cout<<"THere is a field\n";
-        Vector3 leftmost = Vector3({1e10, 1e10, 1e10});
-        for (Vertex v : mesh->vertices())
-        {
-          if (geometry->inputVertexPositions[v].x < leftmost.x)
-            leftmost = geometry->inputVertexPositions[v];
-        }
-        // I have the leftmost vertex, the position of this vertex should be P
-        leftmost = Vector3({-1.0, 0.0, 0.0}) - leftmost;
-        CoM = leftmost;
-        VertexData<Vector3> Displacement(*mesh, leftmost);
-        geometry->inputVertexPositions += Displacement;
-      }
-      else
-      {
-        geometry->normalize(Vector3({0.0, 0.0, 0.0}), false);
-      }
-      // CoM = geometry->centerOfMass();
-
+      CoM = recenter_membrane(true);
       for (size_t i = 0; i < Beads.size(); i++)
-      {
-
-        // Here i need to move the bead
-        // if(Beads[i]->state!= "froze"){
         Beads[i]->Pos -= CoM;
-        // }
-      }
-      // }
-      //
     }
-    // geometry->refreshQuantities();
   }
 
   // std::cout<<"The difference in energy is " << fabs(NewE-previousE) <<"(: \n";
@@ -1166,9 +1031,7 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
   double NewE;
   VertexData<Vector3> initial_pos(*mesh);
   if (recentering)
-  {
-    geometry->normalize(Vector3({0.0, 0.0, 0.0}), false);
-  }
+    recenter_membrane(false);
   Vector3 CoM = geometry->centerOfMass();
 
   initial_pos = geometry->inputVertexPositions;
@@ -1349,33 +1212,14 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
   }
   if (recentering)
   {
-
     if (alpha <= 0.0)
-    {
       std::cout << "NotRecentering after crisis\n";
-    }
     else
     {
-      // std::cout<<"rENORMALIZING\n";
-      CoM = geometry->centerOfMass();
-      // if(recentering){
-      geometry->normalize(Vector3({0.0, 0.0, 0.0}), false);
-
-      // CoM = geometry->centerOfMass();
-
+      CoM = recenter_membrane(false);
       for (size_t i = 0; i < Beads.size(); i++)
-      {
-
-        // Here i need to move the bead
-        // if(Beads[i]->state!= "froze"){
         Beads[i]->Pos -= CoM;
-        // }
-      }
-
-      // }
-      //
     }
-    // geometry->refreshQuantities();
   }
 
   //
@@ -1385,6 +1229,29 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
   return alpha;
 }
 
+
+// One row of Output_data.txt:
+// time step Volume Area <energy values> Total_E <gradient norms> backtrackstep
+void Mem3DG::write_output_row(std::ofstream &Sim_data, double t, double Volume, double Area, double tot_E, double step) const
+{
+  Sim_data << t << " " << discreteTs << " " << Volume << " " << Area << " ";
+  for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
+    Sim_data << Sim_handler->Energy_values[i] << " ";
+  Sim_data << tot_E << " ";
+  for (size_t i = 0; i < Sim_handler->Gradient_norms.size(); i++)
+    Sim_data << Sim_handler->Gradient_norms[i] << " ";
+  Sim_data << step << " \n";
+}
+
+// One row per bead in Bead_<i>_data.txt: step position force
+void Mem3DG::write_bead_rows(const std::vector<std::string> &Bead_data_filenames) const
+{
+  for (size_t i = 0; i < Beads.size(); i++)
+  {
+    std::ofstream Bead_data(Bead_data_filenames[i], std::ios_base::app);
+    Bead_data << discreteTs << " " << Beads[i]->Pos.x << " " << Beads[i]->Pos.y << " " << Beads[i]->Pos.z << " " << Beads[i]->Total_force.x << " " << Beads[i]->Total_force.y << " " << Beads[i]->Total_force.z << " \n";
+  }
+}
 
 double Mem3DG::integrate(std::ofstream &Sim_data, double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data)
 {
@@ -1443,44 +1310,18 @@ double Mem3DG::integrate(std::ofstream &Sim_data, double time, std::vector<std::
   // Here we will refres the quantities. So the area calculation is a lil bit less expensive
   if (Save_output_data || backtrackstep < 0)
   {
-    // Ok lets say that after backtracking you should recompute
     geometry->requireFaceAreas();
-    A = 0.0;
-    for (Face f : mesh->faces())
-    {
-      A += geometry->faceArea(f);
-    }
+    A = geometry->totalArea();
     geometry->unrequireFaceAreas();
     V = geometry->totalVolume();
-
     double tot_E = 0;
-    Sim_data << time << " " << discreteTs << " " << V << " " << A << " ";
     for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
-    {
-      Sim_data << Sim_handler->Energy_values[i] << " ";
       tot_E += Sim_handler->Energy_values[i];
-    }
-    Sim_data << tot_E << " ";
-    for (size_t i = 0; i < Sim_handler->Gradient_norms.size(); i++)
-    {
-      Sim_data << Sim_handler->Gradient_norms[i] << " ";
-    }
-    Sim_data << backtrackstep << " \n";
+    write_output_row(Sim_data, time, V, A, tot_E, backtrackstep);
   }
 
   if (Save_output_data)
-  {
-    // std::cout << "SAVING THE BEAD DATA\n";
-    std::ofstream Bead_data;
-    for (size_t i = 0; i < Beads.size(); i++)
-    {
-      // Does this now the timestep
-      // std::cout << "Saving the bead come on\n";
-      Bead_data = std::ofstream(Bead_data_filenames[i], std::ios_base::app);
-      Bead_data << discreteTs << " " << Beads[i]->Pos.x << " " << Beads[i]->Pos.y << " " << Beads[i]->Pos.z << " " << Beads[i]->Total_force.x << " " << Beads[i]->Total_force.y << " " << Beads[i]->Total_force.z << " \n";
-      Bead_data.close();
-    }
-  }
+    write_bead_rows(Bead_data_filenames);
 
   // for (size_t bi = 0; bi < Beads.size(); bi++)
   // {
@@ -1675,34 +1516,13 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
 
   if (Save_output_data || backtrackstep < 0.0)
   {
-
     V = geometry->totalVolume();
-    A = 0.0;
     A = geometry->totalArea();
-    Sim_data << time << " " << discreteTs << " " << V << " " << A << " ";
-    for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
-    {
-      Sim_data << Sim_handler->Energy_values[i] << " ";
-    }
-    Sim_data << tot_E << " ";
-    for (size_t i = 0; i < Sim_handler->Gradient_norms.size(); i++)
-    {
-      Sim_data << Sim_handler->Gradient_norms[i] << " ";
-    }
-    Sim_data << backtrackstep << " \n";
+    write_output_row(Sim_data, time, V, A, tot_E, backtrackstep);
   }
 
   if (Bead_data_filenames.size() != 0 && Save_output_data)
-  {
-    std::ofstream Bead_data;
-    for (size_t i = 0; i < Beads.size(); i++)
-    {
-
-      Bead_data = std::ofstream(Bead_data_filenames[i], std::ios_base::app);
-      Bead_data << discreteTs << " " << Beads[i]->Pos.x << " " << Beads[i]->Pos.y << " " << Beads[i]->Pos.z << " " << Beads[i]->Total_force.x << " " << Beads[i]->Total_force.y << " " << Beads[i]->Total_force.z << " \n";
-      Bead_data.close();
-    }
-  }
+    write_bead_rows(Bead_data_filenames);
 
   return backtrackstep;
 }
@@ -1927,30 +1747,11 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
   if (Save_output_data || backtrackstep <= 0.0)
   {
     V = geometry->totalVolume();
-    A = 0.0;
     A = geometry->totalArea();
-    Sim_data << time << " " << discreteTs << " " << V << " " << A << " ";
-    for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
-    {
-      Sim_data << Sim_handler->Energy_values[i] << " ";
-    }
-    Sim_data << tot_E << " ";
-    for (size_t i = 0; i < Sim_handler->Gradient_norms.size(); i++)
-    {
-      Sim_data << Sim_handler->Gradient_norms[i] << " ";
-    }
-    Sim_data << backtrackstep << " \n";
+    write_output_row(Sim_data, time, V, A, tot_E, backtrackstep);
   }
   if (Bead_data_filenames.size() != 0 && (Save_output_data || backtrackstep < 0.0))
-  {
-    std::ofstream Bead_data;
-    for (size_t i = 0; i < Beads.size(); i++)
-    {
-      Bead_data = std::ofstream(Bead_data_filenames[i], std::ios_base::app);
-      Bead_data << discreteTs << " " << Beads[i]->Pos.x << " " << Beads[i]->Pos.y << " " << Beads[i]->Pos.z << " " << Beads[i]->Total_force.x << " " << Beads[i]->Total_force.y << " " << Beads[i]->Total_force.z << " \n";
-      Bead_data.close();
-    }
-  }
+    write_bead_rows(Bead_data_filenames);
   return backtrackstep;
 }
 
@@ -2193,38 +1994,11 @@ double Mem3DG::integrate_Newton(std::ofstream &Sim_data, double time, std::vecto
       A += geometry->faceAreas[f];
     geometry->unrequireFaceAreas();
 
-    Sim_data << time + backtrackstep << " " << discreteTs << " " << geometry->totalVolume() << " " << A << " ";
-    for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
-    {
-
-      Sim_data << Sim_handler->Energy_values[i] << " ";
-    }
-
-    Sim_data << TotE << " ";
-
-    // Sim_data << Current_grad_norm <<" " << backtrackstep <<" \n";
-    for (size_t i = 0; i < Sim_handler->Gradient_norms.size(); i++)
-    {
-      Sim_data << Sim_handler->Gradient_norms[i] << " ";
-    }
-    // Sim_data << Grad_tot_norm << " ";
-    Sim_data << backtrackstep << " \n";
+    write_output_row(Sim_data, time + backtrackstep, geometry->totalVolume(), A, TotE, backtrackstep);
   }
 
   if (Bead_data_filenames.size() != 0 && Save_output_data)
-  {
-    // std::cout<<"\t\t Saving data\n";
-    std::ofstream Bead_data;
-    for (size_t i = 0; i < Beads.size(); i++)
-    {
-
-      Bead_data = std::ofstream(Bead_data_filenames[i], std::ios_base::app);
-      Bead_data << discreteTs << " " << Beads[i]->Pos.x << " " << Beads[i]->Pos.y << " " << Beads[i]->Pos.z << " " << Beads[i]->Total_force.x << " " << Beads[i]->Total_force.y << " " << Beads[i]->Total_force.z << " \n";
-      // std::cout<<Bead_1.Pos.x << " "<< Bead_1.Pos.y << " "<< Bead_1.Pos.z<<" \n";
-      // std::cout<<"The total force is "<<Bead_1.Total_force <<"\n";
-      Bead_data.close();
-    }
-  }
+    write_bead_rows(Bead_data_filenames);
 
   return backtrackstep;
 }
@@ -2683,44 +2457,15 @@ double Mem3DG::integrate_Newton_Normal(std::ofstream &Sim_data, double time, std
     double TotE = 0.0;
 
     Sim_handler->Calculate_energies(&TotE);
-    A = 0.0;
     geometry->requireFaceAreas();
-    for (Face f : mesh->faces())
-    {
-      A += geometry->faceArea(f);
-    }
-    Sim_data << time + backtrackstep << " " << discreteTs << " " << geometry->totalVolume() << " " << A << " ";
-    for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
-    {
-
-      Sim_data << Sim_handler->Energy_values[i] << " ";
-    }
-
-    Sim_data << TotE << " ";
-
-    // Sim_data << Current_grad_norm <<" " << backtrackstep <<" \n";
-    for (size_t i = 0; i < Sim_handler->Gradient_norms.size(); i++)
-    {
-      Sim_data << Sim_handler->Gradient_norms[i] << " ";
-    }
-    // Sim_data << Grad_tot_norm << " ";
-    Sim_data << backtrackstep << " \n";
+    A = geometry->totalArea();
+    write_output_row(Sim_data, time + backtrackstep, geometry->totalVolume(), A, TotE, backtrackstep);
   }
 
   if (Bead_data_filenames.size() != 0 && Save_output_data)
-  {
-
-    std::ofstream Bead_data;
-    for (size_t i = 0; i < Beads.size(); i++)
-    {
-      Bead_data = std::ofstream(Bead_data_filenames[i], std::ios_base::app);
-      Bead_data << discreteTs << " " << Beads[i]->Pos.x << " " << Beads[i]->Pos.y << " " << Beads[i]->Pos.z << " " << Beads[i]->Total_force.x << " " << Beads[i]->Total_force.y << " " << Beads[i]->Total_force.z << " \n";
-      Bead_data.close();
-    }
-  }
+    write_bead_rows(Bead_data_filenames);
 
   return backtrackstep;
-  // Ok so we have everything i guess?
 }
 
 

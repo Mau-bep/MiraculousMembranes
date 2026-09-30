@@ -108,7 +108,12 @@ public:
   // Newton step in the normal direction without moving the mesh (main_visualize)
   VertexData<Vector3> Newton_Normal_step(std::ofstream &Sim_data, double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data, std::vector<std::string> Constraints, std::vector<std::string> Data_filenames);
 
+  // Output rows shared by the integrators
+  void write_output_row(std::ofstream &Sim_data, double t, double Volume, double Area, double tot_E, double step) const;
+  void write_bead_rows(const std::vector<std::string> &Bead_data_filenames) const;
+
   // Line searches
+  Vector3 recenter_membrane(bool field_aware);
   double Backtracking();
   double Backtracking_grad(Eigen::VectorXd pk, double Projection, double Current_grad_norm);
   double Backtracking_grad_Normal(Eigen::VectorXd pk, double Projection, double Current_grad_norm);
