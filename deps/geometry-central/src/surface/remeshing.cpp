@@ -386,6 +386,20 @@ bool shouldCollapse(const VertexData<double>& SubsetSizingV, ManifoldSurfaceMesh
   return true;
 }
 
+// Length and area from the current vertexPositions. During a remesh pass the
+// cached edgeLengths/faceAreas are not updated after splits, flips and
+// collapses, so the collapse checks use these instead.
+inline double currentEdgeLength(VertexPositionGeometry& geom, Edge e) {
+  return norm(geom.vertexPositions[e.firstVertex()] - geom.vertexPositions[e.secondVertex()]);
+}
+inline double currentFaceArea(VertexPositionGeometry& geom, Face f) {
+  Halfedge he = f.halfedge();
+  Vector3 a = geom.vertexPositions[he.vertex()];
+  Vector3 b = geom.vertexPositions[he.next().vertex()];
+  Vector3 c = geom.vertexPositions[he.next().next().vertex()];
+  return 0.5 * norm(cross(b - a, c - a));
+}
+
 bool shouldCollapse(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Edge e, const RemeshOptions& options) {
   std::vector<Halfedge> edgesToCheck;
   Vertex v1 = e.halfedge().vertex();
@@ -434,7 +448,7 @@ bool shouldCollapse(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Edg
     b = geom.vertexPositions[v2];
     c = geom.vertexPositions[v3];
 
-    a0 = geom.faceAreas[he0.face()];
+    a0 = currentFaceArea(geom, he0.face());
     area = 0.5 * norm(cross(b - a, c - a));
     perimeter = norm(b - a) + norm(c - a) + norm(c - b);
     aspect = 12 * sqrt(3) * area / (perimeter * perimeter);
@@ -444,8 +458,8 @@ bool shouldCollapse(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Edg
 
     // We check the metric is not too big
     heT = he0;
-    if (geom.edgeLengths[heT.edge()] < 1e-10 || geom.edgeLengths[heT.next().edge()] < 1e-10 ||
-        geom.edgeLengths[heT.next().next().edge()] < 1e-10)
+    if (currentEdgeLength(geom, heT.edge()) < 1e-10 || currentEdgeLength(geom, heT.next().edge()) < 1e-10 ||
+        currentEdgeLength(geom, heT.next().next().edge()) < 1e-10)
       return false;
 
     // Ok we need to change this
@@ -1438,8 +1452,8 @@ bool improveFaces(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Mutat
     if (e == Edge() || e.isDead()) continue; // make sure it exists
 
     // Now we do
-    if (geom.edgeLengths[e] < options.max_absolute_length) {
-      if (geom.edgeLengths[e] < 1e-4) std::cout << "THe edgelength check says " << geom.edgeLengths[e] << " \n";
+    double length_e = currentEdgeLength(geom, e);
+    if (length_e < options.max_absolute_length) {
       Vector3 newPos = edgeMidpoint(mesh, geom, e);
       newSizing = std::max(geom.vertexSizing[e.halfedge().tipVertex()], geom.vertexSizing[e.halfedge().tailVertex()]);
       if (shouldCollapse(mesh, geom, e, options) || Valence[e.halfedge().vertex()] == 3 ||
