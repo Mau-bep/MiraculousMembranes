@@ -91,8 +91,8 @@ std::vector<Face> splitSubset(std::vector<Face> activeFaces, ManifoldSurfaceMesh
 bool collapseSubset(std::vector<Face> activeFaces, ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom,
                     MutationManager& mm, RemeshOptions options);
 bool splitWorstEdges(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
-                     RemeshOptions options);
-bool improveFaces(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm, RemeshOptions options);
+                     RemeshOptions& options);
+bool improveFaces(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm, RemeshOptions& options);
 int flipSubset(std::vector<Face> active, ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
                RemeshOptions options);
 void remeshSmallAngles(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, const RemeshOptions& options);

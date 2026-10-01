@@ -32,6 +32,8 @@ int remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationMana
     size_t nFlips = 10;
     if (doConnectivityChanges) {
 
+      // splitWorstEdges and improveFaces add their splits/collapses to
+      // options.numberOp, so remesh() returns all operations, not only flips
       splitWorstEdges(mesh, geom, mm, options);
       nFlips = fixDelaunay(mesh, geom, mm);
       options.numberOp += nFlips;
@@ -1304,7 +1306,7 @@ std::vector<Edge> findBadEdges(ManifoldSurfaceMesh& mesh, VertexPositionGeometry
 }
 
 bool splitWorstEdges(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
-                     RemeshOptions options) {
+                     RemeshOptions& options) {
   geom.requireVertexDualAreas();
   geom.requireVertexSizing();
   geom.requireEdgeLengths();
@@ -1422,7 +1424,7 @@ void deleteLowValence(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, M
   geom.unrequireVertexSizing();
   mesh.compress();
 }
-bool improveFaces(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm, RemeshOptions options) {
+bool improveFaces(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm, RemeshOptions& options) {
   geom.requireVertexDualAreas();
   geom.requireVertexSizing();
   geom.requireEdgeLengths();
