@@ -544,3 +544,8 @@ target_link_libraries(Test_fan geometry-central polyscope)
 add_executable(Test_remesh_monitor src/Test_remesh_monitor.cpp src/RemeshMonitor.cpp)
 target_include_directories(Test_remesh_monitor PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
 target_link_libraries(Test_remesh_monitor geometry-central)
+
+# Finite-difference and exactness checks of the Plane_adhesion interaction
+add_executable(Test_plane_adhesion src/Test_plane_adhesion.cpp src/Interaction.cpp src/Beads.cpp src/BeadGeometry.cpp)
+target_include_directories(Test_plane_adhesion PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+target_link_libraries(Test_plane_adhesion geometry-central)

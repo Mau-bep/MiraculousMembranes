@@ -47,6 +47,20 @@ namespace bead_geometry
         return weight;
     }
 
+    double planeContactWeight(double h, double width, double &dWdh)
+    {
+        if (width <= 0.0)
+            throw std::invalid_argument("planeContactWeight(): width must be strictly positive.");
+
+        const double x = h / width;
+        dWdh = 0.0;
+        if (std::abs(x) >= 1.0)
+            return 0.0;
+
+        dWdh = -0.5 * PI_VALUE * std::sin(PI_VALUE * x) / width;
+        return 0.5 * (1.0 + std::cos(PI_VALUE * x));
+    }
+
     SolidAngleResult triangleSolidAngleGradient(
         const Vector3 &p0,
         const Vector3 &p1,

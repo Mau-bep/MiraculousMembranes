@@ -1269,6 +1269,71 @@ void Adhesion::Add_Face_Force(Face f, VertexData<Vector3> &membraneForce, Vector
     beadForce -= force0 + force1 + force2;
 }
 
+Plane_Adhesion::Plane_Adhesion(ManifoldSurfaceMesh *inputMesh,
+                               VertexPositionGeometry *inputGeometry,
+                               std::vector<double> constants)
+{
+    mesh = inputMesh;
+    geometry = inputGeometry;
+    Energy_constants = constants;
+    if (Energy_constants.size() < 6)
+        throw std::invalid_argument("Plane_Adhesion: constants are {W, sigma, delta, nx, ny, nz}");
+    if (!(width() > 0.0))
+        throw std::invalid_argument("Plane_Adhesion: the contact width delta (rc) must be positive");
+    Vector3 n{Energy_constants[3], Energy_constants[4], Energy_constants[5]};
+    if (norm(n) == 0.0)
+        throw std::invalid_argument("Plane_Adhesion: the plane normal (Z_Axis) is zero");
+    normal_ = n / norm(n);
+}
+
+double Plane_Adhesion::Face_Energy(Face f)
+{
+    Halfedge he = f.halfedge();
+    const Vector3 p0 = geometry->inputVertexPositions[he.vertex()];
+    const Vector3 p1 = geometry->inputVertexPositions[he.next().vertex()];
+    const Vector3 p2 = geometry->inputVertexPositions[he.next().next().vertex()];
+
+    const double projected = -0.5 * dot(cross(p1 - p0, p2 - p0), normal_);
+    if (projected <= 0.0)
+        return 0.0;
+    double dWdh;
+    const double h = dot(normal_, (p0 + p1 + p2) / 3.0 - Bead_1->Pos);
+    const double w = bead_geometry::planeContactWeight(h, width(), dWdh);
+    return -strength() * w * projected;
+}
+
+void Plane_Adhesion::Add_Face_Force(Face f, VertexData<Vector3> &membraneForce, Vector3 &beadForce)
+{
+    Halfedge he = f.halfedge();
+    const Vertex v0 = he.vertex(), v1 = he.next().vertex(), v2 = he.next().next().vertex();
+    const Vector3 p0 = geometry->inputVertexPositions[v0];
+    const Vector3 p1 = geometry->inputVertexPositions[v1];
+    const Vector3 p2 = geometry->inputVertexPositions[v2];
+
+    const double projected = -0.5 * dot(cross(p1 - p0, p2 - p0), normal_);
+    if (projected <= 0.0)
+        return;
+    double dWdh;
+    const double h = dot(normal_, (p0 + p1 + p2) / 3.0 - Bead_1->Pos);
+    const double w = bead_geometry::planeContactWeight(h, width(), dWdh);
+    if (w == 0.0)
+        return;
+
+    // d a_f / d p_i = 1/2 (p_(i+2) - p_(i+1)) x n,  d h_f / d p_i = n / 3
+    // E = -W w a_f, force = -dE/dp = W (w da_f/dp + a_f dw/dh dh/dp)
+    const Vector3 heightTerm = projected * dWdh * normal_ / 3.0;
+    const Vector3 force0 = strength() * (w * 0.5 * cross(p2 - p1, normal_) + heightTerm);
+    const Vector3 force1 = strength() * (w * 0.5 * cross(p0 - p2, normal_) + heightTerm);
+    const Vector3 force2 = strength() * (w * 0.5 * cross(p1 - p0, normal_) + heightTerm);
+
+    membraneForce[v0] += force0;
+    membraneForce[v1] += force1;
+    membraneForce[v2] += force2;
+
+    // E depends only on p_i - P, so dE/dP = -sum_i dE/dp_i
+    beadForce -= force0 + force1 + force2;
+}
+
 double Cilinder_Interaction::Tot_Energy()
 {
 

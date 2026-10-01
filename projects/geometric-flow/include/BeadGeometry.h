@@ -130,4 +130,14 @@ namespace bead_geometry
     // Valid coverage targets: -1 (bead disabled) or a value in [0, 1].
     bool validCoverageTarget(double cov);
 
+    /*
+     * Contact weight of a face at signed height h above a plane, centred on
+     * the plane:
+     *
+     *   w(h) = 0.5 * [1 + cos(pi h / width)]   for |h| < width, else 0
+     *
+     * 1 at h = 0, 0 with zero slope at h = +-width. Writes dw/dh in dWdh.
+     */
+    double planeContactWeight(double h, double width, double &dWdh);
+
 } // namespace bead_geometry

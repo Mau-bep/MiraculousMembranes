@@ -313,6 +313,49 @@ private:
     double sigma() const { return Energy_constants[1]; }
 };
 
+// Adhesion to a flat wall through the membrane area projected on it:
+//
+//   E = -W sum_f w(h_f) a_f
+//
+//   a_f = -1/2 ((p1 - p0) x (p2 - p0)) . n = A_f |cos theta_f|   (faces whose
+//         outward normal points against n, i.e. towards the plane; others 0)
+//   h_f = n . (centroid_f - P)          height of the face above the plane
+//   w   = 1/2 (1 + cos(pi h / delta))   for |h| < delta, else 0
+//
+// P is the bead position (a point on the plane) and n the unit normal, from
+// the plane towards the membrane side. A face lying flat on the plane gives
+// -W times its area. a_f goes to 0 as a face turns edge-on, so the facing
+// selection does not make the energy jump. E depends only on positions
+// relative to P and only through n, so the plane feels a force along n alone
+// ("state": "froze" keeps it fixed). No repulsion: the membrane can cross it.
+//
+// Energy_constants = {W, sigma, delta, nx, ny, nz}
+//   (inter_str, radius (unused), rc and Z_Axis in the input file)
+class Plane_Adhesion : public Face_Integrated_Interaction
+{
+public:
+    Plane_Adhesion() = default;
+
+    Plane_Adhesion(ManifoldSurfaceMesh *inputMesh,
+                   VertexPositionGeometry *inputGeometry,
+                   std::vector<double> constants);
+
+    double Face_Energy(Face f) override;
+
+    void Add_Face_Force(
+        Face f,
+        VertexData<Vector3> &membraneForce,
+        Vector3 &beadForce) override;
+
+    const Vector3 &normal() const { return normal_; }
+
+private:
+    double strength() const { return Energy_constants[0]; }
+    double width() const { return Energy_constants[2]; }
+
+    Vector3 normal_{0.0, 0.0, 1.0};
+};
+
 class Plane_Interaction : public Cilinder_Interaction
 {
 public:
