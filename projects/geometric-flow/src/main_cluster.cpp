@@ -43,6 +43,7 @@ namespace
         double quality_baseline = 0.0; // bad edge fraction right after the last remesh
         size_t n_remesh = 0;
         std::string monitored; // integrator the convergence windows belong to
+        int tiny_steps = 0;    // consecutive L-BFGS line searches that ended below 1e-10
         bool convergence_log = false;
 
         double time = 0.0;
@@ -664,6 +665,39 @@ namespace
         return false;
     }
 
+    // L-BFGS line searches that keep ending at the smallest step: first reset
+    // the history, then give up on the integrator. Returns true to end the run.
+    bool handle_stall(Simulation &sim, RunState &run, size_t current_t)
+    {
+        const bool normal = run.Integration == "BFGS-Normal";
+        const int n = sim.cfg.stopping.stall_steps;
+        if (n == 0 || (run.Integration != "BFGS" && !normal) || run.dt_sim >= 1e-10)
+        {
+            run.tiny_steps = 0;
+            return false;
+        }
+        run.tiny_steps++;
+        if (run.tiny_steps == n)
+        {
+            std::cout << run.Integration << " stalled at t = " << current_t << ", resetting the L-BFGS history\n";
+            sim.M3DG.BFGS_iter = 0;
+        }
+        else if (run.tiny_steps >= 2 * n)
+        {
+            run.tiny_steps = 0;
+            if (normal)
+            {
+                std::cout << "BFGS-Normal is still stalled at t = " << current_t << ", ending the run\n";
+                return true;
+            }
+            std::cout << "BFGS is still stalled at t = " << current_t << ", switching to BFGS-Normal\n";
+            run.Integration = "BFGS-Normal";
+            sim.M3DG.BFGS_iter = 0;
+            run.remesh_every = -1;
+        }
+        return false;
+    }
+
     void print_status(Simulation &sim, const RunState &run, size_t current_t, double elapsed_ms)
     {
         double Volume = sim.geometry->totalVolume();
@@ -851,7 +885,7 @@ int main(int argc, char **argv)
         {
             run.time += run.dt_sim;
             M3DG.system_time += 1;
-            if (monitor_convergence(sim, run, monitor, current_t))
+            if (handle_stall(sim, run, current_t) || monitor_convergence(sim, run, monitor, current_t))
             {
                 Sim_data.close();
                 break;

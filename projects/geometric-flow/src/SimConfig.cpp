@@ -256,8 +256,9 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
         p.bfgs_tol_E = s.value("bfgs_tol_E", p.bfgs_tol_E);
         p.normal_tol_E = s.value("normal_tol_E", p.normal_tol_E);
         p.normal_tol_g = s.value("normal_tol_g", p.normal_tol_g);
-        if (p.window < 1 || p.patience < 1)
-            throw std::runtime_error("Input file: stopping.window and stopping.patience must be at least 1");
+        p.stall_steps = s.value("stall_steps", p.stall_steps);
+        if (p.window < 1 || p.patience < 1 || p.stall_steps < 0)
+            throw std::runtime_error("Input file: stopping.window and patience must be at least 1, stall_steps not negative");
         if (!(p.E_floor > 0.0) || p.bfgs_tol_E < 0.0 || p.normal_tol_E < 0.0 || p.normal_tol_g < 0.0)
             throw std::runtime_error("Input file: stopping.E_floor must be positive and the tolerances not negative");
     }
