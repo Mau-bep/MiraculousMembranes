@@ -70,7 +70,11 @@ namespace
             spec.rc = b["rc"].get<double>();
         }
         spec.outside = b.value("outside", 1.0);
-        spec.shift = b.value("shift", 0.0);
+        if (b.contains("shift"))
+        {
+            spec.has_shift = true;
+            spec.shift = b["shift"].get<double>();
+        }
         if (spec.mem_inter == "Gravity" || spec.mem_inter == "Pinch")
         {
             spec.z_axis = require(b, "Z_Axis", where).get<std::vector<double>>();
@@ -112,7 +116,7 @@ const std::vector<std::string> &known_interactions()
 {
     static const std::vector<std::string> names = {
         "Gravity", "Pinch", "Frenkel", "Frenkel_Normal_nopush", "Linear", "Linear_Normal",
-        "LJ", "One_over_r_x", "One_over_r", "None"};
+        "LJ", "Shifted-LJ", "One_over_r_x", "One_over_r", "None"};
     return names;
 }
 
@@ -292,6 +296,17 @@ std::unique_ptr<Interaction> make_interaction(const BeadSpec &spec, ManifoldSurf
     if (type == "LJ")
     {
         params.push_back(spec.shift);
+        return make_unique_ptr<LJ>(mesh, geometry, params);
+    }
+    if (type == "Shifted-LJ")
+    {
+        // LJ cut at rc and shifted so the energy is zero at the cutoff (WCA
+        // when rc = 2^(1/6) sigma, the default). An explicit "shift" wins.
+        double epsilon = params[0], sigma = params[1], rc = params[2];
+        if (rc <= 0)
+            throw std::runtime_error("Input file: Shifted-LJ needs a positive cutoff rc");
+        double sr6 = pow(sigma / rc, 6);
+        params.push_back(spec.has_shift ? spec.shift : -4 * epsilon * (sr6 * sr6 - sr6));
         return make_unique_ptr<LJ>(mesh, geometry, params);
     }
     if (type == "One_over_r")
