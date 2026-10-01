@@ -290,7 +290,7 @@ target_include_directories(EigenRand INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/../.
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/lib")
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include")
 
-target_link_libraries(main_cluster PUBLIC geometry-central polyscope EigenRand ipopt nlohmann_json)
+target_link_libraries(main_cluster PUBLIC geometry-central polyscope EigenRand nlohmann_json)
 
 
 add_executable(PostProcessing "${SRCSprocessing}")
@@ -311,7 +311,7 @@ target_link_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../..
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/lib")
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include")
 
-target_link_libraries(PostProcessing PUBLIC geometry-central polyscope EigenRand ipopt nlohmann_json)
+target_link_libraries(PostProcessing PUBLIC geometry-central polyscope EigenRand nlohmann_json)
 
 
 # add_executable(Post_processing "${SRCSprocessing}")
