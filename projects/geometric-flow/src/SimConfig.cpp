@@ -77,11 +77,20 @@ namespace
             spec.has_shift = true;
             spec.shift = b["shift"].get<double>();
         }
-        if (spec.mem_inter == "Gravity" || spec.mem_inter == "Pinch")
+        if (spec.mem_inter == "Gravity" || spec.mem_inter == "Pinch" || spec.mem_inter == "Plane_adhesion")
         {
             spec.z_axis = require(b, "Z_Axis", where).get<std::vector<double>>();
             if (spec.z_axis.size() < 3)
                 throw std::runtime_error("Input file: \"Z_Axis\" in " + where + " must have 3 entries");
+        }
+        if (spec.mem_inter == "Plane_adhesion")
+        {
+            // rc is the width of the contact layer, Z_Axis the plane normal
+            if (!spec.has_rc || !(spec.rc > 0.0))
+                throw std::runtime_error("Input file: Plane_adhesion in " + where +
+                                         " needs \"rc\" > 0 (the contact width)");
+            if (spec.z_axis[0] == 0.0 && spec.z_axis[1] == 0.0 && spec.z_axis[2] == 0.0)
+                throw std::runtime_error("Input file: \"Z_Axis\" in " + where + " (the plane normal) is zero");
         }
 
         spec.bonds = require(b, "bonds", where).get<std::vector<std::string>>();
@@ -145,7 +154,7 @@ const std::vector<std::string> &known_interactions()
 {
     static const std::vector<std::string> names = {
         "Gravity", "Pinch", "Frenkel", "Frenkel_Normal_nopush", "Linear", "Linear_Normal",
-        "LJ", "Shifted-LJ", "One_over_r_x", "One_over_r", "None", "Adhesion"};
+        "LJ", "Shifted-LJ", "One_over_r_x", "One_over_r", "None", "Adhesion", "Plane_adhesion"};
     return names;
 }
 
@@ -394,6 +403,15 @@ std::unique_ptr<Interaction> make_interaction(const BeadSpec &spec, ManifoldSurf
         return make_unique_ptr<One_over_r>(mesh, geometry, params);
     if (type == "Adhesion") // E = -inter_str * covered area of the radius sphere (rc unused)
         return make_unique_ptr<Adhesion>(mesh, geometry, params);
+    if (type == "Plane_adhesion")
+    {
+        // E = -inter_str * membrane area within rc of the plane through Pos
+        // with normal Z_Axis; params = {W, sigma, delta, nx, ny, nz}
+        params.push_back(spec.z_axis[0]);
+        params.push_back(spec.z_axis[1]);
+        params.push_back(spec.z_axis[2]);
+        return make_unique_ptr<Plane_Adhesion>(mesh, geometry, params);
+    }
     if (type == "None")
         return make_unique_ptr<No_mem_Inter>();
 
