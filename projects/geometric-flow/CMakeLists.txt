@@ -86,7 +86,7 @@ endif()
 
 # Edit files to build here.
 set(SRCS 
-  src/main.cpp
+  legacy/main.cpp
   src/Beads.cpp
   src/Mem-3dg.cpp
   src/Mem-3dg_implicit.cpp
@@ -234,7 +234,6 @@ set(TEST_fan_SRCS
 add_subdirectory(../../deps/geometry-central deps/geometry-central)
 add_subdirectory(../../deps/polyscope deps/polyscope)
 add_subdirectory(../../deps/googletest deps/googletest)
-add_subdirectory(../../deps/libarcsim deps/libarcsim)
 
 # nlohmann/json (header only, kept in deps/) reads the input files
 add_library(nlohmann_json INTERFACE)
@@ -256,25 +255,23 @@ endif()
 
 
 # # Change the executable name by changing "main" in the lines below.
-add_executable(main "${SRCS}")
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT main)
-target_include_directories(main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
-target_include_directories(main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src_arcsim/")
-target_include_directories(main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
-target_include_directories(main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps")
+# Old viewer, uses the removed arcsim library (source in legacy/main.cpp)
+# add_executable(main "${SRCS}")
+# set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT main)
+# target_include_directories(main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+# target_include_directories(main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
+# target_include_directories(main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps")
 # add the args.hxx project which we use for command line args
-target_include_directories(main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
-target_include_directories(main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
+# target_include_directories(main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
 
 # find_package(EigenRand REQUIRED)
 
-target_link_libraries(main PUBLIC geometry-central polyscope arcsim nlohmann_json)
+# target_link_libraries(main PUBLIC geometry-central polyscope arcsim nlohmann_json)
 
 
 add_executable(main_cluster "${SRCScluster}")
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT main_cluster)
 target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
-target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src_arcsim/")
 
 target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
 target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps")
@@ -282,7 +279,6 @@ target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../.
 # target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/EigenRand/")
 # add the args.hxx project which we use for command line args
 target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
-target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
 
 target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include/")
 target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/")
@@ -294,13 +290,12 @@ target_include_directories(EigenRand INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/../.
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/lib")
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include")
 
-target_link_libraries(main_cluster PUBLIC geometry-central polyscope arcsim EigenRand ipopt nlohmann_json)
+target_link_libraries(main_cluster PUBLIC geometry-central polyscope EigenRand ipopt nlohmann_json)
 
 
 add_executable(PostProcessing "${SRCSprocessing}")
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT PostProcessing)
 target_include_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
-target_include_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src_arcsim/")
 
 target_include_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
 target_include_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps")
@@ -308,7 +303,6 @@ target_include_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/..
 # target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/EigenRand/")
 # add the args.hxx project which we use for command line args
 target_include_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
-target_include_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
 
 target_include_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include/")
 target_include_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/")
@@ -317,7 +311,7 @@ target_link_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../..
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/lib")
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include")
 
-target_link_libraries(PostProcessing PUBLIC geometry-central polyscope arcsim EigenRand ipopt nlohmann_json)
+target_link_libraries(PostProcessing PUBLIC geometry-central polyscope EigenRand ipopt nlohmann_json)
 
 
 # add_executable(Post_processing "${SRCSprocessing}")
@@ -344,7 +338,6 @@ target_link_libraries(PostProcessing PUBLIC geometry-central polyscope arcsim Ei
 add_executable(main_visualize "${SRCSvisualize}")
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT main_visualize)
 target_include_directories(main_visualize PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
-target_include_directories(main_visualize PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src_arcsim/")
 
 target_include_directories(main_visualize PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
 target_include_directories(main_visualize PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps")
@@ -352,9 +345,8 @@ target_include_directories(main_visualize PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/..
 # add the args.hxx project which we use for command line args
 target_include_directories(main_visualize PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
 
-target_include_directories(main_visualize PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
 
-target_link_libraries(main_visualize PUBLIC geometry-central polyscope arcsim nlohmann_json)
+target_link_libraries(main_visualize PUBLIC geometry-central polyscope nlohmann_json)
 
 
 # Uses the legacy Mem3DG API (see legacy/), disabled
@@ -489,14 +481,12 @@ add_executable(Test_hessian "${TEST_hessian_SRCS}")
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Test_hessian)
 target_include_directories(Test_hessian PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
 target_include_directories(Test_hessian PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include")
-target_include_directories(Test_hessian PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src_arcsim/")
 
 target_include_directories(Test_hessian PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps")
 # add the args.hxx project which we use for command line args
 target_include_directories(Test_hessian PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
-target_include_directories(Test_hessian PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
 
-target_link_libraries(Test_hessian PUBLIC geometry-central polyscope arcsim)
+target_link_libraries(Test_hessian PUBLIC geometry-central polyscope)
 
 
 add_executable(Test_fan "${TEST_fan_SRCS}")

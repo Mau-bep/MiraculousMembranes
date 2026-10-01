@@ -33,15 +33,6 @@
 #include "math.h"
 #include "Interaction.h"
 
-#include "libarcsim/include/cloth.hpp"
-#include "libarcsim/include/collision.hpp"
-#include "libarcsim/include/mesh.hpp"
-#include "libarcsim/include/dynamicremesh.hpp"
-
-#include "io.hpp"
-#include "simulation.hpp"
-#include "conf.hpp"
-#include "log.hpp"
 
 using namespace geometrycentral;
 using namespace geometrycentral::surface;
@@ -237,214 +228,6 @@ void Save_mesh(std::string basic_name, bool arcsim_remeshing, size_t current_t)
     return;
 }
 
-arcsim::Mesh translate_to_arcsim(ManifoldSurfaceMesh *mesh, VertexPositionGeometry *geometry)
-{
-
-    arcsim::Mesh mesh1;
-    // std::cout<< mesh1.verts.size()<<" number of vertices\n";
-
-    // std::cout<<"Adding vertices?\n";
-    for (size_t v = 0; v < mesh->nVertices(); v++)
-    {
-        // const Vert *vert0 = mesh0.verts[v];
-        Vector3 pos_orig = geometry->inputVertexPositions[v];
-        arcsim::Vec3 pos;
-        pos[0] = pos_orig.x;
-        pos[1] = pos_orig.y;
-        pos[2] = pos_orig.z;
-        arcsim::Vert *vert1 = new arcsim::Vert(pos, 1, 0);
-        mesh1.add(vert1);
-    }
-
-    // std::cout<<"Adding nodes?\n";
-    for (size_t v = 0; v < mesh->nVertices(); v++)
-    {
-        // const Vert *vert0 = mesh0.verts[v];
-        Vector3 pos_orig = geometry->inputVertexPositions[v];
-        arcsim::Vec3 pos;
-        pos[0] = pos_orig.x;
-        pos[1] = pos_orig.y;
-        pos[2] = pos_orig.z;
-        // arcsim::Vert *vert1 = new arcsim::Vert(pos, 0, 1);
-        // mesh1.add(vert1);
-        arcsim::Node *node1 = new arcsim::Node(pos, pos, pos, 0, false);
-        node1->preserve = false;
-        node1->temp = false;
-        node1->temp2 = false;
-        node1->verts.resize(1);
-        node1->verts[0] = mesh1.verts[v];
-
-        mesh1.add(node1);
-        // mesh1.add(new arcsim::Node(pos,
-        //                      pos,
-        //                      pos,
-        //                      0,false));
-        // mesh1.verts[v]->node=mesh1.nodes[v];
-        // arcsim::include(mesh1.verts[v],mesh1.nodes[v]->verts);
-        // mesh1.nodes[v]->verts.push_back(mesh1.verts[v]);
-    }
-
-    // std::cout<<"Adding edges?\n";
-    for (size_t e = 0; e < mesh->nEdges(); e++)
-    {
-        Edge e_orig = mesh->edge(e);
-
-        arcsim::Edge *edge1 = new arcsim::Edge(mesh1.nodes[e_orig.firstVertex().getIndex()], mesh1.nodes[e_orig.secondVertex().getIndex()], 0);
-        mesh1.add(edge1);
-    }
-
-    // std::cout<<"Adding faces?\n";
-    for (size_t f = 0; f < mesh->nFaces(); f++)
-    {
-        Face f_orig = mesh->face(f);
-        Halfedge he = f_orig.halfedge();
-        arcsim::Face *face1 = new arcsim::Face(mesh1.verts[he.vertex().getIndex()], mesh1.verts[he.next().vertex().getIndex()], mesh1.verts[he.next().next().vertex().getIndex()], 0, 0);
-
-        mesh1.add(face1);
-    }
-
-    // std::cout<<"computing data?\n";
-    arcsim::compute_ms_data(mesh1);
-
-    mesh1.numComponents = 1;
-
-    // std::cout<<"done translating\n";
-    return mesh1;
-}
-
-std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
-translate_to_geometry(arcsim::Mesh mesh)
-{
-
-    SimplePolygonMesh simpleMesh;
-
-    // std::cout<<"This is being called\n";
-    //   processLoadedMesh(simpleMesh, loadType);
-    Vector3 v_pos;
-
-    // for(int v =0 ; v<mesh.nodes.size();v++){
-    //     arcsim::Vec3 pos_old = mesh.nodes[v]->x;
-    //     v_pos.x=pos_old[0];
-    //     v_pos.y=pos_old[1];
-    //     v_pos.z=pos_old[2];
-    //     simpleMesh.vertexCoordinates.push_back(v_pos);
-    // }
-    bool flag_warning = false;
-    // int flag=0;
-    vector<int> flags(0);
-
-    // double avg_neigh = 0;
-    // double verts = 0;
-    // std::cout<<"Something\n";
-    // while(flag_warning){
-
-    // arcsim::update_indices(mesh);
-    // std::cout<<"The number of vertices is "<< mesh.verts.size()<<" \n";
-    // flag_warning=false;
-    // flags = vector<int>();
-    // simpleMesh = SimplePolygonMesh();
-    for (size_t v = 0; v < mesh.verts.size(); v++)
-    {
-        arcsim::Vec3 pos_old = mesh.nodes[v]->x;
-
-        v_pos.x = pos_old[0];
-        v_pos.y = pos_old[1];
-        v_pos.z = pos_old[2];
-        // avg_neigh+=mesh.verts[v]->adjf.size();
-        // verts+=1;
-        // if(mesh.verts[v]->adjf.size()<=2){
-        //     std::cout<<"The number of neighbors is "<< mesh.verts[v]->adjf.size()<<"\n";
-
-        //     // for(int f_index = 0 ; f_index < mesh.verts[v]->adjf.size();f_index++)
-        //     // {
-        //     // std::cout<<"Deleting face \n";
-        //     // mesh.remove(mesh.verts[v]->adjf[f_index]);
-        //     // }
-        //     // std::cout<<"Now we delete the vert\n";
-        //     // mesh.remove(mesh.verts[v]);
-
-        //     // // mesh.remove(mesh.verts[v]->adjf[0]);
-
-        //     std::cout<<"The vertex index to not consider are"<< v<<" out of a total of"<< mesh.verts.size()<<"\n";
-        //     flag_warning=true;
-        //     // flag=v;
-        //     flags.push_back(v);
-        //     continue;
-        // }
-
-        simpleMesh.vertexCoordinates.push_back(v_pos);
-    }
-
-    // }
-    int id1;
-    int id2;
-    int id3;
-    // int flag_idx=0;
-    // int number_of_flags=0;
-
-    if (flag_warning)
-    {
-        std::cout << "THe number of flags is " << flags.size() << "\n";
-        std::cout << "THe flags are \n";
-        for (size_t flag = 0; flag < flags.size(); flag++)
-        {
-            std::cout << flags[flag] << "\t ";
-        }
-        std::cout << " \n";
-    }
-    // std::cout<<"hihi\n";
-    bool non_manifold = false;
-    for (size_t f = 0; f < mesh.faces.size(); f++)
-    {
-
-        std::vector<size_t> polygon(3);
-
-        id1 = mesh.faces[f]->v[0]->index;
-        id2 = mesh.faces[f]->v[1]->index;
-        id3 = mesh.faces[f]->v[2]->index;
-
-        // int less_id1 = 0;
-        // int less_id2 = 0;
-        // int less_id3 = 0;
-
-        // for(size_t flag = 0 ; flag < flags.size(); flag++){
-        // if( id1 == flags[flag]|| id2 == flags[flag] || id3 == flags[flag]){
-        //     non_manifold=true;
-        // }
-        // if(id1>flags[flag]&& flag_warning) less_id1+=1;
-        // if(id2>flags[flag]&& flag_warning) less_id2+=1;
-        // if(id3>flags[flag]&& flag_warning) less_id3+=1;
-        // }
-        // if(non_manifold){
-        //     non_manifold=false;
-        //     continue;
-        // }
-        // id1 = id1 - less_id1;
-        // id2 = id2 - less_id2;
-        // id3 = id3 - less_id3;
-
-        // if(id1==6075 || id2==6075 || id3 ==6075) std::cout<<" 2. This is is being called\n";
-
-        // std::cout<<id1 <<" "<< id2 << " "<< id3 << "\n";
-        polygon[0] = id1;
-        polygon[1] = id2;
-        polygon[2] = id3;
-
-        simpleMesh.polygons.push_back(polygon);
-    }
-
-    // std::cout<<"Does this happen after loading the data to create the mesh?\n";
-    // std::cout<<" THe information in the mesh is, "<< simpleMesh.vertexCoordinates.size()<<"number of vertices\n";
-    auto lvals = makeManifoldSurfaceMeshAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
-    if (flag_warning)
-    {
-        std::cout << "The problem is not the translation\n";
-    }
-
-    return std::tuple<std::unique_ptr<ManifoldSurfaceMesh>,
-                      std::unique_ptr<VertexPositionGeometry>>(std::move(std::get<0>(lvals)),  // mesh
-                                                               std::move(std::get<1>(lvals))); // geometry
-}
 
 int main(int argc, char **argv)
 {
@@ -1998,16 +1781,14 @@ int main(int argc, char **argv)
 
     // std::cout<<"The hessian of the finite difference is \n" << Hessian_finite_diff_vol <<" \n";
 
-    arcsim::Cloth Cloth_1;
-    arcsim::Cloth::Remeshing remeshing_params;
-
-    remeshing_params.aspect_min = 0.2;
-    remeshing_params.refine_angle = 0.7;
-    remeshing_params.refine_compression = 1.0;
-    remeshing_params.refine_velocity = 1.0;
-    remeshing_params.size_max = 0.5;
-    remeshing_params.size_min = 0.001;
-    remeshing_params.total_op = -1;
+    // Remeshing between the Newton steps below (geometry-central remesher,
+    // same limits as the old arcsim settings)
+    RemeshOptions remesh_options;
+    remesh_options.aspect_min = 0.2;
+    remesh_options.refine_angle = 0.7;
+    remesh_options.max_absolute_length = 0.5;
+    remesh_options.min_absolute_length = 0.001;
+    remesh_options.maxIterations = 1;
 
     // Now we do the fire test :P
 
@@ -2052,22 +1833,6 @@ int main(int argc, char **argv)
     M3DG.boundary = false;
     // std::ofstream Some_ofstream;
 
-    // arcsim::Mesh remesher_mesh = translate_to_arcsim(mesh,geometry);
-    // Cloth_1.mesh = remesher_mesh;
-    // Cloth_1.remeshing = remeshing_params;
-    // arcsim::compute_masses(Cloth_1);
-    // arcsim::compute_ws_data(Cloth_1.mesh);
-
-    // arcsim::dynamic_remesh(Cloth_1);
-
-    // std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
-    // arcsim::delete_mesh(Cloth_1.mesh);
-    // mesh = mesh_uptr.release();
-    // geometry = geometry_uptr.release();
-    // M3DG.mesh = mesh;
-    // M3DG.geometry = geometry;
-    // Sim_handler.mesh = mesh;
-    // Sim_handler.geometry = geometry;
 
     std::cout << "\t \t The volume is " << geometry->totalVolume() << " \n";
 
@@ -2106,28 +1871,10 @@ int main(int argc, char **argv)
         // M3DG.integrate(Some_ofstream,0.0,Energies,false);
         M3DG.integrate_Newton(Some_ofstream, 0.0, Energies, false, Constraints, Constraints);
         std::cout << "THe area is " << geometry->totalArea() << " and the volume is  " << geometry->totalVolume() << "\n";
-        if (false)
+        if (false) // remeshing stays off, as before
         {
-            arcsim::Mesh remesher_mesh2 = translate_to_arcsim(mesh, geometry);
-            Cloth_1.mesh = remesher_mesh2;
-            Cloth_1.remeshing = remeshing_params;
-            arcsim::compute_masses(Cloth_1);
-            arcsim::compute_ws_data(Cloth_1.mesh);
-            arcsim::dynamic_remesh(Cloth_1);
-
-            delete mesh;
-            delete geometry;
-
-            std::tie(mesh_uptr, geometry_uptr) = translate_to_geometry(Cloth_1.mesh);
-            arcsim::delete_mesh(Cloth_1.mesh);
-
-            mesh = mesh_uptr.release();
-            geometry = geometry_uptr.release();
-
-            M3DG.mesh = mesh;
-            M3DG.geometry = geometry;
-            Sim_handler.mesh = mesh;
-            Sim_handler.geometry = geometry;
+            remesh(*mesh, *geometry, remesh_options);
+            geometry->refreshQuantities();
         }
 
         // mkdir("../Results/Test_Hessian/", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
