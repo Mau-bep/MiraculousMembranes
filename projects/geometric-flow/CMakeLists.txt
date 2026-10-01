@@ -98,6 +98,7 @@ set(SRCS
 set(SRCScluster 
   src/main_cluster.cpp  
   src/SimConfig.cpp
+  src/RemeshMonitor.cpp
   src/Energy_Handler.cpp
   src/Mem-3dg.cpp
   src/Beads.cpp
@@ -537,3 +538,8 @@ target_link_libraries(Test_fan geometry-central polyscope)
   # src/willmore-flow-2.cpp
   # src/willmore-flow-scho.cpp
   # src/membrane-flow.cpp
+
+# Checks for the "quality" adaptive remeshing monitor
+add_executable(Test_remesh_monitor src/Test_remesh_monitor.cpp src/RemeshMonitor.cpp)
+target_include_directories(Test_remesh_monitor PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+target_link_libraries(Test_remesh_monitor geometry-central)

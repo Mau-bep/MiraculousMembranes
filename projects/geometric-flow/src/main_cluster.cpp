@@ -16,6 +16,7 @@
 
 #include <EigenRand/EigenRand>
 
+#include "RemeshMonitor.h"
 #include "SimConfig.h"
 
 using namespace geometrycentral;
@@ -39,6 +40,8 @@ namespace
         int remesh_op_last = 0;
         int trgt_remesh_op = 100;
         double integral_error = 0;
+        double quality_baseline = 0.0; // bad edge fraction right after the last remesh
+        size_t n_remesh = 0;
 
         double time = 0.0;
         double dt_sim = 0.0;
@@ -268,6 +271,16 @@ namespace
         sim.geometry->refreshQuantities();
     }
 
+    // Total energy for Remesh_log; the handler's per-term values are put back
+    double total_energy(Simulation &sim)
+    {
+        std::vector<double> saved = sim.Sim_handler.Energy_values;
+        double E = 0.0;
+        sim.Sim_handler.Calculate_energies(&E);
+        sim.Sim_handler.Energy_values = saved;
+        return E;
+    }
+
     void maybe_remesh(Simulation &sim, RunState &run, size_t current_t)
     {
         if (!run.remesher)
@@ -278,21 +291,57 @@ namespace
         if (flagSmallAngle)
             fix_small_angles(sim);
 
-        bool due = (current_t - run.last_remesh) > size_t(run.remesh_every) && run.remesh_every > 0;
-        if (!(due || run.dt_sim == 0.0 || (flagSmallAngle && run.remesh_every < 0)))
+        // In the quality mode remesh_every is the longest interval (max_every)
+        // and setting it to 1 still asks for a remesh on the next step.
+        const bool quality = run.adapt_remesh && sim.cfg.quality_remesh;
+        const RemeshQualityParams &qp = sim.cfg.remesh_quality;
+        const size_t since = current_t - run.last_remesh;
+
+        bool due = since > size_t(run.remesh_every) && run.remesh_every > 0;
+        bool go = due || run.dt_sim == 0.0 || (flagSmallAngle && run.remesh_every < 0);
+
+        MeshQuality before;
+        bool measured = false;
+        if (quality && !go && run.remesh_every > 0 && since >= size_t(qp.min_every))
+        {
+            before = measure_mesh_quality(*sim.mesh, *sim.geometry, sim.Options);
+            measured = true;
+            go = before.bad_fraction() - run.quality_baseline > qp.f_tol;
+        }
+        if (!go)
             return;
+
+        double E_before = 0.0;
+        if (sim.cfg.remesh_log)
+        {
+            if (!measured)
+                before = measure_mesh_quality(*sim.mesh, *sim.geometry, sim.Options);
+            E_before = total_energy(sim);
+        }
 
         if (has_small_angle(sim, sim.Options.angleThresh))
             fix_small_angles(sim);
 
         run.last_remesh = current_t;
+        run.n_remesh++;
         run.remesh_op = remesh(*sim.mesh, *sim.geometry, sim.Options);
         sim.geometry->refreshQuantities();
         sim.M3DG.BFGS_iter = 0;
         sim.Sim_handler.update_vertex_normals();
 
+        MeshQuality after;
+        if (quality || sim.cfg.remesh_log)
+            after = measure_mesh_quality(*sim.mesh, *sim.geometry, sim.Options);
+
         double output = 0.0;
-        if (run.adapt_remesh)
+        if (quality)
+        {
+            // Defects the remesher leaves behind (vetoed collapses, flips from
+            // the final smoothing) are not counted against the next interval
+            run.quality_baseline = after.bad_fraction();
+            run.remesh_every = qp.max_every;
+        }
+        else if (run.adapt_remesh)
         {
             // PID-like value, only logged; remesh_every follows the simple rule below
             int error = run.remesh_op - run.trgt_remesh_op;
@@ -313,6 +362,16 @@ namespace
         {
             std::ofstream Remeshing_count(run.basic_name + "Remeshing_count.txt", std::ios_base::app);
             Remeshing_count << current_t << " " << run.remesh_op << " " << run.remesh_every << " " << output << "\n";
+        }
+        if (sim.cfg.remesh_log)
+        {
+            double E_after = total_energy(sim);
+            std::ofstream log(run.basic_name + "Remesh_log.txt", std::ios_base::app);
+            log << std::setprecision(12) << current_t << " " << since << " " << run.remesh_op << " "
+                << sim.mesh->nVertices() << " " << before.bad_fraction() << " " << before.fraction(before.n_long) << " "
+                << before.fraction(before.n_short) << " " << before.fraction(before.n_flip) << " "
+                << after.bad_fraction() << " " << after.fraction(after.n_long) << " " << after.fraction(after.n_short)
+                << " " << after.fraction(after.n_flip) << " " << E_before << " " << E_after << "\n";
         }
     }
 
@@ -667,6 +726,7 @@ int main(int argc, char **argv)
     { return double(std::chrono::duration_cast<std::chrono::milliseconds>(clock::now() - t0).count()); };
     double remeshing_elapsed_time = 0, integrate_elapsed_time = 0, saving_mesh_time = 0;
     auto start = clock::now();
+    const auto run_start = clock::now();
 
     std::ofstream Sim_data;
     const size_t Final_t = cfg.timesteps;
@@ -738,6 +798,14 @@ int main(int argc, char **argv)
     }
     std::cout << "The simulation is finished\n";
     Sim_data.close();
+
+    {
+        // Cost side of the remeshing calibration (Scripts/calibrate_remesh_tol.py)
+        std::ofstream timing(run.basic_name + "Timing.txt");
+        timing << "wall_ms " << ms_since(run_start) << "\nremesh_ms " << remeshing_elapsed_time << "\nintegrate_ms "
+               << integrate_elapsed_time << "\nsave_ms " << saving_mesh_time << "\nremeshes " << run.n_remesh
+               << "\nvertices " << sim.mesh->nVertices() << "\n";
+    }
 
     save_final_state(sim, run);
     return EXIT_SUCCESS;

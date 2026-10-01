@@ -72,6 +72,16 @@ struct RemeshParams
     double aspect_min = 0.0;
 };
 
+// "adapt_remesh": "quality" (see RemeshMonitor.h): remesh when the fraction
+// of edges the remesher would change has grown by more than f_tol since the
+// last remesh, at most every min_every and at least every max_every steps.
+struct RemeshQualityParams
+{
+    double f_tol = 0.01;
+    int min_every = 1;
+    int max_every = 100;
+};
+
 struct SimConfig
 {
     nlohmann::json raw;      // the parsed file, for anything not covered below
@@ -95,7 +105,10 @@ struct SimConfig
     bool remeshing = true;
     int remesh_every = 1;
     bool adapt_remesh = true;
+    bool quality_remesh = false; // "adapt_remesh": "quality"
+    RemeshQualityParams remesh_quality;
     bool count_remesh = false;
+    bool remesh_log = false; // Remesh_log.txt: mesh quality and energy around every remesh
     RemeshParams remesher;
 
     std::string integration = "Gradient_descent";

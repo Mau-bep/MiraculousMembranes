@@ -205,8 +205,30 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
     else
         std::cout << "Warning: \"remeshing\" not given, remeshing is on\n";
     cfg.remesh_every = data.value("remesh_every", 1);
-    cfg.adapt_remesh = data.value("adapt_remesh", true);
+    if (data.contains("adapt_remesh") && data["adapt_remesh"].is_string())
+    {
+        if (data["adapt_remesh"].get<std::string>() != "quality")
+            throw std::runtime_error("Input file: \"adapt_remesh\" must be true, false or \"quality\"");
+        cfg.adapt_remesh = true;
+        cfg.quality_remesh = true;
+    }
+    else
+        cfg.adapt_remesh = data.value("adapt_remesh", true);
+    if (data.contains("remesh_quality"))
+    {
+        const json &q = data["remesh_quality"];
+        cfg.remesh_quality.f_tol = q.value("f_tol", cfg.remesh_quality.f_tol);
+        cfg.remesh_quality.min_every = q.value("min_every", cfg.remesh_quality.min_every);
+        cfg.remesh_quality.max_every = q.value("max_every", cfg.remesh_quality.max_every);
+        if (!(cfg.remesh_quality.f_tol > 0.0))
+            throw std::runtime_error("Input file: remesh_quality.f_tol must be positive");
+        if (cfg.remesh_quality.min_every < 1 || cfg.remesh_quality.max_every < cfg.remesh_quality.min_every)
+            throw std::runtime_error("Input file: remesh_quality needs 1 <= min_every <= max_every");
+        if (!cfg.quality_remesh)
+            std::cout << "Warning: \"remesh_quality\" is only used with \"adapt_remesh\": \"quality\"\n";
+    }
     cfg.count_remesh = data.value("Count_remesh", false);
+    cfg.remesh_log = data.value("Remesh_log", false);
     if (data.contains("remesher"))
     {
         const json &r = data["remesher"];
@@ -701,6 +723,15 @@ std::vector<std::string> open_output_files(const Simulation &sim, const std::str
     {
         std::ofstream Remeshing_count(basic_name + "Remeshing_count.txt", std::ios_base::app);
         Remeshing_count << "#### timestep remeshing_operations nVertices nEdges nFaces \n";
+    }
+    if (sim.cfg.remesh_log)
+    {
+        // Fractions are of all edges; "bad" edges are long, short or flip
+        // (RemeshMonitor.h), before and after the remesh at that step
+        std::ofstream Remesh_log(basic_name + "Remesh_log.txt", mode);
+        if (!append)
+            Remesh_log << "# timestep steps_since_last operations nVertices bad_before long_before short_before "
+                          "flip_before bad_after long_after short_after flip_after E_before E_after\n";
     }
     return Bead_filenames;
 }
