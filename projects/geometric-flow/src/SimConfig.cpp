@@ -249,6 +249,7 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
         const json &s = data["stopping"];
         StoppingParams &p = cfg.stopping;
         p.bfgs_switch = s.value("bfgs_switch", p.bfgs_switch);
+        p.normal_stop = s.value("normal_stop", p.normal_stop);
         p.window = s.value("window", p.window);
         p.patience = s.value("patience", p.patience);
         p.E_floor = s.value("E_floor", p.E_floor);

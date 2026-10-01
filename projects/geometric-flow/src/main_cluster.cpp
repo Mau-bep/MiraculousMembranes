@@ -605,13 +605,14 @@ namespace
 
     // Stopping criteria of the L-BFGS integrators (ConvergenceMonitor.h), called
     // after every successful step. Each closed window goes to Convergence_log.txt.
-    void monitor_convergence(Simulation &sim, RunState &run, ConvergenceMonitor &monitor, size_t current_t)
+    // Returns true when the run is converged and should end.
+    bool monitor_convergence(Simulation &sim, RunState &run, ConvergenceMonitor &monitor, size_t current_t)
     {
         const bool normal = run.Integration == "BFGS-Normal";
         if (run.Integration != "BFGS" && !normal)
         {
             run.monitored.clear();
-            return;
+            return false;
         }
         if (run.monitored != run.Integration)
         {
@@ -621,7 +622,7 @@ namespace
 
         Mem3DG &M3DG = sim.M3DG;
         if (!monitor.add_step(M3DG.E_step_end - M3DG.E_step_start))
-            return;
+            return false;
 
         const StoppingParams &p = monitor.params();
         const double E = M3DG.E_step_end;
@@ -654,6 +655,13 @@ namespace
             M3DG.BFGS_iter = 0;
             run.remesh_every = -1;
         }
+        if (converged && normal && p.normal_stop)
+        {
+            std::cout << "BFGS-Normal converged at t = " << current_t << ": relative energy change " << dE_rel
+                      << " per window, normal force density " << f_rms / f_scale << " KB/R^3\n";
+            return true;
+        }
+        return false;
     }
 
     void print_status(Simulation &sim, const RunState &run, size_t current_t, double elapsed_ms)
@@ -838,7 +846,11 @@ int main(int argc, char **argv)
         {
             run.time += run.dt_sim;
             M3DG.system_time += 1;
-            monitor_convergence(sim, run, monitor, current_t);
+            if (monitor_convergence(sim, run, monitor, current_t))
+            {
+                Sim_data.close();
+                break;
+            }
         }
         Sim_data.close();
         integrate_elapsed_time += ms_since(t0);
