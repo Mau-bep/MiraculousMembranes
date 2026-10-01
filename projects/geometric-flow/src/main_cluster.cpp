@@ -632,7 +632,7 @@ namespace
         const double KB = bending_modulus(sim.Sim_handler.Energies, sim.Sim_handler.Energy_constants);
         const double f_scale = force_density_scale(*sim.mesh, *sim.geometry, KB);
         const bool pass = normal ? dE_rel < p.normal_tol_E && f_rms < p.normal_tol_g * f_scale : dE_rel < p.bfgs_tol_E;
-        monitor.close_window(pass);
+        const bool converged = monitor.close_window(pass);
 
         std::ofstream log(run.basic_name + "Convergence_log.txt", std::ios_base::app);
         if (!run.convergence_log)
@@ -645,6 +645,15 @@ namespace
         }
         log << std::setprecision(10) << current_t << " " << run.Integration << " " << E << " " << dE_rel << " "
             << f_rms << " " << f_scale << " " << monitor.passed_windows() << "\n";
+
+        if (converged && !normal && p.bfgs_switch)
+        {
+            // Same as the "BFGS-Normal" switch
+            std::cout << "The BFGS energy has plateaued at t = " << current_t << ", switching to BFGS-Normal\n";
+            run.Integration = "BFGS-Normal";
+            M3DG.BFGS_iter = 0;
+            run.remesh_every = -1;
+        }
     }
 
     void print_status(Simulation &sim, const RunState &run, size_t current_t, double elapsed_ms)

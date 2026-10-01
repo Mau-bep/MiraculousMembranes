@@ -33,6 +33,7 @@ using namespace geometrycentral::surface;
 
 struct StoppingParams
 {
+    bool bfgs_switch = true; // BFGS -> BFGS-Normal once the energy test holds
     int window = 100;
     int patience = 3;
     double E_floor = 1.0;       // energy scale used when |E| is smaller
