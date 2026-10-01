@@ -62,7 +62,6 @@ void E_Handler::Add_Bead(Bead *bead)
     // std::cout<<"The energy constant is "<< Beads[Beads.size()-1]->Bead_I->Energy_constants[0] << "MEDG \n";
 }
 
-
 void E_Handler::update_face_reference()
 {
     // std::cout<<"Updating face reference, guess we remeshed (: \n";
@@ -92,10 +91,7 @@ void E_Handler::update_face_reference()
     if (A_bar > 1e-5)
     {
         double factor = A_bar / Total_A; // If we assume this difference is small for all the vertices then we can just add A_diff/mesh->nFaces() to each face reference
-        // for(Face f : mesh->faces()){
-        // std::cout<<"We are multiplying a factor of " << factor << " to each face reference to account for the area constraint\n";
         Face_reference *= factor;
-        // }
     }
 
     return;
@@ -124,7 +120,7 @@ double E_Handler::E_Area_constraint(std::vector<double> Constants) const
     double KA = Constants[0];
     double A_bar = Constants[1];
     double A = geometry->totalArea();
-    // return 0.5*KA*A*A;
+
     return 0.5 * KA * (A - A_bar) * (A - A_bar) / (A_bar * A_bar);
 }
 
@@ -379,7 +375,6 @@ double E_Handler::E_Edge_reg(std::vector<double> Constants) const
     return E_edge;
 }
 
-
 double E_Handler::E_Face_reg(std::vector<double> Constants) const
 {
 
@@ -633,7 +628,6 @@ VertexData<Vector3> E_Handler::F_Volume_constraint(std::vector<double> Constants
     return -1 * KV * ((V - V_bar) / (V_bar * V_bar)) * Force;
 }
 
-
 VertexData<Vector3> E_Handler::F_Volume_constraint_2(std::vector<double> Constants) const
 {
 
@@ -707,7 +701,6 @@ VertexData<Vector3> E_Handler::F_Volume(std::vector<double> Constants) const
 
     return -1 * KV * Force;
 }
-
 
 VertexData<Vector3> E_Handler::F_SurfaceTension(std::vector<double> Constants) const
 {
@@ -901,7 +894,6 @@ VertexData<Vector3> E_Handler::F_Bending(std::vector<double> Constants) const
 
     return Force;
 }
-
 
 VertexData<Vector3> E_Handler::F_Bending_tan(std::vector<double> Constants) const
 {
@@ -1202,7 +1194,6 @@ VertexData<Vector3> E_Handler::F_Edge_reg(std::vector<double> Constants) const
 
     return Force;
 }
-
 
 VertexData<Vector3> E_Handler::F_Edge_reg_2(std::vector<double> Constants) const
 {
@@ -1579,7 +1570,6 @@ SparseMatrix<double> E_Handler::H_SurfaceTension(std::vector<double> Constants)
 
     return KA * Hessian;
 }
-
 
 // Hessian of the bending energy; tan_version uses x = 2 tan(theta/2) in place
 // of the dihedral angle theta (Bending_tan).
@@ -1958,9 +1948,6 @@ SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants)
     return H_Bending_impl(Constants, false);
 }
 
-
-
-
 SparseMatrix<double> E_Handler::H_Volume(std::vector<double> Constants)
 {
     // std::cout<<"Hessian volume\n";
@@ -2010,7 +1997,6 @@ SparseMatrix<double> E_Handler::H_Volume(std::vector<double> Constants)
     // std::cout<<"Hessian volume done\n";
     return KV * Hessian;
 }
-
 
 SparseMatrix<double> E_Handler::H_Laplace(std::vector<double> Constants)
 {
@@ -2495,7 +2481,6 @@ SparseMatrix<double> E_Handler::H_Edge_reg(std::vector<double> Constants)
     return KE * Hessian;
 }
 
-
 SparseMatrix<double> E_Handler::H_Face_reg(std::vector<double> Constants)
 {
     // Ok so this functino will assemble the Hessi an for the surface tension energy
@@ -2688,7 +2673,6 @@ void E_Handler::Calculate_energies(double *E)
     return;
 }
 
-
 void E_Handler::Calculate_Lag_norm(double *Norm)
 {
     // Now  i need to get this norm
@@ -2786,7 +2770,6 @@ void E_Handler::Calculate_Lag_norm_Normal(double *Norm)
         }
     }
 }
-
 
 void E_Handler::Calculate_gradient()
 {
@@ -3009,7 +2992,6 @@ void E_Handler::Calculate_gradient()
         std::cout << "The gradient norm is Nan? \n";
     return;
 }
-
 
 void E_Handler::Calculate_Jacobian()
 {
@@ -3652,7 +3634,6 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_E()
     return Hessian;
 }
 
-
 SparseMatrix<double> E_Handler::Calculate_Hessian_E_Normal()
 {
     // This hessian uses the vertex normals that have been previously calculated and stored in M3DG
@@ -3801,4 +3782,3 @@ SparseMatrix<double> E_Handler::Calculate_Hessian_Constraints()
 
     return Hessian;
 }
-
