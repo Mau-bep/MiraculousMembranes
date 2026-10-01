@@ -169,10 +169,10 @@ double E_Handler::E_Bending(std::vector<double> Constants) const
         index = v.getIndex();
         Pos = geometry->inputVertexPositions[v];
 
-        r_eff2 = Pos.z * Pos.z + Pos.y * Pos.y;
+        // r_eff2 = Pos.z * Pos.z + Pos.y * Pos.y;
         // std::cout<<"boundary? \n";
-        if (r_eff2 > 1.6 && boundary)
-            continue;
+        // if (r_eff2 > 1.6 && boundary)
+        // continue;
 
         A = geometry->barycentricDualArea(v);
         H = (geometry->scalarMeanCurvature(v) / A - H0);
