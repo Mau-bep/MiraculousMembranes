@@ -2109,7 +2109,14 @@ double Mem3DG::integrate_Newton_Normal(std::ofstream &Sim_data, double time, std
 VertexData<Vector3> Mem3DG::Grad_Bead(std::ofstream &Gradient_file, bool Save, bool Projection)
 {
 
+  // Finite differences of the bead's interaction energy, compared with its
+  // analytic gradient Bead_1.Gradient()
   std::cout << "The interaction to consider is " << Bead_1.interaction << "\n";
+  if (Bead_1.Bead_I == nullptr)
+  {
+    std::cerr << "Grad_Bead: the bead has no Interaction attached\n";
+    return VertexData<Vector3>(*mesh, Vector3{0.0, 0.0, 0.0});
+  }
   // I want to calculate the gradient of the volume
   VertexData<Vector3> initial_pos(*mesh);
   VertexData<Vector3> Finite_grad(*mesh);
@@ -2131,7 +2138,7 @@ VertexData<Vector3> Mem3DG::Grad_Bead(std::ofstream &Gradient_file, bool Save, b
   Vector3 difference;
   Vector3 Area_grad;
   Vector3 r;
-  E_bead = Bead_1.Energy();
+  E_bead = Bead_1.Bead_I->Tot_Energy();
 
   // E_vol=E_Pressure(D_P,V,V_bar);
 
@@ -2151,31 +2158,31 @@ VertexData<Vector3> Mem3DG::Grad_Bead(std::ofstream &Gradient_file, bool Save, b
 
     geometry->inputVertexPositions[v] = initial_pos[v] + Vector3{dr, 0, 0};
     // geometry->refreshQuantities();
-    E_bead_front = Bead_1.Energy();
+    E_bead_front = Bead_1.Bead_I->Tot_Energy();
 
     geometry->inputVertexPositions[v] = initial_pos[v] - Vector3{dr, 0, 0};
     // geometry->refreshQuantities();
-    E_bead_back = Bead_1.Energy();
+    E_bead_back = Bead_1.Bead_I->Tot_Energy();
 
     grad.x = (E_bead_front - E_bead_back) / (2 * dr);
 
     geometry->inputVertexPositions[v] = initial_pos[v] - Vector3{0, dr, 0};
     // geometry->refreshQuantities();
-    E_bead_back = Bead_1.Energy();
+    E_bead_back = Bead_1.Bead_I->Tot_Energy();
 
     geometry->inputVertexPositions[v] = initial_pos[v] + Vector3{0, dr, 0};
     // geometry->refreshQuantities();
-    E_bead_front = Bead_1.Energy();
+    E_bead_front = Bead_1.Bead_I->Tot_Energy();
 
     grad.y = (E_bead_front - E_bead_back) / (2 * dr);
 
     geometry->inputVertexPositions[v] = initial_pos[v] - Vector3{0, 0, dr};
     // geometry->refreshQuantities();
-    E_bead_back = Bead_1.Energy();
+    E_bead_back = Bead_1.Bead_I->Tot_Energy();
 
     geometry->inputVertexPositions[v] = initial_pos[v] + Vector3{0, 0, dr};
     // geometry->refreshQuantities();
-    E_bead_front = Bead_1.Energy();
+    E_bead_front = Bead_1.Bead_I->Tot_Energy();
 
     grad.z = (E_bead_front - E_bead_back) / (2 * dr);
 

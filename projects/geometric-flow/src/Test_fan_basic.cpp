@@ -34,6 +34,7 @@
 
 #include "Mem-3dg.h"
 #include "Beads.h"
+#include "Interaction.h"
 
 
 using namespace geometrycentral;
@@ -82,6 +83,7 @@ Vector3 CoM;                   // original center of mass
 
 Mem3DG M3DG;
 Bead Bead_1;
+Frenkel_Normal Test_bead_interaction; // the bead potential checked by Test_Bead
 
 std::array<double, 3> BLUE = {0.11, 0.388, 0.89};
 // glm::vec<3, float> ORANGE_VEC = {1, 0.65, 0};
@@ -254,10 +256,23 @@ int main(int argc, char** argv) {
     CoM = geometry->centerOfMass();
     double radius=1.0;
     double Interaction_str=1.0;
-    Bead_1 = Bead(mesh,geometry,Vector3({0.0,0.0,0.0}),radius,Interaction_str);
-    Bead_1.interaction="pulling";
+    // Test bead: Frenkel_Normal_nopush (the interaction used in the wrapping
+    // runs), placed at distance 0.8 from the fan on the side its faces point to
+    Vector3 fan_center{0.0, 0.0, 0.0};
+    for (Vertex v : mesh->vertices())
+        fan_center += geometry->inputVertexPositions[v];
+    fan_center /= mesh->nVertices();
+    Vector3 fan_normal{0.0, 0.0, 0.0};
+    for (Face f : mesh->faces())
+        fan_normal += geometry->faceNormal_vec(f);
+    Bead_1 = Bead(mesh,geometry,fan_center + 0.8 * fan_normal.normalize(),radius,Interaction_str);
+    Bead_1.interaction="Frenkel_Normal_nopush";
     // M3DG = Mem3DG(mesh,geometry);
     M3DG = Mem3DG(mesh,geometry,Bead_1);
+    // {strength, sigma, cutoff rc = 2 sigma, outside}
+    Test_bead_interaction = Frenkel_Normal(mesh, geometry, std::vector<double>{Interaction_str, radius, 2.0 * radius, 1.0});
+    M3DG.Bead_1.Bead_I = &Test_bead_interaction;
+    Test_bead_interaction.Bead_1 = &M3DG.Bead_1;
 
 
 

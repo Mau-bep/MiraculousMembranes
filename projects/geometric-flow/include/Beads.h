@@ -53,7 +53,6 @@ public:
   void Reasign_mesh(ManifoldSurfaceMesh *inputMesh, VertexPositionGeometry *inputGeo);
 
   VertexData<Vector3> Gradient();
-  double Energy();
   void Reset_bead(Vector3 Actual_pos);
   void Move_bead(double dt, Vector3 center);
   void Move_bead(double dt, Vector3 center, Vector3 Force);

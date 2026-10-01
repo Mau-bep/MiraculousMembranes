@@ -1355,7 +1355,6 @@ int main(int argc, char **argv)
     Bead_1.Total_force = Vector3{0.0, 0.0, 0.0};
 
     std::cout << "The bead energy is" << Bead_1.Bead_I->Tot_Energy() << " \n";
-    std::cout << "The bead energyold" << Bead_1.Energy() << "\n";
     VertexData<Vector3> Inter_Force = Bead_1.Bead_I->Gradient();
     VertexData<Vector3> Inter_Force_finite(*mesh, {0.0, 0.0, 0.0});
 
