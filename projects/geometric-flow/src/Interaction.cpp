@@ -7,6 +7,7 @@
 #include <omp.h>
 #include "Interaction.h"
 #include "GeometryHelpers.h"
+#include "BeadGeometry.h"
 #include "Beads.h"
 
 using namespace geometrycentral;
@@ -1194,18 +1195,19 @@ VertexData<Vector3> Face_Integrated_Interaction::Gradient()
         *mesh,
         Vector3({0.0, 0.0, 0.0}));
 
-    Vector3 beadForce({0.0, 0.0, 0.0});
+    // Same bead-force convention as the other interactions: this Gradient()
+    // starts the bead's force for this evaluation, then adds bonds, the
+    // Coverage energy's contribution and the face terms
+    Bead_1->Prev_Total_force = Bead_1->Total_force;
+    Bead_1->Total_force = Vector3{0.0, 0.0, 0.0};
+    Bead_1->Total_force += Bond_force();
+    Bead_1->Total_force += Bead_1->CoverageForce;
 
+    Vector3 beadForce({0.0, 0.0, 0.0});
     for (Face f : mesh->faces())
     {
         Add_Face_Force(f, membraneForce, beadForce);
     }
-
-    /*
-     * Critical convention:
-     * this interaction only adds its bead contribution.
-     * It must never reset Total_force here.
-     */
     Bead_1->Total_force += beadForce;
 
     return membraneForce;
@@ -1215,23 +1217,56 @@ SparseMatrix<double> Face_Integrated_Interaction::Hessian()
 {
     validateSetup();
 
-    const size_t nVertices = mesh->nVertices();
-
-    /*
-     * The bead adds 3 degrees of freedom in your current Newton layout.
-     * This follows the indexing convention visible in Interaction.cpp:
-     *
-     * bead dof offset = 3 * mesh->nVertices() + 3 * Bead_id.
-     */
-    const size_t nDof = 3 * (nVertices + 1);
-
-    SparseMatrix<double> zeroHessian(nDof, nDof);
-    return zeroHessian;
+    // No analytic Hessian for the face terms yet: only the bonds, in the
+    // same layout as the other interactions (3 dofs per vertex, then per bead)
+    const size_t nDof = 3 * mesh->nVertices() + 3 * Bead_1->Total_beads;
+    SparseMatrix<double> hessian(nDof, nDof);
+    std::vector<Eigen::Triplet<double>> tripletList = Hessian_bonds_triplet();
+    hessian.setFromTriplets(tripletList.begin(), tripletList.end());
+    return hessian;
 }
 
 SparseMatrix<double> Face_Integrated_Interaction::Hessian_IP()
 {
     return Hessian();
+}
+
+double Adhesion::Face_Energy(Face f)
+{
+    const bead_geometry::FaceCoverageData face =
+        bead_geometry::evaluateFaceCoverage(*geometry, f, Bead_1->Pos, sigma());
+    if (!face.selected)
+        return 0.0;
+    return -strength() * face.weight * face.omegaUnsigned / (4.0 * bead_geometry::PI_VALUE);
+}
+
+void Adhesion::Add_Face_Force(Face f, VertexData<Vector3> &membraneForce, Vector3 &beadForce)
+{
+    const bead_geometry::FaceCoverageData face =
+        bead_geometry::evaluateFaceCoverage(*geometry, f, Bead_1->Pos, sigma());
+    if (!face.selected)
+        return;
+
+    // phi_f = w(r_f) |omega_f| / (4 pi), r_f measured to the centroid, so
+    // dr_f/dp_i = radialDirection / 3 for each corner p_i
+    const double fourPi = 4.0 * bead_geometry::PI_VALUE;
+    const Vector3 gradWeight = face.dWeightDr * face.radialDirection / 3.0;
+    const Vector3 dPhi0 = (face.weight * face.gradOmega0 + face.omegaUnsigned * gradWeight) / fourPi;
+    const Vector3 dPhi1 = (face.weight * face.gradOmega1 + face.omegaUnsigned * gradWeight) / fourPi;
+    const Vector3 dPhi2 = (face.weight * face.gradOmega2 + face.omegaUnsigned * gradWeight) / fourPi;
+
+    // E = -eps phi, force = -dE/dp = eps dphi/dp
+    const Vector3 force0 = strength() * dPhi0;
+    const Vector3 force1 = strength() * dPhi1;
+    const Vector3 force2 = strength() * dPhi2;
+
+    Halfedge he = f.halfedge();
+    membraneForce[he.vertex()] += force0;
+    membraneForce[he.next().vertex()] += force1;
+    membraneForce[he.next().next().vertex()] += force2;
+
+    // phi depends only on p_i - bead position, so dphi/dq = -sum_i dphi/dp_i
+    beadForce -= force0 + force1 + force2;
 }
 
 double Cilinder_Interaction::Tot_Energy()

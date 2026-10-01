@@ -272,6 +272,18 @@ public:
     }
 };
 
+// Adhesion to a bead through its coverage:
+//
+//   E = -eps * Omega,   Omega = sum_f w(r_f) |omega_f| / (4 pi)
+//
+// omega_f is the solid angle of face f seen from the bead (the face projected
+// on the unit sphere around it), r_f the distance from the bead to the face
+// centroid, and w a cosine shell that is 1 at r = sigma and goes to 0, with
+// zero slope, at 0.75 sigma and 1.25 sigma. Only faces whose outward normal
+// points towards the bead count (selection only, not differentiated).
+// See bead_geometry::evaluateFaceCoverage.
+//
+// Energy_constants = {eps, sigma, ...}  (inter_str and radius in the input file)
 class Adhesion : public Face_Integrated_Interaction
 {
 public:
@@ -294,7 +306,8 @@ public:
         Vector3 &beadForce) override;
 
 private:
-    double strength() const;
+    double strength() const { return Energy_constants[0]; }
+    double sigma() const { return Energy_constants[1]; }
 };
 
 class Plane_Interaction : public Cilinder_Interaction
