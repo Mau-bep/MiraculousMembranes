@@ -274,8 +274,11 @@ public:
 
 // Adhesion to a bead through its coverage:
 //
-//   E = -eps * Omega,   Omega = sum_f w(r_f) |omega_f| / (4 pi)
+//   E = -W * A_contact,   A_contact = sigma^2 * sum_f w(r_f) |omega_f|
 //
+// W is the adhesion energy per unit area, and A_contact the covered part of
+// the sphere of radius sigma (4 pi sigma^2 when fully wrapped), so larger
+// beads stick more strongly.
 // omega_f is the solid angle of face f seen from the bead (the face projected
 // on the unit sphere around it), r_f the distance from the bead to the face
 // centroid, and w a cosine shell that is 1 at r = sigma and goes to 0, with
@@ -283,7 +286,7 @@ public:
 // points towards the bead count (selection only, not differentiated).
 // See bead_geometry::evaluateFaceCoverage.
 //
-// Energy_constants = {eps, sigma, ...}  (inter_str and radius in the input file)
+// Energy_constants = {W, sigma, ...}  (inter_str and radius in the input file)
 class Adhesion : public Face_Integrated_Interaction
 {
 public:

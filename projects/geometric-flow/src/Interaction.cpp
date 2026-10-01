@@ -1237,7 +1237,7 @@ double Adhesion::Face_Energy(Face f)
         bead_geometry::evaluateFaceCoverage(*geometry, f, Bead_1->Pos, sigma());
     if (!face.selected)
         return 0.0;
-    return -strength() * face.weight * face.omegaUnsigned / (4.0 * bead_geometry::PI_VALUE);
+    return -strength() * sigma() * sigma() * face.weight * face.omegaUnsigned;
 }
 
 void Adhesion::Add_Face_Force(Face f, VertexData<Vector3> &membraneForce, Vector3 &beadForce)
@@ -1247,25 +1247,25 @@ void Adhesion::Add_Face_Force(Face f, VertexData<Vector3> &membraneForce, Vector
     if (!face.selected)
         return;
 
-    // phi_f = w(r_f) |omega_f| / (4 pi), r_f measured to the centroid, so
+    // a_f = sigma^2 w(r_f) |omega_f|, r_f measured to the centroid, so
     // dr_f/dp_i = radialDirection / 3 for each corner p_i
-    const double fourPi = 4.0 * bead_geometry::PI_VALUE;
+    const double sigma2 = sigma() * sigma();
     const Vector3 gradWeight = face.dWeightDr * face.radialDirection / 3.0;
-    const Vector3 dPhi0 = (face.weight * face.gradOmega0 + face.omegaUnsigned * gradWeight) / fourPi;
-    const Vector3 dPhi1 = (face.weight * face.gradOmega1 + face.omegaUnsigned * gradWeight) / fourPi;
-    const Vector3 dPhi2 = (face.weight * face.gradOmega2 + face.omegaUnsigned * gradWeight) / fourPi;
+    const Vector3 dA0 = sigma2 * (face.weight * face.gradOmega0 + face.omegaUnsigned * gradWeight);
+    const Vector3 dA1 = sigma2 * (face.weight * face.gradOmega1 + face.omegaUnsigned * gradWeight);
+    const Vector3 dA2 = sigma2 * (face.weight * face.gradOmega2 + face.omegaUnsigned * gradWeight);
 
-    // E = -eps phi, force = -dE/dp = eps dphi/dp
-    const Vector3 force0 = strength() * dPhi0;
-    const Vector3 force1 = strength() * dPhi1;
-    const Vector3 force2 = strength() * dPhi2;
+    // E = -W a_f, force = -dE/dp = W da_f/dp
+    const Vector3 force0 = strength() * dA0;
+    const Vector3 force1 = strength() * dA1;
+    const Vector3 force2 = strength() * dA2;
 
     Halfedge he = f.halfedge();
     membraneForce[he.vertex()] += force0;
     membraneForce[he.next().vertex()] += force1;
     membraneForce[he.next().next().vertex()] += force2;
 
-    // phi depends only on p_i - bead position, so dphi/dq = -sum_i dphi/dp_i
+    // a_f depends only on p_i - bead position, so da_f/dq = -sum_i da_f/dp_i
     beadForce -= force0 + force1 + force2;
 }
 
