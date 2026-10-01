@@ -1286,9 +1286,11 @@ std::vector<Edge> findBadEdges(ManifoldSurfaceMesh& mesh, VertexPositionGeometry
     //     toSplit.push_back(e);
     //   }
     // }
+    // Edge length in the sizing metric, with the metric averaged over both
+    // endpoints (the same measure shouldCollapse uses).
     double E_sizing = geom.edgeLengths[e] *
-                      sqrt(geom.vertexSizing[e.halfedge().vertex()] + geom.vertexSizing[e.halfedge().twin().vertex()]) /
-                      (2.0);
+                      sqrt((geom.vertexSizing[e.halfedge().vertex()] + geom.vertexSizing[e.halfedge().twin().vertex()]) /
+                           2.0);
     if (E_sizing > 1 && geom.edgeLengths[e] > options.min_absolute_length * 2)
       edgems.push_back(std::make_pair(E_sizing, e));
   }
