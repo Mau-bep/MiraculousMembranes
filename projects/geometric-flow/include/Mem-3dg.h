@@ -44,6 +44,7 @@ public:
   size_t system_time = 0;
   bool small_TS = false;
   bool remesh_flag = false;
+  bool step_failed = false; // the last L-BFGS line search hit a nan, positions are restored
   double grad_norm = 0.0;
   double Old_norm2 = 0;
   double Current_norm2 = 0;

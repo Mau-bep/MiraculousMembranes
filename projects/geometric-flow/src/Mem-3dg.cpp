@@ -746,6 +746,7 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
   double previousE = 0;
   Sim_handler->Calculate_energies(&previousE);
   E_step_start = previousE;
+  step_failed = false;
 
   for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
   {
@@ -928,6 +929,17 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
       std::cout << Sim_handler->Energy_values[i] << " ";
     }
     std::cout << "\n";
+  }
+
+  // A nan energy or position is a failure, not a converged state: go back to
+  // the last good positions so the driver can stop with them
+  if (nanflag || std::isnan(NewE))
+  {
+    step_failed = true;
+    alpha = -1.0;
+    geometry->inputVertexPositions = initial_pos;
+    for (size_t i = 0; i < Beads.size(); i++)
+      Beads[i]->Reset_bead(Bead_init[i]);
   }
 
   if (alpha <= 0.0)

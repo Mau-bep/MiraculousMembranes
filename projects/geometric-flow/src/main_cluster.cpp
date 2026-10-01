@@ -833,6 +833,11 @@ int main(int argc, char **argv)
             std::cout << "Ending sim due to small TS at t = " << current_t << "\n";
             break;
         }
+        if (run.dt_sim < 0 && M3DG.step_failed)
+        {
+            std::cout << "The line search hit a nan at timestep " << current_t << ", ending the run\n";
+            break;
+        }
         if (run.dt_sim < 0)
         {
             std::cout << "Sim broke or timestep very small at timestep " << current_t << "\n";
