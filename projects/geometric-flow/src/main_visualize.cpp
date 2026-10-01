@@ -2003,6 +2003,45 @@ void functionCallback()
     ImGui::InputInt("Remeshing operations", &remeshing_ops);
 }
 
+bool ask_yes_no(const std::string &question)
+{
+    std::cout << question << " [y/N] " << std::flush;
+    std::string answer;
+    if (!std::getline(std::cin, answer))
+        return false;
+    return !answer.empty() && (answer[0] == 'y' || answer[0] == 'Y');
+}
+
+// New run folder holding the current state, without stepping: Input_file.json,
+// membrane_0.obj and one row (step 0) in Output_data.txt and each bead file,
+// so the folder can be browsed and continued like one written by main_cluster.
+void create_run_folder(const std::string &config_path, const std::string &dir)
+{
+    make_dirs(dir);
+    {
+        std::ifstream src(config_path, std::ios::binary);
+        std::ofstream dst(dir + "Input_file.json", std::ios::binary);
+        dst << src.rdbuf();
+    }
+    record_run(sim.cfg.first_dir, dir, build_descriptive_name(sim), config_path);
+
+    std::vector<std::string> bead_files = open_output_files(sim, dir, false);
+    Save_mesh(mesh, geometry, dir, 0);
+
+    Sim_handler.Calculate_gradient();
+    double tot_E;
+    Sim_handler.Calculate_energies(&tot_E);
+    geometry->requireFaceAreas();
+    double A = geometry->totalArea();
+    geometry->unrequireFaceAreas();
+    double V = geometry->totalVolume();
+
+    std::ofstream out(dir + "Output_data.txt", std::ios_base::app);
+    M3DG.write_output_row(out, 0.0, V, A, tot_E, 0.0);
+    M3DG.write_bead_rows(bead_files);
+    std::cout << "Created " << dir << " with the initial state, E = " << tot_E << "\n";
+}
+
 int main(int argc, char **argv)
 {
     std::string config_path;
@@ -2013,7 +2052,13 @@ int main(int argc, char **argv)
     try
     {
         // With "Subfolder" the run in first_dir/Subfolder is reopened and continued
-        build_simulation(load_config(config_path, true), sim);
+        SimConfig cfg = load_config(config_path, true);
+        if (cfg.subfolder_missing &&
+            !ask_yes_no("Create " + cfg.subfolder_dir + " with the initial state of " + config_path + "?"))
+            return EXIT_FAILURE;
+        build_simulation(cfg, sim);
+        if (cfg.subfolder_missing)
+            create_run_folder(config_path, cfg.subfolder_dir);
     }
     catch (const std::exception &e)
     {

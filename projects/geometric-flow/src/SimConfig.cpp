@@ -112,6 +112,12 @@ namespace
         return json::parse(file);
     }
 
+    bool is_directory(const std::string &path)
+    {
+        struct stat info;
+        return stat(path.c_str(), &info) == 0 && S_ISDIR(info.st_mode);
+    }
+
     // A key like "Subfolder:" or " Subfolder" is silently ignored by the
     // lookups, so point it out. With resolve_subfolder a mistyped "Subfolder"
     // is an error: otherwise main_visualize starts a new numbered run instead.
@@ -166,9 +172,18 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
         if (cfg.subfolder_dir.back() != '/')
             cfg.subfolder_dir += '/';
         cfg.loaded_from_subfolder = true;
-        cfg.source_path = cfg.subfolder_dir + "Input_file.json";
-        std::cout << "Loading the run in " << cfg.subfolder_dir << "\n";
-        data = read_json(cfg.source_path);
+        if (is_directory(cfg.subfolder_dir))
+        {
+            cfg.source_path = cfg.subfolder_dir + "Input_file.json";
+            std::cout << "Loading the run in " << cfg.subfolder_dir << "\n";
+            data = read_json(cfg.source_path);
+        }
+        else
+        {
+            // The caller decides whether to create it; this file is its config
+            cfg.subfolder_missing = true;
+            std::cout << "The run folder " << cfg.subfolder_dir << " does not exist\n";
+        }
     }
     const std::string top = "the top level";
 

@@ -79,7 +79,10 @@ struct SimConfig
 
     // Visualize only: when "Subfolder" is given the real config is
     // first_dir/Subfolder/Input_file.json and outputs are appended there.
+    // If that folder does not exist, subfolder_missing is set and this file
+    // itself is the config (main_visualize offers to create the folder).
     bool loaded_from_subfolder = false;
+    bool subfolder_missing = false;
     std::string subfolder_dir; // with trailing '/'
 
     std::string init_file;
@@ -129,7 +132,8 @@ const std::vector<std::string> &known_switches();
 
 // Parse and validate. Throws std::runtime_error with a readable message on
 // missing required keys. With resolve_subfolder=true a "Subfolder" key makes
-// the loader read first_dir/Subfolder/Input_file.json instead (main_visualize).
+// the loader read first_dir/Subfolder/Input_file.json instead (main_visualize),
+// or set subfolder_missing if that folder does not exist.
 SimConfig load_config(const std::string &path, bool resolve_subfolder = false);
 
 // Everything a running simulation owns. Not copyable or movable: the beads,
