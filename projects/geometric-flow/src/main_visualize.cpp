@@ -2009,17 +2009,15 @@ void functionCallback()
 
 int main(int argc, char **argv)
 {
-    if (argc < 3)
-    {
-        std::cerr << "Usage: " << argv[0] << " <input.json> <Nsim>\n";
+    std::string config_path;
+    bool check_only;
+    if (!parse_command_line(argc, argv, config_path, check_only))
         return EXIT_FAILURE;
-    }
-    int Nsim = std::stoi(argv[2]);
 
     try
     {
         // With "Subfolder" the run in first_dir/Subfolder is reopened and continued
-        build_simulation(load_config(argv[1], true), sim);
+        build_simulation(load_config(config_path, true), sim);
     }
     catch (const std::exception &e)
     {
@@ -2066,7 +2064,7 @@ int main(int argc, char **argv)
         try
         {
             basic_name = make_numbered_dir(cfg.first_dir);
-            record_run(cfg.first_dir, basic_name, build_descriptive_name(sim, Nsim), cfg.source_path);
+            record_run(cfg.first_dir, basic_name, build_descriptive_name(sim), cfg.source_path);
         }
         catch (const std::exception &e)
         {

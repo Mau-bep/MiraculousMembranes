@@ -513,7 +513,31 @@ void build_simulation(const SimConfig &cfg, Simulation &sim)
     std::cout << "\n";
 }
 
-std::string build_descriptive_name(const Simulation &sim, int Nsim)
+bool parse_command_line(int argc, char **argv, std::string &config_path, bool &check_only)
+{
+    config_path.clear();
+    check_only = false;
+    for (int i = 1; i < argc; i++)
+    {
+        std::string arg = argv[i];
+        if (arg == "--check")
+            check_only = true;
+        else if (config_path.empty())
+            config_path = arg;
+        else if (!arg.empty() && arg.find_first_not_of("0123456789") == std::string::npos)
+            std::cout << "Note: the extra argument " << arg << " (old Nsim) is ignored\n";
+        else
+            config_path.clear(), i = argc; // unknown argument: print the usage
+    }
+    if (config_path.empty())
+    {
+        std::cerr << "Usage: " << argv[0] << " <input.json> [--check]\n";
+        return false;
+    }
+    return true;
+}
+
+std::string build_descriptive_name(const Simulation &sim)
 {
     std::string Directory = "";
     std::stringstream stream;
@@ -565,7 +589,8 @@ std::string build_descriptive_name(const Simulation &sim, int Nsim)
     for (const std::string &sw : sim.cfg.switches)
         Directory += "Switch_" + sw + "_";
 
-    Directory += "Nsim_" + std::to_string(Nsim) + "/";
+    if (!Directory.empty() && Directory.back() == '_')
+        Directory.pop_back();
     return Directory;
 }
 
@@ -601,11 +626,8 @@ void record_run(const std::string &first_dir, const std::string &run_dir, const 
     // One line per run: folder, descriptive name, input file. A single short
     // append, so concurrent jobs writing to the same index do not interleave.
     std::string folder = run_dir.substr(first_dir.size());
-    std::string name = descriptive_name;
-    if (!name.empty() && name.back() == '/')
-        name.pop_back();
     std::ostringstream line;
-    line << folder << "\t" << name << "\t" << config_path << "\n";
+    line << folder << "\t" << descriptive_name << "\t" << config_path << "\n";
     std::ofstream index(first_dir + "runs_index.txt", std::ios_base::app);
     index << line.str() << std::flush;
 }

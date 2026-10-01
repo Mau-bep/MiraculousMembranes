@@ -134,7 +134,7 @@ f.write('conda activate mir_membranes\n')
 f.write('pwd\n')
 
 f.write('date\n')
-f.write('srun time -v ../build/bin/main_cluster {} {}\n'.format(Config_path,Nsim))
+f.write('srun time -v ../build/bin/main_cluster {}\n'.format(Config_path))
 f.write('date\n')
 #  Here we can tell the script to move the output file
 

@@ -169,9 +169,15 @@ std::unique_ptr<Interaction> make_interaction(const BeadSpec &spec, ManifoldSurf
                                               VertexPositionGeometry *geometry,
                                               std::vector<double> &params);
 
-// Descriptive run name: energies, constants, beads, bonds, switches, Nsim.
+// Command line of main_cluster/main_visualize: <input.json> [--check].
+// A trailing number (the old Nsim argument) is accepted and ignored so that
+// existing job scripts keep working. Returns false (after printing the usage)
+// if the arguments are not understood.
+bool parse_command_line(int argc, char **argv, std::string &config_path, bool &check_only);
+
+// Descriptive run name: energies, constants, beads, bonds, switches.
 // Recorded in first_dir/runs_index.txt by record_run().
-std::string build_descriptive_name(const Simulation &sim, int Nsim);
+std::string build_descriptive_name(const Simulation &sim);
 
 // mkdir -p. Throws std::runtime_error if a directory cannot be created.
 void make_dirs(const std::string &path);

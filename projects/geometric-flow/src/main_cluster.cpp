@@ -1,4 +1,4 @@
-// Batch driver: main_cluster <input.json> <Nsim>
+// Batch driver: main_cluster <input.json> [--check]
 //
 // Loads the simulation with load_config/build_simulation (SimConfig.h), then
 // runs the time loop: switches -> remeshing -> saving -> one integrator step.
@@ -587,19 +587,17 @@ namespace
 
 int main(int argc, char **argv)
 {
-    if (argc < 3)
-    {
-        std::cerr << "Usage: " << argv[0] << " <input.json> <Nsim> [--check]\n";
+    std::string config_path;
+    bool check_only;
+    if (!parse_command_line(argc, argv, config_path, check_only))
         return EXIT_FAILURE;
-    }
-    int Nsim = std::stoi(argv[2]);
 
-    if (argc > 3 && std::string(argv[3]) == "--check")
+    if (check_only)
     {
         // Only validate the input file
         try
         {
-            SimConfig cfg = load_config(argv[1]);
+            SimConfig cfg = load_config(config_path);
             std::cout << "OK: " << cfg.energies.size() << " energies, " << cfg.beads.size() << " beads, "
                       << cfg.switches.size() << " switches\n";
             return EXIT_SUCCESS;
@@ -614,7 +612,7 @@ int main(int argc, char **argv)
     Simulation sim;
     try
     {
-        build_simulation(load_config(argv[1]), sim);
+        build_simulation(load_config(config_path), sim);
     }
     catch (const std::exception &e)
     {
@@ -641,7 +639,7 @@ int main(int argc, char **argv)
     try
     {
         run.basic_name = make_numbered_dir(cfg.first_dir);
-        record_run(cfg.first_dir, run.basic_name, build_descriptive_name(sim, Nsim), cfg.source_path);
+        record_run(cfg.first_dir, run.basic_name, build_descriptive_name(sim), cfg.source_path);
     }
     catch (const std::exception &e)
     {

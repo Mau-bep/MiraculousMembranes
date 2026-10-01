@@ -36,7 +36,7 @@ def run(binary, config_path, out_dir, log_path):
     with open(tmp_config, 'w') as f:
         json.dump(data, f, indent=4)
     with open(log_path, 'w') as log:
-        proc = subprocess.run([os.path.abspath(binary), tmp_config, '1'],
+        proc = subprocess.run([os.path.abspath(binary), tmp_config],
                               stdout=log, stderr=subprocess.STDOUT, cwd=out_dir)
     # main_cluster writes into first_dir/1/
     return proc.returncode, os.path.join(out_dir, '1')

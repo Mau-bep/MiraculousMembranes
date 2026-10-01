@@ -111,7 +111,7 @@ f.write('echo $PATH\n')
 
 f.write('pwd\n')
 
-f.write('srun time -v ../build/bin/main_cluster {} {}\n'.format(Config_path,relaxation_step))
+f.write('srun time -v ../build/bin/main_cluster {}\n'.format(Config_path))
 
 
 
