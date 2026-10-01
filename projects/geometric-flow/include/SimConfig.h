@@ -170,10 +170,20 @@ std::unique_ptr<Interaction> make_interaction(const BeadSpec &spec, ManifoldSurf
                                               std::vector<double> &params);
 
 // Descriptive run name: energies, constants, beads, bonds, switches, Nsim.
+// Recorded in first_dir/runs_index.txt by record_run().
 std::string build_descriptive_name(const Simulation &sim, int Nsim);
 
-// First free first_dir/<n>/ (created). Returns the directory with trailing '/'.
+// mkdir -p. Throws std::runtime_error if a directory cannot be created.
+void make_dirs(const std::string &path);
+
+// First free first_dir/<n>/ (created, together with first_dir if missing).
+// Returns the directory with trailing '/'.
 std::string make_numbered_dir(const std::string &first_dir);
+
+// Append "<n>/ <descriptive name> <input file>" to first_dir/runs_index.txt,
+// so the numbered run folders can be told apart without opening them.
+void record_run(const std::string &first_dir, const std::string &run_dir, const std::string &descriptive_name,
+                const std::string &config_path);
 
 // Output_data.txt header and one Bead_<i>_data.txt per bead. With append=true
 // (continuing a run) existing files are kept and no headers are written.

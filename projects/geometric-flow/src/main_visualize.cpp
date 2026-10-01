@@ -2063,9 +2063,16 @@ int main(int argc, char **argv)
     }
     else
     {
-        mkdir(cfg.first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-        basic_name = cfg.first_dir + build_descriptive_name(sim, Nsim);
-        mkdir(basic_name.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        try
+        {
+            basic_name = make_numbered_dir(cfg.first_dir);
+            record_run(cfg.first_dir, basic_name, build_descriptive_name(sim, Nsim), cfg.source_path);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << e.what() << "\n";
+            return EXIT_FAILURE;
+        }
     }
     std::cout << "The output directory is " << basic_name << "\n";
     filename = basic_name + "Output_data.txt";

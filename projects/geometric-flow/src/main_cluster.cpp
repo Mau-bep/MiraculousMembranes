@@ -638,8 +638,16 @@ int main(int argc, char **argv)
 
     print_mesh_diagnostics(sim);
 
-    std::cout << "Descriptive name " << build_descriptive_name(sim, Nsim) << "\n";
-    run.basic_name = make_numbered_dir(cfg.first_dir);
+    try
+    {
+        run.basic_name = make_numbered_dir(cfg.first_dir);
+        record_run(cfg.first_dir, run.basic_name, build_descriptive_name(sim, Nsim), cfg.source_path);
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << e.what() << "\n";
+        return EXIT_FAILURE;
+    }
     std::cout << "The output directory is " << run.basic_name << "\n";
     copy_file(cfg.source_path, run.basic_name + "Input_file.json");
     run.output_file = run.basic_name + "Output_data.txt";

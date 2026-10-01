@@ -9,6 +9,8 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
+#include <cerrno>
+#include <cstring>
 
 #include "geometrycentral/surface/meshio.h"
 
@@ -567,18 +569,45 @@ std::string build_descriptive_name(const Simulation &sim, int Nsim)
     return Directory;
 }
 
+void make_dirs(const std::string &path)
+{
+    // mkdir -p: create every missing component
+    for (size_t pos = 1; pos <= path.size(); pos++)
+    {
+        if (pos != path.size() && path[pos] != '/')
+            continue;
+        std::string prefix = path.substr(0, pos);
+        if (mkdir(prefix.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0 && errno != EEXIST)
+            throw std::runtime_error("Could not create the directory " + prefix + ": " + std::strerror(errno));
+    }
+}
+
 std::string make_numbered_dir(const std::string &first_dir)
 {
-    mkdir(first_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    make_dirs(first_dir);
     for (int dir_counter = 1;; dir_counter++)
     {
         std::string candidate = first_dir + std::to_string(dir_counter) + "/";
-        struct stat sb;
-        if (stat(candidate.c_str(), &sb) == 0)
-            continue;
         if (mkdir(candidate.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0)
             return candidate;
+        if (errno != EEXIST) // taken numbers (also by a job started at the same time) are skipped
+            throw std::runtime_error("Could not create the output directory " + candidate + ": " + std::strerror(errno));
     }
+}
+
+void record_run(const std::string &first_dir, const std::string &run_dir, const std::string &descriptive_name,
+                const std::string &config_path)
+{
+    // One line per run: folder, descriptive name, input file. A single short
+    // append, so concurrent jobs writing to the same index do not interleave.
+    std::string folder = run_dir.substr(first_dir.size());
+    std::string name = descriptive_name;
+    if (!name.empty() && name.back() == '/')
+        name.pop_back();
+    std::ostringstream line;
+    line << folder << "\t" << name << "\t" << config_path << "\n";
+    std::ofstream index(first_dir + "runs_index.txt", std::ios_base::app);
+    index << line.str() << std::flush;
 }
 
 std::vector<std::string> open_output_files(const Simulation &sim, const std::string &basic_name, bool append)
