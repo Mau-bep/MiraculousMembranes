@@ -122,7 +122,6 @@ void Mem3DG::Add_bead(Bead *bead)
   // std::cout<<"The directino of the I is "<< Beads[Beads.size()-1]->Bead_I << "MEDG \n";
 }
 
-
 // Recentering between steps. The membrane is moved back to the origin; with a
 // field (and field_aware) its leftmost vertex is moved to x = -1 instead.
 // Returns the value the beads are shifted back by: the old centre of mass, or
@@ -167,7 +166,6 @@ VertexData<Vector3> Mem3DG::SurfaceGrad() const
   // std::cout<< "THe surface tension force in magnitude is: "<< -1*lambda*sqrt(Force.transpose()*Force) <<"\n";
   return Force;
 }
-
 
 /**
  * @brief Performs the backtracking algorithm for the Mem3DG class.
@@ -289,11 +287,11 @@ double Mem3DG::Backtracking()
 
     alpha *= rho;
 
-    if ((fabs((NewE - previousE) / previousE) < 1e-4 && Projection < 0.05) || Projection < 1e-5)
+    if ((fabs((NewE - previousE) / previousE) < 1e-6 && Projection < 1e-4) || Projection < 1e-5)
     {
       small_TS = true;
       std::cout << "The energy diff is quite small and so is the gradient\n";
-      std::cout << "The energy diff is" << abs(NewE - previousE) << "\n";
+      std::cout << "The energy diff is" << abs(NewE - previousE) / previousE << "\n";
       std::cout << "The projection is" << Projection << "\n";
       return -1.0;
     }
@@ -374,7 +372,6 @@ double Mem3DG::Backtracking()
 
   return alpha;
 }
-
 
 // Line search of the Newton methods on the norm of the Lagrangian gradient.
 // normal = true for the normal-direction variant (Newton-Normal).
@@ -580,7 +577,7 @@ double Mem3DG::Backtracking_newton(Eigen::VectorXd p_lambda, double Projection, 
     }
 
     alpha *= rho;
-    if ((abs((NewNorm - PrevNorm) / PrevNorm) < 1e-7 && Projection < 0.5) || Projection < 1e-5)
+    if ((abs((NewNorm - PrevNorm) / PrevNorm) < 1e-7 && Projection < 1e-3) || Projection < 1e-5)
     {
       small_TS = true;
       std::cout << "The energy diff is quite small and so is the gradient\n";
@@ -721,7 +718,6 @@ double Mem3DG::Backtracking_grad_Normal(Eigen::VectorXd p_lambda, double Project
 {
   return Backtracking_newton(p_lambda, Projection, Current_grad_norm, true);
 }
-
 
 /**
  * @brief Performs the backtracking algorithm for the Mem3DG class using a Force given.
@@ -966,7 +962,6 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
   return alpha;
 }
 
-
 // One row of Output_data.txt:
 // time step Volume Area <energy values> Total_E <gradient norms> backtrackstep
 void Mem3DG::write_output_row(std::ofstream &Sim_data, double t, double Volume, double Area, double tot_E, double step) const
@@ -1059,7 +1054,6 @@ double Mem3DG::integrate(std::ofstream &Sim_data, double time, std::vector<std::
 
   if (Save_output_data)
     write_bead_rows(Bead_data_filenames);
-
 
   return backtrackstep;
 }
@@ -2117,9 +2111,7 @@ double Mem3DG::integrate_Newton_Normal(std::ofstream &Sim_data, double time, std
   return backtrackstep;
 }
 
-
 // The exponent will be 1e-6
-
 
 VertexData<Vector3> Mem3DG::Grad_Bead(std::ofstream &Gradient_file, bool Save, bool Projection)
 {
@@ -2204,7 +2196,6 @@ VertexData<Vector3> Mem3DG::Grad_Bead(std::ofstream &Gradient_file, bool Save, b
     if (Save)
     {
       difference = grad + grad_theory;
-
 
       Gradient_file << difference.x << " " << difference.y << " " << difference.z << " " << difference.norm() / grad.norm() << " " << difference.norm() << " " << grad.norm() / grad_theory.norm() << " \n"; //<< dot(r.unit(),difference.unit())<<" " << dot(Area_grad,difference.unit())<<" "<< dot(Area_grad,r.unit())<<" \n";//<< dot(r,HN) <<" \n" ;
       // difference= grad_theory;
@@ -2313,7 +2304,6 @@ VertexData<Vector3> Mem3DG::Grad_tot_Area(std::ofstream &Gradient_file, bool Sav
 
   return Finite_grad;
 }
-
 
 Eigen::Matrix2d Mem3DG::Face_sizing(Face f)
 {
@@ -2477,7 +2467,6 @@ VertexData<double> Mem3DG::Vert_sizing(FaceData<double> Face_sizings)
 
   return sizing;
 }
-
 
 bool Mem3DG::Area_sanity_check()
 {
