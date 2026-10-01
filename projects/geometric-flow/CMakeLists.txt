@@ -236,6 +236,10 @@ add_subdirectory(../../deps/polyscope deps/polyscope)
 add_subdirectory(../../deps/googletest deps/googletest)
 add_subdirectory(../../deps/libarcsim deps/libarcsim)
 
+# nlohmann/json (header only, kept in deps/) reads the input files
+add_library(nlohmann_json INTERFACE)
+target_include_directories(nlohmann_json INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/nlohmann_json/include")
+
 
 
 
@@ -264,7 +268,7 @@ target_include_directories(main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/l
 
 # find_package(EigenRand REQUIRED)
 
-target_link_libraries(main PUBLIC geometry-central polyscope arcsim)
+target_link_libraries(main PUBLIC geometry-central polyscope arcsim nlohmann_json)
 
 
 add_executable(main_cluster "${SRCScluster}")
@@ -290,7 +294,7 @@ target_include_directories(EigenRand INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/../.
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/lib")
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include")
 
-target_link_libraries(main_cluster PUBLIC geometry-central polyscope arcsim EigenRand ipopt)
+target_link_libraries(main_cluster PUBLIC geometry-central polyscope arcsim EigenRand ipopt nlohmann_json)
 
 
 add_executable(PostProcessing "${SRCSprocessing}")
@@ -313,7 +317,7 @@ target_link_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../..
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/lib")
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include")
 
-target_link_libraries(PostProcessing PUBLIC geometry-central polyscope arcsim EigenRand ipopt)
+target_link_libraries(PostProcessing PUBLIC geometry-central polyscope arcsim EigenRand ipopt nlohmann_json)
 
 
 # add_executable(Post_processing "${SRCSprocessing}")
@@ -350,7 +354,7 @@ target_include_directories(main_visualize PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/..
 
 target_include_directories(main_visualize PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/libarcsim/include")
 
-target_link_libraries(main_visualize PUBLIC geometry-central polyscope arcsim)
+target_link_libraries(main_visualize PUBLIC geometry-central polyscope arcsim nlohmann_json)
 
 
 # Uses the legacy Mem3DG API (see legacy/), disabled
