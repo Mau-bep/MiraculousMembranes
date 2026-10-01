@@ -118,7 +118,7 @@ const std::vector<std::string> &known_interactions()
 {
     static const std::vector<std::string> names = {
         "Gravity", "Pinch", "Frenkel", "Frenkel_Normal_nopush", "Linear", "Linear_Normal",
-        "LJ", "Shifted-LJ", "One_over_r_x", "One_over_r", "None"};
+        "LJ", "Shifted-LJ", "One_over_r_x", "One_over_r", "None", "Adhesion"};
     return names;
 }
 
@@ -313,6 +313,8 @@ std::unique_ptr<Interaction> make_interaction(const BeadSpec &spec, ManifoldSurf
     }
     if (type == "One_over_r")
         return make_unique_ptr<One_over_r>(mesh, geometry, params);
+    if (type == "Adhesion") // E = -inter_str * coverage, shell set by radius (rc unused)
+        return make_unique_ptr<Adhesion>(mesh, geometry, params);
     if (type == "None")
         return make_unique_ptr<No_mem_Inter>();
 
