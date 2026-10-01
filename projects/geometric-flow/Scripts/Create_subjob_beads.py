@@ -35,6 +35,10 @@ Nsim=sys.argv[5]
 
 KE = 1.0
 
+# Log-spaced KB / Strg phase space batch: own results folder and file prefix
+Batch_dir = '../Results/WrappingPhaseSpaceLog/'
+Batch_tag = 'WrapPSLog'
+
 
 
 
@@ -67,7 +71,9 @@ def Create_json_wrapping_vesicle(ka,kb,r,inter_str):
 
     data = json.loads(output_from_parsed_template)
 
-    Config_path = '../Config_files/Wrapping_LBFGS_strg_{}_radius_{}_KA_{}_KB_{}.json'.format(inter_str,r,ka,kb) 
+    data['first_dir'] = Batch_dir
+
+    Config_path = '../Config_files/{}_strg_{}_radius_{}_KA_{}_KB_{}.json'.format(Batch_tag,inter_str,r,ka,kb) 
     
     sim_path = data['first_dir']
 
@@ -85,14 +91,14 @@ os.makedirs('../Outputs/',exist_ok=True)
 Config_path, sim_path = Create_json_wrapping_vesicle(KA,KB,radius,Strength)
 
 
-f=open('../Subjobs/subjob_LBFGS_wrapping_Strg_{}_r_{}_KA_{}_KB_{}_Nsim_{}'.format(Strength,radius,KA,KB,Nsim),'w')
+f=open('../Subjobs/subjob_{}_Strg_{}_r_{}_KA_{}_KB_{}_Nsim_{}'.format(Batch_tag,Strength,radius,KA,KB,Nsim),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')
 
-f.write('#SBATCH --job-name=Mem3DGpa\n')
+f.write('#SBATCH --job-name={}\n'.format(Batch_tag))
 
-Output_name = 'output_LBFGS_wrapping_Strg_{}_r_{}_KA_{}_KB_{}_Nsim_{}.output'.format(Strength,radius,KA,KB,Nsim)
+Output_name = 'output_{}_Strg_{}_r_{}_KA_{}_KB_{}_Nsim_{}.output'.format(Batch_tag,Strength,radius,KA,KB,Nsim)
 
 Output_path = '../Outputs/'+Output_name
 f.write('#SBATCH --output={}\n'.format(Output_path))
