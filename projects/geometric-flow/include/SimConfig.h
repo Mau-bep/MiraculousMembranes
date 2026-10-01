@@ -21,6 +21,7 @@
 #include <nlohmann/json.hpp>
 
 #include "Beads.h"
+#include "ConvergenceMonitor.h"
 #include "Energy_Handler.h"
 #include "Interaction.h"
 #include "Mem-3dg.h"
@@ -113,6 +114,7 @@ struct SimConfig
 
     std::string integration = "Gradient_descent";
     int bfgs_saved_states = 10;
+    StoppingParams stopping;
     std::vector<std::string> switches;
     std::vector<int> switch_times;
 

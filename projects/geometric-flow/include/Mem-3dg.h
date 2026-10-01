@@ -70,6 +70,10 @@ public:
   std::vector<Eigen::VectorXd> s_list;
   std::vector<Eigen::VectorXd> y_list;
   std::vector<double> rho_list;
+  // Energy at the start of the last L-BFGS line search and after the step,
+  // for the stopping criteria (ConvergenceMonitor.h)
+  double E_step_start = 0.0;
+  double E_step_end = 0.0;
 
   // Newton
   int Newton_iter = 0;

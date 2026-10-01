@@ -99,6 +99,7 @@ set(SRCScluster
   src/main_cluster.cpp  
   src/SimConfig.cpp
   src/RemeshMonitor.cpp
+  src/ConvergenceMonitor.cpp
   src/Energy_Handler.cpp
   src/Mem-3dg.cpp
   src/Beads.cpp

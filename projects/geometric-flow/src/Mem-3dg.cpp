@@ -745,6 +745,7 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
   // std::cout << "Backtracking\n";
   double previousE = 0;
   Sim_handler->Calculate_energies(&previousE);
+  E_step_start = previousE;
 
   for (size_t i = 0; i < Sim_handler->Energies.size(); i++)
   {
@@ -1210,6 +1211,7 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
 
   double tot_E = 0;
   Sim_handler->Calculate_energies(&tot_E);
+  E_step_end = tot_E;
 
   N_data += 1;
   mean_E = mean_E + (tot_E - mean_E) / N_data;
@@ -1413,6 +1415,7 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
 
   double tot_E = 0;
   Sim_handler->Calculate_energies(&tot_E);
+  E_step_end = tot_E;
 
   N_data += 1;
   mean_E = mean_E + (tot_E - mean_E) / N_data;

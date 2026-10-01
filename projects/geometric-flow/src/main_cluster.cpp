@@ -42,6 +42,8 @@ namespace
         double integral_error = 0;
         double quality_baseline = 0.0; // bad edge fraction right after the last remesh
         size_t n_remesh = 0;
+        std::string monitored; // integrator the convergence windows belong to
+        bool convergence_log = false;
 
         double time = 0.0;
         double dt_sim = 0.0;
@@ -601,6 +603,50 @@ namespace
         }
     }
 
+    // Stopping criteria of the L-BFGS integrators (ConvergenceMonitor.h), called
+    // after every successful step. Each closed window goes to Convergence_log.txt.
+    void monitor_convergence(Simulation &sim, RunState &run, ConvergenceMonitor &monitor, size_t current_t)
+    {
+        const bool normal = run.Integration == "BFGS-Normal";
+        if (run.Integration != "BFGS" && !normal)
+        {
+            run.monitored.clear();
+            return;
+        }
+        if (run.monitored != run.Integration)
+        {
+            monitor.reset();
+            run.monitored = run.Integration;
+        }
+
+        Mem3DG &M3DG = sim.M3DG;
+        if (!monitor.add_step(M3DG.E_step_end - M3DG.E_step_start))
+            return;
+
+        const StoppingParams &p = monitor.params();
+        const double E = M3DG.E_step_end;
+        const double dE_rel = monitor.window_dE_rel(E);
+        // BFGS moves along the full gradient and may not have normals yet
+        const double f_rms = force_density_rms(*sim.mesh, *sim.geometry, sim.Sim_handler.Current_grad,
+                                               normal ? &sim.Sim_handler.Vertex_normals : nullptr);
+        const double KB = bending_modulus(sim.Sim_handler.Energies, sim.Sim_handler.Energy_constants);
+        const double f_scale = force_density_scale(*sim.mesh, *sim.geometry, KB);
+        const bool pass = normal ? dE_rel < p.normal_tol_E && f_rms < p.normal_tol_g * f_scale : dE_rel < p.bfgs_tol_E;
+        monitor.close_window(pass);
+
+        std::ofstream log(run.basic_name + "Convergence_log.txt", std::ios_base::app);
+        if (!run.convergence_log)
+        {
+            log << "# timestep integration E dE_rel f_rms f_scale passed_windows "
+                   "(f_rms: normal force density for BFGS-Normal, full for BFGS; f_scale = KB/R^3)\n";
+            if (KB == 0.0)
+                std::cout << "No bending energy is on, the force density is measured in units of 1/R^3\n";
+            run.convergence_log = true;
+        }
+        log << std::setprecision(10) << current_t << " " << run.Integration << " " << E << " " << dE_rel << " "
+            << f_rms << " " << f_scale << " " << monitor.passed_windows() << "\n";
+    }
+
     void print_status(Simulation &sim, const RunState &run, size_t current_t, double elapsed_ms)
     {
         double Volume = sim.geometry->totalVolume();
@@ -720,6 +766,7 @@ int main(int argc, char **argv)
         sim.Sim_handler.Constraints.push_back("Volume_constraint");
 
     int coverage_index = index_of(sim.Energies, "Coverage");
+    ConvergenceMonitor monitor(cfg.stopping);
 
     using clock = std::chrono::steady_clock;
     auto ms_since = [](clock::time_point t0)
@@ -782,6 +829,7 @@ int main(int argc, char **argv)
         {
             run.time += run.dt_sim;
             M3DG.system_time += 1;
+            monitor_convergence(sim, run, monitor, current_t);
         }
         Sim_data.close();
         integrate_elapsed_time += ms_since(t0);

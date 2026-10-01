@@ -244,6 +244,21 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
     else
         std::cout << "The integration method is not defined, using Gradient descent\n";
     cfg.bfgs_saved_states = data.value("BFGS_saved_states", 10);
+    if (data.contains("stopping"))
+    {
+        const json &s = data["stopping"];
+        StoppingParams &p = cfg.stopping;
+        p.window = s.value("window", p.window);
+        p.patience = s.value("patience", p.patience);
+        p.E_floor = s.value("E_floor", p.E_floor);
+        p.bfgs_tol_E = s.value("bfgs_tol_E", p.bfgs_tol_E);
+        p.normal_tol_E = s.value("normal_tol_E", p.normal_tol_E);
+        p.normal_tol_g = s.value("normal_tol_g", p.normal_tol_g);
+        if (p.window < 1 || p.patience < 1)
+            throw std::runtime_error("Input file: stopping.window and stopping.patience must be at least 1");
+        if (!(p.E_floor > 0.0) || p.bfgs_tol_E < 0.0 || p.normal_tol_E < 0.0 || p.normal_tol_g < 0.0)
+            throw std::runtime_error("Input file: stopping.E_floor must be positive and the tolerances not negative");
+    }
 
     if (data.contains("Switches"))
     {
