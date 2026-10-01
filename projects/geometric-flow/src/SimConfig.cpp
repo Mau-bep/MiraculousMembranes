@@ -112,6 +112,27 @@ namespace
         return json::parse(file);
     }
 
+    // A key like "Subfolder:" or " Subfolder" is silently ignored by the
+    // lookups, so point it out. With resolve_subfolder a mistyped "Subfolder"
+    // is an error: otherwise main_visualize starts a new numbered run instead.
+    void check_key_typos(const json &data, bool resolve_subfolder)
+    {
+        for (const auto &item : data.items())
+        {
+            const std::string &key = item.key();
+            std::string cleaned;
+            for (char c : key)
+                if (c != ':' && c != ' ' && c != '\t')
+                    cleaned += c;
+            if (cleaned == key)
+                continue;
+            std::string msg = "the key \"" + key + "\" has stray characters, did you mean \"" + cleaned + "\"?";
+            if (resolve_subfolder && cleaned == "Subfolder")
+                throw std::runtime_error("Input file: " + msg);
+            std::cout << "Warning: " << msg << " It will be ignored\n";
+        }
+    }
+
 } // namespace
 
 const std::vector<std::string> &known_interactions()
@@ -136,13 +157,16 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
     SimConfig cfg;
     cfg.source_path = path;
     json data = read_json(path);
+    check_key_typos(data, resolve_subfolder);
 
     if (resolve_subfolder && data.contains("Subfolder"))
     {
         std::string first_dir = require(data, "first_dir", "the top level").get<std::string>();
         cfg.subfolder_dir = first_dir + data["Subfolder"].get<std::string>();
+        if (cfg.subfolder_dir.back() != '/')
+            cfg.subfolder_dir += '/';
         cfg.loaded_from_subfolder = true;
-        cfg.source_path = cfg.subfolder_dir + "/Input_file.json";
+        cfg.source_path = cfg.subfolder_dir + "Input_file.json";
         std::cout << "Loading the run in " << cfg.subfolder_dir << "\n";
         data = read_json(cfg.source_path);
     }

@@ -80,7 +80,7 @@ struct SimConfig
     // Visualize only: when "Subfolder" is given the real config is
     // first_dir/Subfolder/Input_file.json and outputs are appended there.
     bool loaded_from_subfolder = false;
-    std::string subfolder_dir;
+    std::string subfolder_dir; // with trailing '/'
 
     std::string init_file;
     std::string first_dir;
