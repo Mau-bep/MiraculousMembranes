@@ -2,15 +2,27 @@
 //
 // Loads the simulation with load_config/build_simulation (SimConfig.h), then
 // runs the time loop: switches -> remeshing -> saving -> one integrator step.
+//
+// Resuming: with "continue_sim": true the run in first_dir/Subfolder goes on from
+// its last recorded step N (the last row of Output_data.txt that has a mesh),
+// appending to the same files, for "extra_steps" more steps (else "timesteps").
+// The saved Input_file.json is the base config; the file passed in only gives
+// extra_steps/timesteps and, if every saved switch is done, new Switches whose
+// times count from N. See Config_files/Resume_example.json.
 
 #include <sys/stat.h>
 
+#include <algorithm>
 #include <chrono>
+#include <cstdio>
+#include <cstdlib>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "geometrycentral/surface/remeshing.h"
 
@@ -49,6 +61,7 @@ namespace
 
         double time = 0.0;
         double dt_sim = 0.0;
+        bool resumed_first_step = false; // the Newton methods set up their multipliers on it
         std::vector<std::string> Constraints; // used by the Newton integrators
 
         std::string basic_name;
@@ -415,7 +428,7 @@ namespace
     {
         E_Handler &Sim_handler = sim.Sim_handler;
         int Switch_t = switch_time(run, "Newton");
-        if (current_t == 0 || int(current_t) == Switch_t)
+        if (current_t == 0 || int(current_t) == Switch_t || run.resumed_first_step)
         {
             if (!sim.M3DG.boundary)
             {
@@ -463,7 +476,7 @@ namespace
         E_Handler &Sim_handler = sim.Sim_handler;
         std::vector<std::string> &Constraints = run.Constraints;
         int Switch_t = switch_time(run, "Newton-Normal");
-        if (current_t == 1 || int(current_t) == Switch_t)
+        if (current_t == 1 || int(current_t) == Switch_t || run.resumed_first_step)
         {
             Constraints.resize(0);
             Sim_handler.update_vertex_normals();
@@ -741,6 +754,311 @@ namespace
         }
     }
 
+    // ---------------------------------------------------------------------
+    // Resuming a run ("continue_sim": true plus "Subfolder")
+    // ---------------------------------------------------------------------
+
+    using json = nlohmann::json;
+
+    // What a resume needs, read from the run folder before anything is touched
+    struct ResumeInfo
+    {
+        std::string dir;
+        size_t step = 0; // N: the last recorded step, the loop restarts here
+        double time = 0.0;
+        size_t steps = 0;       // steps to run from N
+        size_t final_step = 0;  // N + steps
+        std::string mesh_file;
+        std::vector<Vector3> bead_pos;
+
+        // Saved switches that are not dismissed, in the saved order
+        std::vector<std::string> old_switches;
+        std::vector<int> old_times;
+        std::vector<std::string> dismissed;
+        std::vector<std::string> pending;
+        bool use_new_switches = false;
+        std::vector<std::string> new_switches;
+        std::vector<int> new_times; // absolute
+
+        json effective; // goes to the new Input_file.json
+    };
+
+    bool file_exists(const std::string &path)
+    {
+        struct stat info;
+        return stat(path.c_str(), &info) == 0;
+    }
+
+    // name.ext, or name_b.ext, name_c.ext... when it is taken
+    std::string unused_name(const std::string &stem, const std::string &ext)
+    {
+        std::string candidate = stem + ext;
+        for (char suffix = 'b'; file_exists(candidate) && suffix <= 'z'; suffix++)
+            candidate = stem + "_" + suffix + ext;
+        if (file_exists(candidate))
+            throw std::runtime_error("Too many files named " + stem + "*" + ext);
+        return candidate;
+    }
+
+    std::vector<std::string> split_words(const std::string &line)
+    {
+        std::istringstream in(line);
+        std::vector<std::string> words;
+        std::string w;
+        while (in >> w)
+            words.push_back(w);
+        return words;
+    }
+
+    bool parse_number(const std::string &word, double &value)
+    {
+        char *end = nullptr;
+        value = std::strtod(word.c_str(), &end);
+        return end != word.c_str() && *end == '\0';
+    }
+
+    // Data rows of a text output file: the words of every line whose first
+    // `key_col + 1` words are numbers (headers and # lines are skipped)
+    std::vector<std::vector<std::string>> read_rows(const std::string &path, size_t key_col)
+    {
+        std::vector<std::vector<std::string>> rows;
+        std::ifstream in(path);
+        std::string line;
+        while (std::getline(in, line))
+        {
+            std::vector<std::string> words = split_words(line);
+            double v;
+            if (words.size() > key_col && parse_number(words[0], v) && parse_number(words[key_col], v))
+                rows.push_back(words);
+        }
+        return rows;
+    }
+
+    // Keep headers and the rows with step < first_dropped, the rest is redone
+    void drop_rows_from(const std::string &path, size_t key_col, size_t first_dropped)
+    {
+        if (!file_exists(path))
+            return;
+        const std::string tmp = path + ".tmp";
+        {
+            std::ifstream in(path);
+            std::ofstream out(tmp);
+            std::string line;
+            while (std::getline(in, line))
+            {
+                std::vector<std::string> words = split_words(line);
+                double v = 0;
+                bool is_row = words.size() > key_col && parse_number(words[0], v) && parse_number(words[key_col], v);
+                if (!is_row || v < double(first_dropped))
+                    out << line << "\n";
+            }
+        }
+        std::rename(tmp.c_str(), path.c_str());
+    }
+
+    std::string join_names(const std::vector<std::string> &names)
+    {
+        std::string s;
+        for (const std::string &n : names)
+            s += (s.empty() ? "" : ", ") + n;
+        return s.empty() ? "none" : s;
+    }
+
+    // Reads the run folder and the launch file; changes nothing on disk.
+    ResumeInfo plan_resume(const SimConfig &cfg)
+    {
+        if (!cfg.loaded_from_subfolder)
+            throw std::runtime_error("\"continue_sim\" is true but the file has no \"Subfolder\"");
+        if (cfg.subfolder_missing)
+            throw std::runtime_error("\"continue_sim\" is true but the run folder " + cfg.subfolder_dir + " does not exist");
+
+        ResumeInfo r;
+        r.dir = cfg.subfolder_dir;
+        const json &launch = cfg.launch_raw;
+
+        // N: the last step with a row in Output_data.txt and its mesh
+        std::vector<std::vector<std::string>> rows = read_rows(r.dir + "Output_data.txt", 1);
+        bool found = false;
+        for (size_t i = rows.size(); i-- > 0 && !found;)
+        {
+            size_t step = size_t(std::stod(rows[i][1]));
+            if (file_exists(r.dir + "membrane_" + std::to_string(step) + ".obj"))
+            {
+                r.step = step;
+                r.time = std::stod(rows[i][0]);
+                found = true;
+            }
+        }
+        if (!found)
+            throw std::runtime_error("No step of " + r.dir + "Output_data.txt has a membrane_<step>.obj");
+        r.mesh_file = r.dir + "membrane_" + std::to_string(r.step) + ".obj";
+
+        // Bead positions at N (the last row up to N when N has none)
+        for (size_t b = 0; b < cfg.beads.size(); b++)
+        {
+            std::string file = r.dir + "Bead_" + std::to_string(b) + "_data.txt";
+            std::vector<std::vector<std::string>> brows = read_rows(file, 3);
+            const std::vector<std::string> *best = nullptr;
+            for (const std::vector<std::string> &w : brows)
+                if (size_t(std::stod(w[0])) <= r.step)
+                    best = &w;
+            if (!best)
+                throw std::runtime_error("No row up to step " + std::to_string(r.step) + " in " + file);
+            if (size_t(std::stod((*best)[0])) != r.step)
+                std::cout << "Warning: " << file << " has no row for step " << r.step << ", using step " << (*best)[0] << "\n";
+            r.bead_pos.push_back(Vector3({std::stod((*best)[1]), std::stod((*best)[2]), std::stod((*best)[3])}));
+        }
+
+        // How many steps to run
+        if (launch.contains("extra_steps"))
+        {
+            r.steps = launch["extra_steps"].get<size_t>();
+        }
+        else if (launch.contains("timesteps"))
+        {
+            r.steps = launch["timesteps"].get<size_t>();
+            std::cout << "\"extra_steps\" is not specified, using \"timesteps\" = " << r.steps
+                      << " as the number of steps to run\n";
+        }
+        else
+        {
+            throw std::runtime_error("Resuming needs \"extra_steps\" or \"timesteps\" in the file");
+        }
+        r.final_step = r.step + r.steps;
+
+        // Saved switches: fired (< N), pending (N .. timesteps) or dismissed
+        // (after the planned end of the saved run, or never)
+        for (size_t i = 0; i < cfg.switches.size(); i++)
+        {
+            const int t = cfg.switch_times[i];
+            if (t < 0 || size_t(t) > cfg.timesteps)
+            {
+                r.dismissed.push_back(cfg.switches[i] + "@" + std::to_string(t));
+                continue;
+            }
+            r.old_switches.push_back(cfg.switches[i]);
+            r.old_times.push_back(t);
+            if (size_t(t) >= r.step)
+                r.pending.push_back(cfg.switches[i] + "@" + std::to_string(t));
+        }
+
+        std::vector<std::string> launch_names;
+        std::vector<int> launch_times;
+        if (launch.contains("Switches"))
+        {
+            launch_names = launch["Switches"].get<std::vector<std::string>>();
+            if (!launch.contains("Switch_times"))
+                throw std::runtime_error("The launch file has \"Switches\" but no \"Switch_times\"");
+            launch_times = launch["Switch_times"].get<std::vector<int>>();
+            if (launch_names.size() != launch_times.size())
+                throw std::runtime_error("The launch file's \"Switches\" and \"Switch_times\" have different lengths");
+            for (const std::string &name : launch_names)
+                if (std::find(known_switches().begin(), known_switches().end(), name) == known_switches().end())
+                    throw std::runtime_error("The launch file has an unknown switch " + name);
+        }
+
+        std::cout << "Resuming " << r.dir << " from step " << r.step << " (time " << r.time << "), running to step "
+                  << r.final_step << "\n";
+        if (!r.dismissed.empty())
+            std::cout << "Dismissed saved switches (after the planned end " << cfg.timesteps << " or never): "
+                      << join_names(r.dismissed) << "\n";
+        if (!r.pending.empty())
+        {
+            std::cout << "The saved run did not reach all its switches, pending: " << join_names(r.pending) << "\n";
+            if (!launch_names.empty())
+                std::cout << "Warning: the Switches of the launch file are ignored (" << join_names(launch_names) << ")\n";
+        }
+        else
+        {
+            r.use_new_switches = true;
+            std::cout << "All saved switches are done, using the launch file's: " << join_names(launch_names) << "\n";
+            for (size_t i = 0; i < launch_names.size(); i++)
+            {
+                r.new_switches.push_back(launch_names[i]);
+                r.new_times.push_back(int(r.step) + launch_times[i]);
+            }
+        }
+
+        // The config that will be saved: switches accumulate so a later resume can replay them
+        r.effective = cfg.raw;
+        r.effective["timesteps"] = std::max(cfg.timesteps, r.final_step);
+        r.effective["continue_sim"] = false;
+        r.effective["resumed_from"] = r.step;
+        std::vector<std::string> eff_names = r.old_switches;
+        std::vector<int> eff_times = r.old_times;
+        for (size_t i = 0; i < r.new_switches.size(); i++)
+        {
+            auto same = std::find(eff_names.begin(), eff_names.end(), r.new_switches[i]);
+            if (same != eff_names.end())
+            {
+                std::cout << "Warning: " << r.new_switches[i] << " was already a switch of this run, its saved time is replaced\n";
+                eff_times[same - eff_names.begin()] = r.new_times[i];
+            }
+            else
+            {
+                eff_names.push_back(r.new_switches[i]);
+                eff_times.push_back(r.new_times[i]);
+            }
+        }
+        if (eff_names.empty())
+        {
+            r.effective.erase("Switches");
+            r.effective.erase("Switch_times");
+        }
+        else
+        {
+            r.effective["Switches"] = eff_names;
+            r.effective["Switch_times"] = eff_times;
+        }
+        return r;
+    }
+
+    // Everything that changes the run folder, once the simulation has been built
+    void commit_resume(const ResumeInfo &r, const std::string &launch_path)
+    {
+        // Step N is recomputed, so its rows (and later ones) go
+        drop_rows_from(r.dir + "Output_data.txt", 1, r.step);
+        for (size_t b = 0; b < r.bead_pos.size(); b++)
+            drop_rows_from(r.dir + "Bead_" + std::to_string(b) + "_data.txt", 0, r.step);
+        drop_rows_from(r.dir + "Remeshing_count.txt", 0, r.step);
+        drop_rows_from(r.dir + "Remesh_log.txt", 0, r.step);
+
+        // Input file history: Input_file.json is always the latest
+        const std::string input = r.dir + "Input_file.json";
+        if (file_exists(input))
+            std::rename(input.c_str(), unused_name(r.dir + "Input_file_" + std::to_string(r.step), ".json").c_str());
+        {
+            std::ofstream out(input);
+            out << r.effective.dump(4) << "\n";
+        }
+        copy_file(launch_path, unused_name(r.dir + "Resume_" + std::to_string(r.step), ".json"));
+
+        std::ofstream log(r.dir + "Resume_log.txt", std::ios_base::app);
+        log << "step " << r.step << " time " << r.time << " steps " << r.steps << " final " << r.final_step
+            << " launch_file " << launch_path << " switches " << (r.use_new_switches ? "new" : "saved") << "\n";
+    }
+
+    // Silences std::cout while the saved switches are replayed
+    struct CoutSilencer
+    {
+        std::ostringstream sink;
+        std::streambuf *old;
+        CoutSilencer() : old(std::cout.rdbuf(sink.rdbuf())) {}
+        ~CoutSilencer() { std::cout.rdbuf(old); }
+    };
+
+    // Rebuilds what the saved switches did before step N (the integrator,
+    // bead states, remesher settings, extra energies, the area target)
+    void replay_state(Simulation &sim, RunState &run, size_t step)
+    {
+        CoutSilencer quiet;
+        for (size_t t = 0; t < step; t++)
+        {
+            apply_switches(sim, run, t);
+            update_area_target(sim);
+        }
+    }
+
 } // namespace
 
 int main(int argc, char **argv)
@@ -768,9 +1086,22 @@ int main(int argc, char **argv)
     }
 
     Simulation sim;
+    bool resuming = false;
+    ResumeInfo resume;
     try
     {
-        build_simulation(load_config(config_path), sim);
+        resuming = wants_continue(config_path);
+        SimConfig loaded = load_config(config_path, resuming);
+        if (resuming)
+        {
+            resume = plan_resume(loaded);
+            for (size_t i = 0; i < loaded.beads.size(); i++)
+                loaded.beads[i].pos = resume.bead_pos[i];
+            // The saved schedule (without the dismissed switches) is replayed below
+            loaded.switches = resume.old_switches;
+            loaded.switch_times = resume.old_times;
+        }
+        build_simulation(loaded, sim, resuming ? resume.mesh_file : "");
     }
     catch (const std::exception &e)
     {
@@ -794,26 +1125,72 @@ int main(int argc, char **argv)
 
     print_mesh_diagnostics(sim);
 
-    try
+    size_t start_t = 0;
+    if (resuming)
     {
-        run.basic_name = make_numbered_dir(cfg.first_dir);
-        record_run(cfg.first_dir, run.basic_name, build_descriptive_name(sim), cfg.source_path);
+        try
+        {
+            commit_resume(resume, config_path);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << e.what() << "\n";
+            return EXIT_FAILURE;
+        }
+        run.basic_name = resume.dir;
+        std::cout << "The output directory is " << run.basic_name << " (appending)\n";
+        run.output_file = run.basic_name + "Output_data.txt";
+        run.Bead_filenames = open_output_files(sim, run.basic_name, true);
+        start_t = resume.step;
     }
-    catch (const std::exception &e)
+    else
     {
-        std::cerr << e.what() << "\n";
-        return EXIT_FAILURE;
-    }
-    std::cout << "The output directory is " << run.basic_name << "\n";
-    copy_file(cfg.source_path, run.basic_name + "Input_file.json");
-    run.output_file = run.basic_name + "Output_data.txt";
-    run.Bead_filenames = open_output_files(sim, run.basic_name, false);
+        try
+        {
+            run.basic_name = make_numbered_dir(cfg.first_dir);
+            record_run(cfg.first_dir, run.basic_name, build_descriptive_name(sim), cfg.source_path);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << e.what() << "\n";
+            return EXIT_FAILURE;
+        }
+        std::cout << "The output directory is " << run.basic_name << "\n";
+        copy_file(cfg.source_path, run.basic_name + "Input_file.json");
+        run.output_file = run.basic_name + "Output_data.txt";
+        run.Bead_filenames = open_output_files(sim, run.basic_name, false);
 
-    Save_mesh(sim.mesh, sim.geometry, run.basic_name, 0);
+        Save_mesh(sim.mesh, sim.geometry, run.basic_name, 0);
+    }
     M3DG.basic_name = run.basic_name;
     M3DG.BFGS_iter = 0;
     M3DG.Newton_iter = 0;
-    apply_initial_perturbations(sim, run);
+    if (resuming)
+    {
+        // Redo what the saved switches did before step N, then continue with the schedule
+        replay_state(sim, run, start_t);
+        if (resume.use_new_switches)
+        {
+            sim.cfg.switches = resume.new_switches;
+            sim.cfg.switch_times = resume.new_times;
+            run.Switch_times_map.clear();
+            for (size_t i = 0; i < cfg.switches.size(); i++)
+                run.Switch_times_map[cfg.switches[i]] = cfg.switch_times[i];
+        }
+        for (size_t i = 0; i < cfg.switches.size(); i++)
+            std::cout << "The switch " << cfg.switches[i] << " happens at step " << cfg.switch_times[i] << "\n";
+        std::cout << "The integrator is " << run.Integration << " at step " << start_t << "\n";
+        run.time = resume.time;
+        run.last_remesh = start_t;
+        run.dt_sim = 1.0; // a zero dt_sim forces a remesh on the first step, the saved mesh is already remeshed
+        run.resumed_first_step = true;
+        M3DG.system_time = start_t;
+        sim.Sim_handler.update_vertex_normals();
+    }
+    else
+    {
+        apply_initial_perturbations(sim, run);
+    }
 
     if (!M3DG.boundary)
         sim.Sim_handler.Constraints.push_back("Volume_constraint");
@@ -829,8 +1206,8 @@ int main(int argc, char **argv)
     const auto run_start = clock::now();
 
     std::ofstream Sim_data;
-    const size_t Final_t = cfg.timesteps;
-    for (size_t current_t = 0; current_t <= Final_t; current_t++)
+    const size_t Final_t = resuming ? resume.final_step : cfg.timesteps;
+    for (size_t current_t = start_t; current_t <= Final_t; current_t++)
     {
         M3DG.discreteTs = current_t;
         apply_switches(sim, run, current_t);
@@ -859,6 +1236,7 @@ int main(int argc, char **argv)
             sim.Sim_handler.Debug_Coverage(sim.Sim_handler.Energy_constants[coverage_index]);
 
         step_integrator(sim, run, current_t, Sim_data, save);
+        run.resumed_first_step = false;
 
         for (Bead *b : M3DG.Beads)
             if (b->state == "manual")
@@ -877,7 +1255,7 @@ int main(int argc, char **argv)
             M3DG.BFGS_iter = 0;
         }
 
-        if (M3DG.small_TS && current_t > Final_t * 0.2 && cfg.finish_sim)
+        if (M3DG.small_TS && current_t - start_t > (Final_t - start_t) * 0.2 && cfg.finish_sim)
         {
             std::cout << "Ending sim due to small TS at t = " << current_t << "\n";
             break;
@@ -928,7 +1306,7 @@ int main(int argc, char **argv)
 
     {
         // Cost side of the remeshing calibration (Scripts/calibrate_remesh_tol.py)
-        std::ofstream timing(run.basic_name + "Timing.txt");
+        std::ofstream timing(run.basic_name + (resuming ? "Timing_from_" + std::to_string(start_t) + ".txt" : "Timing.txt"));
         timing << "wall_ms " << ms_since(run_start) << "\nremesh_ms " << remeshing_elapsed_time << "\nintegrate_ms "
                << integrate_elapsed_time << "\nsave_ms " << saving_mesh_time << "\nremeshes " << run.n_remesh
                << "\nvertices " << sim.mesh->nVertices() << "\n";

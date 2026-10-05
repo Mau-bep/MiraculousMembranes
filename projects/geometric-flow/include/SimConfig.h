@@ -155,7 +155,8 @@ const std::vector<std::string> &known_switches();
 SimConfig load_config(const std::string &path, bool resolve_subfolder = false);
 
 // True when the file has "continue_sim": true (main_cluster then resumes the
-// run in "Subfolder"). Throws if the file cannot be read.
+// run in first_dir/Subfolder). Throws if the file cannot be read, or if it asks
+// to continue a run whose folder it does not name or that does not exist.
 bool wants_continue(const std::string &path);
 
 // Everything a running simulation owns. Not copyable or movable: the beads,

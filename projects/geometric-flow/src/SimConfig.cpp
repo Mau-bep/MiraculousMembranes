@@ -345,7 +345,14 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
 bool wants_continue(const std::string &path)
 {
     json data = read_json(path);
-    return data.contains("continue_sim") && data["continue_sim"].is_boolean() && data["continue_sim"].get<bool>();
+    if (!(data.contains("continue_sim") && data["continue_sim"].is_boolean() && data["continue_sim"].get<bool>()))
+        return false;
+    if (!data.contains("Subfolder") || !data.contains("first_dir"))
+        throw std::runtime_error("Input file: \"continue_sim\" is true, so \"first_dir\" and \"Subfolder\" are needed to find the run");
+    std::string dir = data["first_dir"].get<std::string>() + data["Subfolder"].get<std::string>();
+    if (!is_directory(dir))
+        throw std::runtime_error("Input file: \"continue_sim\" is true but the run folder " + dir + " does not exist");
+    return true;
 }
 
 Simulation::~Simulation()
