@@ -159,6 +159,17 @@ Vector3 vertexNormal(VertexPositionGeometry& geom, Vertex v, MutationManager& mm
   return normalize(totalNormal);
 }
 
+// The same, with the face normals computed once per smoothing pass (each one is
+// used by the three corners of its face)
+Vector3 vertexNormal(VertexPositionGeometry& geom, Vertex v, const FaceData<Vector3>& faceNormals) {
+  Vector3 totalNormal = Vector3::zero();
+  for (Corner c : v.adjacentCorners()) {
+    Vector3 cornerNormal = geom.cornerAngle(c) * faceNormals[c.face()];
+    totalNormal += cornerNormal;
+  }
+  return normalize(totalNormal);
+}
+
 Vector3 boundaryVertexTangent(VertexPositionGeometry& geom, Vertex v, MutationManager& mm) {
   if (v.isBoundary()) {
     auto edgeVec = [&](Edge e) -> Vector3 {
@@ -708,6 +719,10 @@ double smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom
   VertexData<Vector3> vertexOffsets(mesh);
   geom.requireVertexPositions();
 
+  // The positions only change after the loop below, so every face normal can be computed once
+  FaceData<Vector3> faceNormals(mesh);
+  for (Face f : mesh.faces()) faceNormals[f] = geom.faceNormal(f);
+
   for (Vertex v : mesh.vertices()) {
     // calculate average of surrounding vertices
     Vector3 avgNeighbor = Vector3::zero();
@@ -731,12 +746,12 @@ double smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom
         break;
       case RemeshBoundaryCondition::Free:
         // for free boundary vertices, project the average to the surface tangent plane
-        stepDir = projectToPlane(updateDirection, vertexNormal(geom, v, mm));
+        stepDir = projectToPlane(updateDirection, vertexNormal(geom, v, faceNormals));
         break;
       }
     } else {
       // for interior vertices, project the average to the tangent plane
-      stepDir = projectToPlane(updateDirection, vertexNormal(geom, v, mm));
+      stepDir = projectToPlane(updateDirection, vertexNormal(geom, v, faceNormals));
     }
     vertexOffsets[v] = stepSize * stepDir;
   }
