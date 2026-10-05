@@ -559,3 +559,13 @@ target_link_libraries(Test_bond_shifted_LJ geometry-central)
 add_executable(Test_shell_power src/Test_shell_power.cpp src/Interaction.cpp src/Beads.cpp src/BeadGeometry.cpp)
 target_include_directories(Test_shell_power PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
 target_link_libraries(Test_shell_power geometry-central)
+
+# Energies and forces of perturbed states in hexfloat: a refactor that keeps the
+# results bit-identical gives a byte-identical dump
+set(SRCSexactness ${SRCScluster})
+list(REMOVE_ITEM SRCSexactness src/main_cluster.cpp)
+add_executable(Test_exactness src/Test_exactness.cpp ${SRCSexactness})
+target_include_directories(Test_exactness PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include" "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include/"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/")
+target_link_libraries(Test_exactness geometry-central polyscope EigenRand nlohmann_json)
