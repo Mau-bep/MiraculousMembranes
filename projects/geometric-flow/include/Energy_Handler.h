@@ -45,6 +45,14 @@ public:
     std::vector<double> term_energy_ms;
     std::vector<double> term_gradient_ms;
 
+    // Memo of Calculate_energies: when nothing the energies read has changed
+    // since the last call (vertex positions, connectivity, beads, energy and
+    // interaction constants), the stored result is returned. The line searches
+    // ask for the energy of the same state up to three times per step.
+    // Mode: 0 off, 1 on, 2 verify (recompute on every hit, abort on a mismatch).
+    int energy_memo_mode = 1;
+    long energy_memo_hits = 0;
+
     // Constructors
     E_Handler() {};
     E_Handler(ManifoldSurfaceMesh *inputMesh, VertexPositionGeometry *inputGeo);
@@ -136,4 +144,12 @@ public:
     virtual SparseMatrix<double> Calculate_Hessian_Constraints();
     virtual SparseMatrix<double> Calculate_Hessian_E_Normal();
 
+private:
+    void compute_energies(double *E);
+    // Everything the energy terms read, as bytes (see energy_memo_mode)
+    void energy_state_key(std::vector<char> &key) const;
+    std::vector<char> memo_key, memo_scratch;
+    bool memo_valid = false;
+    double memo_E = 0.0;
+    std::vector<double> memo_values;
 };

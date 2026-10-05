@@ -305,6 +305,15 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
     }
     cfg.count_remesh = data.value("Count_remesh", false);
     cfg.remesh_log = data.value("Remesh_log", false);
+    // "energy_memo": reuse the last energy evaluation when the state is the same
+    // (E_Handler::energy_memo_mode); "verify" recomputes and checks every reuse
+    if (data.contains("energy_memo"))
+    {
+        const std::string mode = data["energy_memo"].get<std::string>();
+        if (mode != "off" && mode != "on" && mode != "verify")
+            throw std::runtime_error("Input file: energy_memo must be \"off\", \"on\" or \"verify\"");
+        cfg.energy_memo_mode = mode == "off" ? 0 : (mode == "on" ? 1 : 2);
+    }
     // "debug_dump": {"every": N}, for exact comparisons (Scripts/regression_compare.py)
     if (data.contains("debug_dump"))
     {
@@ -864,6 +873,7 @@ void build_simulation(const SimConfig &cfg, Simulation &sim, const std::string &
     M3DG.recentering = cfg.recentering;
     M3DG.boundary = cfg.boundary;
     Sim_handler.boundary = cfg.boundary;
+    Sim_handler.energy_memo_mode = cfg.energy_memo_mode;
     for (Bead &bead : sim.Beads)
     {
         M3DG.Add_bead(&bead);

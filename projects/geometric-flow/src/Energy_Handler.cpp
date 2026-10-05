@@ -11,6 +11,7 @@
 #include <chrono>
 #include <Eigen/Core>
 #include <cmath>
+#include <cstring>
 #include <iostream>
 #include <stdexcept>
 using namespace std;
@@ -2642,6 +2643,106 @@ void E_Handler::Calculate_energies(double *E)
 {
     ScopeTimer call_timer(energy_ms);
     energy_calls++;
+    if (energy_memo_mode == 0)
+    {
+        compute_energies(E);
+        return;
+    }
+    energy_state_key(memo_scratch);
+    const bool hit = memo_valid && memo_scratch == memo_key;
+    if (hit)
+    {
+        energy_memo_hits++;
+        if (energy_memo_mode == 1)
+        {
+            *E = memo_E;
+            Energy_values = memo_values;
+            return;
+        }
+    }
+    compute_energies(E);
+    if (hit && (std::memcmp(E, &memo_E, sizeof(double)) != 0 || Energy_values.size() != memo_values.size() ||
+                std::memcmp(Energy_values.data(), memo_values.data(), memo_values.size() * sizeof(double)) != 0))
+    {
+        std::cerr << "energy_memo verify: the stored energy " << memo_E << " differs from the recomputed " << *E
+                  << " although the state key is the same\n";
+        std::abort();
+    }
+    // The key after the evaluation (Face_reg initialises Face_reference on its first call)
+    energy_state_key(memo_key);
+    memo_E = *E;
+    memo_values = Energy_values;
+    memo_valid = true;
+}
+
+namespace
+{
+    template <typename T>
+    void append_bytes(std::vector<char> &key, const T *data, size_t n)
+    {
+        const char *p = reinterpret_cast<const char *>(data);
+        key.insert(key.end(), p, p + n * sizeof(T));
+    }
+    void append_vector(std::vector<char> &key, const std::vector<double> &v)
+    {
+        const size_t n = v.size();
+        append_bytes(key, &n, 1);
+        append_bytes(key, v.data(), n);
+    }
+} // namespace
+
+void E_Handler::energy_state_key(std::vector<char> &key) const
+{
+    key.clear();
+    const void *objects[2] = {mesh, geometry};
+    append_bytes(key, objects, 2);
+    const uint64_t counts[5] = {mesh->getModificationTick(), mesh->nVertices(), mesh->nFaces(), mesh->nEdges(),
+                                mesh->isCompressed() ? 1u : 0u};
+    append_bytes(key, counts, 5);
+    const auto &positions = geometry->inputVertexPositions.raw();
+    append_bytes(key, positions.data(), positions.size());
+    const char flags[1] = {boundary};
+    append_bytes(key, flags, 1);
+
+    bool face_reg = false;
+    for (const std::string &name : Energies)
+    {
+        append_bytes(key, name.c_str(), name.size() + 1);
+        face_reg = face_reg || name == "Face_reg";
+    }
+    for (const std::vector<double> &c : Energy_constants)
+        append_vector(key, c);
+    if (face_reg)
+    {
+        const size_t n = Face_reference.size();
+        append_bytes(key, &n, 1);
+        if (n > 0)
+            append_bytes(key, Face_reference.raw().data(), Face_reference.raw().size());
+    }
+
+    for (const Bead *b : Beads)
+    {
+        append_bytes(key, &b->Pos, 1);
+        append_bytes(key, &b->sigma, 1);
+        append_bytes(key, &b->Bead_I, 1);
+        if (b->Bead_I)
+            append_vector(key, b->Bead_I->Energy_constants);
+        const size_t n_partners = b->Beads.size();
+        append_bytes(key, &n_partners, 1);
+        for (const Bead *partner : b->Beads)
+        {
+            append_bytes(key, &partner, 1);
+            append_bytes(key, &partner->Pos, 1);
+        }
+        for (const std::string &type : b->Bond_type)
+            append_bytes(key, type.c_str(), type.size() + 1);
+        for (const std::vector<double> &c : b->Interaction_constants_vector)
+            append_vector(key, c);
+    }
+}
+
+void E_Handler::compute_energies(double *E)
+{
     term_energy_ms.resize(Energies.size(), 0.0);
     *E = 0;
     Energy_values.resize(Energies.size());

@@ -134,6 +134,9 @@ public:
   bool isCompressed() const;
   void compress();
 
+  // Incremented by every mutation of the connectivity (flips, splits, collapses, compress, ...)
+  uint64_t getModificationTick() const { return modificationTick; }
+
   // == Mutation routines
 
   // Flips the orientation of the face. (Only valid to call on a general surface mesh which can represent
