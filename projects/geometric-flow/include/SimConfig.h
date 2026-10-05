@@ -83,6 +83,19 @@ struct RemeshQualityParams
     int max_every = 100;
 };
 
+// "polish": what BFGS-Normal does when the sliver guard finds a corner below
+// 0.2 rad. BFGS-Normal only moves vertices along the normals, so remeshing
+// and continuing leaves the new vertices on the faceted surface. Instead the
+// mesh is remeshed, relaxed with gd_steps of gradient descent (which also
+// moves vertices tangentially) and handed to `then`. After max_cycles polishes
+// (-1: no limit) the guard only remeshes, as before. gd_steps 0 turns it off.
+struct PolishParams
+{
+    int gd_steps = 100;
+    std::string then = "BFGS-Normal"; // or "BFGS"
+    int max_cycles = -1;
+};
+
 struct SimConfig
 {
     nlohmann::json raw;      // the parsed file, for anything not covered below
@@ -119,6 +132,7 @@ struct SimConfig
     int bfgs_saved_states = 10;
     LbfgsOptions lbfgs;
     StoppingParams stopping;
+    PolishParams polish;
     std::vector<std::string> switches;
     std::vector<int> switch_times;
 

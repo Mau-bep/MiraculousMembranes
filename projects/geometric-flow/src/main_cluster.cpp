@@ -57,6 +57,8 @@ namespace
         std::string monitored; // integrator the convergence windows belong to
         int tiny_steps = 0;    // consecutive L-BFGS line searches that ended below 1e-10
         bool convergence_log = false;
+        int polish_left = 0; // gradient descent steps left in the current polish
+        int n_polish = 0;
 
         double time = 0.0;
         double dt_sim = 0.0;
@@ -297,6 +299,52 @@ namespace
         return E;
     }
 
+    void log_polish(Simulation &sim, const RunState &run, size_t current_t, const std::string &event)
+    {
+        double E = total_energy(sim);
+        std::cout << "Polish " << run.n_polish << ": " << event << " at t = " << current_t << ", E = " << E << "\n";
+        const std::string path = run.basic_name + "Polish_log.txt";
+        const bool fresh = !std::ifstream(path).good();
+        std::ofstream log(path, std::ios_base::app);
+        if (fresh)
+            log << "# timestep polish event E (slivers: before the remesh, relaxed: after the gradient descent)\n";
+        log << std::setprecision(12) << current_t << " " << run.n_polish << " " << event << " " << E << "\n";
+    }
+
+    // Slivers in BFGS-Normal: remesh (the caller does it) and relax with
+    // gradient descent before going back (PolishParams). Returns true if started.
+    bool start_polish(Simulation &sim, RunState &run, size_t current_t)
+    {
+        const PolishParams &p = sim.cfg.polish;
+        if (run.Integration != "BFGS-Normal" || p.gd_steps == 0 || (p.max_cycles >= 0 && run.n_polish >= p.max_cycles))
+            return false;
+        run.n_polish++;
+        log_polish(sim, run, current_t, "slivers");
+        run.Integration = "Gradient_descent";
+        run.polish_left = p.gd_steps;
+        run.remesh_every = sim.cfg.remesh_every;
+        return true;
+    }
+
+    // Called after every successful step
+    void advance_polish(Simulation &sim, RunState &run, size_t current_t)
+    {
+        if (run.polish_left == 0)
+            return;
+        if (run.Integration != "Gradient_descent")
+        {
+            run.polish_left = 0; // a switch changed the integrator
+            return;
+        }
+        if (--run.polish_left > 0)
+            return;
+        log_polish(sim, run, current_t, "relaxed");
+        run.Integration = sim.cfg.polish.then;
+        sim.M3DG.BFGS_iter = 0;
+        if (run.Integration == "BFGS-Normal")
+            run.remesh_every = -1;
+    }
+
     void maybe_remesh(Simulation &sim, RunState &run, size_t current_t)
     {
         if (!run.remesher)
@@ -304,6 +352,7 @@ namespace
 
         // Collapse slivers every step
         bool flagSmallAngle = has_small_angle(sim, 0.2);
+        bool polish = flagSmallAngle && start_polish(sim, run, current_t);
         if (flagSmallAngle)
             fix_small_angles(sim);
 
@@ -314,7 +363,7 @@ namespace
         const size_t since = current_t - run.last_remesh;
 
         bool due = since > size_t(run.remesh_every) && run.remesh_every > 0;
-        bool go = due || run.dt_sim == 0.0 || (flagSmallAngle && run.remesh_every < 0);
+        bool go = due || run.dt_sim == 0.0 || (flagSmallAngle && run.remesh_every < 0) || polish;
 
         MeshQuality before;
         bool measured = false;
@@ -1269,6 +1318,7 @@ int main(int argc, char **argv)
                 Sim_data.close();
                 break;
             }
+            advance_polish(sim, run, current_t);
         }
         Sim_data.close();
         integrate_elapsed_time += ms_since(t0);

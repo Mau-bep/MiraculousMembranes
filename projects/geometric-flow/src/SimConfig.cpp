@@ -296,6 +296,18 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
         if (!(p.E_floor > 0.0) || p.bfgs_tol_E < 0.0 || p.normal_tol_E < 0.0 || p.normal_tol_g < 0.0)
             throw std::runtime_error("Input file: stopping.E_floor must be positive and the tolerances not negative");
     }
+    if (data.contains("polish"))
+    {
+        const json &s = data["polish"];
+        PolishParams &p = cfg.polish;
+        p.gd_steps = s.value("gd_steps", p.gd_steps);
+        p.then = s.value("then", p.then);
+        p.max_cycles = s.value("max_cycles", p.max_cycles);
+        if (p.gd_steps < 0 || p.max_cycles < -1)
+            throw std::runtime_error("Input file: polish.gd_steps must not be negative and max_cycles at least -1");
+        if (p.then != "BFGS-Normal" && p.then != "BFGS")
+            throw std::runtime_error("Input file: polish.then must be \"BFGS-Normal\" or \"BFGS\"");
+    }
 
     if (data.contains("Switches"))
     {

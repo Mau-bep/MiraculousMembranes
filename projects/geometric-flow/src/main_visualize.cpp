@@ -110,6 +110,8 @@ int trgt_remesh_op = 100;
 double integral_error = 0;
 bool adapt_remesh = true;
 bool Count_remesh = false;
+int polish_left = 0; // gradient descent steps left in the current polish (PolishParams)
+int n_polish = 0;
 std::ofstream Remeshing_count;
 int inspect_timestep = 0;
 std::string Switch;
@@ -999,6 +1001,16 @@ void Callback_qts()
                     break;
                 }
             }
+            const PolishParams &polish = sim.cfg.polish;
+            if (flagSmallAngle && Integration == "BFGS-Normal" && polish.gd_steps > 0 &&
+                (polish.max_cycles < 0 || n_polish < polish.max_cycles))
+            {
+                // Remesh (below) and relax with gradient descent before going back
+                n_polish++;
+                polish_left = polish.gd_steps;
+                Integration = "Gradient_descent";
+                std::cout << "Polish " << n_polish << ": slivers at t = " << current_t + integration_counter << "\n";
+            }
             if (flagSmallAngle)
             {
                 remeshSmallAngles(*mesh, *geometry, Options);
@@ -1053,6 +1065,15 @@ void Callback_qts()
         if (Area_constraint && updateArea)
             updateTargetArea(current_t + integration_counter, origA, A_bar, dA, minStepsReq);
         double timestepIter = Integration_step(integration_counter + current_t, Save, integration_counter == 1 && !continueLastCall);
+        if (polish_left > 0 && Integration != "Gradient_descent")
+            polish_left = 0; // the integrator was changed in the menu
+        if (polish_left > 0 && timestepIter > 0 && --polish_left == 0)
+        {
+            Integration = sim.cfg.polish.then;
+            M3DG.BFGS_iter = 0;
+            std::cout << "Polish " << n_polish << ": relaxed at t = " << current_t + integration_counter << ", back to "
+                      << Integration << "\n";
+        }
 
         if (Save)
         {
