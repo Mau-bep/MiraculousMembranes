@@ -187,6 +187,33 @@ namespace
         }
     }
 
+    // The energy terms read a fixed number of constants. Old configs often give
+    // only KB for the bending terms, and the read past the end of the vector
+    // usually happened to give H0 = 0; the optional trailing constants now get
+    // that default explicitly, and a missing required one is an error.
+    void complete_constants(EnergySpec &e, const std::string &where)
+    {
+        size_t required = 1;
+        std::vector<double> defaults; // the optional constants after the required ones
+        if (e.name == "Bending" || e.name == "H1_Bending" || e.name == "H2_Bending" || e.name == "Bending_tan" ||
+            e.name == "Laplace")
+            defaults = {0.0}; // H0
+        else if (e.name == "Area_constraint")
+        {
+            required = 2;           // KA, A_bar
+            defaults = {-1.0, 0.0}; // nu (<= 0: no reduced volume target), dA
+        }
+        else if (e.name == "Volume_constraint" || e.name == "Membrane_tension" || e.name == "Excess_tension")
+            required = 2;
+        if (e.constants.size() < required)
+            throw std::runtime_error("Input file: " + where + " (\"" + e.name + "\") needs at least " +
+                                     std::to_string(required) + " constants");
+        if (e.name == "Edge_reg" && e.constants.size() == 1)
+            e.constants.push_back(e.constants[0]); // the constant after a "No_remesh" switch
+        for (size_t k = e.constants.size(); k < required + defaults.size(); k++)
+            e.constants.push_back(defaults[k - required]);
+    }
+
 } // namespace
 
 const std::vector<std::string> &known_interactions()
@@ -415,6 +442,7 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
             const std::string where = "Energies[" + std::to_string(i++) + "]";
             cfg.energies.push_back({require(e, "Name", where).get<std::string>(),
                                     require(e, "constants", where).get<std::vector<double>>()});
+            complete_constants(cfg.energies.back(), where);
         }
     }
     if (data.contains("Beads"))
