@@ -56,7 +56,6 @@ namespace
         size_t n_remesh = 0;
         std::string monitored; // integrator the convergence windows belong to
         int tiny_steps = 0;    // consecutive L-BFGS line searches that ended below 1e-10
-        bool bfgs_fresh = false; // the last BFGS-Normal step started without L-BFGS history
         bool convergence_log = false;
 
         double time = 0.0;
@@ -601,7 +600,6 @@ namespace
         }
         else if (Integration == "BFGS-Normal")
         {
-            run.bfgs_fresh = M3DG.BFGS_iter == 0;
             if (M3DG.BFGS_iter == 0)
                 sim.Sim_handler.update_vertex_normals();
             M3DG.m = sim.cfg.bfgs_saved_states;
@@ -1242,19 +1240,6 @@ int main(int argc, char **argv)
             if (b->state == "manual")
                 b->update_state();
 
-        // The line search gives up (small_TS) when the L-BFGS direction is tiny.
-        // With history behind it that is a poor Hessian estimate, not
-        // convergence: start BFGS-Normal again from the normal force. Only a
-        // tiny direction right after a restart (a tiny gradient) ends the run.
-        const bool restart = run.dt_sim < 0 && M3DG.small_TS && !M3DG.step_failed &&
-                             run.Integration == "BFGS-Normal" && !run.bfgs_fresh;
-        if (restart)
-        {
-            std::cout << "The BFGS-Normal direction is tiny at t = " << current_t << ", restarting L-BFGS\n";
-            M3DG.small_TS = false;
-            M3DG.BFGS_iter = 0;
-        }
-
         if (M3DG.small_TS && current_t - start_t > (Final_t - start_t) * 0.2 && cfg.finish_sim)
         {
             std::cout << "Ending sim due to small TS at t = " << current_t << "\n";
@@ -1265,11 +1250,7 @@ int main(int argc, char **argv)
             std::cout << "The line search hit a nan at timestep " << current_t << ", ending the run\n";
             break;
         }
-        if (restart)
-        {
-            // no time step was taken
-        }
-        else if (run.dt_sim < 0)
+        if (run.dt_sim < 0)
         {
             std::cout << "Sim broke or timestep very small at timestep " << current_t << "\n";
             if (run.Integration != "BFGS")

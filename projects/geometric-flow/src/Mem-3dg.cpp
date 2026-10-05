@@ -837,14 +837,6 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
   // std::cout<<"THe projection is " << Projection <<" \n";
   // std::cout<<"The number of beads is " << Beads.size() << " \n";
 
-  if (Projection < 1e-5)
-  {
-    small_TS = true;
-    std::cout << "The energy diff is quite small and so is the gradieeent\n";
-    std::cout << "The energy diff is" << abs(NewE - previousE) / previousE << "\n";
-    std::cout << "The projection is" << Projection << "\n";
-    return -1.0;
-  }
   // std::cout<<"Backtracking\n";
   while (true)
   {
@@ -867,15 +859,6 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
     }
 
     alpha *= rho;
-    if ((abs((NewE - previousE) / previousE) < 1e-6 && Projection < 1e-6) || Projection < 1e-6)
-    {
-      small_TS = true;
-      std::cout << "The energy diff is quite small and so is the gradient\n";
-      std::cout << "The energy diff is" << abs((NewE - previousE) / previousE) << "\n";
-      std::cout << "The projection is" << Projection << "\n";
-      std::cout << "Finishing sim\n";
-      return -1.0;
-    }
 
     if (alpha < 1e-10)
     {
