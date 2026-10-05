@@ -85,16 +85,20 @@ def main():
     parser.add_argument('--only', nargs='*', help='subset of config names')
     parser.add_argument('--skip-ref', action='store_true',
                         help='reuse existing reference outputs')
+    parser.add_argument('--config-dir', default=CONFIG_DIR,
+                        help='folder of the configs (default regression/configs, '
+                             'regression/bench for the benchmarks)')
     args = parser.parse_args()
+    config_dir = args.config_dir
 
-    configs = sorted(c for c in os.listdir(CONFIG_DIR) if c.endswith('.json'))
+    configs = sorted(c for c in os.listdir(config_dir) if c.endswith('.json'))
     if args.only:
         configs = [c for c in configs if any(o in c for o in args.only)]
 
     failed = False
     for cfg in configs:
         name = cfg[:-5]
-        path = os.path.join(CONFIG_DIR, cfg)
+        path = os.path.join(config_dir, cfg)
         ref_root = os.path.abspath(os.path.join(args.out, 'ref', name))
         new_root = os.path.abspath(os.path.join(args.out, 'new', name))
         if args.skip_ref and os.path.isdir(os.path.join(ref_root, '1')):

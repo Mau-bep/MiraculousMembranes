@@ -1,0 +1,35 @@
+{
+    "init_file": "/home/mrojasve/Documents/DDG/MiraculousMembranes/input/Simplesphere.obj",
+    "first_dir": "OVERRIDDEN/",
+    "save_interval": 50,
+    "debug_dump": {"every": 50},
+    "timesteps": 600,
+    "remeshing": true,
+    "Integration": "Gradient_descent",
+    "BFGS_saved_states": 15,
+    "remesh_every": 1,
+    "backtrack": true,
+    "Timestep": 1.0,
+    "adapt_remesh": true,
+    "Count_remesh": true,
+    "boundary": false,
+    "recentering": false,
+    "saving_states": false,
+    "Switches": ["BFGS", "BFGS-Normal", "Freeze_beads"],
+    "Switch_times": [200, 400, 400],
+    "stopping": {"bfgs_switch": false, "normal_stop": false},
+    "momentum": false,
+    "rescale": 7.0,
+    "Energies": [
+        {"Name": "Surface_tension", "constants": [1.0]},
+        {"Name": "Bending_tan", "constants": [0.05386, 0.0]},
+        {"Name": "Volume_constraint", "constants": [20000.0, -1.0]}
+    ],
+    "Beads": [
+        {"gradient_order": "Bead", "radius": 1.0, "rc": 1.25, "state": "default", "Pos": [8.1, 0.0, 0.0],
+         "mem_inter": "Frenkel_Normal_nopush", "inter_str": 2.0,
+         "bonds": [], "bonds_constants": [], "Beads": []}
+    ],
+    "remesher": {"aspect_min": 0.2, "refine_angle": 0.6, "refine_compression": 1e-4, "refine_velocity": 1.0,
+                 "size_max": 0.45, "size_min": 0.005}
+}
