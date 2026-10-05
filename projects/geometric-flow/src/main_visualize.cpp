@@ -510,10 +510,15 @@ double Integration_step(int timestep, bool Save, bool First_iter)
     if (Integration == "BFGS-Normal")
     {
         M3DG.m = 10;
-        if (First_iter)
+        // After a remesh or a history reset too, as main_cluster does: a
+        // remesh adds vertices that would otherwise have no normal
+        if (First_iter || M3DG.BFGS_iter == 0)
         {
             std::cout << " Updating vertex normals for BFGS-Normal\n";
             M3DG.Sim_handler->update_vertex_normals();
+        }
+        if (First_iter)
+        {
             for (size_t i = 0; i < Beads.size(); i++)
             {
                 Beads[i].state = "froze";
