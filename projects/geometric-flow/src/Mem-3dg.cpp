@@ -1203,7 +1203,10 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
 
     Eigen::VectorXd s_k = backtrackstep * r;
 
-    // geometry->refreshQuantities();
+    // The energy and gradient read the positions directly, but the sliver
+    // guard (cornerAngles) and remesh() (vertexPositions) use the cached
+    // quantities: without this they saw the mesh of the last history reset
+    geometry->refreshQuantities();
     Sim_handler->Calculate_gradient();
     for (Vertex v : mesh->vertices())
     {
