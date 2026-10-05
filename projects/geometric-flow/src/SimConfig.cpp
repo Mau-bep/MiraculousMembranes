@@ -305,7 +305,7 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
     }
     cfg.count_remesh = data.value("Count_remesh", false);
     cfg.remesh_log = data.value("Remesh_log", false);
-    cfg.refresh_before_remesh = data.value("refresh_before_remesh", false);
+    cfg.refresh_before_remesh = data.value("refresh_before_remesh", true);
     // "energy_memo": reuse the last energy evaluation when the state is the same
     // (E_Handler::energy_memo_mode); "verify" recomputes and checks every reuse
     if (data.contains("energy_memo"))
