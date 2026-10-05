@@ -423,6 +423,13 @@ namespace
         if (!run.remesher || current_t < run.remesh_pause_until)
             return;
 
+        // The cached geometry (vertexPositions, cornerAngles) is only brought up to
+        // date by refreshQuantities(). Steady BFGS-Normal steps never call it, so
+        // the small-angle check saw old positions and a remesh started from them
+        // and copied them back ("refresh_before_remesh")
+        if (sim.cfg.refresh_before_remesh)
+            sim.geometry->refreshQuantities();
+
         // Collapse slivers every step
         bool flagSmallAngle = has_small_angle(sim, 0.2);
         bool polish = flagSmallAngle && start_polish(sim, run, current_t);
