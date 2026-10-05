@@ -38,9 +38,9 @@ struct StoppingParams
     int window = 100;
     int patience = 3;
     double E_floor = 1.0;       // energy scale used when |E| is smaller
-    double bfgs_tol_E = 1e-5;   // BFGS: relative energy change per window
-    double normal_tol_E = 1e-7; // BFGS-Normal: relative energy change per window
-    double normal_tol_g = 0.1;  // BFGS-Normal: RMS normal force density in units of KB / R^3
+    double bfgs_tol_E = 1e-3;   // BFGS: relative energy change per window
+    double normal_tol_E = 1e-6; // BFGS-Normal: relative energy change per window
+    double normal_tol_g = 0.5;  // BFGS-Normal: RMS normal force density in units of KB / R^3
     // Line search steps below 1e-10 this many times in a row reset the L-BFGS
     // history; twice as many switch BFGS to BFGS-Normal or end a BFGS-Normal run.
     // 0 (default) turns this off: runs with beads (the bead displacement cap)
