@@ -2,6 +2,7 @@
     "init_file": "/home/mrojasve/Documents/DDG/MiraculousMembranes/input/Simplesphere.obj",
     "first_dir": "OVERRIDDEN/",
     "save_interval": 50,
+    "debug_dump": {"every": 20},
     "timesteps": 300,
     "remeshing": true,
     "remesh_every": 10,

@@ -872,6 +872,28 @@ namespace
         std::cout << "Final state saved as step " << step << ", total energy " << tot_E << "\n";
     }
 
+    // "debug_dump": the state after the step in hexfloat, so that two builds can
+    // be compared bit by bit (Scripts/regression_compare.py reads hexfloat)
+    void dump_state(const Simulation &sim, const RunState &run, size_t current_t)
+    {
+        std::ofstream out(run.basic_name + "State_dump.txt", std::ios_base::app);
+        out << std::hexfloat << "step " << current_t << "\nenergies";
+        for (double e : sim.Sim_handler.Energy_values)
+            out << " " << e;
+        out << "\ngradient_norms";
+        for (double g : sim.Sim_handler.Gradient_norms)
+            out << " " << g;
+        out << "\nbeads " << sim.Beads.size() << "\n";
+        for (const Bead &b : sim.Beads)
+            out << b.Pos.x << " " << b.Pos.y << " " << b.Pos.z << "\n";
+        out << "vertices " << sim.mesh->nVertices() << "\n";
+        for (Vertex v : sim.mesh->vertices())
+        {
+            const Vector3 &p = sim.geometry->inputVertexPositions[v];
+            out << p.x << " " << p.y << " " << p.z << "\n";
+        }
+    }
+
     void save_final_state(Simulation &sim, const RunState &run)
     {
         if (sim.cfg.saving_states)
@@ -1388,6 +1410,8 @@ int main(int argc, char **argv)
 
         step_integrator(sim, run, current_t, Sim_data, save);
         run.resumed_first_step = false;
+        if (cfg.debug_dump_every > 0 && current_t % cfg.debug_dump_every == 0)
+            dump_state(sim, run, current_t);
 
         for (Bead *b : M3DG.Beads)
             if (b->state == "manual")

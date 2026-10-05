@@ -46,6 +46,10 @@ def to_float(tok):
     try:
         return float(tok)
     except ValueError:
+        pass
+    try:
+        return float.fromhex(tok)  # State_dump.txt is written in hexfloat
+    except ValueError:
         return None
 
 

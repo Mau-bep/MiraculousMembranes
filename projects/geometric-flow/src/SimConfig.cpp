@@ -278,6 +278,13 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
     }
     cfg.count_remesh = data.value("Count_remesh", false);
     cfg.remesh_log = data.value("Remesh_log", false);
+    // "debug_dump": {"every": N}, for exact comparisons (Scripts/regression_compare.py)
+    if (data.contains("debug_dump"))
+    {
+        cfg.debug_dump_every = data["debug_dump"].value("every", 0);
+        if (cfg.debug_dump_every < 0)
+            throw std::runtime_error("Input file: debug_dump.every must not be negative");
+    }
     if (data.contains("remesher"))
     {
         const json &r = data["remesher"];

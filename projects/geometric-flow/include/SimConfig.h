@@ -144,6 +144,7 @@ struct SimConfig
     RemeshQualityParams remesh_quality;
     bool count_remesh = false;
     bool remesh_log = false; // Remesh_log.txt: mesh quality and energy around every remesh
+    int debug_dump_every = 0; // State_dump.txt: positions and energies in hexfloat every N steps
     RemeshParams remesher;
 
     std::string integration = "Gradient_descent";
