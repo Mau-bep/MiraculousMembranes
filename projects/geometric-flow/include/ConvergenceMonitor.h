@@ -5,10 +5,14 @@
 // Steps are grouped in consecutive windows of `window` steps. At the end of
 // a window two quantities are checked:
 //
-//   energy : |sum of dE over the window| < tol_E * max(|E|, E_floor)
-//            with dE the change made by the integrator step alone
-//            (Mem3DG::E_step_end - E_step_start), so the jumps from remeshing
-//            and from moving manual beads are not counted.
+//   energy : |E_end - E_start| < tol_E * max(|E|, E_floor), the net change
+//            over the window: from the energy before its first integrator
+//            step to the energy after its last one, remeshing and moved beads
+//            included. With remeshing on, the integrator keeps removing what
+//            each remesh adds back; only the net change shows when BFGS has
+//            nothing left to gain (cylinder -> sphere: the integrator-only
+//            change stayed at 2.5e-3 per 100 steps while the net change fell
+//            to ~5e-5). BFGS-Normal does not remesh, so there the two agree.
 //   force  : sqrt( 1/N sum_i ((F_i . n_i) / A_i)^2 ) < tol_g * KB / R^3
 //            the RMS normal force density, with n_i the normals the
 //            BFGS-Normal step moves along, A_i a third of the adjacent face
@@ -57,26 +61,27 @@ public:
     void reset()
     {
         n_steps = 0;
-        sum_dE = 0.0;
         passed = 0;
     }
 
-    // Account one integrator step; true when it closes a window
-    bool add_step(double dE)
+    // Account one integrator step with the energy before and after it; true
+    // when it closes a window
+    bool add_step(double E_before, double E_after)
     {
-        sum_dE += dE;
+        if (n_steps == 0)
+            E_start = E_before;
+        E_end = E_after;
         return ++n_steps >= p.window;
     }
 
-    // |sum dE| / max(|E|, E_floor) of the window being filled
-    double window_dE_rel(double E) const;
+    // |E_end - E_start| / max(|E_end|, E_floor) of the window being filled
+    double window_dE_rel() const;
 
     // Record whether the window that just closed passed and start the next
     // one. True once `patience` windows in a row have passed.
     bool close_window(bool pass)
     {
         n_steps = 0;
-        sum_dE = 0.0;
         passed = pass ? passed + 1 : 0;
         return passed >= p.patience;
     }
@@ -87,7 +92,8 @@ public:
 private:
     StoppingParams p;
     int n_steps = 0;
-    double sum_dE = 0.0;
+    double E_start = 0.0; // before the first step of the window
+    double E_end = 0.0;   // after the last step so far
     int passed = 0;
 };
 

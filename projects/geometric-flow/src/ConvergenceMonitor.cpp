@@ -20,9 +20,9 @@ namespace
     }
 } // namespace
 
-double ConvergenceMonitor::window_dE_rel(double E) const
+double ConvergenceMonitor::window_dE_rel() const
 {
-    return std::fabs(sum_dE) / std::max(std::fabs(E), p.E_floor);
+    return std::fabs(E_end - E_start) / std::max(std::fabs(E_end), p.E_floor);
 }
 
 double force_density_rms(ManifoldSurfaceMesh &mesh, const VertexPositionGeometry &geometry,

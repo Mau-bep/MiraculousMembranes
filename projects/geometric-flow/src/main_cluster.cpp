@@ -635,12 +635,12 @@ namespace
         }
 
         Mem3DG &M3DG = sim.M3DG;
-        if (!monitor.add_step(M3DG.E_step_end - M3DG.E_step_start))
+        if (!monitor.add_step(M3DG.E_step_start, M3DG.E_step_end))
             return false;
 
         const StoppingParams &p = monitor.params();
         const double E = M3DG.E_step_end;
-        const double dE_rel = monitor.window_dE_rel(E);
+        const double dE_rel = monitor.window_dE_rel();
         // BFGS moves along the full gradient and may not have normals yet
         const double f_rms = force_density_rms(*sim.mesh, *sim.geometry, sim.Sim_handler.Current_grad,
                                                normal ? &sim.Sim_handler.Vertex_normals : nullptr);
