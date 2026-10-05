@@ -57,64 +57,64 @@ public:
     virtual void update_face_reference();
     virtual void update_vertex_normals();
 
-    virtual double E_Volume_constraint(std::vector<double> Constants) const;
-    virtual double E_Area_constraint(std::vector<double> Constants) const;
-    virtual double E_SurfaceTension(std::vector<double> Constants) const;
+    virtual double E_Volume_constraint(const std::vector<double> &Constants) const;
+    virtual double E_Area_constraint(const std::vector<double> &Constants) const;
+    virtual double E_SurfaceTension(const std::vector<double> &Constants) const;
 
-    virtual double E_MembraneTension(std::vector<double> Constants) const;
-    virtual double E_ExcessTension(std::vector<double> Constants) const;
-    virtual double E_Bending(std::vector<double> Constants) const;
-    virtual double E_Bending_tan(std::vector<double> Constants) const;
-    // virtual double E_Bending_2(std::vector<double> Constants) const;
-    virtual double E_Laplace(std::vector<double> Constants) const;
-    virtual double E_Edge_reg(std::vector<double> Constants) const;
-    virtual double E_Face_reg(std::vector<double> Constants) const;
+    virtual double E_MembraneTension(const std::vector<double> &Constants) const;
+    virtual double E_ExcessTension(const std::vector<double> &Constants) const;
+    virtual double E_Bending(const std::vector<double> &Constants) const;
+    virtual double E_Bending_tan(const std::vector<double> &Constants) const;
+    // virtual double E_Bending_2(const std::vector<double> &Constants) const;
+    virtual double E_Laplace(const std::vector<double> &Constants) const;
+    virtual double E_Edge_reg(const std::vector<double> &Constants) const;
+    virtual double E_Face_reg(const std::vector<double> &Constants) const;
 
-    virtual VertexData<double> Ev_Bending(std::vector<double> Constants) const;
-    virtual double V_Bending(std::vector<double> Constants, Vertex v) const;
+    virtual VertexData<double> Ev_Bending(const std::vector<double> &Constants) const;
+    virtual double V_Bending(const std::vector<double> &Constants, Vertex v) const;
 
-    virtual VertexData<double> Ev_Bending_tan(std::vector<double> Constants) const;
-    virtual double V_Bending_tan(std::vector<double> Constants, Vertex v) const;
-    virtual double E_Coverage(std::vector<double> Constants) const;
+    virtual VertexData<double> Ev_Bending_tan(const std::vector<double> &Constants) const;
+    virtual double V_Bending_tan(const std::vector<double> &Constants, Vertex v) const;
+    virtual double E_Coverage(const std::vector<double> &Constants) const;
 
     // We do the precomputed ones now
-    // virtual double E_Area_constraint_precomp(std::vector<double> Constants) const;
-    // virtual double E_SurfaceTension_precomp(std::vector<double> Constants) const;
-    // virtual double E_Bending_precomp(std::vector<double> Constants) const;
-    // virtual double E_Edge_reg_precomp(std::vector<double> Constants) const;
-    virtual void Debug_Coverage(std::vector<double> Constants) const;
+    // virtual double E_Area_constraint_precomp(const std::vector<double> &Constants) const;
+    // virtual double E_SurfaceTension_precomp(const std::vector<double> &Constants) const;
+    // virtual double E_Bending_precomp(const std::vector<double> &Constants) const;
+    // virtual double E_Edge_reg_precomp(const std::vector<double> &Constants) const;
+    virtual void Debug_Coverage(const std::vector<double> &Constants) const;
 
-    virtual VertexData<Vector3> F_Coverage(std::vector<double> Constants);
-    virtual VertexData<Vector3> F_Volume_constraint(std::vector<double> Constants) const;
-    virtual VertexData<Vector3> F_SurfaceTension(std::vector<double> Constants) const;
-    virtual VertexData<Vector3> F_MembraneTension(std::vector<double> Constants) const;
-    virtual VertexData<Vector3> F_ExcessTension(std::vector<double> Constants) const;
-    virtual VertexData<Vector3> F_Area_constraint(std::vector<double> Constants) const;
-    virtual VertexData<Vector3> F_Bending(std::vector<double> Constants) const;
-    virtual VertexData<Vector3> F_Bending_tan(std::vector<double> Constants) const;
-    // virtual VertexData<Vector3> F_Bending_2(std::vector<double> Constants) const;
-    virtual VertexData<Vector3> F_Volume_constraint_2(std::vector<double> Constants) const;
-    virtual VertexData<Vector3> F_Volume(std::vector<double> Constants) const;
-    virtual VertexData<Vector3> F_Laplace(std::vector<double> Constants) const;
-    virtual VertexData<Vector3> F_Edge_reg(std::vector<double> Constants) const;
-    virtual VertexData<Vector3> F_Edge_reg_2(std::vector<double> Constants) const;
-    virtual VertexData<Vector3> F_Face_reg(std::vector<double> Constants) const;
+    virtual VertexData<Vector3> F_Coverage(const std::vector<double> &Constants);
+    virtual VertexData<Vector3> F_Volume_constraint(const std::vector<double> &Constants) const;
+    virtual VertexData<Vector3> F_SurfaceTension(const std::vector<double> &Constants) const;
+    virtual VertexData<Vector3> F_MembraneTension(const std::vector<double> &Constants) const;
+    virtual VertexData<Vector3> F_ExcessTension(const std::vector<double> &Constants) const;
+    virtual VertexData<Vector3> F_Area_constraint(const std::vector<double> &Constants) const;
+    virtual VertexData<Vector3> F_Bending(const std::vector<double> &Constants) const;
+    virtual VertexData<Vector3> F_Bending_tan(const std::vector<double> &Constants) const;
+    // virtual VertexData<Vector3> F_Bending_2(const std::vector<double> &Constants) const;
+    virtual VertexData<Vector3> F_Volume_constraint_2(const std::vector<double> &Constants) const;
+    virtual VertexData<Vector3> F_Volume(const std::vector<double> &Constants) const;
+    virtual VertexData<Vector3> F_Laplace(const std::vector<double> &Constants) const;
+    virtual VertexData<Vector3> F_Edge_reg(const std::vector<double> &Constants) const;
+    virtual VertexData<Vector3> F_Edge_reg_2(const std::vector<double> &Constants) const;
+    virtual VertexData<Vector3> F_Face_reg(const std::vector<double> &Constants) const;
 
-    // virtual VertexData<Vector3> F_Volume_constraint_precomp(std::vector<double> Constants) const;
-    // virtual VertexData<Vector3> F_Bending_precomp(std::vector<double> Constants) const;
-    // virtual VertexData<Vector3> F_Edge_reg_precomp(std::vector<double> Constants) const;
+    // virtual VertexData<Vector3> F_Volume_constraint_precomp(const std::vector<double> &Constants) const;
+    // virtual VertexData<Vector3> F_Bending_precomp(const std::vector<double> &Constants) const;
+    // virtual VertexData<Vector3> F_Edge_reg_precomp(const std::vector<double> &Constants) const;
 
-    // virtual VertexData<Vector3> F_SurfaceTension_precomp(std::vector<double> Constants) const;
+    // virtual VertexData<Vector3> F_SurfaceTension_precomp(const std::vector<double> &Constants) const;
 
-    virtual SparseMatrix<double> H_SurfaceTension(std::vector<double> Constants);
-    virtual SparseMatrix<double> H_Bending(std::vector<double> Constants);
+    virtual SparseMatrix<double> H_SurfaceTension(const std::vector<double> &Constants);
+    virtual SparseMatrix<double> H_Bending(const std::vector<double> &Constants);
     SparseMatrix<double> H_Bending_impl(const std::vector<double> &Constants, bool tan_version);
-    virtual SparseMatrix<double> H_Bending_tan(std::vector<double> Constants);
-    virtual SparseMatrix<double> H_Volume(std::vector<double> Constants);
+    virtual SparseMatrix<double> H_Bending_tan(const std::vector<double> &Constants);
+    virtual SparseMatrix<double> H_Volume(const std::vector<double> &Constants);
 
-    virtual SparseMatrix<double> H_Laplace(std::vector<double> Constants);
-    virtual SparseMatrix<double> H_Edge_reg(std::vector<double> Constants);
-    virtual SparseMatrix<double> H_Face_reg(std::vector<double> Constants);
+    virtual SparseMatrix<double> H_Laplace(const std::vector<double> &Constants);
+    virtual SparseMatrix<double> H_Edge_reg(const std::vector<double> &Constants);
+    virtual SparseMatrix<double> H_Face_reg(const std::vector<double> &Constants);
 
     virtual void Calculate_energies(double *E);
     virtual void Calculate_Lag_norm(double *Norm);

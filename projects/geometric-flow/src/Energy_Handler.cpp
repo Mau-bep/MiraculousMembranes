@@ -116,7 +116,7 @@ void E_Handler::update_vertex_normals()
     return;
 }
 
-double E_Handler::E_Volume_constraint(std::vector<double> Constants) const
+double E_Handler::E_Volume_constraint(const std::vector<double> &Constants) const
 {
     double V = geometry->totalVolume();
     double KV = Constants[0];
@@ -124,7 +124,7 @@ double E_Handler::E_Volume_constraint(std::vector<double> Constants) const
     return 0.5 * KV * (V - V_bar) * (V - V_bar) / (V_bar * V_bar);
 }
 
-double E_Handler::E_Area_constraint(std::vector<double> Constants) const
+double E_Handler::E_Area_constraint(const std::vector<double> &Constants) const
 {
     double KA = Constants[0];
     double A_bar = Constants[1];
@@ -133,11 +133,11 @@ double E_Handler::E_Area_constraint(std::vector<double> Constants) const
     return 0.5 * KA * (A - A_bar) * (A - A_bar) / (A_bar * A_bar);
 }
 
-double E_Handler::E_SurfaceTension(std::vector<double> Constants) const
+double E_Handler::E_SurfaceTension(const std::vector<double> &Constants) const
 {
     return geometry->totalArea() * Constants[0];
 }
-double E_Handler::E_MembraneTension(std::vector<double> Constants) const
+double E_Handler::E_MembraneTension(const std::vector<double> &Constants) const
 {
     //
     double At = Constants[1];
@@ -148,7 +148,7 @@ double E_Handler::E_MembraneTension(std::vector<double> Constants) const
     return Constants[0] * (A - At) * (A - At) / At;
 }
 
-double E_Handler::E_ExcessTension(std::vector<double> Constants) const
+double E_Handler::E_ExcessTension(const std::vector<double> &Constants) const
 {
     double At = Constants[1];
     double A = geometry->totalArea();
@@ -158,7 +158,7 @@ double E_Handler::E_ExcessTension(std::vector<double> Constants) const
     return Constants[0] * (A - At);
 }
 
-double E_Handler::E_Bending(std::vector<double> Constants) const
+double E_Handler::E_Bending(const std::vector<double> &Constants) const
 {
     double KB = Constants[0];
     double H0 = Constants[1];
@@ -195,7 +195,7 @@ double E_Handler::E_Bending(std::vector<double> Constants) const
     return Eb;
 }
 
-VertexData<double> E_Handler::Ev_Bending(std::vector<double> Constants) const
+VertexData<double> E_Handler::Ev_Bending(const std::vector<double> &Constants) const
 {
     double KB = Constants[0];
     double H0 = Constants[1];
@@ -213,7 +213,7 @@ VertexData<double> E_Handler::Ev_Bending(std::vector<double> Constants) const
     return Eb;
 }
 
-double E_Handler::V_Bending(std::vector<double> Constants, Vertex v) const
+double E_Handler::V_Bending(const std::vector<double> &Constants, Vertex v) const
 {
     double KB = Constants[0];
     double H0 = Constants[1];
@@ -234,7 +234,7 @@ double E_Handler::V_Bending(std::vector<double> Constants, Vertex v) const
         return 0.0;
     return KB * H * H * A;
 }
-double E_Handler::E_Bending_tan(std::vector<double> Constants) const
+double E_Handler::E_Bending_tan(const std::vector<double> &Constants) const
 {
     double KB = Constants[0];
     double H0 = Constants[1];
@@ -271,7 +271,7 @@ double E_Handler::E_Bending_tan(std::vector<double> Constants) const
 
     return Eb;
 }
-VertexData<double> E_Handler::Ev_Bending_tan(std::vector<double> Constants) const
+VertexData<double> E_Handler::Ev_Bending_tan(const std::vector<double> &Constants) const
 {
     double KB = Constants[0];
     double H0 = Constants[1];
@@ -289,7 +289,7 @@ VertexData<double> E_Handler::Ev_Bending_tan(std::vector<double> Constants) cons
 
     return Eb;
 }
-double E_Handler::V_Bending_tan(std::vector<double> Constants, Vertex v) const
+double E_Handler::V_Bending_tan(const std::vector<double> &Constants, Vertex v) const
 {
     double KB = Constants[0];
     double H0 = Constants[1];
@@ -310,7 +310,7 @@ double E_Handler::V_Bending_tan(std::vector<double> Constants, Vertex v) const
         return 0.0;
     return KB * H * H * A;
 }
-double E_Handler::E_Laplace(std::vector<double> Constants) const
+double E_Handler::E_Laplace(const std::vector<double> &Constants) const
 {
 
     double E_L = 0.0;
@@ -351,7 +351,7 @@ double E_Handler::E_Laplace(std::vector<double> Constants) const
     return Lambda * E_L;
 }
 
-double E_Handler::E_Edge_reg(std::vector<double> Constants) const
+double E_Handler::E_Edge_reg(const std::vector<double> &Constants) const
 {
 
     double E_edge = 0.0;
@@ -383,7 +383,7 @@ double E_Handler::E_Edge_reg(std::vector<double> Constants) const
     return E_edge;
 }
 
-double E_Handler::E_Face_reg(std::vector<double> Constants) const
+double E_Handler::E_Face_reg(const std::vector<double> &Constants) const
 {
 
     double E_face = 0.0;
@@ -398,7 +398,7 @@ double E_Handler::E_Face_reg(std::vector<double> Constants) const
     return E_face;
 }
 
-double E_Handler::E_Coverage(std::vector<double> Constants) const
+double E_Handler::E_Coverage(const std::vector<double> &Constants) const
 {
     bead_geometry::validateCoverageConstants(Constants, Beads.size());
 
@@ -480,7 +480,7 @@ double E_Handler::E_Coverage(std::vector<double> Constants) const
     return totalEnergy;
 }
 
-void E_Handler::Debug_Coverage(std::vector<double> Constants) const
+void E_Handler::Debug_Coverage(const std::vector<double> &Constants) const
 {
     if (Constants.size() != Beads.size() + 1)
     {
@@ -609,7 +609,7 @@ void E_Handler::Debug_Coverage(std::vector<double> Constants) const
     std::cout << "==========================================\n";
 }
 
-VertexData<Vector3> E_Handler::F_Volume_constraint(std::vector<double> Constants) const
+VertexData<Vector3> E_Handler::F_Volume_constraint(const std::vector<double> &Constants) const
 {
     double KV = Constants[0];
     double V_bar = Constants[1];
@@ -636,7 +636,7 @@ VertexData<Vector3> E_Handler::F_Volume_constraint(std::vector<double> Constants
     return -1 * KV * ((V - V_bar) / (V_bar * V_bar)) * Force;
 }
 
-VertexData<Vector3> E_Handler::F_Volume_constraint_2(std::vector<double> Constants) const
+VertexData<Vector3> E_Handler::F_Volume_constraint_2(const std::vector<double> &Constants) const
 {
 
     double KV = Constants[0];
@@ -672,7 +672,7 @@ VertexData<Vector3> E_Handler::F_Volume_constraint_2(std::vector<double> Constan
     return -1 * KV * ((V - V_bar) / (V_bar * V_bar)) * Force;
 }
 
-VertexData<Vector3> E_Handler::F_Volume(std::vector<double> Constants) const
+VertexData<Vector3> E_Handler::F_Volume(const std::vector<double> &Constants) const
 {
 
     double KV = Constants[0];
@@ -710,7 +710,7 @@ VertexData<Vector3> E_Handler::F_Volume(std::vector<double> Constants) const
     return -1 * KV * Force;
 }
 
-VertexData<Vector3> E_Handler::F_SurfaceTension(std::vector<double> Constants) const
+VertexData<Vector3> E_Handler::F_SurfaceTension(const std::vector<double> &Constants) const
 {
 
     double sigma = Constants[0];
@@ -746,7 +746,7 @@ VertexData<Vector3> E_Handler::F_SurfaceTension(std::vector<double> Constants) c
     return Force;
 }
 
-VertexData<Vector3> E_Handler::F_MembraneTension(std::vector<double> Constants) const
+VertexData<Vector3> E_Handler::F_MembraneTension(const std::vector<double> &Constants) const
 {
     double KA = Constants[0];
     double At = Constants[1];
@@ -759,7 +759,7 @@ VertexData<Vector3> E_Handler::F_MembraneTension(std::vector<double> Constants) 
     return F_SurfaceTension({KA}) * 2.0 * (A - At) / (At);
 }
 
-VertexData<Vector3> E_Handler::F_ExcessTension(std::vector<double> Constants) const
+VertexData<Vector3> E_Handler::F_ExcessTension(const std::vector<double> &Constants) const
 {
     double KA = Constants[0];
     double At = Constants[1];
@@ -770,7 +770,7 @@ VertexData<Vector3> E_Handler::F_ExcessTension(std::vector<double> Constants) co
     return F_SurfaceTension({KA});
 }
 
-VertexData<Vector3> E_Handler::F_Area_constraint(std::vector<double> Constants) const
+VertexData<Vector3> E_Handler::F_Area_constraint(const std::vector<double> &Constants) const
 {
     double KA = Constants[0];
     double A_bar = Constants[1];
@@ -778,7 +778,7 @@ VertexData<Vector3> E_Handler::F_Area_constraint(std::vector<double> Constants) 
     return ((A - A_bar) / (A_bar * A_bar)) * F_SurfaceTension({KA});
 }
 // This function correctly implements the spontaneous curvature
-VertexData<Vector3> E_Handler::F_Bending(std::vector<double> Constants) const
+VertexData<Vector3> E_Handler::F_Bending(const std::vector<double> &Constants) const
 {
     double KB = Constants[0];
     double H0 = Constants[1];
@@ -903,7 +903,7 @@ VertexData<Vector3> E_Handler::F_Bending(std::vector<double> Constants) const
     return Force;
 }
 
-VertexData<Vector3> E_Handler::F_Bending_tan(std::vector<double> Constants) const
+VertexData<Vector3> E_Handler::F_Bending_tan(const std::vector<double> &Constants) const
 {
     double KB = Constants[0];
     double H0 = Constants[1];
@@ -1032,7 +1032,7 @@ VertexData<Vector3> E_Handler::F_Bending_tan(std::vector<double> Constants) cons
     return Force;
 }
 
-VertexData<Vector3> E_Handler::F_Laplace(std::vector<double> Constants) const
+VertexData<Vector3> E_Handler::F_Laplace(const std::vector<double> &Constants) const
 {
     double Lambda = Constants[0];
     double H0 = Constants[1];
@@ -1147,7 +1147,7 @@ VertexData<Vector3> E_Handler::F_Laplace(std::vector<double> Constants) const
     return Force * Lambda;
 }
 
-VertexData<Vector3> E_Handler::F_Edge_reg(std::vector<double> Constants) const
+VertexData<Vector3> E_Handler::F_Edge_reg(const std::vector<double> &Constants) const
 {
     VertexData<Vector3> Force(*mesh);
     double KE = Constants[0];
@@ -1203,7 +1203,7 @@ VertexData<Vector3> E_Handler::F_Edge_reg(std::vector<double> Constants) const
     return Force;
 }
 
-VertexData<Vector3> E_Handler::F_Edge_reg_2(std::vector<double> Constants) const
+VertexData<Vector3> E_Handler::F_Edge_reg_2(const std::vector<double> &Constants) const
 {
     VertexData<Vector3> Force(*mesh);
     double KE = Constants[0];
@@ -1264,7 +1264,7 @@ VertexData<Vector3> E_Handler::F_Edge_reg_2(std::vector<double> Constants) const
     return Force;
 }
 
-VertexData<Vector3> E_Handler::F_Face_reg(std::vector<double> Constants) const
+VertexData<Vector3> E_Handler::F_Face_reg(const std::vector<double> &Constants) const
 {
     double KF = Constants[0];
 
@@ -1304,7 +1304,7 @@ VertexData<Vector3> E_Handler::F_Face_reg(std::vector<double> Constants) const
     return Force;
 }
 VertexData<Vector3> E_Handler::F_Coverage(
-    std::vector<double> Constants)
+    const std::vector<double> &Constants)
 {
     /*
      * Constants:
@@ -1513,7 +1513,7 @@ VertexData<Vector3> E_Handler::F_Coverage(
 
     return Force;
 }
-SparseMatrix<double> E_Handler::H_SurfaceTension(std::vector<double> Constants)
+SparseMatrix<double> E_Handler::H_SurfaceTension(const std::vector<double> &Constants)
 {
     // Ok so this functino will assemble the Hessi an for the surface tension energy
     int nVerts = mesh->nVertices();
@@ -1946,17 +1946,17 @@ SparseMatrix<double> E_Handler::H_Bending_impl(const std::vector<double> &Consta
     return KB * Hessian;
 }
 
-SparseMatrix<double> E_Handler::H_Bending_tan(std::vector<double> Constants)
+SparseMatrix<double> E_Handler::H_Bending_tan(const std::vector<double> &Constants)
 {
     return H_Bending_impl(Constants, true);
 }
 
-SparseMatrix<double> E_Handler::H_Bending(std::vector<double> Constants)
+SparseMatrix<double> E_Handler::H_Bending(const std::vector<double> &Constants)
 {
     return H_Bending_impl(Constants, false);
 }
 
-SparseMatrix<double> E_Handler::H_Volume(std::vector<double> Constants)
+SparseMatrix<double> E_Handler::H_Volume(const std::vector<double> &Constants)
 {
     // std::cout<<"Hessian volume\n";
     double KV = Constants[0];
@@ -2006,7 +2006,7 @@ SparseMatrix<double> E_Handler::H_Volume(std::vector<double> Constants)
     return KV * Hessian;
 }
 
-SparseMatrix<double> E_Handler::H_Laplace(std::vector<double> Constants)
+SparseMatrix<double> E_Handler::H_Laplace(const std::vector<double> &Constants)
 {
     double KB = Constants[0];
     double H0 = Constants[1];
@@ -2430,7 +2430,7 @@ SparseMatrix<double> E_Handler::H_Laplace(std::vector<double> Constants)
     return KB * Hessian;
 }
 
-SparseMatrix<double> E_Handler::H_Edge_reg(std::vector<double> Constants)
+SparseMatrix<double> E_Handler::H_Edge_reg(const std::vector<double> &Constants)
 {
     double KE = Constants[0];
     // std::cout<<"Doing edge reg\n";
@@ -2489,7 +2489,7 @@ SparseMatrix<double> E_Handler::H_Edge_reg(std::vector<double> Constants)
     return KE * Hessian;
 }
 
-SparseMatrix<double> E_Handler::H_Face_reg(std::vector<double> Constants)
+SparseMatrix<double> E_Handler::H_Face_reg(const std::vector<double> &Constants)
 {
     // Ok so this functino will assemble the Hessi an for the surface tension energy
     int nVerts = mesh->nVertices();

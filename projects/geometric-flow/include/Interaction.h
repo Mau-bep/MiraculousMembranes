@@ -51,16 +51,16 @@ public:
     virtual std::vector<Eigen::Triplet<double>> Hessian_bonds_triplet();
     // These radial-potential functions should remain temporarily because
     // existing LJ/Frenkel/etc. classes use them.
-    virtual double E_r(double r, std::vector<double> constants) = 0;
-    virtual double dE_r(double r, std::vector<double> constants) = 0;
-    virtual double ddE_r(double r, std::vector<double> constants) = 0;
+    virtual double E_r(double r, const std::vector<double> &constants) = 0;
+    virtual double dE_r(double r, const std::vector<double> &constants) = 0;
+    virtual double ddE_r(double r, const std::vector<double> &constants) = 0;
 
-    virtual double E_z(double z, std::vector<double> constants)
+    virtual double E_z(double z, const std::vector<double> &constants)
     {
         return 0.0;
     }
 
-    virtual double dE_z(double z, std::vector<double> constants)
+    virtual double dE_z(double z, const std::vector<double> &constants)
     {
         return 0.0;
     }
@@ -91,23 +91,23 @@ public:
     virtual SparseMatrix<double> Hessian();
     virtual SparseMatrix<double> Hessian_IP();
 
-    virtual double E_r(double r, std::vector<double> Energy_constants) override
+    virtual double E_r(double r, const std::vector<double> &Energy_constants) override
     {
         return 0.0;
     }
-    virtual double dE_r(double r, std::vector<double> Energy_constants) override
+    virtual double dE_r(double r, const std::vector<double> &Energy_constants) override
     {
         return 0.0;
     }
-    virtual double ddE_r(double r, std::vector<double> Energy_constants) override
+    virtual double ddE_r(double r, const std::vector<double> &Energy_constants) override
     {
         return 0.0;
     }
-    virtual double E_z(double r, std::vector<double> Energy_constants) override
+    virtual double E_z(double r, const std::vector<double> &Energy_constants) override
     {
         return 0.0;
     }
-    virtual double dE_z(double r, std::vector<double> Energy_constants) override
+    virtual double dE_z(double r, const std::vector<double> &Energy_constants) override
     {
         return 0.0;
     }
@@ -131,21 +131,21 @@ public:
         cylinder_E_mode = mode;
     }
 
-    virtual double Uniform(double r, std::vector<double> Energy_constants)
+    virtual double Uniform(double r, const std::vector<double> &Energy_constants)
     {
         double rc = Energy_constants[2];
         if (r < 0.0 || r > rc)
             return 0.0;
         return 1.0;
     }
-    virtual double d_Uniform(double r, std::vector<double> Energy_constants)
+    virtual double d_Uniform(double r, const std::vector<double> &Energy_constants)
     {
         double rc = Energy_constants[2];
         if (r < 0.0 || r > rc)
             return 0.0;
         return 0.0;
     }
-    virtual double ParabolaSection(double r, std::vector<double> Energy_constants)
+    virtual double ParabolaSection(double r, const std::vector<double> &Energy_constants)
     {
         // double eps = Energy_constants[0];
         double rc = Energy_constants[2];
@@ -162,7 +162,7 @@ public:
         return 0.0;
     }
 
-    virtual double d_ParabolaSection(double r, std::vector<double> Energy_constants)
+    virtual double d_ParabolaSection(double r, const std::vector<double> &Energy_constants)
     {
         // double eps = Energy_constants[0];
         double rc = Energy_constants[2];
@@ -175,7 +175,7 @@ public:
         return 0.0;
     }
 
-    virtual double Cubic(double r, std::vector<double> Energy_constants)
+    virtual double Cubic(double r, const std::vector<double> &Energy_constants)
     {
         double rc = Energy_constants[2];
         if (r < 0.0)
@@ -185,7 +185,7 @@ public:
         return 0.0;
     }
 
-    virtual double d_Cubic(double r, std::vector<double> Energy_constants)
+    virtual double d_Cubic(double r, const std::vector<double> &Energy_constants)
     {
         double rc = Energy_constants[2];
         if (r < 0.0)
@@ -206,10 +206,10 @@ public:
         return Hessian;
     }
     // Default dispatcher: picks the radial energy according to `cylinder_E_mode`.
-    double E_r(double r, std::vector<double> Energy_constants) = 0;
-    double dE_r(double r, std::vector<double> Energy_constants) = 0;
-    double E_z(double r, std::vector<double> Energy_constants) = 0;
-    double dE_z(double r, std::vector<double> Energy_constants) = 0;
+    double E_r(double r, const std::vector<double> &Energy_constants) = 0;
+    double dE_r(double r, const std::vector<double> &Energy_constants) = 0;
+    double E_z(double r, const std::vector<double> &Energy_constants) = 0;
+    double dE_z(double r, const std::vector<double> &Energy_constants) = 0;
 };
 
 class Face_Integrated_Interaction : public Interaction
@@ -256,17 +256,17 @@ public:
      * representation. These implementations exist only because the
      * current Interaction interface requires them.
      */
-    double E_r(double, std::vector<double>) override
+    double E_r(double, const std::vector<double> &) override
     {
         return 0.0;
     }
 
-    double dE_r(double, std::vector<double>) override
+    double dE_r(double, const std::vector<double> &) override
     {
         return 0.0;
     }
 
-    double ddE_r(double, std::vector<double>) override
+    double ddE_r(double, const std::vector<double> &) override
     {
         return 0.0;
     }
@@ -372,23 +372,23 @@ private:
 class Plane_Interaction : public Cilinder_Interaction
 {
 public:
-    double E_r(double r, std::vector<double> Energy_constants) override
+    double E_r(double r, const std::vector<double> &Energy_constants) override
     {
         // return ParabolaSection(r, Energy_constants);
         return Uniform(r, Energy_constants);
     }
-    double dE_r(double r, std::vector<double> Energy_constants) override
+    double dE_r(double r, const std::vector<double> &Energy_constants) override
     {
         // return d_ParabolaSection(r, Energy_constants);
         return d_Uniform(r, Energy_constants);
     }
-    double ddE_r(double r, std::vector<double> Energy_constants) override
+    double ddE_r(double r, const std::vector<double> &Energy_constants) override
     {
         return 0.0;
     }
 
-    virtual double E_z(double r, std::vector<double> Energy_constants) = 0;
-    virtual double dE_z(double r, std::vector<double> Energy_constants) = 0;
+    virtual double E_z(double r, const std::vector<double> &Energy_constants) = 0;
+    virtual double dE_z(double r, const std::vector<double> &Energy_constants) = 0;
 };
 
 class Gravity_Plane : public Plane_Interaction
@@ -407,13 +407,13 @@ public:
         mesh = inputMesh;
         geometry = inputGeo;
     }
-    double E_z(double r, std::vector<double> Energy_constants) override
+    double E_z(double r, const std::vector<double> &Energy_constants) override
     {
         // WHat is the energy
         double eps = Energy_constants[0];
         return -1.0 * eps * r;
     }
-    double dE_z(double r, std::vector<double> Energy_constants) override
+    double dE_z(double r, const std::vector<double> &Energy_constants) override
     {
         double eps = Energy_constants[0];
         return -1.0 * eps;
@@ -435,25 +435,25 @@ public:
         geometry = inputGeo;
     }
 
-    double E_r(double r, std::vector<double> Energy_constants) override
+    double E_r(double r, const std::vector<double> &Energy_constants) override
     {
         return Cubic(r, Energy_constants);
     }
-    double dE_r(double r, std::vector<double> Energy_constants) override
+    double dE_r(double r, const std::vector<double> &Energy_constants) override
     {
         return d_Cubic(r, Energy_constants);
     }
-    double ddE_r(double r, std::vector<double> Energy_constants) override
+    double ddE_r(double r, const std::vector<double> &Energy_constants) override
     {
         return 0.0;
     }
-    double E_z(double r, std::vector<double> Energy_constants) override
+    double E_z(double r, const std::vector<double> &Energy_constants) override
     {
         // WHat is the energy
         double eps = Energy_constants[0];
         return -1.0 * eps * r;
     }
-    double dE_z(double r, std::vector<double> Energy_constants) override
+    double dE_z(double r, const std::vector<double> &Energy_constants) override
     {
         double eps = Energy_constants[0];
         return -1.0 * eps;
@@ -472,19 +472,19 @@ public:
     virtual SparseMatrix<double> Hessian();
     virtual SparseMatrix<double> Hessian_IP();
 
-    virtual double E_r(double r, std::vector<double> Energy_constants) = 0;
-    virtual double dE_r(double r, std::vector<double> Energy_constants) = 0;
-    virtual double E_z(double r, std::vector<double> Energy_constants) override
+    virtual double E_r(double r, const std::vector<double> &Energy_constants) = 0;
+    virtual double dE_r(double r, const std::vector<double> &Energy_constants) = 0;
+    virtual double E_z(double r, const std::vector<double> &Energy_constants) override
     {
         return 0.0;
     }
-    virtual double dE_z(double r, std::vector<double> Energy_constants) override
+    virtual double dE_z(double r, const std::vector<double> &Energy_constants) override
     {
         return 0.0;
     }
 
-    virtual double ddE_r(double r, std::vector<double> Energy_constants) = 0;
-    // virtual Vector3 F_r(double r, Vector3 r_vec, std::vector<double> Energy_constants) = 0;
+    virtual double ddE_r(double r, const std::vector<double> &Energy_constants) = 0;
+    // virtual Vector3 F_r(double r, Vector3 r_vec, const std::vector<double> &Energy_constants) = 0;
 };
 
 class Normal_dot_Interaction : public Interaction
@@ -499,15 +499,15 @@ public:
     virtual VertexData<Vector3> Gradient();
     virtual SparseMatrix<double> Hessian();
     virtual SparseMatrix<double> Hessian_IP();
-    virtual double E_r(double r, std::vector<double> Energy_constants) = 0;
-    virtual double dE_r(double r, std::vector<double> Energy_constants) = 0;
-    virtual double ddE_r(double r, std::vector<double> Energy_constants) = 0;
-    // virtual Vector3 F_r(double r, Vector3 r_vec, std::vector<double> Energy_constants) = 0;
-    virtual double E_z(double r, std::vector<double> Energy_constants) override
+    virtual double E_r(double r, const std::vector<double> &Energy_constants) = 0;
+    virtual double dE_r(double r, const std::vector<double> &Energy_constants) = 0;
+    virtual double ddE_r(double r, const std::vector<double> &Energy_constants) = 0;
+    // virtual Vector3 F_r(double r, Vector3 r_vec, const std::vector<double> &Energy_constants) = 0;
+    virtual double E_z(double r, const std::vector<double> &Energy_constants) override
     {
         return 0.0;
     }
-    virtual double dE_z(double r, std::vector<double> Energy_constants) override
+    virtual double dE_z(double r, const std::vector<double> &Energy_constants) override
     {
         return 0.0;
     }
@@ -601,15 +601,15 @@ public:
         geometry = inputGeo;
     }
 
-    double E_r(double r, std::vector<double> Energy_constants) override
+    double E_r(double r, const std::vector<double> &Energy_constants) override
     {
         return frenkel_potential::E_r(r, Energy_constants);
     }
-    double dE_r(double r, std::vector<double> Energy_constants) override
+    double dE_r(double r, const std::vector<double> &Energy_constants) override
     {
         return frenkel_potential::dE_r(r, Energy_constants);
     }
-    double ddE_r(double r, std::vector<double> Energy_constants) override
+    double ddE_r(double r, const std::vector<double> &Energy_constants) override
     {
         return frenkel_potential::ddE_r(r, Energy_constants);
     }
@@ -632,15 +632,15 @@ public:
         geometry = inputGeo;
     }
 
-    double E_r(double r, std::vector<double> Energy_constants) override
+    double E_r(double r, const std::vector<double> &Energy_constants) override
     {
         return frenkel_potential::E_r(r, Energy_constants);
     }
-    double dE_r(double r, std::vector<double> Energy_constants) override
+    double dE_r(double r, const std::vector<double> &Energy_constants) override
     {
         return frenkel_potential::dE_r(r, Energy_constants);
     }
-    double ddE_r(double r, std::vector<double> Energy_constants) override
+    double ddE_r(double r, const std::vector<double> &Energy_constants) override
     {
         return frenkel_potential::ddE_r(r, Energy_constants);
     }
@@ -653,17 +653,17 @@ public:
     {
         Energy_constants = params;
     }
-    double E_r(double r, std::vector<double> Energy_constants) override
+    double E_r(double r, const std::vector<double> &Energy_constants) override
     {
 
         return 1.0;
     }
-    double dE_r(double r, std::vector<double> Energy_constants) override
+    double dE_r(double r, const std::vector<double> &Energy_constants) override
     {
 
         return 0.0; // Constant interaction, no gradient
     }
-    double ddE_r(double r, std::vector<double> Energy_constants) override
+    double ddE_r(double r, const std::vector<double> &Energy_constants) override
     {
 
         return 0.0; // Constant interaction, no second derivative
@@ -686,7 +686,7 @@ public:
         geometry = inputGeo;
     }
 
-    double E_r(double r, std::vector<double> Energy_constants) override
+    double E_r(double r, const std::vector<double> &Energy_constants) override
     {
         //  1/r =
         // Which are the energy constants
@@ -695,14 +695,14 @@ public:
         return epsilon / r + fabs(epsilon);
     }
 
-    double dE_r(double r, std::vector<double> Energy_constants) override
+    double dE_r(double r, const std::vector<double> &Energy_constants) override
     {
         double epsilon = Energy_constants[0];
 
         return -epsilon / (r * r);
     }
 
-    double ddE_r(double r, std::vector<double> Energy_constants) override
+    double ddE_r(double r, const std::vector<double> &Energy_constants) override
     {
         double epsilon = Energy_constants[0];
 
@@ -727,7 +727,7 @@ public:
         geometry = inputGeo;
     }
 
-    double E_r(double r, std::vector<double> Energy_constants) override
+    double E_r(double r, const std::vector<double> &Energy_constants) override
     {
         //  1/r =
         // Which are the energy constants
@@ -736,14 +736,14 @@ public:
         return epsilon * r + fabs(epsilon);
     }
 
-    double dE_r(double r, std::vector<double> Energy_constants) override
+    double dE_r(double r, const std::vector<double> &Energy_constants) override
     {
         double epsilon = Energy_constants[0];
 
         return epsilon;
     }
 
-    double ddE_r(double r, std::vector<double> Energy_constants) override
+    double ddE_r(double r, const std::vector<double> &Energy_constants) override
     {
         double epsilon = Energy_constants[0];
 
@@ -768,7 +768,7 @@ public:
         geometry = inputGeo;
     }
 
-    double E_r(double r, std::vector<double> Energy_constants) override
+    double E_r(double r, const std::vector<double> &Energy_constants) override
     {
         //  1/r =
         // Which are the energy constants
@@ -777,14 +777,14 @@ public:
         return epsilon / r;
     }
 
-    double dE_r(double r, std::vector<double> Energy_constants) override
+    double dE_r(double r, const std::vector<double> &Energy_constants) override
     {
         double epsilon = Energy_constants[0];
 
         return -epsilon / (r * r);
     }
 
-    double ddE_r(double r, std::vector<double> Energy_constants) override
+    double ddE_r(double r, const std::vector<double> &Energy_constants) override
     {
         double epsilon = Energy_constants[0];
 
@@ -809,7 +809,7 @@ public:
         geometry = inputGeo;
     }
 
-    double E_r(double r, std::vector<double> Energy_constants) override
+    double E_r(double r, const std::vector<double> &Energy_constants) override
     {
         //  1/r =
         // Which are the energy constants
@@ -818,14 +818,14 @@ public:
         return epsilon * r;
     }
 
-    double dE_r(double r, std::vector<double> Energy_constants) override
+    double dE_r(double r, const std::vector<double> &Energy_constants) override
     {
         double epsilon = Energy_constants[0];
 
         return epsilon;
     }
 
-    double ddE_r(double r, std::vector<double> Energy_constants) override
+    double ddE_r(double r, const std::vector<double> &Energy_constants) override
     {
         double epsilon = Energy_constants[0];
 
@@ -850,7 +850,7 @@ public:
         geometry = inputGeo;
     }
 
-    double E_r(double r, std::vector<double> Energy_constants) override
+    double E_r(double r, const std::vector<double> &Energy_constants) override
     {
         // r is the distance between the two beads
         // Energy_constants[0] is the strength of the interaction
@@ -865,7 +865,7 @@ public:
         }
         return 4 * epsilon * (pow(sigma / r, 12) - pow(sigma / r, 6)) + shift;
     }
-    double dE_r(double r, std::vector<double> Energy_constants) override
+    double dE_r(double r, const std::vector<double> &Energy_constants) override
     {
 
         // r is the distance between the two beads
@@ -881,7 +881,7 @@ public:
         }
         return -24 * epsilon * (2 * pow(sigma / r, 12) - pow(sigma / r, 6)) / r;
     }
-    double ddE_r(double r, std::vector<double> Energy_constants) override
+    double ddE_r(double r, const std::vector<double> &Energy_constants) override
     {
         // r is the distance between the two beads
         // Energy_constants[0] is the strength of the interaction
@@ -913,7 +913,7 @@ public:
         geometry = inputGeo;
     }
 
-    double E_r(double r, std::vector<double> Energy_constants) override
+    double E_r(double r, const std::vector<double> &Energy_constants) override
     {
         // r is the distance between the two beads
         double epsilon = Energy_constants[0];
@@ -926,7 +926,7 @@ public:
         }
         return 4 * epsilon * (pow(sigma / r, 12) - pow(sigma / r, 6)) + shift;
     }
-    double dE_r(double r, std::vector<double> Energy_constants) override
+    double dE_r(double r, const std::vector<double> &Energy_constants) override
     {
 
         // r is the distance between the two beads
@@ -941,7 +941,7 @@ public:
         }
         return -24 * epsilon * (2 * pow(sigma / r, 12) - pow(sigma / r, 6)) / r;
     }
-    double ddE_r(double r, std::vector<double> Energy_constants) override
+    double ddE_r(double r, const std::vector<double> &Energy_constants) override
     {
         // r is the distance between the two beads
         // Energy_constants[0] is the strength of the interaction
