@@ -36,6 +36,15 @@ public:
 
     std::vector<double> Gradient_norms;
 
+    // Cost accounting for Timing.txt: number of calls, and wall time in total
+    // and per entry of Energies
+    long energy_calls = 0;
+    long gradient_calls = 0;
+    double energy_ms = 0.0;
+    double gradient_ms = 0.0;
+    std::vector<double> term_energy_ms;
+    std::vector<double> term_gradient_ms;
+
     // Constructors
     E_Handler() {};
     E_Handler(ManifoldSurfaceMesh *inputMesh, VertexPositionGeometry *inputGeo);

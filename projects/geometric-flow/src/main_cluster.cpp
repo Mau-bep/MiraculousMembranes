@@ -1477,11 +1477,21 @@ int main(int argc, char **argv)
                << "\nvertices " << sim.mesh->nVertices() << "\nlbfgs_pairs " << M3DG.lbfgs_pairs
                << "\nlbfgs_negative_sy " << M3DG.lbfgs_negative_sy << "\nlbfgs_restarts " << M3DG.lbfgs_restarts
                << "\nlbfgs_uphill " << M3DG.lbfgs_uphill << "\n";
+        // Where the integrator time goes: energy and gradient evaluations, per term
+        const E_Handler &h = sim.Sim_handler;
+        timing << "energy_calls " << h.energy_calls << "\nenergy_ms " << h.energy_ms << "\ngradient_calls "
+               << h.gradient_calls << "\ngradient_ms " << h.gradient_ms << "\n";
+        for (size_t i = 0; i < h.term_energy_ms.size(); i++)
+            timing << "energy_ms_" << i << "_" << h.Energies[i] << " " << h.term_energy_ms[i] << "\n";
+        for (size_t i = 0; i < h.term_gradient_ms.size(); i++)
+            timing << "gradient_ms_" << i << "_" << h.Energies[i] << " " << h.term_gradient_ms[i] << "\n";
     }
     if (M3DG.lbfgs_pairs > 0)
         std::cout << "L-BFGS: " << M3DG.lbfgs_pairs << " curvature pairs, " << M3DG.lbfgs_negative_sy
                   << " with s.y < 0, " << M3DG.lbfgs_restarts << " restarts, " << M3DG.lbfgs_uphill
                   << " uphill directions replaced\n";
+    std::cout << "Energy evaluations: " << sim.Sim_handler.energy_calls << " (" << sim.Sim_handler.energy_ms
+              << " ms), gradients: " << sim.Sim_handler.gradient_calls << " (" << sim.Sim_handler.gradient_ms << " ms)\n";
 
     save_final_state(sim, run);
     return EXIT_SUCCESS;

@@ -35,6 +35,15 @@ public:
 namespace
 {
     constexpr double COVERAGE_EPS = 1e-12;
+
+    // Adds the wall time of its scope to acc in ms (also when left by continue)
+    struct ScopeTimer
+    {
+        double &acc;
+        std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
+        explicit ScopeTimer(double &a) : acc(a) {}
+        ~ScopeTimer() { acc += std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count(); }
+    };
 } // namespace
 
 E_Handler::E_Handler(ManifoldSurfaceMesh *inputMesh, VertexPositionGeometry *inputGeo)
@@ -2548,12 +2557,16 @@ SparseMatrix<double> E_Handler::H_Face_reg(std::vector<double> Constants)
 
 void E_Handler::Calculate_energies(double *E)
 {
+    ScopeTimer call_timer(energy_ms);
+    energy_calls++;
+    term_energy_ms.resize(Energies.size(), 0.0);
     *E = 0;
     Energy_values.resize(Energies.size());
 
     int bead_count = 0;
     for (size_t i = 0; i < Energies.size(); i++)
     {
+        ScopeTimer term_timer(term_energy_ms[i]);
         if (Energies[i] == "Volume_constraint")
         {
             if (Energy_constants[i][0] > 1e-5)
@@ -2772,6 +2785,9 @@ void E_Handler::Calculate_Lag_norm_Normal(double *Norm)
 
 void E_Handler::Calculate_gradient()
 {
+    ScopeTimer call_timer(gradient_ms);
+    gradient_calls++;
+    term_gradient_ms.resize(Energies.size(), 0.0);
     for (Bead *bead : Beads)
         bead->CoverageForce = Vector3({0.0, 0.0, 0.0});
     Previous_grad = Current_grad;
@@ -2783,6 +2799,7 @@ void E_Handler::Calculate_gradient()
     Gradient_norms.resize(Energies.size() + 1, 0.0);
     for (size_t i = 0; i < Energies.size(); i++)
     {
+        ScopeTimer term_timer(term_gradient_ms[i]);
         if (Energies[i] == "Volume_constraint")
         {
             if (Energy_constants[i][0] < 1e-5)
