@@ -442,6 +442,78 @@ double CalculateCoverageBeadGeometry(std::string Simdir, int Step, Vector3 BeadP
     return coveredFraction;
 }
 
+// Coverage as the fraction of directions from the bead centre that are hidden
+// by at least one face selected by bead_geometry (unweighted). Directions are
+// a Fibonacci lattice on the unit sphere, each worth 4pi / nDirections.
+// Returns {fraction hit at least once, fraction hit two or more times}; the
+// second one flags membrane folded over itself in the contact shell.
+std::pair<double, double> CalculateCoverageRays(std::string Simdir, int Step, Vector3 BeadPos, double radius, int nDirections = 20000)
+{
+    std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(Simdir + "membrane_" + std::to_string(Step) + ".obj");
+    mesh = mesh_uptr.release();
+    geometry = geometry_uptr.release();
+
+    std::vector<Vector3> directions(nDirections);
+    const double goldenAngle = PI * (3.0 - std::sqrt(5.0));
+    for (int i = 0; i < nDirections; i++)
+    {
+        double z = 1.0 - 2.0 * (i + 0.5) / nDirections;
+        double rxy = std::sqrt(1.0 - z * z);
+        double phi = goldenAngle * i;
+        directions[i] = Vector3{rxy * std::cos(phi), rxy * std::sin(phi), z};
+    }
+
+    std::vector<int> hits(nDirections, 0);
+    for (Face f : mesh->faces())
+    {
+        const bead_geometry::FaceCoverageData faceData =
+            bead_geometry::evaluateFaceCoverage(*geometry, f, BeadPos, radius);
+
+        if (!faceData.selected)
+            continue;
+
+        Halfedge he = f.halfedge();
+        Vector3 a = (geometry->inputVertexPositions[he.vertex()] - BeadPos).unit();
+        Vector3 b = (geometry->inputVertexPositions[he.next().vertex()] - BeadPos).unit();
+        Vector3 c = (geometry->inputVertexPositions[he.next().next().vertex()] - BeadPos).unit();
+
+        double triple = dot(a, cross(b, c));
+        if (std::abs(triple) < bead_geometry::EPS)
+            continue;
+        double s = (triple > 0.0) ? 1.0 : -1.0;
+
+        // d lies in the spherical triangle abc iff it is on the inner side
+        // of the three great circles through its edges
+        Vector3 nab = s * cross(a, b);
+        Vector3 nbc = s * cross(b, c);
+        Vector3 nca = s * cross(c, a);
+
+        // Bounding cap around the mean direction, to skip far directions
+        Vector3 m = (a + b + c).unit();
+        double cosCap = std::min({dot(m, a), dot(m, b), dot(m, c)}) - 1e-9;
+
+        for (int i = 0; i < nDirections; i++)
+        {
+            const Vector3 &d = directions[i];
+            if (cosCap > 0.0 && dot(d, m) < cosCap)
+                continue;
+            if (dot(d, nab) >= 0.0 && dot(d, nbc) >= 0.0 && dot(d, nca) >= 0.0)
+                hits[i]++;
+        }
+    }
+
+    int covered = 0;
+    int multilayer = 0;
+    for (int h : hits)
+    {
+        if (h >= 1)
+            covered++;
+        if (h >= 2)
+            multilayer++;
+    }
+    return {double(covered) / nDirections, double(multilayer) / nDirections};
+}
+
 std::vector<double> ReadCoverage(std::string Subdir)
 {
     std::vector<double> Coverage_data(0);
@@ -516,6 +588,10 @@ std::vector<double> ReadCoverage(std::string Subdir)
     Coverage_data.push_back(r);
     Coverage_data.push_back(rc);
     Coverage_data.push_back(A_covered);
+
+    std::pair<double, double> RayCoverage = CalculateCoverageRays(Subdir, FinalStep, BeadPos, r);
+    Coverage_data.push_back(RayCoverage.first);
+    Coverage_data.push_back(RayCoverage.second);
     return Coverage_data;
 }
 
@@ -560,7 +636,7 @@ int main(int argc, char **argv)
 
     // I think it would be better if we create a function that given a subirectory, return the desired quantities;
     std::ofstream CoverageData(SimsDir + "Coverage_data.txt", std::ios_base::app);
-    CoverageData << "#### DIR KA KB KI BeadRadius rc CoveredArea\n";
+    CoverageData << "#### DIR KA KB KI BeadRadius rc CoveredArea CoverageUnion MultilayerFrac\n";
 
     for (size_t i = 0; i < Subdirs.size(); i++)
     {
