@@ -185,6 +185,7 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
         {
             cfg.source_path = cfg.subfolder_dir + "Input_file.json";
             std::cout << "Loading the run in " << cfg.subfolder_dir << "\n";
+            cfg.launch_raw = data;
             data = read_json(cfg.source_path);
         }
         else
@@ -339,6 +340,12 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
 
     cfg.raw = data;
     return cfg;
+}
+
+bool wants_continue(const std::string &path)
+{
+    json data = read_json(path);
+    return data.contains("continue_sim") && data["continue_sim"].is_boolean() && data["continue_sim"].get<bool>();
 }
 
 Simulation::~Simulation()
@@ -551,7 +558,7 @@ namespace
 
 } // namespace
 
-void build_simulation(const SimConfig &cfg, Simulation &sim)
+void build_simulation(const SimConfig &cfg, Simulation &sim, const std::string &resume_mesh)
 {
     sim.cfg = cfg;
 
@@ -570,6 +577,18 @@ void build_simulation(const SimConfig &cfg, Simulation &sim)
     sim.geometry->refreshQuantities();
 
     setup_energies(sim);
+
+    if (!resume_mesh.empty())
+    {
+        // Targets above come from init_file; nothing holds the mesh yet
+        delete sim.geometry;
+        delete sim.mesh;
+        std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(resume_mesh);
+        sim.mesh = mesh_uptr.release();
+        sim.geometry = geometry_uptr.release();
+        sim.geometry->refreshQuantities();
+    }
+
     setup_beads(sim);
 
     Mem3DG &M3DG = sim.M3DG;

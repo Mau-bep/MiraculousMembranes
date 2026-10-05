@@ -95,6 +95,9 @@ struct SimConfig
     bool loaded_from_subfolder = false;
     bool subfolder_missing = false;
     std::string subfolder_dir; // with trailing '/'
+    // The file that was passed in when its Subfolder replaced it (main_cluster
+    // resume reads extra_steps, timesteps and Switches from it); null otherwise.
+    nlohmann::json launch_raw;
 
     std::string init_file;
     std::string first_dir;
@@ -151,6 +154,10 @@ const std::vector<std::string> &known_switches();
 // or set subfolder_missing if that folder does not exist.
 SimConfig load_config(const std::string &path, bool resolve_subfolder = false);
 
+// True when the file has "continue_sim": true (main_cluster then resumes the
+// run in "Subfolder"). Throws if the file cannot be read.
+bool wants_continue(const std::string &path);
+
 // Everything a running simulation owns. Not copyable or movable: the beads,
 // the energy handler and the integrator hold pointers into each other.
 struct Simulation
@@ -180,7 +187,9 @@ struct Simulation
 };
 
 // Load the mesh and set up energies, beads, integrator and remesher options.
-void build_simulation(const SimConfig &cfg, Simulation &sim);
+// With resume_mesh set, the energy targets still come from init_file, but the
+// membrane itself is read from resume_mesh (main_cluster resume).
+void build_simulation(const SimConfig &cfg, Simulation &sim, const std::string &resume_mesh = "");
 
 // Build the interaction for one bead (throws on an unknown mem_inter).
 // params = {inter_str, radius, rc, ...type specific}
