@@ -62,16 +62,12 @@ namespace
         std::vector<double> tan_term;  // per edge, 2 tan(dihedral / 2)
         std::vector<double> length;    // per edge, edgeLength
 
-        BendingGeometry(ManifoldSurfaceMesh &mesh, VertexPositionGeometry &geometry, bool tan_version)
+        BendingGeometry(ManifoldSurfaceMesh &mesh, VertexPositionGeometry &geometry, const FaceGeometry &faces,
+                        bool tan_version)
         {
             const VertexData<Vector3> &P = geometry.inputVertexPositions;
-            std::vector<Vector3> normal(mesh.nFacesCapacity());
-            std::vector<double> area(mesh.nFacesCapacity());
-            for (Face f : mesh.faces())
-            {
-                normal[f.getIndex()] = geometry.faceNormal(f);
-                area[f.getIndex()] = geometry.faceArea(f);
-            }
+            const std::vector<Vector3> &normal = faces.normal;
+            const std::vector<double> &area = faces.area;
 
             dihedral.resize(mesh.nEdgesCapacity());
             tan_term.resize(mesh.nEdgesCapacity());
@@ -125,6 +121,43 @@ namespace
         }
     };
 } // namespace
+
+void FaceGeometry::compute(ManifoldSurfaceMesh &mesh, VertexPositionGeometry &geometry)
+{
+    normal.resize(mesh.nFacesCapacity());
+    area.resize(mesh.nFacesCapacity());
+    total_area = 0.0;
+    for (Face f : mesh.faces())
+    {
+        normal[f.getIndex()] = geometry.faceNormal(f);
+        area[f.getIndex()] = geometry.faceArea(f);
+        if (std::isnan(area[f.getIndex()]))
+            continue;
+        total_area += area[f.getIndex()];
+    }
+}
+
+const FaceGeometry &E_Handler::faces() const
+{
+    if (!face_cache_active || !face_cache_fresh)
+    {
+        face_cache.compute(*mesh, *geometry);
+        face_cache_fresh = face_cache_active;
+    }
+    return face_cache;
+}
+
+// Makes the face cache valid for one energy or gradient evaluation
+struct FaceCacheScope
+{
+    E_Handler &h;
+    explicit FaceCacheScope(E_Handler &handler) : h(handler)
+    {
+        h.face_cache_active = true;
+        h.face_cache_fresh = false;
+    }
+    ~FaceCacheScope() { h.face_cache_active = false; }
+};
 
 E_Handler::E_Handler(ManifoldSurfaceMesh *inputMesh, VertexPositionGeometry *inputGeo)
 {
@@ -208,20 +241,20 @@ double E_Handler::E_Area_constraint(const std::vector<double> &Constants) const
 {
     double KA = Constants[0];
     double A_bar = Constants[1];
-    double A = geometry->totalArea();
+    double A = total_area();
 
     return 0.5 * KA * (A - A_bar) * (A - A_bar) / (A_bar * A_bar);
 }
 
 double E_Handler::E_SurfaceTension(const std::vector<double> &Constants) const
 {
-    return geometry->totalArea() * Constants[0];
+    return total_area() * Constants[0];
 }
 double E_Handler::E_MembraneTension(const std::vector<double> &Constants) const
 {
     //
     double At = Constants[1];
-    double A = geometry->totalArea();
+    double A = total_area();
     if (A < At)
         return 0.0;
 
@@ -231,7 +264,7 @@ double E_Handler::E_MembraneTension(const std::vector<double> &Constants) const
 double E_Handler::E_ExcessTension(const std::vector<double> &Constants) const
 {
     double At = Constants[1];
-    double A = geometry->totalArea();
+    double A = total_area();
     if (A < At)
         return 0.0;
 
@@ -248,7 +281,7 @@ double E_Handler::E_Bending(const std::vector<double> &Constants) const
     double r_eff2;
     Vector3 Pos;
     double A;
-    const BendingGeometry g(*mesh, *geometry, false);
+    const BendingGeometry g(*mesh, *geometry, faces(), false);
     for (Vertex v : mesh->vertices())
     {
         // boundary_fix;
@@ -325,7 +358,7 @@ double E_Handler::E_Bending_tan(const std::vector<double> &Constants) const
     double r_eff2;
     Vector3 Pos;
     double A;
-    const BendingGeometry g(*mesh, *geometry, true);
+    const BendingGeometry g(*mesh, *geometry, faces(), true);
     for (Vertex v : mesh->vertices())
     {
         // boundary_fix
@@ -832,7 +865,7 @@ VertexData<Vector3> E_Handler::F_MembraneTension(const std::vector<double> &Cons
 {
     double KA = Constants[0];
     double At = Constants[1];
-    double A = geometry->totalArea();
+    double A = total_area();
     VertexData<Vector3> Force(*mesh, {0.0, 0.0, 0.0});
     if (A < At)
         return Force;
@@ -845,7 +878,7 @@ VertexData<Vector3> E_Handler::F_ExcessTension(const std::vector<double> &Consta
 {
     double KA = Constants[0];
     double At = Constants[1];
-    double A = geometry->totalArea();
+    double A = total_area();
     VertexData<Vector3> Force(*mesh, {0.0, 0.0, 0.0});
     if (A < At)
         return Force;
@@ -856,7 +889,7 @@ VertexData<Vector3> E_Handler::F_Area_constraint(const std::vector<double> &Cons
 {
     double KA = Constants[0];
     double A_bar = Constants[1];
-    double A = geometry->totalArea();
+    double A = total_area();
     return ((A - A_bar) / (A_bar * A_bar)) * F_SurfaceTension({KA});
 }
 // This function correctly implements the spontaneous curvature
@@ -886,7 +919,7 @@ VertexData<Vector3> E_Handler::F_Bending(const std::vector<double> &Constants) c
 
     // So there are two terms, one that is the sum on the faces and one that is the sum on the edges, lets do the faces first
     // I think its best if i store the dual areas and the scalar mean curvatures in vectors.
-    const BendingGeometry g(*mesh, *geometry, false);
+    const BendingGeometry g(*mesh, *geometry, faces(), false);
     VertexData<double> Dual_areas(*mesh, 0.0);
     VertexData<double> Scalar_MC(*mesh, 0.0);
     for (Vertex v : mesh->vertices())
@@ -1012,7 +1045,7 @@ VertexData<Vector3> E_Handler::F_Bending_tan(const std::vector<double> &Constant
 
     // So there are two terms, one that is the sum on the faces and one that is the sum on the edges, lets do the faces first
     // I think its best if i store the dual areas and the scalar mean curvatures in vectors.
-    const BendingGeometry g(*mesh, *geometry, true);
+    const BendingGeometry g(*mesh, *geometry, faces(), true);
     VertexData<double> Dual_areas(*mesh, 0.0);
     VertexData<double> Scalar_MC(*mesh, 0.0);
     for (Vertex v : mesh->vertices())
@@ -2743,6 +2776,7 @@ void E_Handler::energy_state_key(std::vector<char> &key) const
 
 void E_Handler::compute_energies(double *E)
 {
+    FaceCacheScope face_scope(*this);
     term_energy_ms.resize(Energies.size(), 0.0);
     *E = 0;
     Energy_values.resize(Energies.size());
@@ -2971,6 +3005,7 @@ void E_Handler::Calculate_gradient()
 {
     ScopeTimer call_timer(gradient_ms);
     gradient_calls++;
+    FaceCacheScope face_scope(*this);
     term_gradient_ms.resize(Energies.size(), 0.0);
     for (Bead *bead : Beads)
         bead->CoverageForce = Vector3({0.0, 0.0, 0.0});

@@ -9,6 +9,16 @@
 using namespace geometrycentral;
 using namespace geometrycentral::surface;
 
+// Face normals and areas at the current positions, and the total area summed
+// as VertexPositionGeometry::totalArea() does (same order, nan faces skipped)
+struct FaceGeometry
+{
+    std::vector<Vector3> normal;
+    std::vector<double> area;
+    double total_area = 0.0;
+    void compute(ManifoldSurfaceMesh &mesh, VertexPositionGeometry &geometry);
+};
+
 class E_Handler
 {
 public:
@@ -145,6 +155,16 @@ public:
     virtual SparseMatrix<double> Calculate_Hessian_E_Normal();
 
 private:
+    // Inside Calculate_energies and Calculate_gradient the terms share one
+    // FaceGeometry of the current positions (computed on first use); anywhere
+    // else faces() computes it afresh
+    friend struct FaceCacheScope;
+    mutable FaceGeometry face_cache;
+    mutable bool face_cache_fresh = false;
+    bool face_cache_active = false;
+    const FaceGeometry &faces() const;
+    double total_area() const { return faces().total_area; }
+
     void compute_energies(double *E);
     // Everything the energy terms read, as bytes (see energy_memo_mode)
     void energy_state_key(std::vector<char> &key) const;
