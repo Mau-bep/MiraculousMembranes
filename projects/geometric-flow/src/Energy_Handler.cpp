@@ -44,6 +44,85 @@ namespace
         explicit ScopeTimer(double &a) : acc(a) {}
         ~ScopeTimer() { acc += std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count(); }
     };
+
+    // The per-element quantities of the bending terms, each computed once per
+    // evaluation: face normals and areas, and per edge the dihedral angle, its
+    // tangent term and the length. Calling barycentricDualArea and
+    // scalarMeanCurvature(Tan) per vertex computed every face normal 6 times
+    // and every dihedral angle twice. The vertex sums below repeat those
+    // functions (core/src/geometry.cpp) term by term and in the same order, so
+    // the values are bit-identical; the dihedral angle of a halfedge and of its
+    // twin are exactly equal because contraction is off (-ffp-contract=off).
+    struct BendingGeometry
+    {
+        std::vector<double> dual_area; // per vertex, barycentricDualArea
+        std::vector<double> mean_curv; // per vertex, scalarMeanCurvature or scalarMeanCurvatureTan
+        std::vector<double> dihedral;  // per edge, dihedralAngle(e.halfedge()), 0 on the boundary
+        std::vector<double> tan_term;  // per edge, 2 tan(dihedral / 2)
+        std::vector<double> length;    // per edge, edgeLength
+
+        BendingGeometry(ManifoldSurfaceMesh &mesh, VertexPositionGeometry &geometry, bool tan_version)
+        {
+            const VertexData<Vector3> &P = geometry.inputVertexPositions;
+            std::vector<Vector3> normal(mesh.nFacesCapacity());
+            std::vector<double> area(mesh.nFacesCapacity());
+            for (Face f : mesh.faces())
+            {
+                normal[f.getIndex()] = geometry.faceNormal(f);
+                area[f.getIndex()] = geometry.faceArea(f);
+            }
+
+            dihedral.resize(mesh.nEdgesCapacity());
+            tan_term.resize(mesh.nEdgesCapacity());
+            length.resize(mesh.nEdgesCapacity());
+            for (Edge e : mesh.edges())
+            {
+                const size_t i = e.getIndex();
+                length[i] = geometry.edgeLength(e);
+                if (e.isBoundary())
+                    dihedral[i] = 0.0;
+                else
+                {
+                    // dihedralAngle(he)
+                    Halfedge he = e.halfedge();
+                    const Vector3 &Normal_1 = normal[he.face().getIndex()];
+                    const Vector3 &Normal_2 = normal[he.twin().face().getIndex()];
+                    Vector3 e_ij = P[he.tipVertex().getIndex()] - P[he.tailVertex().getIndex()];
+                    e_ij = e_ij / norm(e_ij);
+                    dihedral[i] = atan2(dot(e_ij, cross(Normal_1, Normal_2)), dot(Normal_1, Normal_2));
+                }
+                if (tan_version)
+                    tan_term[i] = 2 * tan(dihedral[i] / 2);
+            }
+
+            dual_area.resize(mesh.nVerticesCapacity());
+            mean_curv.resize(mesh.nVerticesCapacity());
+            for (Vertex v : mesh.vertices())
+            {
+                // barycentricDualArea(v)
+                double Dual_area = 0.0;
+                for (Halfedge he : v.outgoingHalfedges())
+                {
+                    if (!(he.isInterior()))
+                        continue;
+                    Dual_area += area[he.face().getIndex()];
+                }
+                dual_area[v.getIndex()] = Dual_area / 3.0;
+
+                // scalarMeanCurvature(v), or the Tan version
+                double scalar_mean_curve = 0;
+                for (Halfedge he : v.incomingHalfedges())
+                {
+                    const size_t i = he.edge().getIndex();
+                    if (tan_version)
+                        scalar_mean_curve += tan_term[i] * length[i];
+                    else
+                        scalar_mean_curve += dihedral[i] * length[i];
+                }
+                mean_curv[v.getIndex()] = 0.25 * scalar_mean_curve;
+            }
+        }
+    };
 } // namespace
 
 E_Handler::E_Handler(ManifoldSurfaceMesh *inputMesh, VertexPositionGeometry *inputGeo)
@@ -168,6 +247,7 @@ double E_Handler::E_Bending(const std::vector<double> &Constants) const
     double r_eff2;
     Vector3 Pos;
     double A;
+    const BendingGeometry g(*mesh, *geometry, false);
     for (Vertex v : mesh->vertices())
     {
         // boundary_fix;
@@ -183,8 +263,8 @@ double E_Handler::E_Bending(const std::vector<double> &Constants) const
         // if (r_eff2 > 1.6 && boundary)
         // continue;
 
-        A = geometry->barycentricDualArea(v);
-        H = (geometry->scalarMeanCurvature(v) / A - H0);
+        A = g.dual_area[index];
+        H = (g.mean_curv[index] / A - H0);
         // std::cout<<" isnan\n";
         if (std::isnan(H))
             continue;
@@ -244,6 +324,7 @@ double E_Handler::E_Bending_tan(const std::vector<double> &Constants) const
     double r_eff2;
     Vector3 Pos;
     double A;
+    const BendingGeometry g(*mesh, *geometry, true);
     for (Vertex v : mesh->vertices())
     {
         // boundary_fix
@@ -260,8 +341,8 @@ double E_Handler::E_Bending_tan(const std::vector<double> &Constants) const
         // and E_Bending dropped it too. With it the energy ignored the membrane outside the
         // bead footprint while the force bent it, and each vertex crossing the cut was a jump.
 
-        A = geometry->barycentricDualArea(v);
-        H = (geometry->scalarMeanCurvatureTan(v) / A - H0);
+        A = g.dual_area[index];
+        H = (g.mean_curv[index] / A - H0);
         // std::cout<<" isnan\n";
         if (std::isnan(H))
             continue;
@@ -804,12 +885,13 @@ VertexData<Vector3> E_Handler::F_Bending(const std::vector<double> &Constants) c
 
     // So there are two terms, one that is the sum on the faces and one that is the sum on the edges, lets do the faces first
     // I think its best if i store the dual areas and the scalar mean curvatures in vectors.
+    const BendingGeometry g(*mesh, *geometry, false);
     VertexData<double> Dual_areas(*mesh, 0.0);
     VertexData<double> Scalar_MC(*mesh, 0.0);
     for (Vertex v : mesh->vertices())
     {
-        Dual_areas[v] = geometry->barycentricDualArea(v); // Ai
-        Scalar_MC[v] = geometry->scalarMeanCurvature(v);  // Hi
+        Dual_areas[v] = g.dual_area[v.getIndex()]; // Ai
+        Scalar_MC[v] = g.mean_curv[v.getIndex()];  // Hi
     }
 
     for (Face f : mesh->faces())
@@ -868,8 +950,8 @@ VertexData<Vector3> E_Handler::F_Bending(const std::vector<double> &Constants) c
         Grad_edge = geometry->gradient_edge_length(Positions_edge);
         Grad_dihedral = geometry->gradient_dihedral_angle(Positions_dihedral);
 
-        dih = geometry->dihedralAngle(e.halfedge());
-        lij = geometry->edgeLength(e);
+        dih = g.dihedral[e.getIndex()];
+        lij = g.length[e.getIndex()];
 
         // std::cout<<"THis is one dihedral" << dih <<" and the other one is " << geometry->Dihedral_angle(Positions_dihedral) <<" \n";
 
@@ -929,12 +1011,13 @@ VertexData<Vector3> E_Handler::F_Bending_tan(const std::vector<double> &Constant
 
     // So there are two terms, one that is the sum on the faces and one that is the sum on the edges, lets do the faces first
     // I think its best if i store the dual areas and the scalar mean curvatures in vectors.
+    const BendingGeometry g(*mesh, *geometry, true);
     VertexData<double> Dual_areas(*mesh, 0.0);
     VertexData<double> Scalar_MC(*mesh, 0.0);
     for (Vertex v : mesh->vertices())
     {
-        Dual_areas[v] = geometry->barycentricDualArea(v);   // Ai
-        Scalar_MC[v] = geometry->scalarMeanCurvatureTan(v); // Hi
+        Dual_areas[v] = g.dual_area[v.getIndex()];   // Ai
+        Scalar_MC[v] = g.mean_curv[v.getIndex()]; // Hi
     }
 
     for (Face f : mesh->faces())
@@ -994,9 +1077,9 @@ VertexData<Vector3> E_Handler::F_Bending_tan(const std::vector<double> &Constant
         Grad_edge = geometry->gradient_edge_length(Positions_edge);
         Grad_dihedral = geometry->gradient_dihedral_angle(Positions_dihedral);
 
-        dih = geometry->dihedralAngle(e.halfedge());
-        lij = geometry->edgeLength(e);
-        tan_dih = 2 * tan(0.5 * dih);
+        dih = g.dihedral[e.getIndex()];
+        lij = g.length[e.getIndex()];
+        tan_dih = g.tan_term[e.getIndex()]; // 2 * tan(0.5 * dih)
 
         Grad_dihedral *= (1 + 0.25 * tan_dih * tan_dih);
 
