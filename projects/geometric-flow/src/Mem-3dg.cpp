@@ -210,7 +210,7 @@ double Mem3DG::Backtracking()
   VertexData<Vector3> initial_pos(*mesh);
   if (recentering)
     recenter_membrane(true);
-  Vector3 CoM = geometry->centerOfMass();
+  Vector3 CoM; // only set by the recentering below
 
   initial_pos = geometry->inputVertexPositions;
 
@@ -242,7 +242,6 @@ double Mem3DG::Backtracking()
     std::cout << "At least one vertex has nan position\n";
 
   // geometry->refreshQuantities();
-  center = geometry->centerOfMass();
   Vector3 Vertex_pos;
 
   // We move the beads;
@@ -416,7 +415,7 @@ double Mem3DG::Backtracking_newton(Eigen::VectorXd p_lambda, double Projection, 
 
   if (recentering)
     recenter_membrane(true);
-  Vector3 CoM = geometry->centerOfMass();
+  Vector3 CoM; // only set by the recentering below
 
   // std::cout<<"Saving initial condition \n";
 
@@ -469,7 +468,6 @@ double Mem3DG::Backtracking_newton(Eigen::VectorXd p_lambda, double Projection, 
     std::cout << "At least one vertex has nan position\n";
 
   // geometry->refreshQuantities();
-  center = geometry->centerOfMass();
   Vector3 Vertex_pos;
 
   size_t bead_count = 0;
@@ -758,7 +756,7 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
   VertexData<Vector3> initial_pos(*mesh);
   if (recentering)
     recenter_membrane(false);
-  Vector3 CoM = geometry->centerOfMass();
+  Vector3 CoM; // only set by the recentering below
 
   initial_pos = geometry->inputVertexPositions;
 
@@ -799,7 +797,6 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
     nanflag = true;
     std::cout << "At least one vertex has nan position\n";
   }
-  center = geometry->centerOfMass();
   Vector3 Vertex_pos;
 
   // We move the beads;

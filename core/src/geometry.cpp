@@ -72,21 +72,13 @@ namespace geometrycentral
         {
 
             double total = 0.0;
-            // std::cout<<"The number of faces is " << mesh.nFaces() << " \n";
-            int counter = 0;
             for (Face f : mesh.faces())
             {
-                if (std::isnan(faceArea(f)))
+                double area = faceArea(f);
+                if (std::isnan(area))
                     continue;
-
-                // if(f.isBoundaryLoop()) std::cout<<"The face is a boundary loop?\n";
-                counter += 1;
-                total += faceArea(f);
-                // std::cout<< faceArea(f) << " ";
+                total += area;
             }
-            // std::cout<<"The number of considered faces is " << counter <<" \n";
-            // std::cout<<" \n";
-            // std::cout<<"The total area is " << total <<" \n";
             return total;
         }
 
