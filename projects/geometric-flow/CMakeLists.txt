@@ -27,7 +27,11 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STR
 
   # using Clang (linux or apple) or GCC
   message("Using clang/gcc compiler flags")
-  SET(BASE_CXX_FLAGS "-std=c++11 -Wall -Wextra")
+  # -ffp-contract=off: no fused multiply-adds, so the rounding of a formula does
+  # not depend on what the compiler inlines. Refactors (and later threaded
+  # versions) can then be checked bit for bit (Test_exactness). geometry-central,
+  # which compiles core/src/geometry.cpp, inherits these flags.
+  SET(BASE_CXX_FLAGS "-std=c++11 -Wall -Wextra -ffp-contract=off")
   SET(DISABLED_WARNINGS " -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wno-deprecated-declarations -Wno-missing-braces -Wno-unused-private-field")
   SET(TRACE_INCLUDES " -H -Wno-error=unused-command-line-argument")
 
