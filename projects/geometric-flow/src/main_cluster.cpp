@@ -646,7 +646,8 @@ namespace
                                                normal ? &sim.Sim_handler.Vertex_normals : nullptr);
         const double KB = bending_modulus(sim.Sim_handler.Energies, sim.Sim_handler.Energy_constants);
         const double f_scale = force_density_scale(*sim.mesh, *sim.geometry, KB);
-        const bool pass = normal ? dE_rel < p.normal_tol_E && f_rms < p.normal_tol_g * f_scale : dE_rel < p.bfgs_tol_E;
+        const bool force_ok = p.normal_tol_g == 0.0 || f_rms < p.normal_tol_g * f_scale;
+        const bool pass = normal ? dE_rel < p.normal_tol_E && force_ok : dE_rel < p.bfgs_tol_E;
         const bool converged = monitor.close_window(pass);
 
         std::ofstream log(run.basic_name + "Convergence_log.txt", std::ios_base::app);

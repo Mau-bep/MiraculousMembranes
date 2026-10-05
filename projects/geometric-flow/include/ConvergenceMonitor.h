@@ -14,6 +14,7 @@
 //            change stayed at 2.5e-3 per 100 steps while the net change fell
 //            to ~5e-5). BFGS-Normal does not remesh, so there the two agree.
 //   force  : sqrt( 1/N sum_i ((F_i . n_i) / A_i)^2 ) < tol_g * KB / R^3
+//            (BFGS-Normal only, and only when normal_tol_g > 0; always logged)
 //            the RMS normal force density, with n_i the normals the
 //            BFGS-Normal step moves along, A_i a third of the adjacent face
 //            areas, R = sqrt(A / 4pi) and KB the bending modulus (1 when no
@@ -44,7 +45,11 @@ struct StoppingParams
     double E_floor = 1.0;       // energy scale used when |E| is smaller
     double bfgs_tol_E = 1e-3;   // BFGS: relative energy change per window
     double normal_tol_E = 1e-6; // BFGS-Normal: relative energy change per window
-    double normal_tol_g = 0.5;  // BFGS-Normal: RMS normal force density in units of KB / R^3
+    // BFGS-Normal: RMS normal force density in units of KB / R^3; 0 (default)
+    // leaves it out. Measured 2026-10-05: it never stopped a run earlier or
+    // at a lower energy, and a planar adhesion run stays at ~2000-5000 KB/R^3
+    // (contact line on tiny triangles; R from the sheet area is meaningless)
+    double normal_tol_g = 0.0;
     // Line search steps below 1e-10 this many times in a row reset the L-BFGS
     // history; twice as many switch BFGS to BFGS-Normal or end a BFGS-Normal run.
     // 0 (default) turns this off: runs with beads (the bead displacement cap)
