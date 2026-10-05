@@ -1063,7 +1063,10 @@ double Mem3DG::integrate(std::ofstream &Sim_data, double time, std::vector<std::
 Eigen::VectorXd Mem3DG::lbfgs_direction(Eigen::VectorXd &q) const
 {
   std::vector<double> alpha_list(m);
-  for (int i = BFGS_iter - 1; i >= 0 && BFGS_iter - i < m; i--)
+  // Without consistent_window the first loop stops one pair short once the
+  // history is full, and the second loop applies that oldest pair with alpha = 0
+  const int window = lbfgs.consistent_window ? m + 1 : m;
+  for (int i = BFGS_iter - 1; i >= 0 && BFGS_iter - i < window; i--)
   {
     double alpha_i = rho_list[i % m] * s_list[i % m].dot(q);
     alpha_list[i % m] = alpha_i;
@@ -1076,6 +1079,15 @@ Eigen::VectorXd Mem3DG::lbfgs_direction(Eigen::VectorXd &q) const
     r = r + s_list[i % m] * (alpha_list[i % m] - beta_i);
   }
   return r;
+}
+
+// Statistics of the stored curvature pairs; with the default force-difference
+// pairs s.y is negative wherever the energy is locally convex
+void Mem3DG::count_curvature_pair(double sy)
+{
+  lbfgs_pairs++;
+  if (sy < 0.0)
+    lbfgs_negative_sy++;
 }
 
 double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::vector<std::string> Bead_data_filenames, bool Save_output_data)
@@ -1101,6 +1113,7 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
   std::vector<Vector3> Bead_forces(Beads.size());
   if (BFGS_iter == 0)
   {
+    lbfgs_restarts++;
     Sim_handler->Calculate_gradient();
 
     VertexData<double> Grad_E = VertexData<double>(*mesh, 0.0);
@@ -1142,7 +1155,10 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
     {
       Aux_vector[v.getIndex()] = dot(Sim_handler->Current_grad[v], Sim_handler->Vertex_normals[v]) - dot(Sim_handler->Previous_grad[v], Sim_handler->Vertex_normals[v]);
     }
+    if (lbfgs.gradient_y)
+      Aux_vector = -Aux_vector;
     y_list.push_back(Aux_vector);
+    count_curvature_pair(s_list[0].dot(y_list[0]));
 
     double rho_i = 1.0 / (s_list[0].dot(y_list[0]));
     if (isnan(rho_i) || isinf(rho_i) || fabs(s_list[0].dot(y_list[0])) < 1e-10)
@@ -1183,11 +1199,14 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
     {
       Grad_E[v.getIndex()] = dot((Sim_handler->Current_grad[v] - Sim_handler->Previous_grad[v]), Sim_handler->Vertex_normals[v]);
     }
+    if (lbfgs.gradient_y)
+      Grad_E = -Grad_E;
 
     // BFGS_iter < 0: Backtracking_BFGS asked for a reset, the history is
     // rebuilt next step (indexing rho_list with it would read out of bounds)
     if (BFGS_iter >= 0)
     {
+      count_curvature_pair(s_k.dot(Grad_E));
       if (BFGS_iter < m)
       {
         s_list.push_back(s_k);
@@ -1281,6 +1300,7 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
 
   if (BFGS_iter == 0)
   {
+    lbfgs_restarts++;
     Sim_handler->Calculate_gradient();
     for (size_t bi = 0; bi < Beads.size(); bi++)
     {
@@ -1326,7 +1346,10 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
       Aux_vector[3 * N_vert + 3 * bi + 1] = Diff.y;
       Aux_vector[3 * N_vert + 3 * bi + 2] = Diff.z;
     }
+    if (lbfgs.gradient_y)
+      Aux_vector = -Aux_vector;
     y_list.push_back(Aux_vector);
+    count_curvature_pair(s_list[0].dot(y_list[0]));
 
     double rho_i = 1.0 / (s_list[0].dot(y_list[0]));
     if (isnan(rho_i) || isinf(rho_i) || fabs(s_list[0].dot(y_list[0])) < 1e-10)
@@ -1391,10 +1414,13 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
         Grad_vec[3 * N_vert + 3 * bi + 1] = Beads[bi]->Total_force.y - Beads[bi]->Prev_Total_force.y;
         Grad_vec[3 * N_vert + 3 * bi + 2] = Beads[bi]->Total_force.z - Beads[bi]->Prev_Total_force.z;
       }
+      if (lbfgs.gradient_y)
+        Grad_vec = -Grad_vec;
 
       // BFGS_iter < 0: Backtracking_BFGS asked for a reset (see BFGS-Normal)
       if (BFGS_iter >= 0)
       {
+        count_curvature_pair(s_k.dot(Grad_vec));
         if (BFGS_iter < m)
         {
           s_list.push_back(s_k);

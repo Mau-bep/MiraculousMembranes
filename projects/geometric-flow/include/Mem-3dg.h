@@ -15,6 +15,16 @@
 using namespace geometrycentral;
 using namespace geometrycentral::surface;
 
+// L-BFGS variants ("lbfgs" block of the input file). The defaults are the
+// original behaviour: curvature pairs from force differences (s.y < 0 where the
+// energy is convex) and a first loop of the recursion that skips the oldest of
+// the m stored pairs.
+struct LbfgsOptions
+{
+  bool gradient_y = false;        // y = F_old - F_new, the gradient difference
+  bool consistent_window = false; // both loops of the recursion use the same m pairs
+};
+
 class Mem3DG
 {
 
@@ -68,9 +78,14 @@ public:
   // L-BFGS
   int BFGS_iter = 0;
   int m = 10;
+  LbfgsOptions lbfgs;
   std::vector<Eigen::VectorXd> s_list;
   std::vector<Eigen::VectorXd> y_list;
   std::vector<double> rho_list;
+  // Curvature pairs stored, how many had s.y < 0, and restarts (Timing.txt)
+  long lbfgs_pairs = 0;
+  long lbfgs_negative_sy = 0;
+  long lbfgs_restarts = 0;
   // Energy at the start of the last L-BFGS line search and after the step,
   // for the stopping criteria (ConvergenceMonitor.h)
   double E_step_start = 0.0;
@@ -118,6 +133,7 @@ public:
   void write_bead_rows(const std::vector<std::string> &Bead_data_filenames) const;
 
   Eigen::VectorXd lbfgs_direction(Eigen::VectorXd &q) const;
+  void count_curvature_pair(double sy);
 
   double constraint_rhs(const std::string &name, double area) const;
 

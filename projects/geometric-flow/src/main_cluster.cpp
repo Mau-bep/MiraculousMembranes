@@ -1309,8 +1309,12 @@ int main(int argc, char **argv)
         std::ofstream timing(run.basic_name + (resuming ? "Timing_from_" + std::to_string(start_t) + ".txt" : "Timing.txt"));
         timing << "wall_ms " << ms_since(run_start) << "\nremesh_ms " << remeshing_elapsed_time << "\nintegrate_ms "
                << integrate_elapsed_time << "\nsave_ms " << saving_mesh_time << "\nremeshes " << run.n_remesh
-               << "\nvertices " << sim.mesh->nVertices() << "\n";
+               << "\nvertices " << sim.mesh->nVertices() << "\nlbfgs_pairs " << M3DG.lbfgs_pairs
+               << "\nlbfgs_negative_sy " << M3DG.lbfgs_negative_sy << "\nlbfgs_restarts " << M3DG.lbfgs_restarts << "\n";
     }
+    if (M3DG.lbfgs_pairs > 0)
+        std::cout << "L-BFGS: " << M3DG.lbfgs_pairs << " curvature pairs, " << M3DG.lbfgs_negative_sy
+                  << " with s.y < 0, " << M3DG.lbfgs_restarts << " restarts\n";
 
     save_final_state(sim, run);
     return EXIT_SUCCESS;

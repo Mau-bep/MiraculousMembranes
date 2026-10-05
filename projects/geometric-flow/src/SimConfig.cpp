@@ -254,6 +254,23 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
     else
         std::cout << "The integration method is not defined, using Gradient descent\n";
     cfg.bfgs_saved_states = data.value("BFGS_saved_states", 10);
+    // "lbfgs": {"y": "force" | "gradient", "consistent_window": bool}, the defaults
+    // keep the original behaviour (LbfgsOptions in Mem-3dg.h)
+    if (data.contains("lbfgs"))
+    {
+        const json &l = data["lbfgs"];
+        const std::string y = l.value("y", std::string("force"));
+        if (y != "force" && y != "gradient")
+            throw std::runtime_error("Input file: lbfgs.y must be \"force\" or \"gradient\"");
+        cfg.lbfgs.gradient_y = y == "gradient";
+        cfg.lbfgs.consistent_window = l.value("consistent_window", cfg.lbfgs.consistent_window);
+        std::cout << "L-BFGS: y from " << (cfg.lbfgs.gradient_y ? "gradient" : "force") << " differences, consistent window "
+                  << (cfg.lbfgs.consistent_window ? "on" : "off") << "\n";
+        // Cylinder -> sphere without remeshing: gradient pairs with the old window
+        // took huge tangential steps that broke the mesh
+        if (cfg.lbfgs.gradient_y && !cfg.lbfgs.consistent_window)
+            std::cout << "Warning: lbfgs.y = \"gradient\" without consistent_window was unstable in tests\n";
+    }
     if (data.contains("stopping"))
     {
         const json &s = data["stopping"];
@@ -622,6 +639,7 @@ void build_simulation(const SimConfig &cfg, Simulation &sim, const std::string &
     if (cfg.has_momentum)
         M3DG.momentum = cfg.momentum;
     M3DG.m = cfg.bfgs_saved_states;
+    M3DG.lbfgs = cfg.lbfgs;
 
     if (cfg.remesher.present)
     {

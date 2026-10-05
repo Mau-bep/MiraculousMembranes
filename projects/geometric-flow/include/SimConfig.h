@@ -117,6 +117,7 @@ struct SimConfig
 
     std::string integration = "Gradient_descent";
     int bfgs_saved_states = 10;
+    LbfgsOptions lbfgs;
     StoppingParams stopping;
     std::vector<std::string> switches;
     std::vector<int> switch_times;
