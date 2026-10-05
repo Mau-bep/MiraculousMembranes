@@ -255,17 +255,18 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
         std::cout << "The integration method is not defined, using Gradient descent\n";
     cfg.bfgs_saved_states = data.value("BFGS_saved_states", 10);
     // "lbfgs": {"y": "force" | "gradient", "consistent_window": bool,
-    //           "armijo": "norm" | "gradient"}, the defaults keep the original
-    // behaviour (LbfgsOptions in Mem-3dg.h)
+    //           "armijo": "norm" | "gradient"}. Defaults gradient / true /
+    // gradient; "force" / false / "norm" is the original behaviour
+    // (LbfgsOptions in Mem-3dg.h)
     if (data.contains("lbfgs"))
     {
         const json &l = data["lbfgs"];
-        const std::string y = l.value("y", std::string("force"));
+        const std::string y = l.value("y", std::string(cfg.lbfgs.gradient_y ? "gradient" : "force"));
         if (y != "force" && y != "gradient")
             throw std::runtime_error("Input file: lbfgs.y must be \"force\" or \"gradient\"");
         cfg.lbfgs.gradient_y = y == "gradient";
         cfg.lbfgs.consistent_window = l.value("consistent_window", cfg.lbfgs.consistent_window);
-        const std::string armijo = l.value("armijo", std::string("norm"));
+        const std::string armijo = l.value("armijo", std::string(cfg.lbfgs.gradient_armijo ? "gradient" : "norm"));
         if (armijo != "norm" && armijo != "gradient")
             throw std::runtime_error("Input file: lbfgs.armijo must be \"norm\" or \"gradient\"");
         cfg.lbfgs.gradient_armijo = armijo == "gradient";

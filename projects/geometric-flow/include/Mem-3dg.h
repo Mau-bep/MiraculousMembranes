@@ -16,17 +16,18 @@ using namespace geometrycentral;
 using namespace geometrycentral::surface;
 
 // L-BFGS variants ("lbfgs" block of the input file). The defaults are the
-// original behaviour: curvature pairs from force differences (s.y < 0 where the
-// energy is convex) and a first loop of the recursion that skips the oldest of
-// the m stored pairs.
+// textbook method; each option can be set back to the original behaviour to
+// reproduce older runs: curvature pairs from force differences (s.y < 0 where
+// the energy is convex), a first loop of the recursion that skips the oldest of
+// the m stored pairs, and an Armijo test with |d|^2.
 struct LbfgsOptions
 {
-  bool gradient_y = false;        // y = F_old - F_new, the gradient difference
-  bool consistent_window = false; // both loops of the recursion use the same m pairs
+  bool gradient_y = true;        // y = F_old - F_new, the gradient difference
+  bool consistent_window = true; // both loops of the recursion use the same m pairs
   // Armijo test of Backtracking_BFGS with the slope F.d the force predicts along
   // the step, instead of |d|^2 (equal for steepest descent, not for L-BFGS
   // steps). An L-BFGS direction with r.F <= 0 is then replaced by the force.
-  bool gradient_armijo = false;
+  bool gradient_armijo = true;
 };
 
 class Mem3DG
