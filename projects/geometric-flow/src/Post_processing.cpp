@@ -32,6 +32,7 @@
 #include "Mem-3dg.h"
 #include "Beads.h"
 #include "Interaction.h"
+#include "BeadGeometry.h"
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
@@ -419,6 +420,28 @@ double CalculateCoverageSolidAngle(std::string Simdir, int Step, Vector3 BeadPos
     return coveredFraction;
 }
 
+// Same coverage the Coverage energy uses: sum over faces of the cosine shell
+// weight times |omega| / 4pi, with the face selection of bead_geometry
+double CalculateCoverageBeadGeometry(std::string Simdir, int Step, Vector3 BeadPos, double radius)
+{
+    std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(Simdir + "membrane_" + std::to_string(Step) + ".obj");
+    mesh = mesh_uptr.release();
+    geometry = geometry_uptr.release();
+
+    double coveredFraction = 0.0;
+    for (Face f : mesh->faces())
+    {
+        const bead_geometry::FaceCoverageData faceData =
+            bead_geometry::evaluateFaceCoverage(*geometry, f, BeadPos, radius);
+
+        if (!faceData.selected)
+            continue;
+
+        coveredFraction += faceData.weight * faceData.omegaUnsigned / (4.0 * bead_geometry::PI_VALUE);
+    }
+    return coveredFraction;
+}
+
 std::vector<double> ReadCoverage(std::string Subdir)
 {
     std::vector<double> Coverage_data(0);
@@ -483,7 +506,8 @@ std::vector<double> ReadCoverage(std::string Subdir)
     std::cout << "My old method said the last step is " << FinalStep << " and the new one says " << StepCurrent << " \n";
 
     // double A_covered = CalculateCoverage(Subdir, FinalStep, BeadPos, r, rc);
-    double A_covered = CalculateCoverageSolidAngle(Subdir, FinalStep, BeadPos, r, rc);
+    // double A_covered = CalculateCoverageSolidAngle(Subdir, FinalStep, BeadPos, r, rc);
+    double A_covered = CalculateCoverageBeadGeometry(Subdir, FinalStep, BeadPos, r);
 
     // Ok then we have everything no?
     Coverage_data.push_back(KA);
