@@ -180,6 +180,8 @@ double Mem3DG::Backtracking()
   double c1 = 0.5;
   double rho = 0.5;
   double alpha = 1;
+  if (warm_start_factor > 0.0)
+    alpha = std::min(1.0, warm_start_factor * last_alpha);
   double position_Projeection = 0;
   double X_pos;
 
@@ -263,6 +265,7 @@ double Mem3DG::Backtracking()
     std::cout << "The energy diff is quite small and so is the gradient\n";
     std::cout << "The energy diff is" << abs(NewE - previousE) / previousE << "\n";
     std::cout << "The projection is" << Projection << "\n";
+    last_alpha = 1.0;
     return -1.0;
   }
 
@@ -293,6 +296,7 @@ double Mem3DG::Backtracking()
       std::cout << "The energy diff is quite small and so is the gradient\n";
       std::cout << "The energy diff is" << abs(NewE - previousE) / previousE << "\n";
       std::cout << "The projection is" << Projection << "\n";
+      last_alpha = 1.0;
       return -1.0;
     }
 
@@ -313,6 +317,7 @@ double Mem3DG::Backtracking()
         std::cout << "The gradient got crazy\n";
         std::cout << "The projection is " << Projection << "\n";
         // geometry->inputVertexPositions = initial_pos;
+        last_alpha = 1.0;
         return -1;
       }
       small_TS = true;
@@ -371,6 +376,8 @@ double Mem3DG::Backtracking()
     }
   }
 
+  // A collapsed search (alpha < 1e-10) starts the next one at 1 again
+  last_alpha = alpha >= 1e-10 ? alpha : 1.0;
   return alpha;
 }
 

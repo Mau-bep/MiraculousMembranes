@@ -314,6 +314,12 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
             throw std::runtime_error("Input file: energy_memo must be \"off\", \"on\" or \"verify\"");
         cfg.energy_memo_mode = mode == "off" ? 0 : (mode == "on" ? 1 : 2);
     }
+    // "line_search_warm_start": c > 0 starts each gradient descent line search at
+    // min(1, c * the last accepted step); 0 (default) starts at 1. With c a power of
+    // 2 the trial steps stay the powers of 2 the search would have tried from 1.
+    cfg.warm_start_factor = data.value("line_search_warm_start", 0.0);
+    if (cfg.warm_start_factor < 0.0)
+        throw std::runtime_error("Input file: line_search_warm_start must not be negative");
     // "debug_dump": {"every": N}, for exact comparisons (Scripts/regression_compare.py)
     if (data.contains("debug_dump"))
     {
@@ -890,6 +896,7 @@ void build_simulation(const SimConfig &cfg, Simulation &sim, const std::string &
         M3DG.momentum = cfg.momentum;
     M3DG.m = cfg.bfgs_saved_states;
     M3DG.lbfgs = cfg.lbfgs;
+    M3DG.warm_start_factor = cfg.warm_start_factor;
 
     if (cfg.remesher.present)
     {

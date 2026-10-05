@@ -47,6 +47,10 @@ public:
   // Integration settings
   bool backtrack = true;
   double timestep = 1e-4; // fixed step when backtrack is false
+  // Gradient descent line search ("line_search_warm_start"): with a factor c > 0
+  // each search starts at min(1, c * the last accepted step) instead of 1
+  double warm_start_factor = 0.0;
+  double last_alpha = 1.0;
   bool momentum = false;
   double learn_rate = 0.5;
   bool recentering = true;
