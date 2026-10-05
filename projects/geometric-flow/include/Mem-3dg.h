@@ -23,6 +23,10 @@ struct LbfgsOptions
 {
   bool gradient_y = false;        // y = F_old - F_new, the gradient difference
   bool consistent_window = false; // both loops of the recursion use the same m pairs
+  // Armijo test of Backtracking_BFGS with the slope F.d the force predicts along
+  // the step, instead of |d|^2 (equal for steepest descent, not for L-BFGS
+  // steps). An L-BFGS direction with r.F <= 0 is then replaced by the force.
+  bool gradient_armijo = false;
 };
 
 class Mem3DG
@@ -86,6 +90,7 @@ public:
   long lbfgs_pairs = 0;
   long lbfgs_negative_sy = 0;
   long lbfgs_restarts = 0;
+  long lbfgs_uphill = 0; // L-BFGS directions with r.F <= 0 replaced by the force (gradient_armijo)
   // Energy at the start of the last L-BFGS line search and after the step,
   // for the stopping criteria (ConvergenceMonitor.h)
   double E_step_start = 0.0;

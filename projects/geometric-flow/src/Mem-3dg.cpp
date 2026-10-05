@@ -809,6 +809,24 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
     Projection += Force[v].norm2();
   }
 
+  // Decrease per unit step the force predicts, for the Armijo test. The old
+  // test uses |d|^2, which is the slope only for steepest descent. With
+  // gradient_armijo it is F.d over the vertices plus F.dq over the beads the
+  // step moves; Move_bead is linear in alpha, so dq is this alpha = 1 trial.
+  // Manual beads are driven, not optimized, and are left out as before.
+  double Slope = Projection;
+  if (lbfgs.gradient_armijo)
+  {
+    Slope = 0.0;
+    for (Vertex v : mesh->vertices())
+      Slope += dot(Sim_handler->Current_grad[v], Force[v]);
+    for (size_t i = 0; i < Beads.size(); i++)
+      if (Beads[i]->state != "manual")
+        Slope += dot(Beads[i]->Total_force, Beads[i]->Pos - Bead_init[i]);
+    if (!(Slope > 0.0))
+      Slope = Projection; // not downhill (the integrators replace such L-BFGS directions)
+  }
+
   size_t bead_count = 0;
   NewE = 0.0;
   Sim_handler->Calculate_energies(&NewE);
@@ -835,7 +853,7 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
     for (size_t i = 0; i < Beads.size(); i++)
       displacement_cond = displacement_cond && Beads[i]->Total_force.norm() * alpha < 0.1 * Beads[i]->sigma;
 
-    if (NewE <= previousE - c1 * alpha * Projection && displacement_cond && fabs(NewE - previousE) < 1e2)
+    if (NewE <= previousE - c1 * alpha * Slope && displacement_cond && fabs(NewE - previousE) < 1e2)
     {
 
       break;
@@ -1179,6 +1197,13 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
     }
 
     Eigen::VectorXd r = lbfgs_direction(Grad_E);
+    // Not downhill: step along the normal force and restart the history
+    const bool uphill = lbfgs.gradient_armijo && !(r.dot(Grad_E) > 0.0);
+    if (uphill)
+    {
+      r = Grad_E;
+      lbfgs_uphill++;
+    }
     VertexData<Vector3> Force(*mesh, Vector3({0.0, 0.0, 0.0}));
     for (Vertex v : mesh->vertices())
     {
@@ -1190,6 +1215,8 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
     }
 
     backtrackstep = Backtracking_BFGS(Force, Bead_forces);
+    if (uphill)
+      BFGS_iter = -1;
 
     Eigen::VectorXd s_k = backtrackstep * r;
 
@@ -1378,6 +1405,13 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
     }
 
     Eigen::VectorXd r = lbfgs_direction(Grad_vec);
+    // Not downhill: step along the force and restart the history
+    const bool uphill = lbfgs.gradient_armijo && !(r.dot(Grad_vec) > 0.0);
+    if (uphill)
+    {
+      r = Grad_vec;
+      lbfgs_uphill++;
+    }
 
     // So here we have r which is the product of the inverse Hessian with the gradient, we just need to do the backtracking and then update the lists
     VertexData<Vector3> Force(*mesh, Vector3({0.0, 0.0, 0.0}));
@@ -1393,6 +1427,8 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
     }
 
     backtrackstep = Backtracking_BFGS(Force, Bead_forces);
+    if (uphill)
+      BFGS_iter = -1;
 
     // Ok here we have a lil problem when.
     if (backtrackstep > 0.0)
