@@ -36,7 +36,7 @@ Nsim=sys.argv[5]
 KE = 1.0
 
 # Log-spaced KB / Strg phase space batch: own results folder and file prefix
-Batch_dir = '../Results/WrappingPhaseSpaceLog/'
+Batch_dir = '../Results/WrappingPhaseSpaceLogOct/'
 Batch_tag = 'WrapPSLog'
 
 
