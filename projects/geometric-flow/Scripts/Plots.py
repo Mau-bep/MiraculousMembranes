@@ -168,7 +168,7 @@ def spacing_contour():
 
 
 def contour():
-    folder = "../Results/Wrapping_PhaseLogscale/"
+    folder = "../Results/WrappingPhaseSpaceNewFast/"
     filepath = folder + "Coverage_data.txt"
 
     Data = np.loadtxt(filepath,delimiter = ' ', skiprows = 1, usecols = (1,2,3,4,5,6))
@@ -184,7 +184,7 @@ def contour():
     Y = Data[:,2]/Data[:,0]
 
     # Create a pcolormesh by binning the scattered values (NumPy-only)
-    nx, ny = 13, 11
+    nx, ny = 16, 16
     # use log-spaced x edges because X is plotted on a log scale
     x_min, x_max = np.nanmin(X), np.nanmax(X)
     if x_min <= 0:
