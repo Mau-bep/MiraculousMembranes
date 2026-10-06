@@ -118,6 +118,8 @@ void Bead::Move_bead(double dt, Vector3 center)
             // std::cout<<"THe center is " << center << "\n";
         }
     }
+    if (state == "rigid")
+        this->Pos = this->Pos + Free_force(Total_force) * dt - center;
     if (state == "froze")
         return;
 
@@ -161,6 +163,8 @@ void Bead::Move_bead(double dt, Vector3 center, Vector3 Force)
             // std::cout<<"THe center is " << center << "\n";
         }
     }
+    if (state == "rigid")
+        this->Pos = this->Pos + Free_force(Force) * dt - center;
     if (state == "froze")
         return;
 
@@ -184,6 +188,86 @@ void Bead::Move_bead(double dt, Vector3 center, Vector3 Force)
     return;
 }
 
+bool Bead::Has_rigid_bond() const
+{
+    for (size_t i = 0; i < Beads.size(); i++)
+        if (Bond_type[i] == "Rigid")
+            return true;
+    return false;
+}
+
+// The part of Force a rigid bead follows: the components along its rigid bonds
+// are removed, so a step keeps those lengths to first order (the second-order
+// drift is removed by Enforce_rigid_bonds). Other states get Force unchanged.
+Vector3 Bead::Free_force(Vector3 Force) const
+{
+    if (state != "rigid")
+        return Force;
+    std::vector<Vector3> axes; // orthonormal basis of the bond directions
+    for (size_t i = 0; i < Beads.size(); i++)
+    {
+        if (Bond_type[i] != "Rigid")
+            continue;
+        Vector3 axis = Beads[i]->Pos - Pos;
+        for (const Vector3 &a : axes)
+            axis -= dot(axis, a) * a;
+        if (axis.norm() < 1e-12)
+            continue;
+        axis = axis.unit();
+        axes.push_back(axis);
+        Force -= dot(Force, axis) * axis;
+    }
+    return Force;
+}
+
+// Moves the bead (and its partner, if also rigid) along each rigid bond so the
+// bond has its length again. Two rigid beads move by the same amount in
+// opposite directions, which keeps their midpoint; the pair is handled from
+// the bead with the lower address. Returns the largest violation it found.
+double Bead::Enforce_rigid_bonds()
+{
+    double violation = 0.0;
+    if (state != "rigid")
+        return violation;
+    for (size_t i = 0; i < Beads.size(); i++)
+    {
+        if (Bond_type[i] != "Rigid")
+            continue;
+        Bead *partner = Beads[i];
+        const bool both = partner->state == "rigid";
+        if (both && partner < this)
+            continue;
+        Vector3 d = Pos - partner->Pos;
+        double r = d.norm();
+        if (r < 1e-12)
+            continue;
+        double L = Interaction_constants_vector[i][0];
+        violation = std::max(violation, std::fabs(r - L));
+        Vector3 correction = (L - r) / r * d;
+        if (both)
+        {
+            Pos += 0.5 * correction;
+            partner->Pos -= 0.5 * correction;
+        }
+        else
+            Pos += correction;
+    }
+    return violation;
+}
+
+// One sweep is exact for a single bond; beads with several rigid bonds need a
+// few more
+void Enforce_rigid_bonds(const std::vector<Bead *> &beads)
+{
+    for (int sweep = 0; sweep < 100; sweep++)
+    {
+        double violation = 0.0;
+        for (Bead *bead : beads)
+            violation = std::max(violation, bead->Enforce_rigid_bonds());
+        if (violation < 1e-12)
+            return;
+    }
+}
 
 void Bead::update_state()
 {

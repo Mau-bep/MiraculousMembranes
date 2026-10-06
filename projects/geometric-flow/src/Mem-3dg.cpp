@@ -248,6 +248,7 @@ double Mem3DG::Backtracking()
   // We move the beads;
   for (size_t i = 0; i < Beads.size(); i++)
     Beads[i]->Move_bead(alpha, Vector3({0, 0, 0}));
+  Enforce_rigid_bonds(Beads);
 
   Projection = Sim_handler->Gradient_norms[Sim_handler->Energies.size()];
 
@@ -271,7 +272,7 @@ double Mem3DG::Backtracking()
     displacement_cond = true;
 
     for (size_t i = 0; i < Beads.size(); i++)
-      displacement_cond = displacement_cond && Beads[i]->Total_force.norm() * alpha < 0.1 * Beads[i]->sigma;
+      displacement_cond = displacement_cond && Beads[i]->Free_force(Beads[i]->Total_force).norm() * alpha < 0.1 * Beads[i]->sigma;
 
     if (NewE <= previousE - c1 * alpha * Projection && displacement_cond && fabs(NewE - previousE) < 1e2)
     {
@@ -332,6 +333,7 @@ double Mem3DG::Backtracking()
         Beads[i]->Reset_bead(Bead_init[i]);
         Beads[i]->Move_bead(alpha, Vector3({0, 0, 0}));
       }
+      Enforce_rigid_bonds(Beads);
     }
     else
     {
@@ -440,6 +442,7 @@ double Mem3DG::Backtracking_newton(Eigen::VectorXd p_lambda, double Projection, 
   // We move the beads;
   for (size_t i = 0; i < Beads.size(); i++)
     Beads[i]->Move_bead(alpha, Vector3({0, 0, 0}));
+  Enforce_rigid_bonds(Beads);
 
   // for(int bi = 0; bi < N_beads; bi++) Beads
 
@@ -497,7 +500,7 @@ double Mem3DG::Backtracking_newton(Eigen::VectorXd p_lambda, double Projection, 
     backtrack_log << NewNorm << " ";
 
     for (size_t i = 0; i < Beads.size(); i++)
-      displacement_cond = displacement_cond && Beads[i]->Total_force.norm() * alpha < 0.1 * Beads[i]->sigma;
+      displacement_cond = displacement_cond && Beads[i]->Free_force(Beads[i]->Total_force).norm() * alpha < 0.1 * Beads[i]->sigma;
 
     // if( fabs(PrevNorm-NewNorm) <= alpha * Projection && NewNorm < PrevNorm  ) {
     if (NewNorm < PrevNorm)
@@ -641,6 +644,7 @@ double Mem3DG::Backtracking_newton(Eigen::VectorXd p_lambda, double Projection, 
         Beads[i]->Total_force = Step_beads[i];
         Beads[i]->Move_bead(alpha, Vector3({0, 0, 0}));
       }
+      Enforce_rigid_bonds(Beads);
     }
     else
     {
@@ -802,6 +806,7 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
   // std::cout<<"Moving beads\n";
   for (size_t i = 0; i < Beads.size(); i++)
     Beads[i]->Move_bead(alpha, Vector3({0, 0, 0}), Bead_forces[i]);
+  Enforce_rigid_bonds(Beads);
   Projection = 0.0;
   // std::cout<<"Calculating projection\n";
   for (Vertex v : mesh->vertices())
@@ -822,7 +827,7 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
       Slope += dot(Sim_handler->Current_grad[v], Force[v]);
     for (size_t i = 0; i < Beads.size(); i++)
       if (Beads[i]->state != "manual")
-        Slope += dot(Beads[i]->Total_force, Beads[i]->Pos - Bead_init[i]);
+        Slope += dot(Beads[i]->Free_force(Beads[i]->Total_force), Beads[i]->Pos - Bead_init[i]);
     if (!(Slope > 0.0))
       Slope = Projection; // not downhill (the integrators replace such L-BFGS directions)
   }
@@ -843,7 +848,7 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
     displacement_cond = true;
 
     for (size_t i = 0; i < Beads.size(); i++)
-      displacement_cond = displacement_cond && Beads[i]->Total_force.norm() * alpha < 0.1 * Beads[i]->sigma;
+      displacement_cond = displacement_cond && Beads[i]->Free_force(Beads[i]->Total_force).norm() * alpha < 0.1 * Beads[i]->sigma;
 
     if (NewE <= previousE - c1 * alpha * Slope && displacement_cond && fabs(NewE - previousE) < 1e2)
     {
@@ -890,6 +895,7 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
         Beads[i]->Reset_bead(Bead_init[i]);
         Beads[i]->Move_bead(alpha, Vector3({0, 0, 0}), Bead_forces[i]);
       }
+      Enforce_rigid_bonds(Beads);
     }
     else
     {
@@ -1034,6 +1040,7 @@ double Mem3DG::integrate(std::ofstream &Sim_data, double time, std::vector<std::
     {
       Beads[i]->Move_bead(backtrackstep, Vector3({0, 0, 0}));
     }
+    Enforce_rigid_bonds(Beads);
   }
 
   end = chrono::steady_clock::now();
@@ -1317,7 +1324,7 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
     Sim_handler->Calculate_gradient();
     for (size_t bi = 0; bi < Beads.size(); bi++)
     {
-      Bead_forces[bi] = Beads[bi]->Total_force;
+      Bead_forces[bi] = Beads[bi]->Free_force(Beads[bi]->Total_force);
     }
     backtrackstep = Backtracking_BFGS(Sim_handler->Current_grad, Bead_forces);
 
@@ -1331,9 +1338,9 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
     int N_vert = mesh->nVertices();
     for (size_t bi = 0; bi < Beads.size(); bi++)
     {
-      Aux_vector[3 * N_vert + 3 * bi] = backtrackstep * Beads[bi]->Total_force.x;
-      Aux_vector[3 * N_vert + 3 * bi + 1] = backtrackstep * Beads[bi]->Total_force.y;
-      Aux_vector[3 * N_vert + 3 * bi + 2] = backtrackstep * Beads[bi]->Total_force.z;
+      Aux_vector[3 * N_vert + 3 * bi] = backtrackstep * Bead_forces[bi].x;
+      Aux_vector[3 * N_vert + 3 * bi + 1] = backtrackstep * Bead_forces[bi].y;
+      Aux_vector[3 * N_vert + 3 * bi + 2] = backtrackstep * Bead_forces[bi].z;
     }
     s_list.resize(0);
     y_list.resize(0);
@@ -1354,7 +1361,7 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
     }
     for (size_t bi = 0; bi < Beads.size(); bi++)
     {
-      Diff = Beads[bi]->Total_force - Beads[bi]->Prev_Total_force;
+      Diff = Beads[bi]->Free_force(Beads[bi]->Total_force) - Beads[bi]->Free_force(Beads[bi]->Prev_Total_force);
       Aux_vector[3 * N_vert + 3 * bi] = Diff.x;
       Aux_vector[3 * N_vert + 3 * bi + 1] = Diff.y;
       Aux_vector[3 * N_vert + 3 * bi + 2] = Diff.z;
@@ -1385,9 +1392,10 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
     int N_vert = mesh->nVertices();
     for (size_t bi = 0; bi < Beads.size(); bi++)
     {
-      Grad_vec[3 * N_vert + 3 * bi] = Beads[bi]->Total_force.x;
-      Grad_vec[3 * N_vert + 3 * bi + 1] = Beads[bi]->Total_force.y;
-      Grad_vec[3 * N_vert + 3 * bi + 2] = Beads[bi]->Total_force.z;
+      Vector3 F = Beads[bi]->Free_force(Beads[bi]->Total_force);
+      Grad_vec[3 * N_vert + 3 * bi] = F.x;
+      Grad_vec[3 * N_vert + 3 * bi + 1] = F.y;
+      Grad_vec[3 * N_vert + 3 * bi + 2] = F.z;
     }
 
     Eigen::VectorXd r = lbfgs_direction(Grad_vec);
@@ -1432,9 +1440,10 @@ double Mem3DG::integrate_BFGS(std::ofstream &Sim_data, double time, std::vector<
       }
       for (size_t bi = 0; bi < Beads.size(); bi++)
       {
-        Grad_vec[3 * N_vert + 3 * bi] = Beads[bi]->Total_force.x - Beads[bi]->Prev_Total_force.x;
-        Grad_vec[3 * N_vert + 3 * bi + 1] = Beads[bi]->Total_force.y - Beads[bi]->Prev_Total_force.y;
-        Grad_vec[3 * N_vert + 3 * bi + 2] = Beads[bi]->Total_force.z - Beads[bi]->Prev_Total_force.z;
+        Vector3 Diff = Beads[bi]->Free_force(Beads[bi]->Total_force) - Beads[bi]->Free_force(Beads[bi]->Prev_Total_force);
+        Grad_vec[3 * N_vert + 3 * bi] = Diff.x;
+        Grad_vec[3 * N_vert + 3 * bi + 1] = Diff.y;
+        Grad_vec[3 * N_vert + 3 * bi + 2] = Diff.z;
       }
       if (lbfgs.gradient_y)
         Grad_vec = -Grad_vec;

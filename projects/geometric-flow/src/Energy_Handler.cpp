@@ -2702,7 +2702,7 @@ void E_Handler::Calculate_Lag_norm(double *Norm)
     // std::cout<<"The Lagrange multipliers contributed " << Lambdaval << "\n";
     for (size_t bi = 0; bi < Beads.size(); bi++)
     {
-        val = Beads[bi]->Total_force.norm2();
+        val = Beads[bi]->Free_force(Beads[bi]->Total_force).norm2();
         *Norm += val;
     }
 

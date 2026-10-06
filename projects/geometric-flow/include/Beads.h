@@ -59,6 +59,14 @@ public:
 
   void Add_bead(Bead *bead, std::string Interaction, std::vector<double> Interaction_strength);
 
+  // State "rigid": the bead keeps the length of each of its "Rigid" bonds
+  // (bonds_constants [L]) and only moves perpendicular to them
+  bool Has_rigid_bond() const;
+  Vector3 Free_force(Vector3 Force) const;
+  double Enforce_rigid_bonds();
 
   void update_state();
 };
+
+// Puts every rigid bond back at its length
+void Enforce_rigid_bonds(const std::vector<Bead *> &beads);

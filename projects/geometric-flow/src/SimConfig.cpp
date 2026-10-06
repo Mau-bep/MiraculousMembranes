@@ -100,6 +100,22 @@ namespace
             throw std::runtime_error("Input file: " + where + " needs one \"bonds\" type and one \"bonds_constants\" "
                                      "entry per bead listed in \"Beads\"");
 
+        bool rigid_bond = false;
+        for (size_t k = 0; k < spec.bonds.size(); k++)
+        {
+            if (spec.bonds[k] != "Rigid")
+                continue;
+            rigid_bond = true;
+            if (spec.bonds_constants[k].size() != 1 || !(spec.bonds_constants[k][0] > 0.0))
+                throw std::runtime_error("Input file: a \"Rigid\" bond in " + where +
+                                         " needs bonds_constants [L], with the bond length L > 0");
+        }
+        if (rigid_bond != (spec.state == "rigid"))
+            throw std::runtime_error("Input file: " + where + (rigid_bond ? " has a \"Rigid\" bond but its state is not \"rigid\""
+                                                                         : " is \"rigid\" but has no \"Rigid\" bond"));
+        if (spec.state == "rigid" && spec.constraint != "None")
+            throw std::runtime_error("Input file: " + where + " is \"rigid\"; it cannot also have a Constraint");
+
         if (spec.state == "manual")
         {
             spec.has_velocity = true;
@@ -372,6 +388,25 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
                 if (partner < 0 || size_t(partner) >= cfg.beads.size() || size_t(partner) == k)
                     throw std::runtime_error("Input file: Beads[" + std::to_string(k) + "] is bonded to bead " +
                                              std::to_string(partner) + ", which does not exist");
+        // A rigid bond is listed by both beads, with the same length
+        for (size_t k = 0; k < cfg.beads.size(); k++)
+        {
+            const BeadSpec &b = cfg.beads[k];
+            for (size_t j = 0; j < b.bonds.size(); j++)
+            {
+                if (b.bonds[j] != "Rigid")
+                    continue;
+                const BeadSpec &other = cfg.beads[b.partners[j]];
+                bool reciprocal = false;
+                for (size_t m = 0; m < other.bonds.size(); m++)
+                    if (other.bonds[m] == "Rigid" && size_t(other.partners[m]) == k &&
+                        other.bonds_constants[m][0] == b.bonds_constants[j][0])
+                        reciprocal = true;
+                if (!reciprocal)
+                    throw std::runtime_error("Input file: the \"Rigid\" bond of Beads[" + std::to_string(k) + "] to bead " +
+                                             std::to_string(b.partners[j]) + " must also be listed by that bead, with the same length");
+            }
+        }
     }
 
     cfg.raw = data;
@@ -597,6 +632,16 @@ namespace
             sim.Beads[i].Total_beads = sim.Beads.size();
             sim.Beads[i].Bead_id = i;
         }
+
+        // Rigid bonds start at their length: both beads move along the bond
+        std::vector<Bead *> bead_ptrs;
+        for (Bead &bead : sim.Beads)
+            bead_ptrs.push_back(&bead);
+        Enforce_rigid_bonds(bead_ptrs);
+        for (size_t i = 0; i < specs.size(); i++)
+            if ((sim.Beads[i].Pos - specs[i].pos).norm() > 1e-10)
+                std::cout << "Bead " << i << " moved from " << specs[i].pos << " to " << sim.Beads[i].Pos
+                          << " to start its rigid bonds at their length\n";
     }
 
 } // namespace

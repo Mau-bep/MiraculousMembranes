@@ -175,9 +175,10 @@ namespace
             }
             else if (Switch == "Freeze_beads" || Switch == "Free_beads")
             {
-                std::cout << "Switching the beads to " << (Switch == "Freeze_beads" ? "froze" : "default") << "\n";
+                std::cout << (Switch == "Freeze_beads" ? "Freezing" : "Freeing") << " the beads\n";
+                // Freed beads with rigid bonds keep them
                 for (Bead &bead : sim.Beads)
-                    bead.state = Switch == "Freeze_beads" ? "froze" : "default";
+                    bead.state = Switch == "Freeze_beads" ? "froze" : (bead.Has_rigid_bond() ? "rigid" : "default");
                 run.Switch_times_map[Switch] = -1;
             }
             else if (Switch == "No_remesh")
