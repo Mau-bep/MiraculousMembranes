@@ -112,6 +112,7 @@ bool adapt_remesh = true;
 bool Count_remesh = false;
 int polish_left = 0; // gradient descent steps left in the current polish (PolishParams)
 int n_polish = 0;
+int remesh_pause_until = 0; // no remeshing before this integration step (after a rollback)
 std::ofstream Remeshing_count;
 int inspect_timestep = 0;
 std::string Switch;
@@ -912,6 +913,7 @@ void Callback_qts()
             integrating = true;
             savedSteps = 0;
             integration_counter = 0;
+            remesh_pause_until = 0;
             // last_remesh = 0;
             current_t = frames[currFrame];
             std::cout << "We are starting from t = " << current_t << " \n";
@@ -988,9 +990,26 @@ void Callback_qts()
         // I should save before running
         // std::cout << "We are at t = " << current_t + integration_counter << " \n";
 
+        // Undo of this step's remeshing (RemeshRollbackParams), armed before
+        // the mesh is first changed
+        const RemeshRollbackParams &rollback = sim.cfg.remesh_rollback;
+        const bool remesh_paused = integration_counter < remesh_pause_until;
+        MeshSnapshot undo;
+        bool undo_armed = false; // stays set until the step after the remesh is done
+        double E_undo = 0.0;
+        std::vector<double> terms_undo;
+        auto arm_undo = [&]()
+        {
+            if (undo_armed || rollback.max_rise == 0.0)
+                return;
+            undo = take_snapshot(sim);
+            terms_undo = energy_terms(sim, E_undo);
+            undo_armed = true;
+        };
+
         // i should add the small angle flag
         bool flagSmallAngle = false;
-        if (integration_counter % 5 == 0)
+        if (integration_counter % 5 == 0 && !remesh_paused)
         {
             geometry->requireCornerAngles();
             for (Corner c : mesh->corners())
@@ -1013,6 +1032,7 @@ void Callback_qts()
             }
             if (flagSmallAngle)
             {
+                arm_undo();
                 remeshSmallAngles(*mesh, *geometry, Options);
                 M3DG.BFGS_iter = 0;
                 mesh->compress();
@@ -1021,10 +1041,12 @@ void Callback_qts()
             geometry->unrequireCornerAngles();
             // we do the small angle check
         }
-        if (((integration_counter - last_remesh) >= remesh_every && remesh_every > 0) || flagSmallAngle || M3DG.remesh_flag)
+        if (!remesh_paused &&
+            (((integration_counter - last_remesh) >= remesh_every && remesh_every > 0) || flagSmallAngle || M3DG.remesh_flag))
         {
             M3DG.remesh_flag = false;
             last_remesh = integration_counter;
+            arm_undo();
             int n_op = remesh(*mesh, *geometry, Options);
             // Here i need to update the remesh_every hehe
             if (adapt_remesh)
@@ -1062,6 +1084,23 @@ void Callback_qts()
             M3DG.BFGS_iter = 0;
             // I need to remesh
         }
+        if (undo_armed)
+        {
+            double E = 0.0;
+            const std::vector<double> terms = energy_terms(sim, E);
+            const int i = exploded_term(terms_undo, terms, rollback.max_rise);
+            if (i >= 0)
+            {
+                // BFGS-Normal recomputes the normals since BFGS_iter is 0
+                restore_snapshot(sim, undo);
+                undo_armed = false;
+                M3DG.BFGS_iter = 0;
+                remesh_pause_until = integration_counter + rollback.wait + 1;
+                std::cout << "Remesh at t = " << current_t + integration_counter << " raised " << Energies[i] << " from "
+                          << terms_undo[i] << " to " << terms[i] << ", undone; no remeshing for " << rollback.wait
+                          << " steps\n";
+            }
+        }
         if (Area_constraint && updateArea)
             updateTargetArea(current_t + integration_counter, origA, A_bar, dA, minStepsReq);
         double timestepIter = Integration_step(integration_counter + current_t, Save, integration_counter == 1 && !continueLastCall);
@@ -1080,7 +1119,18 @@ void Callback_qts()
             savedSteps += 1;
             Save_mesh(basic_name, current_t + integration_counter);
         }
-        if (timestepIter <= 0)
+        if (timestepIter <= 0 && undo_armed)
+        {
+            // The step after a remesh failed: undo the remesh instead of stopping
+            restore_snapshot(sim, undo);
+            M3DG.BFGS_iter = 0;
+            M3DG.remesh_flag = false;
+            M3DG.step_failed = false;
+            remesh_pause_until = integration_counter + rollback.wait + 1;
+            std::cout << "The step after the remesh at t = " << current_t + integration_counter
+                      << " failed, remesh undone; no remeshing for " << rollback.wait << " steps\n";
+        }
+        else if (timestepIter <= 0)
         {
             std::cout << "Sim is not progresssing we will stop integrating\n";
             integration_counter = integration_steps;

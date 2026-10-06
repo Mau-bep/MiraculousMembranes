@@ -59,6 +59,8 @@ namespace
         bool convergence_log = false;
         int polish_left = 0; // gradient descent steps left in the current polish
         int n_polish = 0;
+        size_t remesh_pause_until = 0; // no remeshing before this step (after a rollback)
+        size_t n_rollback = 0;
 
         double time = 0.0;
         double dt_sim = 0.0;
@@ -293,10 +295,8 @@ namespace
     // Total energy for Remesh_log; the handler's per-term values are put back
     double total_energy(Simulation &sim)
     {
-        std::vector<double> saved = sim.Sim_handler.Energy_values;
         double E = 0.0;
-        sim.Sim_handler.Calculate_energies(&E);
-        sim.Sim_handler.Energy_values = saved;
+        energy_terms(sim, E);
         return E;
     }
 
@@ -346,16 +346,91 @@ namespace
             run.remesh_every = -1;
     }
 
-    void maybe_remesh(Simulation &sim, RunState &run, size_t current_t)
+    // Undo of the remeshing of one step (RemeshRollbackParams): armed before
+    // the mesh is first changed, checked once the step's remeshing is done
+    struct RemeshUndo
     {
-        if (!run.remesher)
+        bool armed = false;
+        MeshSnapshot snap;
+        double E_before = 0.0;
+        std::vector<double> terms_before;
+    };
+
+    void arm_undo(Simulation &sim, RemeshUndo &undo)
+    {
+        if (undo.armed || sim.cfg.remesh_rollback.max_rise == 0.0)
+            return;
+        undo.snap = take_snapshot(sim);
+        undo.terms_before = energy_terms(sim, undo.E_before);
+        undo.armed = true;
+    }
+
+    // Put the mesh from before the remeshing back and pause remeshing. `cause`
+    // is the energy term that exploded (its values before/after) or
+    // "failed_step" (the total energy before/after)
+    void undo_remesh(Simulation &sim, RunState &run, RemeshUndo &undo, size_t current_t, const std::string &cause,
+                     double before, double after, double E)
+    {
+        const RemeshRollbackParams &p = sim.cfg.remesh_rollback;
+        const size_t nV_rejected = sim.mesh->nVertices();
+        restore_snapshot(sim, undo.snap);
+        undo.armed = false;
+        sim.M3DG.BFGS_iter = 0;
+        sim.Sim_handler.update_vertex_normals();
+        run.n_rollback++;
+        run.remesh_pause_until = current_t + p.wait + 1;
+        std::cout << "Remesh at t = " << current_t << " undone (" << cause << ": " << before << " -> " << after
+                  << "), no remeshing for " << p.wait << " steps\n";
+
+        const std::string path = run.basic_name + "Rollback_log.txt";
+        const bool fresh = !std::ifstream(path).good();
+        std::ofstream log(path, std::ios_base::app);
+        if (fresh)
+            log << "# timestep cause value_before value_rejected E_before E_rejected nVertices_rejected nVertices_kept "
+                   "(cause: the energy term that exploded, or failed_step with the total energies)\n";
+        log << std::setprecision(12) << current_t << " " << cause << " " << before << " " << after << " "
+            << undo.E_before << " " << E << " " << nV_rejected << " " << sim.mesh->nVertices() << "\n";
+    }
+
+    // Returns true if the remeshing exploded an energy term and was undone
+    bool check_undo(Simulation &sim, RunState &run, RemeshUndo &undo, size_t current_t)
+    {
+        if (!undo.armed)
+            return false;
+        double E = 0.0;
+        const std::vector<double> terms = energy_terms(sim, E);
+        const int i = exploded_term(undo.terms_before, terms, sim.cfg.remesh_rollback.max_rise);
+        if (i < 0)
+            return false;
+        undo_remesh(sim, run, undo, current_t, sim.Energies[i], undo.terms_before[i], terms[i], E);
+        return true;
+    }
+
+    // The integrator step after an accepted remesh failed: undo the remesh
+    // (and the step) instead of ending the run
+    void undo_failed_step(Simulation &sim, RunState &run, RemeshUndo &undo, size_t current_t)
+    {
+        double E = 0.0;
+        energy_terms(sim, E);
+        undo_remesh(sim, run, undo, current_t, "failed_step", undo.E_before, E, E);
+        sim.M3DG.remesh_flag = false;
+        sim.M3DG.step_failed = false;
+    }
+
+    // A remesh that is kept leaves `undo` armed until the step after it is done
+    void maybe_remesh(Simulation &sim, RunState &run, size_t current_t, RemeshUndo &undo)
+    {
+        if (!run.remesher || current_t < run.remesh_pause_until)
             return;
 
         // Collapse slivers every step
         bool flagSmallAngle = has_small_angle(sim, 0.2);
         bool polish = flagSmallAngle && start_polish(sim, run, current_t);
         if (flagSmallAngle)
+        {
+            arm_undo(sim, undo);
             fix_small_angles(sim);
+        }
 
         // In the quality mode remesh_every is the longest interval (max_every)
         // and setting it to 1 still asks for a remesh on the next step.
@@ -375,7 +450,10 @@ namespace
             go = before.bad_fraction() - run.quality_baseline > qp.f_tol;
         }
         if (!go)
+        {
+            check_undo(sim, run, undo, current_t);
             return;
+        }
 
         double E_before = 0.0;
         if (sim.cfg.remesh_log)
@@ -385,6 +463,7 @@ namespace
             E_before = total_energy(sim);
         }
 
+        arm_undo(sim, undo);
         if (has_small_angle(sim, sim.Options.angleThresh))
             fix_small_angles(sim);
 
@@ -394,6 +473,8 @@ namespace
         sim.geometry->refreshQuantities();
         sim.M3DG.BFGS_iter = 0;
         sim.Sim_handler.update_vertex_normals();
+        if (check_undo(sim, run, undo, current_t))
+            return;
 
         MeshQuality after;
         if (quality || sim.cfg.remesh_log)
@@ -1263,7 +1344,8 @@ int main(int argc, char **argv)
         update_area_target(sim);
 
         auto t0 = clock::now();
-        maybe_remesh(sim, run, current_t);
+        RemeshUndo undo;
+        maybe_remesh(sim, run, current_t, undo);
         remeshing_elapsed_time += ms_since(t0);
 
         bool save = current_t % run.save_interval == 0;
@@ -1296,12 +1378,16 @@ int main(int argc, char **argv)
             std::cout << "Ending sim due to small TS at t = " << current_t << "\n";
             break;
         }
-        if (run.dt_sim < 0 && M3DG.step_failed)
+        if (run.dt_sim < 0 && undo.armed)
+        {
+            undo_failed_step(sim, run, undo, current_t);
+        }
+        else if (run.dt_sim < 0 && M3DG.step_failed)
         {
             std::cout << "The line search hit a nan at timestep " << current_t << ", ending the run\n";
             break;
         }
-        if (run.dt_sim < 0)
+        else if (run.dt_sim < 0)
         {
             std::cout << "Sim broke or timestep very small at timestep " << current_t << "\n";
             if (run.Integration != "BFGS")
@@ -1341,7 +1427,7 @@ int main(int argc, char **argv)
         // Cost side of the remeshing calibration (Scripts/calibrate_remesh_tol.py)
         std::ofstream timing(run.basic_name + (resuming ? "Timing_from_" + std::to_string(start_t) + ".txt" : "Timing.txt"));
         timing << "wall_ms " << ms_since(run_start) << "\nremesh_ms " << remeshing_elapsed_time << "\nintegrate_ms "
-               << integrate_elapsed_time << "\nsave_ms " << saving_mesh_time << "\nremeshes " << run.n_remesh
+               << integrate_elapsed_time << "\nsave_ms " << saving_mesh_time << "\nremeshes " << run.n_remesh << "\nremesh_rollbacks " << run.n_rollback
                << "\nvertices " << sim.mesh->nVertices() << "\nlbfgs_pairs " << M3DG.lbfgs_pairs
                << "\nlbfgs_negative_sy " << M3DG.lbfgs_negative_sy << "\nlbfgs_restarts " << M3DG.lbfgs_restarts
                << "\nlbfgs_uphill " << M3DG.lbfgs_uphill << "\n";

@@ -96,6 +96,22 @@ struct PolishParams
     int max_cycles = -1;
 };
 
+// "remesh_rollback": a remesh (sliver collapses included) that raises any
+// single energy term by more than max_rise * max(|term|, 1), or makes one
+// NaN/inf, or after which the integrator step fails, is undone, and
+// remeshing pauses for `wait` steps. max_rise 0 turns it off. Per term because the total hides it: at a nearly pinched bud neck
+// remeshes folded an edge to ~179 deg and Bending_tan went 0.5 -> 1435 and
+// 0.5 -> 128 (rises of 1435 and 128 in these units) while the surface tension
+// term, 620, made the total rise only 250% and 22%. Measured 2026-10-06, the
+// largest rise of a remesh that was fine: 0.63 (refinement, regression d),
+// 0.37 (first remesh of a coarse initial mesh), 2.6 (polish at size_min 0.005).
+// One broken remesh rose only 9.96 (0.7 -> 10.7): the step after it failed.
+struct RemeshRollbackParams
+{
+    double max_rise = 10.0;
+    int wait = 10;
+};
+
 struct SimConfig
 {
     nlohmann::json raw;      // the parsed file, for anything not covered below
@@ -133,6 +149,7 @@ struct SimConfig
     LbfgsOptions lbfgs;
     StoppingParams stopping;
     PolishParams polish;
+    RemeshRollbackParams remesh_rollback;
     std::vector<std::string> switches;
     std::vector<int> switch_times;
 
@@ -201,6 +218,37 @@ struct Simulation
     E_Handler Sim_handler;
     RemeshOptions Options;
 };
+
+// A copy of the membrane and of the per-element data that lives across steps
+// (energy handler, integrator, remesher options), to undo a remesh. The mesh
+// is declared first so the data on it is destroyed before it.
+struct MeshSnapshot
+{
+    std::unique_ptr<ManifoldSurfaceMesh> mesh;
+    std::unique_ptr<VertexPositionGeometry> geometry;
+    VertexData<Vector3> previous_grad, current_grad;
+    FaceData<double> face_reference;
+    VertexData<double> H_vector_0, dH_vector;
+    VertexData<int> integrator_no_remesh_v, options_no_remesh_v;
+    EdgeData<int> options_no_remesh;
+    std::vector<Vector3> bead_positions; // a failed step may have moved them
+};
+
+MeshSnapshot take_snapshot(const Simulation &sim);
+
+// Put the snapshot in place of sim.mesh/sim.geometry everywhere they are held
+// (integrator, energy handler, beads) and delete the current ones; the beads
+// go back to their positions too. The vertex normals of BFGS-Normal are not
+// kept: recompute them as after a remesh.
+void restore_snapshot(Simulation &sim, MeshSnapshot &snap);
+
+// The energy terms (sim.Energies order, beads included) and their sum in E;
+// the handler's own per-term values are put back.
+std::vector<double> energy_terms(Simulation &sim, double &E);
+
+// Index of the first term that is not finite or rose by more than
+// max_rise * max(|before|, 1) (RemeshRollbackParams), -1 if none.
+int exploded_term(const std::vector<double> &before, const std::vector<double> &after, double max_rise);
 
 // Load the mesh and set up energies, beads, integrator and remesher options.
 // With resume_mesh set, the energy targets still come from init_file, but the

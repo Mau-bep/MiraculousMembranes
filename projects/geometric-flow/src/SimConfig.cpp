@@ -312,6 +312,15 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
         if (!(p.E_floor > 0.0) || p.bfgs_tol_E < 0.0 || p.normal_tol_E < 0.0 || p.normal_tol_g < 0.0)
             throw std::runtime_error("Input file: stopping.E_floor must be positive and the tolerances not negative");
     }
+    if (data.contains("remesh_rollback"))
+    {
+        const json &s = data["remesh_rollback"];
+        RemeshRollbackParams &p = cfg.remesh_rollback;
+        p.max_rise = s.value("max_rise", p.max_rise);
+        p.wait = s.value("wait", p.wait);
+        if (p.max_rise < 0.0 || p.wait < 0)
+            throw std::runtime_error("Input file: remesh_rollback.max_rise and wait must not be negative");
+    }
     if (data.contains("polish"))
     {
         const json &s = data["polish"];
@@ -436,6 +445,91 @@ Simulation::~Simulation()
     Interaction_container.clear();
     delete geometry;
     delete mesh;
+}
+
+namespace
+{
+    // Data not on the current mesh (never built, or left on an older mesh) is
+    // not carried over: the code that uses it rebuilds it
+    template <typename D>
+    D carry(const D &data, const ManifoldSurfaceMesh *from, ManifoldSurfaceMesh &to)
+    {
+        return data.getMesh() == from ? data.reinterpretTo(to) : D();
+    }
+}
+
+MeshSnapshot take_snapshot(const Simulation &sim)
+{
+    MeshSnapshot s;
+    s.mesh = sim.mesh->copy();
+    s.geometry = sim.geometry->reinterpretTo(*s.mesh);
+    ManifoldSurfaceMesh &m = *s.mesh;
+    s.previous_grad = carry(sim.Sim_handler.Previous_grad, sim.mesh, m);
+    s.current_grad = carry(sim.Sim_handler.Current_grad, sim.mesh, m);
+    s.face_reference = carry(sim.Sim_handler.Face_reference, sim.mesh, m);
+    s.H_vector_0 = carry(sim.M3DG.H_Vector_0, sim.mesh, m);
+    s.dH_vector = carry(sim.M3DG.dH_Vector, sim.mesh, m);
+    s.integrator_no_remesh_v = carry(sim.M3DG.No_remesh_list_v, sim.mesh, m);
+    s.options_no_remesh_v = carry(sim.Options.No_remesh_list_v, sim.mesh, m);
+    s.options_no_remesh = carry(sim.Options.No_remesh_list, sim.mesh, m);
+    for (const Bead &bead : sim.Beads)
+        s.bead_positions.push_back(bead.Pos);
+    return s;
+}
+
+void restore_snapshot(Simulation &sim, MeshSnapshot &snap)
+{
+    ManifoldSurfaceMesh *old_mesh = sim.mesh;
+    VertexPositionGeometry *old_geometry = sim.geometry;
+    sim.mesh = snap.mesh.release();
+    sim.geometry = snap.geometry.release();
+
+    sim.M3DG.mesh = sim.mesh;
+    sim.M3DG.geometry = sim.geometry;
+    sim.Sim_handler.mesh = sim.mesh;
+    sim.Sim_handler.geometry = sim.geometry;
+    for (size_t i = 0; i < sim.Beads.size(); i++)
+    {
+        Bead &bead = sim.Beads[i];
+        bead.mesh = sim.mesh;
+        bead.geometry = sim.geometry;
+        bead.Bead_I->mesh = sim.mesh;
+        bead.Bead_I->geometry = sim.geometry;
+        bead.Pos = snap.bead_positions[i];
+    }
+
+    // Moving the data detaches it from the old mesh before that is deleted
+    sim.Sim_handler.Previous_grad = std::move(snap.previous_grad);
+    sim.Sim_handler.Current_grad = std::move(snap.current_grad);
+    sim.Sim_handler.Face_reference = std::move(snap.face_reference);
+    sim.Sim_handler.Vertex_normals = VertexData<Vector3>(*sim.mesh);
+    sim.M3DG.H_Vector_0 = std::move(snap.H_vector_0);
+    sim.M3DG.dH_Vector = std::move(snap.dH_vector);
+    sim.M3DG.No_remesh_list_v = std::move(snap.integrator_no_remesh_v);
+    sim.Options.No_remesh_list_v = std::move(snap.options_no_remesh_v);
+    sim.Options.No_remesh_list = std::move(snap.options_no_remesh);
+
+    delete old_geometry;
+    delete old_mesh;
+    sim.geometry->refreshQuantities();
+}
+
+std::vector<double> energy_terms(Simulation &sim, double &E)
+{
+    std::vector<double> saved = sim.Sim_handler.Energy_values;
+    E = 0.0;
+    sim.Sim_handler.Calculate_energies(&E);
+    std::vector<double> terms = sim.Sim_handler.Energy_values;
+    sim.Sim_handler.Energy_values = saved;
+    return terms;
+}
+
+int exploded_term(const std::vector<double> &before, const std::vector<double> &after, double max_rise)
+{
+    for (size_t i = 0; i < after.size() && i < before.size(); i++)
+        if (!std::isfinite(after[i]) || after[i] - before[i] > max_rise * std::max(fabs(before[i]), 1.0))
+            return int(i);
+    return -1;
 }
 
 std::unique_ptr<Interaction> make_interaction(const BeadSpec &spec, ManifoldSurfaceMesh *mesh,
