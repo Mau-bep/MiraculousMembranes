@@ -184,7 +184,7 @@ def contour():
     Y = Data[:,2]/Data[:,0]
 
     # Create a pcolormesh by binning the scattered values (NumPy-only)
-    nx, ny = 16, 16
+    nx, ny = 24, 16
     # use log-spaced x edges because X is plotted on a log scale
     x_min, x_max = np.nanmin(X), np.nanmax(X)
     if x_min <= 0:
