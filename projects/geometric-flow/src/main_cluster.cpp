@@ -854,6 +854,26 @@ namespace
         std::cout << "A thousand iterations took " << elapsed_ms << " miliseconds\n";
     }
 
+    // Last configuration of the run, labelled with the step the loop would have
+    // run next. The mesh, a row of Output_data.txt and the bead rows are all
+    // written for this same state, whatever the save interval, so a finished run
+    // can be loaded by main_visualize and its final energies read.
+    void save_last_step(Simulation &sim, const RunState &run, size_t step)
+    {
+        Mem3DG &M3DG = sim.M3DG;
+        M3DG.discreteTs = step;
+        sim.geometry->refreshQuantities();
+        sim.Sim_handler.Calculate_gradient(); // bead forces and gradient norms of this state
+        double tot_E = 0;
+        sim.Sim_handler.Calculate_energies(&tot_E);
+
+        Save_mesh(sim.mesh, sim.geometry, run.basic_name, step);
+        std::ofstream Sim_data(run.output_file, std::ios_base::app);
+        M3DG.write_output_row(Sim_data, run.time, sim.geometry->totalVolume(), sim.geometry->totalArea(), tot_E, run.dt_sim);
+        M3DG.write_bead_rows(run.Bead_filenames);
+        std::cout << "Final state saved as step " << step << ", total energy " << tot_E << "\n";
+    }
+
     void save_final_state(Simulation &sim, const RunState &run)
     {
         if (sim.cfg.saving_states)
@@ -1337,8 +1357,10 @@ int main(int argc, char **argv)
 
     std::ofstream Sim_data;
     const size_t Final_t = resuming ? resume.final_step : cfg.timesteps;
+    size_t last_t = start_t;
     for (size_t current_t = start_t; current_t <= Final_t; current_t++)
     {
+        last_t = current_t;
         M3DG.discreteTs = current_t;
         apply_switches(sim, run, current_t);
         update_area_target(sim);
@@ -1422,6 +1444,8 @@ int main(int argc, char **argv)
     }
     std::cout << "The simulation is finished\n";
     Sim_data.close();
+    if (start_t <= Final_t)
+        save_last_step(sim, run, last_t + 1);
 
     {
         // Cost side of the remeshing calibration (Scripts/calibrate_remesh_tol.py)
