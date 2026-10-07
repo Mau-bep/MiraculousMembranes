@@ -27,6 +27,7 @@ angle = sys.argv[1]
 outside1 = int(sys.argv[2])
 outside2 = int(sys.argv[3])
 radius = float(sys.argv[4])
+Batch_tag = sys.argv[5]
 ka = 1.0
 Nsim = 1
 
@@ -46,7 +47,7 @@ location = ["unavailable", "outside", "inside"]
 
 
 Batch_dir = '../Results/TwoBeadsFast/'
-Batch_tag = 'Wrap2'
+# Batch_tag = 'Wrap2'
 
 def Create_json_wrapping_two(ka,kb,r,inter_str,angle):
     theta = float(angle)
@@ -151,7 +152,7 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
     env = Environment(loader=FileSystemLoader('../Templates/'))
 
 
-    template = env.get_template('Wrapping_two_ridig.txt')
+    template = env.get_template('Wrapping_two_rigid.txt')
     
     # Radius of the position of the beads is R_v-2*r_b
     R_vesicle = 7.0
@@ -159,7 +160,7 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
     
     location = [1,"outside","inside"]
 
-    dir = '"../Results/Two_beads_r_{0:.2f}_{1}_{2}_BFGS_Fixed_Sept/"'.format(radius,location[outside1],location[outside2])
+    dir = '"../Results/{0}_r_{1:.2f}_{2}_{3}/"'.format(Batch_tag,radius,location[outside1],location[outside2])
 
     x1 = float(dist)/2.0
     x2 = -float(dist)/2.0 
@@ -191,7 +192,7 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
     data['first_dir'] = Batch_dir
 
     # print("something\n")
-    Config_path = '../Config_files/{0}_{1:.2f}_{2}_{3}_{4}_BFGS_ST_{5}.json'.format(Batch_tag,radius,angle,location[outside1],location[outside2],ka) 
+    Config_path = '../Config_files/{0}_{1:.2f}_{2}_{3}_{4}_ST_{5}.json'.format(Batch_tag,radius,angle,location[outside1],location[outside2],ka) 
     
     sim_path = data['first_dir']
     
@@ -214,15 +215,11 @@ os.makedirs('../Outputs/',exist_ok=True)
 
 Config_path, sim_path = Create_json_wrapping_two_fixed(angle,outside1,outside2)
 
-
-
-
-
 # # def main():
-Output_name = '{0}_output_two_r_{1:.2f}_theta_{2}_{3}_{4}_BFGS_Sept.output'.format(Batch_tag,radius,angle,location[outside1],location[outside2])
+Output_name = '{0}_output_two_r_{1:.2f}_theta_{2}_{3}_{4}.output'.format(Batch_tag,radius,angle,location[outside1],location[outside2])
 Output_path = '../Outputs/'+Output_name
 
-f=open('../Subjobs/{0}_subjob_two_bead_r_{1:.2f}_theta_{2}_{3}_{4}_BFGS_Sept'.format(Batch_tag,radius,angle,location[outside1],location[outside2]),'w')
+f=open('../Subjobs/{0}_subjob_r_{1:.2f}_theta_{2}_{3}_{4}'.format(Batch_tag,radius,angle,location[outside1],location[outside2]),'w')
 
 f.write('#!/bin/bash \n')
 f.write('# \n')
