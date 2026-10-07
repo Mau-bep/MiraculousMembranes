@@ -1,0 +1,53 @@
+#!/bin/bash
+#
+#SBATCH --job-name={{ job_name }}
+#SBATCH --output={{ output_path }}
+{% if error %}
+#SBATCH --error={{ error }}
+{% endif %}
+#
+#number of CPUs to be used
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task={{ cpus }}
+#Define the number of hours the job should run.
+#Maximum runtime is limited to 10 days, ie. 240 hours
+#SBATCH --time={{ time }}
+#
+#Define the amount of system RAM used by your job in GigaBytes
+#SBATCH --mem={{ mem }}
+#
+{% if mail_user %}
+#Send emails when a job starts, it is finished or it exits
+#SBATCH --mail-user={{ mail_user }}
+#SBATCH --mail-type=ALL
+#
+{% endif %}
+#Do not requeue the job in the case it fails.
+#SBATCH --no-requeue
+#
+#Do not export the local environment to the compute nodes
+#SBATCH --export=NONE
+
+unset SLURM_EXPORT_ENV
+#make sure the job uses as many threads as CPUs requested
+export OMP_NUM_THREADS={{ cpus }}
+
+export PATH="/nfs/scistore16/wojtgrp/mrojasve/.local/bin:$PATH"
+echo $PATH
+
+{% if conda %}
+module load conda
+conda activate mir_membranes
+
+{% endif %}
+pwd
+date
+srun time -v {{ command }}
+date
+{% if copy_output_to %}
+cp {{ output_path }} {{ copy_output_to }}/{{ output_name }}
+{% endif %}
+
+#sacct --format="JobID, State, AllocGRES, AllocNodes, CPUTime, ReqMem, MaxRSS, AveRSS, Elapsed" --units=G | head -n 1
+#sacct --format="JobID, State, AllocGRES, AllocNodes, CPUTime, ReqMem, MaxRSS, AveRSS, Elapsed" --units=G | tail -n 1
