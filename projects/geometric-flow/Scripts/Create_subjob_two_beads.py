@@ -24,6 +24,7 @@ parser.add_argument("--outside1", type=int, required=True, help="bead 1 location
 parser.add_argument("--outside2", type=int, required=True, help="bead 2 location: 1 outside, 2 or -1 inside")
 parser.add_argument("--radius", type=float, required=True, help="bead radius")
 parser.add_argument("--batch_tag", type=str, required=True, help="tag of the batch (prefix of the file names)")
+parser.add_argument("--unique_tag", type=str, required=True, help="unique tag for the simulations ")
 parser.add_argument("--Cov", type=float, required=False, help="Coverage for the two beads")
 args = parser.parse_args()
 
@@ -32,6 +33,7 @@ outside1 = args.outside1
 outside2 = args.outside2
 radius = args.radius
 Batch_tag = args.batch_tag
+Unique_tag = args.unique_tag
 Cov = args.Cov
 ka = 1.0
 Nsim = 1
@@ -217,8 +219,7 @@ def Create_json_wrapping_two_cov(dist, outside1, outside2):
     
     location = [1,"outside","inside"]
 
-    dir = '"../Results/{0}_r_{1:.2f}_{2}_{3}/"'.format(Batch_tag,radius,location[outside1],location[outside2])
-
+    dir =Batch_dir
     x1 = float(dist)/2.0
     x2 = -float(dist)/2.0 
 
@@ -249,7 +250,7 @@ def Create_json_wrapping_two_cov(dist, outside1, outside2):
     data['first_dir'] = Batch_dir
 
     # print("something\n")
-    Config_path = '../Config_files/{0}_{1:.2f}_{2}_{3}_{4}_ST_{5}.json'.format(Batch_tag,radius,angle,location[outside1],location[outside2],ka) 
+    Config_path = '../Config_files/{0}_ConfigFile.json'.format(Unique_tag) 
     
     sim_path = data['first_dir']
     
@@ -265,9 +266,9 @@ os.makedirs('../Outputs/',exist_ok=True)
 
 Config_path, sim_path = Create_json_wrapping_two_cov(angle,outside1,outside2)
 
-Output_name = '{0}_output_two_r_{1:.2f}_theta_{2}_{3}_{4}.output'.format(Batch_tag,radius,angle,location[outside1],location[outside2])
+Output_name = '{0}_output.output'.format(Unique_tag)
 
-write_subjob('{0}_subjob_r_{1:.2f}_theta_{2}_{3}_{4}'.format(Batch_tag,radius,angle,location[outside1],location[outside2]),
+write_subjob('{0}_subjob'.format(Unique_tag),
              Output_name,
              '../build/bin/main_cluster {}'.format(Config_path),
              job_name='Wrap', time='12:01:20', copy_output_to=sim_path)

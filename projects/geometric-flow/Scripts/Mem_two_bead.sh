@@ -10,7 +10,7 @@
 # foreach v ( 1.0 )
 # foreach Init_cond ( 2 )
 set radius = 1.00
-set Tag = "Wrapping_two_rigid"
+set Batch_Tag = "Wrapping_two_coverage"
 # set KA = 5
 # set KB = 20
 # foreach Strg ( `seq 20 5 140`)
@@ -25,17 +25,10 @@ foreach theta ( 2.5 3.0 3.5 4.0 4.5 5.0 5.5 6.0)
 foreach Cov ( 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 ) 
 #python3 Create_subjob.py ${v} ${c0} ${KA} ${KB}
 
-# python3 Create_subjob_two_beads.py ${theta} ${Strg} ${radius} ${KA} ${KB} ${Nsim}
-# sbatch ../Subjobs/subjob_serial_two_beads_theta_${theta}_Strg_${Strg}_radius_${radius}_KA_${KA}_KB_${KB}_Nsim_${Nsim}
+set Unique_Tag = "${Batch_Tag}_r_${radius}_theta_${theta}_Cov_${Cov}"
 
-# python3 Create_subjob_two_beads.py ${theta} -1 -1 ${radius}
-# sbatch ../Subjobs/subjob_two_bead_r_${radius}_theta_${theta}_inside_inside_BFGS_Fixed_3
-
-# python3 Create_subjob_two_beads.py ${theta} -1 1 ${radius}
-# sbatch ../Subjobs/subjob_two_bead_r_${radius}_theta_${theta}_inside_outside_BFGS_Fixed_3
-
-python3 Create_subjob_two_beads.py --angle ${theta} --outside1 1 --outside2 1 --radius ${radius} --batch_tag ${Tag} --Cov ${Cov}
-sbatch ../Subjobs/${Tag}_subjob_r_${radius}_theta_${theta}_outside_outside
+python3 Create_subjob_two_beads.py --angle ${theta} --outside1 1 --outside2 1 --radius ${radius} --batch_tag ${Batch_Tag} --unique_tag ${Unique_Tag} --Cov ${Cov}
+sbatch ../Subjobs/${Unique_Tag}_subjob
 
 
 end
