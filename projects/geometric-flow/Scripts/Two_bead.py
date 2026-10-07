@@ -20,7 +20,7 @@ def Read_data(folderpath):
                 d = json.load(fjson)
 
             # So now d has the whole information 
-            for Energy in d["Energy"]:
+            for Energy in d["Energies"]:
                 if(Energy["Name"] == "Coverage"):
                     covStrength = Energy["constants"][0]
                     coverage = Energy["constants"][2]
