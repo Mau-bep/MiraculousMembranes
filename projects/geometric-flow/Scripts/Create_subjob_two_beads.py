@@ -238,11 +238,6 @@ f.write('#Define the amount of system RAM used by your job in GigaBytes\n')
 f.write('#SBATCH --mem=3G\n')
 f.write('#\n')
 
-#f.write('#Send emails when a job starts, it is finished or it exits\n')
-#f.write('#SBATCH --mail-user=mrojasve@ist.ac.at\n')
-#f.write('#SBATCH --mail-type=ALL\n')
-#f.write('#\n')
-
 
 f.write('#SBATCH --no-requeue\n')
 f.write('#\n')
