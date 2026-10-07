@@ -46,7 +46,7 @@ Nsim = 1
 location = ["unavailable", "outside", "inside"]
 
 
-Batch_dir = '../Results/TwoBeadsCov/'
+Batch_dir = '../Results/{}/'.format(Batch_tag)
 # Batch_tag = 'Wrap2'
 
 def Create_json_wrapping_two(ka,kb,r,inter_str,angle):
