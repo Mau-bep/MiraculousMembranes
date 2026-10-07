@@ -15,7 +15,7 @@ def Read_data(folderpath):
         if os.path.isdir(folderpath + dir):
             print("Reading data from {}".format(dir))
             # I want the input file
-            json_file = folderpath + dir +"Input_file.json"
+            json_file = folderpath + dir +"/Input_file.json"
             with open(json_file) as fjson:
                 d = json.load(fjson)
 
