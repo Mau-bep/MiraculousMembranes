@@ -130,6 +130,7 @@ def Create_json_wrapping_two_outside(angle, outside1, outside2):
     
     output_from_parsed_template = template.render(Dir = dir,theta =theta, outside1 = outside1, v1x = v1x, x1 = x1,L0 = Leq, outside2 = outside2, v2x = v2x, v2y = v2y,x2 = x2, y2 = y2 )
 
+    
     # print(output_from_parsed_template)
     data = json.loads(output_from_parsed_template)
 
@@ -219,7 +220,7 @@ def Create_json_wrapping_two_cov(dist, outside1, outside2):
     
     location = [1,"outside","inside"]
 
-    dir =Batch_dir
+    dir ='"../Results/{0}_r_{1:.2f}_{2}_{3}/"'
     x1 = float(dist)/2.0
     x2 = -float(dist)/2.0 
 
@@ -241,6 +242,7 @@ def Create_json_wrapping_two_cov(dist, outside1, outside2):
     
     # return 
     # We should do  
+    
     output_from_parsed_template = template.render(Dir = dir,dist = dist,disp = disp,disp2 = disp2, x1 = x1, x2 = x2, cov1 = Cov, cov2 = Cov )
 
 
@@ -265,6 +267,7 @@ os.makedirs('../Subjobs/',exist_ok=True)
 os.makedirs('../Outputs/',exist_ok=True)
 
 Config_path, sim_path = Create_json_wrapping_two_cov(angle,outside1,outside2)
+
 
 Output_name = '{0}_output.output'.format(Unique_tag)
 
