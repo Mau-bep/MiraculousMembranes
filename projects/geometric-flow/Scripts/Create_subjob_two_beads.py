@@ -1,5 +1,7 @@
 import sys 
 import os
+import argparse
+from cli_args import number_str
 #I want to create a script that ask for the step size and creates a subjob that uses it
 
 #Lets assume we are on the directory where i can store all the data 
@@ -14,34 +16,29 @@ import numpy as np
 
 
 
-# Nsim=int(sys.argv[1])
-# ini_config=int(sys.argv[2])
-# fin_config=int(sys.argv[3])
-# Target_val=float(sys.argv[4])
 
-# v=float(sys.argv[1])
-# c0=float(sys.argv[2])
-# KA=float(sys.argv[3])
-# KB=float(sys.argv[4])
-angle = sys.argv[1]
-outside1 = int(sys.argv[2])
-outside2 = int(sys.argv[3])
-radius = float(sys.argv[4])
-Batch_tag = sys.argv[5]
+parser = argparse.ArgumentParser(description="Writes the config (if any) and the sbatch subjob for one run.")
+parser.add_argument("--angle", type=number_str, required=True, help="angle (as in the file names)")
+parser.add_argument("--outside1", type=int, required=True, help="bead 1 location: 1 outside, 2 or -1 inside")
+parser.add_argument("--outside2", type=int, required=True, help="bead 2 location: 1 outside, 2 or -1 inside")
+parser.add_argument("--radius", type=float, required=True, help="bead radius")
+parser.add_argument("--batch_tag", type=str, required=True, help="tag of the batch (prefix of the file names)")
+args = parser.parse_args()
+
+angle = args.angle
+outside1 = args.outside1
+outside2 = args.outside2
+radius = args.radius
+Batch_tag = args.batch_tag
 ka = 1.0
 Nsim = 1
 
 
 
 
-# Strength=sys.argv[2]
 
 
-# KA = sys.argv[4]
-# KB = sys.argv[5]
 # KE = 1
-# # Init_cond=sys.argv[3]
-# Nsim=sys.argv[6]
 
 location = ["unavailable", "outside", "inside"]
 

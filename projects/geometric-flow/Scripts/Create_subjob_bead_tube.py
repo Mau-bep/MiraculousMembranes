@@ -1,5 +1,7 @@
 import sys 
 import os
+import argparse
+from cli_args import number_str
 #I want to create a script that ask for the step size and creates a subjob that uses it
 
 #Lets assume we are on the directory where i can store all the data 
@@ -14,16 +16,12 @@ import numpy as np
 
 
 
-# Nsim=int(sys.argv[1])
-# ini_config=int(sys.argv[2])
-# fin_config=int(sys.argv[3])
-# Target_val=float(sys.argv[4])
 
-# v=float(sys.argv[1])
-# c0=float(sys.argv[2])
-# KA=float(sys.argv[3])
-# KB=float(sys.argv[4])
-angle = sys.argv[1]
+parser = argparse.ArgumentParser(description="Writes the config (if any) and the sbatch subjob for one run.")
+parser.add_argument("--angle", type=number_str, required=True, help="angle (as in the file names)")
+args = parser.parse_args()
+
+angle = args.angle
 Nsim = 1
 strg = 300
 

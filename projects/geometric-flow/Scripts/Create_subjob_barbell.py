@@ -1,5 +1,7 @@
 import sys 
 import os
+import argparse
+from cli_args import number_str
 #I want to create a script that ask for the step size and creates a subjob that uses it
 
 #Lets assume we are on the directory where i can store all the data 
@@ -13,9 +15,15 @@ from jinja2 import Environment, FileSystemLoader
 
 
 
-KA = sys.argv[1]
-KB = sys.argv[2]
-Nsim=sys.argv[3]
+parser = argparse.ArgumentParser(description="Writes the config (if any) and the sbatch subjob for one run.")
+parser.add_argument("--KA", type=number_str, required=True, help="surface tension constant KA")
+parser.add_argument("--KB", type=number_str, required=True, help="bending constant KB")
+parser.add_argument("--Nsim", type=number_str, required=True, help="simulation number (part of the file names)")
+args = parser.parse_args()
+
+KA = args.KA
+KB = args.KB
+Nsim = args.Nsim
 
 
 

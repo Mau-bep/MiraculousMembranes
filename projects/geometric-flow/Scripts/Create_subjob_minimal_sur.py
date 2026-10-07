@@ -1,5 +1,7 @@
 import sys 
 import os
+import argparse
+from cli_args import number_str
 #I want to create a script that ask for the step size and creates a subjob that uses it
 
 #Lets assume we are on the directory where i can store all the data 
@@ -11,33 +13,20 @@ import numpy as np
 # We need jinja and json here
 
 
-# Nsim=int(sys.argv[1])
-# ini_config=int(sys.argv[2])
-# fin_config=int(sys.argv[3])
-# Target_val=float(sys.argv[4])
 
-# v=float(sys.argv[1])
-# c0=float(sys.argv[2])
-# KA=float(sys.argv[3])
-# KB=float(sys.argv[4])
-finaldist = sys.argv[1]
-# outside1 = int(sys.argv[2])
-# outside2 = int(sys.argv[3])
-# radius = float(sys.argv[4])
-# ka = sys.argv[5]
+parser = argparse.ArgumentParser(description="Writes the config (if any) and the sbatch subjob for one run.")
+parser.add_argument("--finaldist", type=number_str, required=True, help="final distance between the beads")
+args = parser.parse_args()
+
+finaldist = args.finaldist
 Nsim = 1
 
 
 
 
-# Strength=sys.argv[2]
 
 
-# KA = sys.argv[4]
-# KB = sys.argv[5]
 # KE = 1
-# # Init_cond=sys.argv[3]
-# Nsim=sys.argv[6]
 
 location = ["unavailable", "outside", "inside"]
 

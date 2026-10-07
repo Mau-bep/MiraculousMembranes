@@ -1,5 +1,7 @@
 import sys 
 import os
+import argparse
+from cli_args import number_str
 #I want to create a script that ask for the step size and creates a subjob that uses it
 
 #Lets assume we are on the directory where i can store all the data 
@@ -14,20 +16,24 @@ import numpy as np
 
 
 
-# Nsim=int(sys.argv[1])
-# ini_config=int(sys.argv[2])
-# fin_config=int(sys.argv[3])
-# Target_val=float(sys.argv[4])
 
-KA=sys.argv[1]
-KB=sys.argv[2]
-radius = sys.argv[3]
-finalX = sys.argv[4]
+parser = argparse.ArgumentParser(description="Writes the config (if any) and the sbatch subjob for one run.")
+parser.add_argument("--KA", type=number_str, required=True, help="surface tension constant KA")
+parser.add_argument("--KB", type=number_str, required=True, help="bending constant KB")
+parser.add_argument("--radius", type=number_str, required=True, help="bead radius")
+parser.add_argument("--finalX", type=number_str, required=True, help="final x of the tube end")
+parser.add_argument("--direction", type=int, required=True, help="pulling direction: 0 (first call), 1 or -1")
+args = parser.parse_args()
+
+KA = args.KA
+KB = args.KB
+radius = args.radius
+finalX = args.finalX
 Nsim = 1
 
 # How do i do this, cause there may be more/less inputs 
 
-direction = sys.argv[5]
+direction = args.direction
 # Now direction can be +1 or -1 or 0. 
 # If direction is 0, then we just do the first call
 

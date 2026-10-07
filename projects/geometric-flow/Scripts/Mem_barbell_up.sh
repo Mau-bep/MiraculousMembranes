@@ -18,7 +18,7 @@ foreach KA (  `seq 40 40 800` )
 foreach KB ( 5 10  )
 #python3 Create_subjob.py ${v} ${c0} ${KA} ${KB}
 
-python3 Create_subjob_barbell.py ${KA} ${KB} ${Nsim}
+python3 Create_subjob_barbell.py --KA ${KA} --KB ${KB} --Nsim ${Nsim}
 sbatch ../Subjobs/subjob_serial_barbell_KA_${KA}_KB_${KB}_Nsim_${Nsim}
 
 

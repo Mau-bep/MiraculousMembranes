@@ -21,7 +21,7 @@ foreach KB ( 2.915 2.144 1.577 1.16 0.8536 0.628 0.462 0.3398 )
 # foreach KB ( 0.25 0.1839 0.1353 0.09953 0.07322 0.05386 0.03962 0.02915 0.02144 0.01577 0.0116 0.008536 0.00628 0.00462 0.003398 0.0025 )
 #python3 Create_subjob.py ${v} ${c0} ${KA} ${KB}
 
-python3 Create_subjob_beads.py ${Strg} ${radius} ${KA} ${KB} ${Nsim}
+python3 Create_subjob_beads.py --inter_str ${Strg} --radius ${radius} --KA ${KA} --KB ${KB} --Nsim ${Nsim}
 sbatch ../Subjobs/subjob_WrapPSLog_Strg_${Strg}_r_${radius}_KA_${KA}_KB_${KB}_Nsim_${Nsim}
 
 end

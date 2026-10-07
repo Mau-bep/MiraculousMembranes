@@ -1,5 +1,6 @@
 import sys 
 import os
+import argparse
 #I want to create a script that ask for the step size and creates a subjob that uses it
 
 #Lets assume we are on the directory where i can store all the data 
@@ -10,15 +11,18 @@ import os
 
 
 
-# Nsim=int(sys.argv[1])
-# ini_config=int(sys.argv[2])
-# fin_config=int(sys.argv[3])
-# Target_val=float(sys.argv[4])
 
-v=float(sys.argv[1])
-c0=float(sys.argv[2])
-KA=float(sys.argv[3])
-KB=float(sys.argv[4])
+parser = argparse.ArgumentParser(description="Writes the config (if any) and the sbatch subjob for one run.")
+parser.add_argument("--v", type=float, required=True, help="v")
+parser.add_argument("--c0", type=float, required=True, help="c0")
+parser.add_argument("--KA", type=float, required=True, help="surface tension constant KA")
+parser.add_argument("--KB", type=float, required=True, help="bending constant KB")
+args = parser.parse_args()
+
+v = args.v
+c0 = args.c0
+KA = args.KA
+KB = args.KB
 
 
 

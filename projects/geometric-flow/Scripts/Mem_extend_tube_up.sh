@@ -14,7 +14,7 @@ foreach KB ( 4.0 )
 
 foreach XF ( 1.9 1.95 2.0 2.05 2.1 2.15 2.2 2.25)
 
-python3 Create_subjob_tube.py ${KA} ${KB} ${radius} ${XF} ${direction}
+python3 Create_subjob_tube.py --KA ${KA} --KB ${KB} --radius ${radius} --finalX ${XF} --direction ${direction}
 sbatch ../Subjobs/subjob_tube_KA_${KA}_KB_${KB}_r_${radius}_XF_${XF}_direction_${direction}
 
 end
@@ -30,7 +30,7 @@ foreach KB ( 4.0 )
 
 foreach XF ( 1.7 1.75 1.8 1.85 1.9 1.95 2.0 )
 
-python3 Create_subjob_tube.py ${KA} ${KB} ${radius} ${XF} ${otherdirection}
+python3 Create_subjob_tube.py --KA ${KA} --KB ${KB} --radius ${radius} --finalX ${XF} --direction ${otherdirection}
 sbatch ../Subjobs/subjob_tube_KA_${KA}_KB_${KB}_r_${radius}_XF_${XF}_direction_${otherdirection}
 
 end

@@ -21,7 +21,7 @@ foreach theta ( 0.2 0.25 0.3 0.325 0.35 0.375 0.4 0.425 0.45 0.475 0.5 0.55 0.6 
 # python3 Create_subjob_two_beads.py ${theta} ${Strg} ${radius} ${KA} ${KB} ${Nsim}
 # sbatch ../Subjobs/subjob_serial_two_beads_theta_${theta}_Strg_${Strg}_radius_${radius}_KA_${KA}_KB_${KB}_Nsim_${Nsim}
 
-python3 Create_subjob_bead_tube.py ${theta} 
+python3 Create_subjob_bead_tube.py --angle ${theta} 
 sbatch ../Subjobs/subjob_bead_tube_theta_${theta}_300
 
 

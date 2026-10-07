@@ -33,7 +33,7 @@ foreach theta ( 2.5  )
 # python3 Create_subjob_two_beads.py ${theta} -1 1 ${radius}
 # sbatch ../Subjobs/subjob_two_bead_r_${radius}_theta_${theta}_inside_outside_BFGS_Fixed_3
 
-python3 Create_subjob_two_beads.py ${theta} 1 1 ${radius} ${Tag}
+python3 Create_subjob_two_beads.py --angle ${theta} --outside1 1 --outside2 1 --radius ${radius} --batch_tag ${Tag}
 sbatch ../Subjobs/${Tag}_subjob_r_${radius}_theta_${theta}_outside_outside
 
 
