@@ -1,0 +1,45 @@
+{
+    "init_file": "../../../input/Simplesphere.obj",
+    "save_interval": {{ save_interval }},
+    "timesteps": {{ timesteps }},
+    "continue_sim": false,
+    "resize_vol": false,
+    "Subfolder": "{{ subfolder }}",
+    "first_dir": "{{ first_dir }}",
+    "Integration": "Gradient_descent",
+    "BFGS_saved_states": 15,
+    "remeshing": true,
+    "remesh_every": 5,
+    "adapt_remesh": false,
+    "Count_remesh": true,
+    "backtrack": true,
+    "Timestep": 1.0,
+    "boundary": false,
+    "recentering": false,
+    "saving_states": false,
+    "momentum": false,
+    "rescale": {{ rescale }},
+    "Switches": ["BFGS"],
+    "Switch_times": [{{ switch_time }}],
+    "Energies": [
+        {"Name": "Surface_tension", "constants": [{{ KA }}, 0.0]},
+        {"Name": "Bending_tan", "constants": [{{ KB }}, 0.0]},
+        {"Name": "Volume_constraint", "constants": [{{ KV }}, -1.0]}
+    ],
+    "Beads": [
+{%- for b in beads %}
+        {
+            "gradient_order": "Bead",
+            "radius": {{ radius }},
+            "state": "default",
+            "Pos": {{ b.pos | tojson }},
+            "mem_inter": "Adhesion",
+            "inter_str": {{ inter_str }},
+            "bonds": {{ (["Shifted_LJ"] * b.partners | length) | tojson }},
+            "bonds_constants": {{ (([[eps, sigma]]) * b.partners | length) | tojson }},
+            "Beads": {{ b.partners | tojson }}
+        }{{ "," if not loop.last }}
+{%- endfor %}
+    ],
+    "remesher": {"aspect_min": 0.2, "refine_angle": 0.6, "size_max": 0.7, "size_min": 0.05}
+}
