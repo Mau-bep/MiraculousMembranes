@@ -24,6 +24,7 @@ parser.add_argument("--outside1", type=int, required=True, help="bead 1 location
 parser.add_argument("--outside2", type=int, required=True, help="bead 2 location: 1 outside, 2 or -1 inside")
 parser.add_argument("--radius", type=float, required=True, help="bead radius")
 parser.add_argument("--batch_tag", type=str, required=True, help="tag of the batch (prefix of the file names)")
+parser.add_argument("--Cov", type=float, required=False, help="Coverage for the two beads")
 args = parser.parse_args()
 
 angle = args.angle
@@ -31,6 +32,7 @@ outside1 = args.outside1
 outside2 = args.outside2
 radius = args.radius
 Batch_tag = args.batch_tag
+Cov = args.Cov
 ka = 1.0
 Nsim = 1
 
@@ -44,7 +46,7 @@ Nsim = 1
 location = ["unavailable", "outside", "inside"]
 
 
-Batch_dir = '../Results/TwoBeadsFast/'
+Batch_dir = '../Results/TwoBeadsCov/'
 # Batch_tag = 'Wrap2'
 
 def Create_json_wrapping_two(ka,kb,r,inter_str,angle):
@@ -201,18 +203,67 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
 
 
 
+def Create_json_wrapping_two_cov(dist, outside1, outside2):
+    # theta = float(angle)
+    os.makedirs("../Config_files/",exist_ok = True)
+    env = Environment(loader=FileSystemLoader('../Templates/'))
+
+
+    template = env.get_template('Wrapping_two_cov.txt')
+    
+    # Radius of the position of the beads is R_v-2*r_b
+    R_vesicle = 7.0
+    r_bead = radius*0.9
+    
+    location = [1,"outside","inside"]
+
+    dir = '"../Results/{0}_r_{1:.2f}_{2}_{3}/"'.format(Batch_tag,radius,location[outside1],location[outside2])
+
+    x1 = float(dist)/2.0
+    x2 = -float(dist)/2.0 
+
+
+    disp = -1*np.sqrt(  (R_vesicle+r_bead)**2 -(float(dist)/2.0)**2)
+    disp2 = 0.0
+
+    print("Disp is {}".format(disp))
+
+
+    if(outside1<0 and outside2 <0 ):
+        disp =-1*np.sqrt(  (R_vesicle-r_bead)**2 -(float(dist)/2.0)**2)
+
+    if(outside1*outside2<0):
+        # In this case we need to  do math
+        disp2 = ((R_vesicle+r_bead)**2-(R_vesicle-r_bead)**2)/(2*float(dist))
+        disp = np.sqrt(  (R_vesicle+r_bead)**2 - (disp2+float(dist)/2)**2      ) 
+
+    
+    # return 
+    # We should do  
+    output_from_parsed_template = template.render(Dir = dir,dist = dist,disp = disp,disp2 = disp2, x1 = x1, x2 = x2, cov1 = Cov, cov2 = Cov )
+
+
+
+    # print(output_from_parsed_template)
+    data = json.loads(output_from_parsed_template)
+    data['first_dir'] = Batch_dir
+
+    # print("something\n")
+    Config_path = '../Config_files/{0}_{1:.2f}_{2}_{3}_{4}_ST_{5}.json'.format(Batch_tag,radius,angle,location[outside1],location[outside2],ka) 
+    
+    sim_path = data['first_dir']
+    
+    with open(Config_path, 'w') as file:
+        json.dump(data, file, indent=4)
+
+    return Config_path , sim_path
+
+
 
 os.makedirs('../Subjobs/',exist_ok=True)
 os.makedirs('../Outputs/',exist_ok=True)
 
-
-
-# Config_path, sim_path = Create_json_wrapping_two(KA,KB,radius,Strength,angle)
-# # Hopefully this works
-# Config_path, sim_path = Create_json_wrapping_two_outside(angle,outside1,outside2)
-
-Config_path, sim_path = Create_json_wrapping_two_fixed(angle,outside1,outside2)
-
+Config_path, sim_path = Create_json_wrapping_two_cov(angle,outside1,outside2)
 
 Output_name = '{0}_output_two_r_{1:.2f}_theta_{2}_{3}_{4}.output'.format(Batch_tag,radius,angle,location[outside1],location[outside2])
 

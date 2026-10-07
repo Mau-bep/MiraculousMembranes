@@ -64,7 +64,7 @@ namespace
 
         double time = 0.0;
         double dt_sim = 0.0;
-        bool resumed_first_step = false; // the Newton methods set up their multipliers on it
+        bool resumed_first_step = false;      // the Newton methods set up their multipliers on it
         std::vector<std::string> Constraints; // used by the Newton integrators
 
         std::string basic_name;
@@ -916,8 +916,8 @@ namespace
         std::string dir;
         size_t step = 0; // N: the last recorded step, the loop restarts here
         double time = 0.0;
-        size_t steps = 0;       // steps to run from N
-        size_t final_step = 0;  // N + steps
+        size_t steps = 0;      // steps to run from N
+        size_t final_step = 0; // N + steps
         std::string mesh_file;
         std::vector<Vector3> bead_pos;
 
@@ -1385,7 +1385,7 @@ int main(int argc, char **argv)
         }
 
         t0 = clock::now();
-        if (current_t % 100 == 0 && coverage_index >= 0)
+        if (current_t % 1000 == 0 && coverage_index >= 0)
             sim.Sim_handler.Debug_Coverage(sim.Sim_handler.Energy_constants[coverage_index]);
 
         step_integrator(sim, run, current_t, Sim_data, save);
