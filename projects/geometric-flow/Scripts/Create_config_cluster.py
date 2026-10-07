@@ -32,7 +32,7 @@ def ring_positions(n, angle_deg, distance, azimuth0_deg=90.0):
     return positions
 
 
-def create_config(n, angle, KA, KB, inter_str, eps, sigma=1.0, radius=1.0, rescale=7.0,
+def create_config(n, angle, KA, KB, inter_str, eps, sigma=2.0, radius=1.0, rescale=7.0,
                   KV=20000.0, timesteps=20000, save_interval=500, switch_time=2000,
                   azimuth0=90.0, first_dir="../Results/Cluster_beads/", subfolder="1/",
                   out_dir="../Config_files/"):
@@ -75,7 +75,7 @@ if __name__ == "__main__":
     p.add_argument("--KB", type=float, required=True, help="Bending_tan constant")
     p.add_argument("--inter_str", type=float, required=True, help="bead-membrane adhesion strength (all beads)")
     p.add_argument("--eps", type=float, required=True, help="bead-bead Shifted_LJ epsilon (all pairs)")
-    p.add_argument("--sigma", type=float, default=1.0, help="bead-bead Shifted_LJ sigma (default 1)")
+    p.add_argument("--sigma", type=float, default=2.0, help="bead-bead Shifted_LJ sigma (default 1)")
     p.add_argument("--radius", type=float, default=1.0, help="bead radius")
     p.add_argument("--rescale", type=float, default=7.0, help="sphere scale")
     p.add_argument("--KV", type=float, default=20000.0, help="Volume_constraint constant")
