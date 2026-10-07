@@ -38,6 +38,31 @@ void Interaction::validateSetup() const
     }
 }
 
+// Bond "Shifted_LJ" (bonds_constants [epsilon, sigma]): the repulsive core of a
+// Lennard-Jones potential, cut at its minimum rc = 2^(1/6) sigma and shifted up
+// by epsilon (minus the minimum) so that E = 0 and E' = 0 at the cutoff.
+// A bond is listed by both of its beads: each listing carries half the energy
+// and the full force, like "Harmonic".
+namespace
+{
+    constexpr const char *SHIFTED_LJ = "Shifted_LJ";
+
+    double shifted_lj_cutoff(const std::vector<double> &c) { return std::pow(2.0, 1.0 / 6.0) * c[1]; }
+
+    // E(r), E'(r), E''(r) of the pair potential (zero from the cutoff on)
+    void shifted_lj(double r, const std::vector<double> &c, double &E, double &dE, double &ddE)
+    {
+        E = dE = ddE = 0.0;
+        if (r >= shifted_lj_cutoff(c))
+            return;
+        const double eps = c[0];
+        const double sr6 = std::pow(c[1] / r, 6);
+        E = 4.0 * eps * (sr6 * sr6 - sr6) + eps;
+        dE = -24.0 * eps * (2.0 * sr6 * sr6 - sr6) / r;
+        ddE = 24.0 * eps * (26.0 * sr6 * sr6 - 7.0 * sr6) / (r * r);
+    }
+} // namespace
+
 double Interaction::Bond_energy()
 {
     double E_bond = 0.0;
@@ -64,6 +89,13 @@ double Interaction::Bond_energy()
             vec_r = Bead_1->Pos - Bead_1->Beads[i]->Pos;
             r = vec_r.norm();
             E_bond += 0.5 * params[0] * r;
+        }
+        if (Bead_1->Bond_type[i] == SHIFTED_LJ)
+        {
+            vec_r = Bead_1->Pos - Bead_1->Beads[i]->Pos;
+            double E, dE, ddE;
+            shifted_lj(vec_r.norm(), params, E, dE, ddE);
+            E_bond += 0.5 * E;
         }
     }
 
@@ -102,6 +134,27 @@ std::vector<T> Interaction::Hessian_bonds_triplet()
 
         if (Bead_1->Bond_type[i] == "Lineal")
             continue;
+
+        if (Bead_1->Bond_type[i] == SHIFTED_LJ)
+        {
+            // Half of the pair Hessian E'' r^r^T + E'/r (I - r^r^T), the partner adds the rest
+            Vector3 vec_r = Bead_1->Pos - Bead_1->Beads[i]->Pos;
+            double r = vec_r.norm();
+            double E, dE, ddE;
+            shifted_lj(r, Bead_1->Interaction_constants_vector[i], E, dE, ddE);
+            if (dE == 0.0 && ddE == 0.0)
+                continue;
+            Eigen::Vector3d u(vec_r.x / r, vec_r.y / r, vec_r.z / r);
+            H_bond = 0.5 * (ddE * u * u.transpose() + dE / r * (Eigen::Matrix3d::Identity() - u * u.transpose()));
+            for (int row = 0; row < 3; row++)
+                for (int col = 0; col < 3; col++)
+                {
+                    tripletList.push_back(T(3 * (N_vert + B_1) + row, 3 * (N_vert + B_1) + col, H_bond(row, col)));
+                    tripletList.push_back(T(3 * (N_vert + B_2) + row, 3 * (N_vert + B_2) + col, H_bond(row, col)));
+                    tripletList.push_back(T(3 * (N_vert + B_1) + row, 3 * (N_vert + B_2) + col, -H_bond(row, col)));
+                    tripletList.push_back(T(3 * (N_vert + B_2) + row, 3 * (N_vert + B_1) + col, -H_bond(row, col)));
+                }
+        }
     }
     return tripletList;
 }
@@ -217,6 +270,12 @@ Vector3 Interaction::Bond_force()
         if (Bead_1->Bond_type[i] == "Lineal")
         {
             Force += -1 * params[0] * r_vec.unit();
+        }
+        if (Bead_1->Bond_type[i] == SHIFTED_LJ)
+        {
+            double E, dE, ddE;
+            shifted_lj(r, params, E, dE, ddE);
+            Force += -dE * r_vec / r;
         }
     }
 

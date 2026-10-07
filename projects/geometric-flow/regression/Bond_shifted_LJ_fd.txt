@@ -1,0 +1,32 @@
+Shifted_LJ bond: epsilon = 1.7, sigma = 0.8, rc = 2^(1/6) sigma = 0.897969638647, FD step h = 1e-06
+Both beads list the bond: E = sum of both listings, force on each bead = -dE/dx
+
+E(sigma) = 1.7 (epsilon = 1.7)
+E(rc) = 0.000e+00, |F|(rc) = 0.000e+00, E(rc(1+1e-9)) = 0.000e+00, E(2.5 sigma) = 0.000e+00, |F|(2.5 sigma) = 0.000e+00
+ok  : E(sigma) = epsilon
+ok  : E and force vanish at the cutoff
+ok  : no energy or force beyond the cutoff
+ok  : E > 0 and decreasing for r < rc (purely repulsive)
+
+ r/sigma            E            |F|   max|F-FD(E)|    max|dF|/max   max|H-FD(F)|     max|H-H^T|
+  0.8500      31.4759   6.845460e+02      4.166e-08      6.086e-11      9.331e-07      9.095e-13
+  0.9000      12.9814   2.946517e+02      2.463e-08      8.360e-11      4.226e-07      4.547e-13
+  0.9500      5.03366   1.256673e+02      1.278e-08      1.017e-10      2.352e-07      1.421e-14
+  1.0000          1.7   5.100000e+01      7.661e-09      1.502e-10      1.465e-07      1.137e-13
+  1.0500      0.41223   1.784803e+01      2.384e-09      1.336e-10      5.243e-08      2.842e-14
+  1.1000    0.0282668   3.374703e+00      5.315e-10      1.575e-10      1.223e-08      1.421e-14
+  1.1150   0.00283438   9.719652e-01      5.985e-10      5.985e-10      1.796e-08      1.421e-14
+  1.1200  0.000299008   3.059574e-01      4.074e-10      4.074e-10      8.707e-09      1.421e-14
+  1.1300            0   0.000000e+00      0.000e+00      0.000e+00      0.000e+00      0.000e+00
+  1.3000            0   0.000000e+00      0.000e+00      0.000e+00      0.000e+00      0.000e+00
+  2.0000            0   0.000000e+00      0.000e+00      0.000e+00      0.000e+00      0.000e+00
+
+worst relative force error  5.985e-10
+worst relative Hessian error 1.648e-08
+worst Hessian asymmetry      9.095e-13
+worst |F1 + F2|              0.000e+00
+ok  : bond force matches finite differences of the bond energy
+ok  : bond Hessian matches finite differences of the bond force
+ok  : bond Hessian is symmetric
+ok  : the two beads feel opposite forces
+PASS

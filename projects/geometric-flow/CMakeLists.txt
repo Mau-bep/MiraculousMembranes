@@ -549,3 +549,8 @@ target_link_libraries(Test_remesh_monitor geometry-central)
 add_executable(Test_plane_adhesion src/Test_plane_adhesion.cpp src/Interaction.cpp src/Beads.cpp src/BeadGeometry.cpp)
 target_include_directories(Test_plane_adhesion PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
 target_link_libraries(Test_plane_adhesion geometry-central)
+
+# Finite-difference checks of the Shifted_LJ bead-bead bond
+add_executable(Test_bond_shifted_LJ src/Test_bond_shifted_LJ.cpp src/Interaction.cpp src/Beads.cpp src/BeadGeometry.cpp)
+target_include_directories(Test_bond_shifted_LJ PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+target_link_libraries(Test_bond_shifted_LJ geometry-central)
