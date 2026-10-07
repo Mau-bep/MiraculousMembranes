@@ -29,7 +29,7 @@ def Read_data(folderpath):
             # That is the distance and the target cov
             # I would love to also get the final coverage,
             # I now need to read the output fil
-            output_file = folderpath + dir + "/Output_file.txt"
+            output_file = folderpath + dir + "/Output_data.txt"
             Sim_data = np.loadtxt(output_file,skiprows=1)
 
             E_Bend = Sim_data[:,4]
