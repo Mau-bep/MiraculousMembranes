@@ -293,7 +293,7 @@ def bending_phase(filepath="../Results/TwoBeadsCov/Bending_data_phase.txt", colu
     plt.show()
     return fig, ax
 
-bending_phase(filepath="../Results/TwoBeadsCov/Bending_data_phase_Bendi.txt", column="bending", save="../Results/TwoBeadsCov/Bending_phase_Bendi.pdf")
+# bending_phase(filepath="../Results/TwoBeadsCov/Bending_data_phase_Bendi.txt", column="bending", save="../Results/TwoBeadsCov/Bending_phase_Bendi.pdf")
 
 
 def obtained_coverage(filepath="../Results/TwoBeadsCov/Bending_data_phase.txt", sign=-1,
@@ -342,3 +342,31 @@ def obtained_coverage(filepath="../Results/TwoBeadsCov/Bending_data_phase.txt", 
     return fig, ax
 
 # obtained_coverage()
+
+
+def bending_vs_distance(filepath="../Results/TwoBeadsFast/Final_energies.txt", energy="Bending_tan", save=None):
+    """Final energy vs distance between the beads, from the Final_energies file of Two_bead.py.
+
+    File columns: directory, distance, <energy terms...>, Total_E (the header line names them).
+    energy: name of the column to plot, by default the bending energy.
+    """
+    with open(filepath) as f:
+        names = f.readline().lstrip("#").split()
+    col = names.index(energy)
+
+    # The first column is the run directory (a string), so only read distance and the energy
+    data = np.loadtxt(filepath, comments="#", usecols=(1, col), ndmin=2)
+    order = np.argsort(data[:, 0])
+    distance, E = data[order, 0], data[order, 1]
+
+    fig, ax = plt.subplots()
+    ax.plot(distance, E, "o-", ms=4, lw=1.2)
+    ax.set_xlabel(r"Bead distance $d$")
+    ax.set_ylabel(r"$E_\mathrm{bend}$" if energy == "Bending_tan" else energy.replace("_", " "))
+
+    if save is not None:
+        fig.savefig(save, bbox_inches="tight")
+    plt.show()
+    return fig, ax
+
+bending_vs_distance(energy="Surface_tension")
