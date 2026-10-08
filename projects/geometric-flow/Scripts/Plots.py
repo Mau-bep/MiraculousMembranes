@@ -216,7 +216,7 @@ def contour():
     
     return
 
-contour()
+# contour()
 
 def EdgePlot():
     dir = "../Results/Mem_shape_PR/41/"
@@ -247,3 +247,98 @@ def EdgePlot():
     plt.show()
 
 # EdgePlot()
+
+def bending_phase(filepath="../Results/TwoBeadsCov/Bending_data_phase.txt", column="bending", save=None):
+    """pcolormesh of the final energy over the (bead distance, target coverage) phase space.
+
+    File columns: run, distance, target coverage, bending energy, coverage energy, coverage strength.
+    column: "bending" or "coverage", selects the energy that is coloured.
+    """
+    columns = {
+        "bending": (3, r"$E_\mathrm{bend}$"),
+        "coverage": (4, r"$E_\mathrm{cov}$"),
+    }
+    col, label = columns[column]
+
+    # Lines starting with '#' are skipped; the runs come unordered
+    data = np.loadtxt(filepath, comments="#")
+    distance, coverage, energy = data[:, 1], data[:, 2], data[:, col]
+
+    # Sorted unique grid values, the pivot fills Z[coverage, distance]
+    xs = np.unique(distance)
+    ys = np.unique(coverage)
+    Z = np.full((len(ys), len(xs)), np.nan)
+    ix = np.searchsorted(xs, distance)
+    iy = np.searchsorted(ys, coverage)
+    Z[iy, ix] = energy
+
+    # Cell edges halfway between the centres, so each cell is centred on its run
+    def edges(c):
+        mid = 0.5 * (c[1:] + c[:-1])
+        return np.concatenate(([c[0] - (mid[0] - c[0])], mid, [c[-1] + (c[-1] - mid[-1])]))
+
+    fig, ax = plt.subplots()
+    mesh = ax.pcolormesh(edges(xs), edges(ys), Z, cmap="viridis", shading="flat")
+    cbar = fig.colorbar(mesh, ax=ax)
+    cbar.set_label(label, rotation=90)
+
+    ax.set_xlabel(r"Bead distance $d$")
+    ax.set_ylabel(r"Target coverage")
+    ax.set_xticks(xs)
+    ax.set_yticks(ys)
+    ax.set_aspect("auto")
+
+    if save is not None:
+        fig.savefig(save, bbox_inches="tight")
+    plt.show()
+    return fig, ax
+
+bending_phase(filepath="../Results/TwoBeadsCov/Bending_data_phase_Bendi.txt", column="bending", save="../Results/TwoBeadsCov/Bending_phase_Bendi.pdf")
+
+
+def obtained_coverage(filepath="../Results/TwoBeadsCov/Bending_data_phase.txt", sign=-1,
+                      deviation=False, save=None):
+    """Obtained coverage vs target coverage, one line per bead distance.
+
+    The coverage energy is E = sum_beads K (Omega_i - target)^2 (E_Handler::E_Coverage, no 1/2).
+    Both beads have the same target and, by symmetry, the same Omega, so E = 2 K (Omega - target)^2
+    and |Omega - target| = sqrt(E / (2 K)). The energy loses the sign of the deviation, so it is
+    set by `sign` (-1: under-covered, +1: over-covered).
+    deviation: plot Omega - target instead of Omega, to resolve the (small) offset from y = x.
+    """
+    # File columns: run, distance, target coverage, bending energy, coverage energy, K
+    data = np.loadtxt(filepath, comments="#")
+    distance, target, E_cov, K = data[:, 1], data[:, 2], data[:, 4], data[:, 5]
+
+    n_beads = 2
+    delta = sign * np.sqrt(E_cov / (n_beads * K))
+    obtained = target + delta
+    y = delta if deviation else obtained
+
+    distances = np.unique(distance)
+    colors = plt.get_cmap("viridis")(np.linspace(0, 0.9, len(distances)))
+
+    fig, ax = plt.subplots()
+    for d, c in zip(distances, colors):
+        m = distance == d
+        order = np.argsort(target[m])
+        ax.plot(target[m][order], y[m][order], "o-", color=c, ms=4, lw=1.2,
+                label=r"$d=%.1f$" % d)
+
+    if deviation:
+        ax.axhline(0, color="black", ls="dashed", lw=0.8)
+        ax.set_ylabel(r"Obtained $-$ target coverage")
+    else:
+        ax.plot([0, 1], [0, 1], color="black", ls="dashed", lw=0.8)
+        ax.set_ylabel(r"Obtained coverage")
+        ax.set_ylim(0, 1)
+    ax.set_xlabel(r"Target coverage")
+    ax.set_xlim(0, 1)
+    ax.legend(title="Bead distance", fontsize="small", ncol=2)
+
+    if save is not None:
+        fig.savefig(save, bbox_inches="tight")
+    plt.show()
+    return fig, ax
+
+# obtained_coverage()
