@@ -41,7 +41,7 @@
         80000
     ],
     "momentum": false,
-    "rescale": 3.0,
+    "rescale": {{ rescale | default(3.0) }},
     "Energies": [
 {# excess: Excess_tension [KA, 1.0] is KA (A - A0) only while the area A is above the initial area A0 (the second constant is the target area as a fraction of A0, 1.0 unless the run starts from a mesh whose area is not the reference one) #}
 {% if excess %}
@@ -60,6 +60,9 @@
             "mem_inter": "Adhesion",
 {% if shell_width %}
             "shell_width": {{ shell_width }},
+{% endif %}
+{% if shell_power %}
+            "shell_power": {{ shell_power }},
 {% endif %}
             "inter_str": {{interaction}},
             "bonds": [],

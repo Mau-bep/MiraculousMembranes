@@ -53,6 +53,7 @@ struct BeadSpec
     bool has_shift = false;
     double shift = 0.0;   // LJ; Shifted-LJ computes it from rc unless given
     double shell_width = 0.25; // Adhesion: half width of the contact shell as a fraction of the radius, in (0, 1)
+    double shell_power = 1.0;  // Adhesion: the shell weight is [1/2 (1 + cos(pi x))]^shell_power, real, >= 1 (1 = plain shell)
     std::vector<double> z_axis; // Gravity, Pinch
 
     std::vector<std::string> bonds;
