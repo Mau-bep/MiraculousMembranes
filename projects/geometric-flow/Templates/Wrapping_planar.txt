@@ -35,7 +35,7 @@
     ],
     "Switch_times": [
         2000,
-        80000,
+        30000,
         519090,
         519000,
         80000
@@ -60,7 +60,7 @@
         }
     ],
     "remesher": {
-        "aspect_min": 0.2, "refine_angle": 0.6, "refine_compression": 1e-4, "refine_velocity": 1.0, "size_max": 0.7, "size_min": 0.05
+        "aspect_min": 0.2, "refine_angle": 0.6, "refine_compression": 1e-4, "refine_velocity": 1.0, "size_max": 0.5, "size_min": 0.05
     },
     "remesh_rollback": {
         "max_rise": 10.0,
@@ -73,7 +73,7 @@
     },
     "stopping": {
         "window": 50,
-        "patience": 3,
+        "patience": 4,
         "bfgs_tol_E": 5e-05,
         "normal_tol_E": 1e-08,
         "normal_tol_g": 0.0,

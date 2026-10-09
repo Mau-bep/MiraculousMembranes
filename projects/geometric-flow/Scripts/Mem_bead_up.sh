@@ -6,7 +6,7 @@
 # #   SARIConGPT143!
 # set v=1.0
 set Nsim=1
-set Batch_Tag = "WrappingPhaseVaryingKA"
+set Batch_Tag = "WrappingPhaseVaryingKAsq"
 # set Init_cond=1
 # foreach v ( 1.0 )
 # foreach Init_cond ( 2 )

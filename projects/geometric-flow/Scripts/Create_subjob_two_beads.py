@@ -195,7 +195,7 @@ def Create_json_wrapping_two_fixed(dist, outside1, outside2):
     data['first_dir'] = Batch_dir
 
     # print("something\n")
-    Config_path = '../Config_files/{0}_{1:.2f}_{2}_{3}_{4}_ST_{5}.json'.format(Batch_tag,radius,angle,location[outside1],location[outside2],ka) 
+    Config_path = '../Config_files/{0}_ConfigFile.json'.format(Unique_tag)
     
     sim_path = data['first_dir']
     
@@ -266,7 +266,8 @@ def Create_json_wrapping_two_cov(dist, outside1, outside2):
 os.makedirs('../Subjobs/',exist_ok=True)
 os.makedirs('../Outputs/',exist_ok=True)
 
-Config_path, sim_path = Create_json_wrapping_two_cov(angle,outside1,outside2)
+# Config_path, sim_path = Create_json_wrapping_two_cov(angle,outside1,outside2)
+Config_path, sim_path = Create_json_wrapping_two_fixed(angle,outside1,outside2)
 
 
 Output_name = '{0}_output.output'.format(Unique_tag)

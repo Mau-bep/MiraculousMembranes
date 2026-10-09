@@ -247,10 +247,9 @@ double E_Handler::E_Bending_tan(std::vector<double> Constants) const
         // std::cout<<" pos\n";
         Pos = geometry->inputVertexPositions[v];
         // std::cout<<"reff \n";
-        r_eff2 = Pos.z * Pos.z + Pos.y * Pos.y;
-        // std::cout<<"boundary? \n";
-        if (r_eff2 > 1.6 && boundary)
-            continue;
+        // The radial cut (rho^2 > 1.6 with a boundary) was removed: F_Bending_tan has no such cut
+        // and E_Bending dropped it too. With it the energy ignored the membrane outside the
+        // bead footprint while the force bent it, and each vertex crossing the cut was a jump.
 
         A = geometry->barycentricDualArea(v);
         H = (geometry->scalarMeanCurvatureTan(v) / A - H0);
