@@ -557,23 +557,6 @@ namespace
     void step_newton(Simulation &sim, RunState &run, size_t current_t, std::ofstream &Sim_data, bool save)
     {
         E_Handler &Sim_handler = sim.Sim_handler;
-        int Switch_t = switch_time(run, "Newton");
-        if (current_t == 0 || int(current_t) == Switch_t || run.resumed_first_step)
-        {
-            if (!sim.M3DG.boundary)
-            {
-                int ia = index_of(sim.Energies, "Area_constraint");
-                Eigen::VectorXd Lagrange_mults = Eigen::VectorXd::Zero(ia >= 0 ? 2 : 1);
-                Sim_handler.Lagrange_mult = Lagrange_mults;
-                Sim_handler.Trgt_vol = sim.V_bar;
-                Sim_handler.Trgt_area = ia >= 0 ? sim.Energy_constants[ia][1] : 0.0;
-            }
-            else
-            {
-                Sim_handler.Lagrange_mult = Eigen::VectorXd(0);
-            }
-            run.Switch_times_map["Newton"] = -1;
-        }
 
         // Rebuilt every step (with a boundary it used to grow by six entries per step)
         std::vector<std::string> &Constraints = run.Constraints;
@@ -586,6 +569,21 @@ namespace
         disable_constraint_energies(sim);
         push_rigid_constraints(Constraints);
         Sim_handler.Constraints = Constraints;
+
+        int Switch_t = switch_time(run, "Newton");
+        if (current_t == 0 || int(current_t) == Switch_t || run.resumed_first_step)
+        {
+            // One multiplier per row of the constraint Jacobian, CMx..Rz included
+            // (only the volume and area ones are updated, the others stay zero)
+            Sim_handler.Lagrange_mult = Eigen::VectorXd::Zero(Constraints.size());
+            if (!sim.M3DG.boundary)
+            {
+                int ia = index_of(sim.Energies, "Area_constraint");
+                Sim_handler.Trgt_vol = sim.V_bar;
+                Sim_handler.Trgt_area = ia >= 0 ? sim.Energy_constants[ia][1] : 0.0;
+            }
+            run.Switch_times_map["Newton"] = -1;
+        }
 
         std::vector<std::string> Data_filenames(0);
         run.dt_sim = sim.M3DG.integrate_Newton(Sim_data, run.time, run.Bead_filenames, save, Constraints, Data_filenames);
