@@ -1,5 +1,5 @@
 {
-    "init_file": "../../../input/Big_planar_mem.obj",
+    "init_file": "{{ init_file | default('../../../input/Big_planar_mem.obj') }}",
     "save_interval": 500,
     "timesteps": 200000,
     "continue_sim": false,
@@ -43,9 +43,9 @@
     "momentum": false,
     "rescale": 1.0,
     "Energies": [
-{# excess: Excess_tension [KA, 1.0] is KA (A - A0) only while the area A is above the initial area A0 (the 1.0 is the target area as a fraction of A0) #}
+{# excess: Excess_tension [KA, 1.0] is KA (A - A0) only while the area A is above the initial area A0 (the second constant is the target area as a fraction of A0, 1.0 unless the run starts from a mesh whose area is not the reference one) #}
 {% if excess %}
-        {"Name": "Excess_tension", "constants": [ {{KA}}, 1.0 ] },
+        {"Name": "Excess_tension", "constants": [ {{KA}}, {{ area_factor | default(1.0) }} ] },
 {% else %}
         {"Name": "Surface_tension", "constants": [ {{KA}} ] },
 {% endif %}
@@ -56,7 +56,7 @@
             "gradient_order": "Bead",
             "radius": {{radius}},
             "state": "default",
-            "Pos": [{{xpos}}, 0.0, 0.0],
+            "Pos": [{{xpos}}, {{ ypos | default(0.0) }}, {{ zpos | default(0.0) }}],
             "mem_inter": "Adhesion",
             "inter_str": {{interaction}},
             "bonds": [],

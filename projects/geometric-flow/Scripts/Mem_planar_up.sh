@@ -4,7 +4,11 @@
 
 
 set Nsim=1
+# "full": start from input/Planar_full.obj (membrane already wrapped around the bead),
+# "flat": start from Big_planar_mem.obj with the bead above the plane
+set Init = "full"
 set Batch_Tag = "Wrapping_planar"
+if ( ${Init} == "full" ) set Batch_Tag = "${Batch_Tag}_full"
 set KB = 1
 set radius = 1.0
 
@@ -15,7 +19,7 @@ foreach KA ( 0 0.06667 0.1333 0.2 0.2667 0.3333 0.4 0.4667 0.5333 0.6 0.6667 0.7
 
 set Unique_Tag = "${Batch_Tag}_Strg_${Strg}_r_${radius}_KA_${KA}_KB_${KB}_Nsim_${Nsim}"
 
-python3 Create_subjob_planar.py --inter_str ${Strg} --radius ${radius} --KA ${KA} --KB ${KB} --batch_tag ${Batch_Tag} --unique_tag ${Unique_Tag}
+python3 Create_subjob_planar.py --inter_str ${Strg} --radius ${radius} --KA ${KA} --KB ${KB} --init ${Init} --batch_tag ${Batch_Tag} --unique_tag ${Unique_Tag}
 sbatch ../Subjobs/${Unique_Tag}_subjob
 
 end
