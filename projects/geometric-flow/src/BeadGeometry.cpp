@@ -6,7 +6,7 @@
 namespace bead_geometry
 {
 
-    double coverageShellWeight(double r, double sigma, double &dWeightDr)
+    double coverageShellWeight(double r, double sigma, double &dWeightDr, double shellWidth)
     {
         if (sigma <= 0.0)
         {
@@ -14,7 +14,13 @@ namespace bead_geometry
                 "coverageShellWeight(): sigma must be strictly positive.");
         }
 
-        const double delta = 0.25 * sigma;
+        if (!(shellWidth > 0.0 && shellWidth < 1.0))
+        {
+            throw std::invalid_argument(
+                "coverageShellWeight(): shellWidth must be in (0, 1).");
+        }
+
+        const double delta = shellWidth * sigma;
         const double x = (r - sigma) / delta;
 
         dWeightDr = 0.0;
@@ -150,7 +156,8 @@ namespace bead_geometry
         const VertexPositionGeometry &geometry,
         Face f,
         const Vector3 &beadPosition,
-        double sigma)
+        double sigma,
+        double shellWidth)
     {
         FaceCoverageData result;
 
@@ -186,7 +193,8 @@ namespace bead_geometry
         result.weight = coverageShellWeight(
             centroidDistance,
             sigma,
-            result.dWeightDr);
+            result.dWeightDr,
+            shellWidth);
 
         if (result.weight <= 0.0)
         {

@@ -426,7 +426,7 @@ double CalculateCoverageSolidAngle(std::string Simdir, int Step, Vector3 BeadPos
 
 // Same coverage the Coverage energy uses: sum over faces of the cosine shell
 // weight times |omega| / 4pi, with the face selection of bead_geometry
-double CalculateCoverageBeadGeometry(std::string Simdir, int Step, Vector3 BeadPos, double radius)
+double CalculateCoverageBeadGeometry(std::string Simdir, int Step, Vector3 BeadPos, double radius, double shellWidth = 0.25)
 {
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(Simdir + "membrane_" + std::to_string(Step) + ".obj");
     mesh = mesh_uptr.release();
@@ -436,7 +436,7 @@ double CalculateCoverageBeadGeometry(std::string Simdir, int Step, Vector3 BeadP
     for (Face f : mesh->faces())
     {
         const bead_geometry::FaceCoverageData faceData =
-            bead_geometry::evaluateFaceCoverage(*geometry, f, BeadPos, radius);
+            bead_geometry::evaluateFaceCoverage(*geometry, f, BeadPos, radius, shellWidth);
 
         if (!faceData.selected)
             continue;
@@ -451,7 +451,7 @@ double CalculateCoverageBeadGeometry(std::string Simdir, int Step, Vector3 BeadP
 // a Fibonacci lattice on the unit sphere, each worth 4pi / nDirections.
 // Returns {fraction hit at least once, fraction hit two or more times}; the
 // second one flags membrane folded over itself in the contact shell.
-std::pair<double, double> CalculateCoverageRays(std::string Simdir, int Step, Vector3 BeadPos, double radius, int nDirections = 20000)
+std::pair<double, double> CalculateCoverageRays(std::string Simdir, int Step, Vector3 BeadPos, double radius, int nDirections = 20000, double shellWidth = 0.25)
 {
     std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(Simdir + "membrane_" + std::to_string(Step) + ".obj");
     mesh = mesh_uptr.release();
@@ -471,7 +471,7 @@ std::pair<double, double> CalculateCoverageRays(std::string Simdir, int Step, Ve
     for (Face f : mesh->faces())
     {
         const bead_geometry::FaceCoverageData faceData =
-            bead_geometry::evaluateFaceCoverage(*geometry, f, BeadPos, radius);
+            bead_geometry::evaluateFaceCoverage(*geometry, f, BeadPos, radius, shellWidth);
 
         if (!faceData.selected)
             continue;
@@ -611,6 +611,7 @@ std::vector<double> ReadCoverage(std::string Subdir, bool planar = false)
     double r = 0;
     double rc = 0;
     double KI = 0;
+    double shellWidth = 0.25; // Adhesion shell, as in the run
     for (auto Bead_data : Data["Beads"])
     {
         // We technically only have 1 bead
@@ -620,6 +621,7 @@ std::vector<double> ReadCoverage(std::string Subdir, bool planar = false)
             rc = Bead_data["rc"];
         }
         KI = Bead_data["inter_str"];
+        shellWidth = Bead_data.value("shell_width", 0.25);
     }
 
     int FinalStep = Last_step(Subdir);
@@ -644,7 +646,7 @@ std::vector<double> ReadCoverage(std::string Subdir, bool planar = false)
 
     // double A_covered = CalculateCoverage(Subdir, FinalStep, BeadPos, r, rc);
     // double A_covered = CalculateCoverageSolidAngle(Subdir, FinalStep, BeadPos, r, rc);
-    double A_covered = CalculateCoverageBeadGeometry(Subdir, FinalStep, BeadPos, r);
+    double A_covered = CalculateCoverageBeadGeometry(Subdir, FinalStep, BeadPos, r, shellWidth);
 
     // Ok then we have everything no?
     Coverage_data.push_back(KA);
@@ -654,7 +656,7 @@ std::vector<double> ReadCoverage(std::string Subdir, bool planar = false)
     Coverage_data.push_back(rc);
     Coverage_data.push_back(A_covered);
 
-    std::pair<double, double> RayCoverage = CalculateCoverageRays(Subdir, FinalStep, BeadPos, r);
+    std::pair<double, double> RayCoverage = CalculateCoverageRays(Subdir, FinalStep, BeadPos, r, 20000, shellWidth);
     Coverage_data.push_back(RayCoverage.first);
     Coverage_data.push_back(RayCoverage.second);
     if (planar)

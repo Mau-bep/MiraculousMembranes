@@ -52,6 +52,7 @@ struct BeadSpec
     double outside = 1.0; // Frenkel, Frenkel_Normal_nopush, Linear, Linear_Normal, One_over_r_x
     bool has_shift = false;
     double shift = 0.0;   // LJ; Shifted-LJ computes it from rc unless given
+    double shell_width = 0.25; // Adhesion: half width of the contact shell as a fraction of the radius, in (0, 1)
     std::vector<double> z_axis; // Gravity, Pinch
 
     std::vector<std::string> bonds;

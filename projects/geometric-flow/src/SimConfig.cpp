@@ -72,6 +72,14 @@ namespace
             spec.rc = b["rc"].get<double>();
         }
         spec.outside = b.value("outside", 1.0);
+        if (b.contains("shell_width"))
+        {
+            spec.shell_width = b["shell_width"].get<double>();
+            if (spec.mem_inter != "Adhesion")
+                std::cout << "Warning: \"shell_width\" in " << where << " is only used by the Adhesion interaction\n";
+            if (!(spec.shell_width > 0.0 && spec.shell_width < 1.0))
+                throw std::runtime_error("Input file: \"shell_width\" in " + where + " must be in (0, 1)");
+        }
         if (b.contains("shift"))
         {
             spec.has_shift = true;
@@ -606,7 +614,10 @@ std::unique_ptr<Interaction> make_interaction(const BeadSpec &spec, ManifoldSurf
     if (type == "One_over_r")
         return make_unique_ptr<One_over_r>(mesh, geometry, params);
     if (type == "Adhesion") // E = -inter_str * covered area of the radius sphere (rc unused)
+    {
+        params.push_back(spec.shell_width);
         return make_unique_ptr<Adhesion>(mesh, geometry, params);
+    }
     if (type == "Plane_adhesion")
     {
         // E = -inter_str * membrane area within rc of the plane through Pos

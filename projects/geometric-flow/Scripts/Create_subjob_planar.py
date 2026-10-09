@@ -16,6 +16,11 @@ parser.add_argument("--KB", type=number_str, required=True, help="bending consta
 parser.add_argument("--init", choices=["flat", "full"], default="flat",
                     help="flat: Big_planar_mem.obj with the bead above the plane, "
                          "full: Planar_full.obj, the membrane already wrapped around the bead")
+parser.add_argument("--shell_width", type=number_str, default=None,
+                    help="half width of the adhesion shell as a fraction of the bead radius (default of the code: 0.25); "
+                         "a narrower shell needs a finer mesh")
+parser.add_argument("--size_min", type=number_str, default=None, help="smallest edge length of the remesher (template default)")
+parser.add_argument("--size_max", type=number_str, default=None, help="largest edge length of the remesher (template default)")
 parser.add_argument("--tension", choices=["surface", "excess"], default="surface",
                     help="surface: KA * area, excess: KA * (area - initial area) only while the area is above the initial one")
 parser.add_argument("--batch_tag", type=str, required=True, help="tag of the batch (also the results folder name)")
@@ -28,6 +33,8 @@ KA = args.KA
 KB = args.KB
 Excess = args.tension == "excess"
 Init = args.init
+# Optional template overrides, left out of the render (so the template defaults apply) when not given
+Overrides = {k: v for k, v in (("shell_width", args.shell_width), ("size_min", args.size_min), ("size_max", args.size_max)) if v is not None}
 Batch_tag = args.batch_tag
 Unique_tag = args.unique_tag
 
@@ -81,7 +88,7 @@ def Create_json_wrapping_planar(ka, kb, r, inter_str):
         xpos, ypos, zpos = float(r), 0.0, 0.0
         area_factor = 1.0
     output_from_parsed_template = template.render(KA=ka, KB=kb, radius=r, init_file=init_file, xpos=xpos, ypos=ypos, zpos=zpos,
-                                                  interaction=inter_str, excess=Excess, area_factor=area_factor)
+                                                  interaction=inter_str, excess=Excess, area_factor=area_factor, **Overrides)
 
     data = json.loads(output_from_parsed_template)
 

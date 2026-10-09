@@ -286,7 +286,11 @@ public:
 // points towards the bead count (selection only, not differentiated).
 // See bead_geometry::evaluateFaceCoverage.
 //
-// Energy_constants = {W, sigma, ...}  (inter_str and radius in the input file)
+// The shell half width is shellWidth * sigma, 0.25 unless Energy_constants has a fourth
+// entry ("shell_width" in the input file): a narrower shell makes the contact stiffer
+// and shorter ranged, it needs mesh edges of about the shell width or smaller.
+//
+// Energy_constants = {W, sigma, rc (unused), shell_width (optional)}  (inter_str, radius in the input file)
 class Adhesion : public Face_Integrated_Interaction
 {
 public:
@@ -311,6 +315,7 @@ public:
 private:
     double strength() const { return Energy_constants[0]; }
     double sigma() const { return Energy_constants[1]; }
+    double shellWidth() const { return Energy_constants.size() > 3 ? Energy_constants[3] : 0.25; }
 };
 
 // Adhesion to a flat wall through the membrane area projected on it:

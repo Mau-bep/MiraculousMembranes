@@ -90,15 +90,16 @@ namespace bead_geometry
     /*
      * Cosine shell centered at the physical bead radius sigma.
      *
-     * delta = 0.25 * sigma
+     * delta = shellWidth * sigma  (shellWidth = 0.25 unless given)
      *
      * weight is nonzero only for:
      *
      *   sigma - delta < r < sigma + delta
      *
      * The function returns weight(r), and writes dweight/dr in dWeightDr.
+     * shellWidth must be in (0, 1).
      */
-    double coverageShellWeight(double r, double sigma, double &dWeightDr);
+    double coverageShellWeight(double r, double sigma, double &dWeightDr, double shellWidth = 0.25);
 
     /*
      * Compute the signed solid angle of triangle p0,p1,p2 as seen from
@@ -121,7 +122,8 @@ namespace bead_geometry
         const VertexPositionGeometry &geometry,
         Face f,
         const Vector3 &beadPosition,
-        double sigma);
+        double sigma,
+        double shellWidth = 0.25);
 
     // Coverage constants are [K, cov_0, ..., cov_(N-1)], one target per bead.
     // Throws std::invalid_argument if the count does not match.
