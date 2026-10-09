@@ -248,15 +248,18 @@ def EdgePlot():
 
 # EdgePlot()
 
-def bending_phase(filepath="../Results/TwoBeadsCov/Bending_data_phase.txt", column="bending", save=None):
+def bending_phase(filepath="../Results/TwoBeadsCov/Bending_data_phase.txt", column="bending", save=None,
+                  contour_levels=10):
     """pcolormesh of the final energy over the (bead distance, target coverage) phase space.
 
     File columns: run, distance, target coverage, bending energy, coverage energy, coverage strength.
     column: "bending" or "coverage", selects the energy that is coloured.
+    contour_levels: number of (or list of values for) the contour lines drawn on top, None to skip them.
     """
     columns = {
         "bending": (3, r"$E_\mathrm{bend}$"),
         "coverage": (4, r"$E_\mathrm{cov}$"),
+        "total": (6, r"$E_\mathrm{total}$"),
     }
     col, label = columns[column]
 
@@ -282,6 +285,12 @@ def bending_phase(filepath="../Results/TwoBeadsCov/Bending_data_phase.txt", colu
     cbar = fig.colorbar(mesh, ax=ax)
     cbar.set_label(label, rotation=90)
 
+    # Contour lines through the cell centres, on top of the pcolormesh (NaN cells are left out)
+    if contour_levels is not None:
+        cs = ax.contour(xs, ys, np.ma.masked_invalid(Z), levels=contour_levels,
+                        colors="black", linewidths=0.8)
+        ax.clabel(cs, fontsize="small", fmt="%.2f")
+
     ax.set_xlabel(r"Bead distance $d$")
     ax.set_ylabel(r"Target coverage")
     ax.set_xticks(xs)
@@ -293,7 +302,7 @@ def bending_phase(filepath="../Results/TwoBeadsCov/Bending_data_phase.txt", colu
     plt.show()
     return fig, ax
 
-# bending_phase(filepath="../Results/TwoBeadsCov/Bending_data_phase_Bendi.txt", column="bending", save="../Results/TwoBeadsCov/Bending_phase_Bendi.pdf")
+# bending_phase(filepath="../Results/TwoBeadsCov/Bending_data_phase_Bendi.txt", column="bending", save="../Results/TwoBeadsCov/Bending_phase_Bendi_bendingE.pdf")
 
 
 def obtained_coverage(filepath="../Results/TwoBeadsCov/Bending_data_phase.txt", sign=-1,
@@ -369,4 +378,116 @@ def bending_vs_distance(filepath="../Results/TwoBeadsFast/Final_energies.txt", e
     plt.show()
     return fig, ax
 
-bending_vs_distance(energy="Surface_tension")
+# bending_vs_distance(energy="Surface_tension")
+
+
+def coverage_phase(filepath="../Results/WrappingPhaseVaryingKA/Coverage_data.txt", column="union", save=None):
+    """pcolormesh of the coverage over the (KA, interaction strength KI) phase space.
+
+    File columns: DIR KA KB KI BeadRadius rc CoveredArea CoverageUnion MultilayerFrac.
+    column: "union" (CoverageUnion) or "area" (CoveredArea), selects the coverage that is coloured.
+    """
+    columns = {
+        "union": (7, "Coverage"),
+        "area": (6, "Covered area"),
+    }
+    col, label = columns[column]
+
+    # Header starts with '#'; usecols skips the DIR string. The runs come unordered
+    data = np.loadtxt(filepath, comments="#", usecols=(1, 3, col))
+    KA, KI, cov = data[:, 0], data[:, 1], data[:, 2]
+
+    # Sorted unique grid values, the pivot fills Z[strength, KA]
+    xs = np.unique(KA)
+    ys = np.unique(KI)
+    Z = np.full((len(ys), len(xs)), np.nan)
+    Z[np.searchsorted(ys, KI), np.searchsorted(xs, KA)] = cov
+
+    # Cell edges halfway between the centres, so each cell is centred on its run
+    def edges(c, log=False):
+        if log:
+            return np.exp(edges(np.log(c)))
+        mid = 0.5 * (c[1:] + c[:-1])
+        return np.concatenate(([c[0] - (mid[0] - c[0])], mid, [c[-1] + (c[-1] - mid[-1])]))
+
+    # KA is sampled roughly geometrically, so it goes on a log axis
+    fig, ax = plt.subplots()
+    mesh = ax.pcolormesh(edges(xs, log=True), edges(ys), Z, cmap="viridis", shading="flat",
+                         vmin=0, vmax=1)
+    cbar = fig.colorbar(mesh, ax=ax)
+    cbar.set_label(label, rotation=90)
+
+    ax.set_xscale("log")
+    ax.set_xlabel(r"$K_A$")
+    ax.set_ylabel(r"Interaction strength")
+    ax.set_yticks(ys)
+
+    if save is not None:
+        fig.savefig(save, bbox_inches="tight")
+    plt.show()
+    return fig, ax
+
+# coverage_phase()
+
+
+def planar_phase(filepath="../Results/Wrapping_planar/Coverage_data.txt", column="CoverageUnion",
+                 contour_levels=None, xlim=(0.75, 1.5), ylim=(0.0, 1.0), save=None):
+    """pcolormesh of the planar membrane phase space, from the Coverage_data.txt of PostProcessing.
+
+    x = KI r^2 / KB (adhesion strength), y = KA r^2 / KB (surface tension), with r the bead radius.
+    File columns: DIR KA KB KI BeadRadius rc CoveredArea CoverageUnion MultilayerFrac BeadX Area <energies> Total_E,
+    the header line names them.
+    column: name of the column that is coloured, e.g. "CoverageUnion", "CoveredArea", "Bending_tan", "Total_E".
+    contour_levels: number of (or list of values for) the contour lines drawn on top, None for no lines.
+    xlim, ylim: axis limits.
+    """
+    with open(filepath) as f:
+        names = f.readline().lstrip("#").split()
+    col = {n: i + 1 for i, n in enumerate(names[1:])}  # the DIR column is a string: usecols skips it
+
+    # The first header line can be repeated when PostProcessing appends to an old file
+    data = np.loadtxt(filepath, comments="#", usecols=range(1, len(names)), ndmin=2)
+    KA, KB, KI, r = (data[:, col[n] - 1] for n in ("KA", "KB", "KI", "BeadRadius"))
+    value = data[:, col[column] - 1]
+    KB = KB/2
+    x = np.round( KI * r**2 / (2*KB), 6)
+    y = np.round(KA * r**2 / KB, 6)
+    
+    # Sorted unique grid values, the pivot fills Z[y, x]
+    xs = np.unique(x)
+    ys = np.unique(y)
+    Z = np.full((len(ys), len(xs)), np.nan)
+    Z[np.searchsorted(ys, y), np.searchsorted(xs, x)] = value
+
+    # Cell edges halfway between the centres, so each cell is centred on its run
+    def edges(c):
+        if len(c) == 1:
+            return np.array([c[0] - 0.5, c[0] + 0.5])
+        mid = 0.5 * (c[1:] + c[:-1])
+        return np.concatenate(([c[0] - (mid[0] - c[0])], mid, [c[-1] + (c[-1] - mid[-1])]))
+
+    fig, ax = plt.subplots()
+    mesh = ax.pcolormesh(edges(xs), edges(ys), Z, cmap="viridis", shading="flat")
+    cbar = fig.colorbar(mesh, ax=ax)
+    cbar.set_label(column.replace("_", " "), rotation=90)
+
+    # Contour lines through the cell centres, on top of the pcolormesh (NaN cells are left out)
+    if contour_levels is not None:
+        cs = ax.contour(xs, ys, np.ma.masked_invalid(Z), levels=contour_levels,
+                        colors="white", linewidths=0.8)
+        ax.clabel(cs, fontsize="small", fmt="%.2f")
+    
+
+    ax.set_xlabel(r"$K_I r^2 / K_B$")
+    ax.set_ylabel(r"$K_A r^2 / K_B$")
+    ax.set_xlim(*xlim)
+    ax.set_ylim(*ylim)
+    ax.set_aspect("auto")
+    ax.axvline(x=1.0, ls="dashed", color="black", lw=0.8)
+
+    if save is not None:
+        fig.savefig(save, bbox_inches="tight")
+    plt.show()
+    return fig, ax
+
+planar_phase(contour_levels=[0.25, 0.5 ,0.75])
