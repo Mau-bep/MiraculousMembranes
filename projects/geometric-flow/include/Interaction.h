@@ -290,7 +290,14 @@ public:
 // entry ("shell_width" in the input file): a narrower shell makes the contact stiffer
 // and shorter ranged, it needs mesh edges of about the shell width or smaller.
 //
-// Energy_constants = {W, sigma, rc (unused), shell_width (optional)}  (inter_str, radius in the input file)
+// The shell can be made steeper with a fifth entry ("shell_power" in the input file, a real
+// p >= 1, default 1): the weight is then [ 1/2 (1 + cos(pi x)) ]^p = cos^(2p)(pi x / 2),
+// x = (r - sigma) / (shellWidth sigma). p = 2 and 4 are cos^4 and cos^8 of pi x / 2: still 1 at
+// r = sigma and 0 with zero slope at the edges, but it falls off faster away from the minimum,
+// so the contact is stiffer around r = sigma. p = 1 is exactly the plain shell.
+//
+// Energy_constants = {W, sigma, rc (unused), shell_width (optional), shell_power (optional)}
+// (inter_str, radius in the input file)
 class Adhesion : public Face_Integrated_Interaction
 {
 public:
@@ -316,6 +323,7 @@ private:
     double strength() const { return Energy_constants[0]; }
     double sigma() const { return Energy_constants[1]; }
     double shellWidth() const { return Energy_constants.size() > 3 ? Energy_constants[3] : 0.25; }
+    double shellPower() const { return Energy_constants.size() > 4 ? Energy_constants[4] : 1.0; }
 };
 
 // Adhesion to a flat wall through the membrane area projected on it:

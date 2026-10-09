@@ -554,3 +554,8 @@ target_link_libraries(Test_plane_adhesion geometry-central)
 add_executable(Test_bond_shifted_LJ src/Test_bond_shifted_LJ.cpp src/Interaction.cpp src/Beads.cpp src/BeadGeometry.cpp)
 target_include_directories(Test_bond_shifted_LJ PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
 target_link_libraries(Test_bond_shifted_LJ geometry-central)
+
+# Weight and finite-difference checks of the Adhesion shell exponent (shell_power)
+add_executable(Test_shell_power src/Test_shell_power.cpp src/Interaction.cpp src/Beads.cpp src/BeadGeometry.cpp)
+target_include_directories(Test_shell_power PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+target_link_libraries(Test_shell_power geometry-central)

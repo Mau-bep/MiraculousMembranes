@@ -19,8 +19,14 @@ parser.add_argument("--init", choices=["flat", "full"], default="flat",
 parser.add_argument("--shell_width", type=number_str, default=None,
                     help="half width of the adhesion shell as a fraction of the bead radius (default of the code: 0.25); "
                          "a narrower shell needs a finer mesh")
+parser.add_argument("--shell_power", type=number_str, default=None,
+                    help="exponent p >= 1 of the adhesion shell, weight = [1/2 (1 + cos(pi x))]^p (default of the code: 1; 2, 4 = cos^4, cos^8 of pi x/2)")
 parser.add_argument("--size_min", type=number_str, default=None, help="smallest edge length of the remesher (template default)")
 parser.add_argument("--size_max", type=number_str, default=None, help="largest edge length of the remesher (template default)")
+parser.add_argument("--rescale", type=number_str, default=None,
+                    help="rescale factor of the mesh about its centre of mass (template default 3.0; the old runs used 1.0: "
+                         "Big_planar_mem.obj is already a disk of radius 10 and Planar_full.obj is wrapped around a bead of radius 1, "
+                         "the bead itself is not rescaled)")
 parser.add_argument("--tension", choices=["surface", "excess"], default="surface",
                     help="surface: KA * area, excess: KA * (area - initial area) only while the area is above the initial one")
 parser.add_argument("--batch_tag", type=str, required=True, help="tag of the batch (also the results folder name)")
@@ -34,7 +40,7 @@ KB = args.KB
 Excess = args.tension == "excess"
 Init = args.init
 # Optional template overrides, left out of the render (so the template defaults apply) when not given
-Overrides = {k: v for k, v in (("shell_width", args.shell_width), ("size_min", args.size_min), ("size_max", args.size_max)) if v is not None}
+Overrides = {k: v for k, v in (("shell_width", args.shell_width), ("shell_power", args.shell_power), ("rescale", args.rescale), ("size_min", args.size_min), ("size_max", args.size_max)) if v is not None}
 Batch_tag = args.batch_tag
 Unique_tag = args.unique_tag
 

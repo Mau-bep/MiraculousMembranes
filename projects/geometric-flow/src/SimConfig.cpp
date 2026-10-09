@@ -80,6 +80,16 @@ namespace
             if (!(spec.shell_width > 0.0 && spec.shell_width < 1.0))
                 throw std::runtime_error("Input file: \"shell_width\" in " + where + " must be in (0, 1)");
         }
+        if (b.contains("shell_power"))
+        {
+            // shell_width keeps its default (0.25) when it is not given: the Adhesion constants always carry both
+            spec.shell_power = b["shell_power"].get<double>();
+            if (spec.mem_inter != "Adhesion")
+                std::cout << "Warning: \"shell_power\" in " << where << " is only used by the Adhesion interaction\n";
+            if (!(std::isfinite(spec.shell_power) && spec.shell_power >= 1.0))
+                throw std::runtime_error("Input file: \"shell_power\" in " + where +
+                                         " must be a finite number >= 1 (1 = plain cosine shell, 2 and 4 = cos^4 and cos^8 of pi x / 2)");
+        }
         if (b.contains("shift"))
         {
             spec.has_shift = true;
@@ -616,6 +626,7 @@ std::unique_ptr<Interaction> make_interaction(const BeadSpec &spec, ManifoldSurf
     if (type == "Adhesion") // E = -inter_str * covered area of the radius sphere (rc unused)
     {
         params.push_back(spec.shell_width);
+        params.push_back(spec.shell_power);
         return make_unique_ptr<Adhesion>(mesh, geometry, params);
     }
     if (type == "Plane_adhesion")

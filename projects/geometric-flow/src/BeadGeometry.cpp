@@ -6,7 +6,7 @@
 namespace bead_geometry
 {
 
-    double coverageShellWeight(double r, double sigma, double &dWeightDr, double shellWidth)
+    double coverageShellWeight(double r, double sigma, double &dWeightDr, double shellWidth, double shellPower)
     {
         if (sigma <= 0.0)
         {
@@ -18,6 +18,12 @@ namespace bead_geometry
         {
             throw std::invalid_argument(
                 "coverageShellWeight(): shellWidth must be in (0, 1).");
+        }
+
+        if (!(shellPower >= 1.0 && std::isfinite(shellPower)))
+        {
+            throw std::invalid_argument(
+                "coverageShellWeight(): shellPower must be finite and >= 1.");
         }
 
         const double delta = shellWidth * sigma;
@@ -41,16 +47,27 @@ namespace bead_geometry
          * w(sigma) = 1
          * w(sigma - delta) = w(sigma + delta) = 0
          */
-        const double weight =
+        const double base =
             0.5 * (1.0 + std::cos(PI_VALUE * x));
 
         /*
          * dw/dr = -pi / (2 delta) sin(pi x)
          */
-        dWeightDr =
+        const double dBaseDr =
             -0.5 * PI_VALUE * std::sin(PI_VALUE * x) / delta;
 
-        return weight;
+        if (shellPower == 1.0)
+        {
+            dWeightDr = dBaseDr;
+            return base;
+        }
+
+        /*
+         * Steeper shell: w = base^p, dw/dr = p base^(p-1) dbase/dr.
+         * p >= 1, so both vanish at the edges (base = 0).
+         */
+        dWeightDr = shellPower * std::pow(base, shellPower - 1.0) * dBaseDr;
+        return std::pow(base, shellPower);
     }
 
     double planeContactWeight(double h, double width, double &dWdh)
@@ -157,7 +174,8 @@ namespace bead_geometry
         Face f,
         const Vector3 &beadPosition,
         double sigma,
-        double shellWidth)
+        double shellWidth,
+        double shellPower)
     {
         FaceCoverageData result;
 
@@ -194,7 +212,8 @@ namespace bead_geometry
             centroidDistance,
             sigma,
             result.dWeightDr,
-            shellWidth);
+            shellWidth,
+            shellPower);
 
         if (result.weight <= 0.0)
         {

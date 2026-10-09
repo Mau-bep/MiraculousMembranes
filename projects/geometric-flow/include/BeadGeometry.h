@@ -98,8 +98,17 @@ namespace bead_geometry
      *
      * The function returns weight(r), and writes dweight/dr in dWeightDr.
      * shellWidth must be in (0, 1).
+     *
+     * shellPower p >= 1 (default 1, the plain shell) raises the shell to the
+     * power p: weight = [ 1/2 (1 + cos(pi x)) ]^p = cos^(2p)(pi x / 2),
+     * x = (r - sigma) / delta. The maximum (1 at r = sigma) and the support
+     * are unchanged, the shell gets narrower around its maximum (p = 2, 4:
+     * cos^4, cos^8 of pi x / 2). p = 1 takes exactly the old code path.
+     * p < 1 is rejected: the slope would diverge at the edges of the shell
+     * (weight ~ (1 - |x|)^(2p)), so the force would no longer be continuous.
      */
-    double coverageShellWeight(double r, double sigma, double &dWeightDr, double shellWidth = 0.25);
+    double coverageShellWeight(double r, double sigma, double &dWeightDr, double shellWidth = 0.25,
+                               double shellPower = 1.0);
 
     /*
      * Compute the signed solid angle of triangle p0,p1,p2 as seen from
@@ -123,7 +132,8 @@ namespace bead_geometry
         Face f,
         const Vector3 &beadPosition,
         double sigma,
-        double shellWidth = 0.25);
+        double shellWidth = 0.25,
+        double shellPower = 1.0);
 
     // Coverage constants are [K, cov_0, ..., cov_(N-1)], one target per bead.
     // Throws std::invalid_argument if the count does not match.
