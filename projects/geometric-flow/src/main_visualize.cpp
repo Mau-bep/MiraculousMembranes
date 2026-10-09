@@ -26,6 +26,8 @@
 #include "polyscope/polyscope.h"
 #include "polyscope/surface_mesh.h"
 #include "polyscope/point_cloud.h"
+#include "polyscope/view.h"
+#include "glm/gtc/matrix_transform.hpp"
 
 #include "args/args.hxx"
 #include "imgui.h"
@@ -72,6 +74,98 @@ std::unique_ptr<VertexPositionGeometry> geometry_uptr;
 
 polyscope::PointCloud *psCloud;
 SimplePolygonMesh Saved_mesh;
+
+// Polyscope has no plane primitive, so a bead with a Plane_adhesion
+// interaction is drawn as a gray opaque quad of side PLANE_SIZE centred on the
+// bead and perpendicular to the plane normal, and its sphere is hidden.
+const double PLANE_SIZE = 10.0;
+
+Plane_Adhesion *planeInteraction(size_t bi)
+{
+    return dynamic_cast<Plane_Adhesion *>(Beads[bi].Bead_I);
+}
+
+void updatePlanes()
+{
+    for (size_t bi = 0; bi < Beads.size(); bi++)
+    {
+        Plane_Adhesion *plane = planeInteraction(bi);
+        if (plane == nullptr)
+            continue;
+
+        Vector3 n = plane->normal();
+        Vector3 axis = fabs(n.x) < 0.9 ? Vector3{1.0, 0.0, 0.0} : Vector3{0.0, 1.0, 0.0};
+        Vector3 u = unit(cross(n, axis)) * (0.5 * PLANE_SIZE);
+        Vector3 v = unit(cross(n, u)) * (0.5 * PLANE_SIZE);
+        const Vector3 &c = Beads[bi].Pos;
+
+        // u, v, n right handed: the corners go counterclockwise seen from +n
+        std::vector<Vector3> corners = {c - u - v, c + u - v, c + u + v, c - u + v};
+        std::vector<std::vector<size_t>> quad = {{0, 1, 2, 3}};
+        polyscope::SurfaceMesh *psPlane = polyscope::registerSurfaceMesh("Plane bead " + std::to_string(bi), corners, quad);
+        psPlane->setSurfaceColor({0.5, 0.5, 0.5});
+        psPlane->setTransparency(1.0);
+        psPlane->setSmoothShade(false);
+    }
+}
+
+// All beads go in the cloud (so bead indices stay the same); the ones drawn
+// as a plane get radius 0
+void registerBeadCloud(const std::vector<Vector3> &positions)
+{
+    psCloud = polyscope::registerPointCloud("Great beads", positions);
+    psCloud->setPointRadius(Beads[0].sigma, false); // TODO adjust o different sizes
+
+    std::vector<double> radii(Beads.size(), Beads[0].sigma);
+    bool anyPlane = false;
+    for (size_t bi = 0; bi < Beads.size(); bi++)
+        if (planeInteraction(bi) != nullptr)
+        {
+            radii[bi] = 0.0;
+            anyPlane = true;
+        }
+    if (anyPlane)
+    {
+        psCloud->addScalarQuantity("bead radius", radii);
+        psCloud->setPointRadiusQuantity("bead radius", false);
+    }
+    updatePlanes();
+}
+
+// The plane is much bigger than the membrane, so the home view (which frames
+// everything) would shrink the membrane. With a plane bead the camera looks at
+// the membrane only, from the side of the plane the membrane is on, with the
+// plane normal pointing up.
+void frameCameraOnMembrane()
+{
+    Plane_Adhesion *plane = nullptr;
+    for (size_t bi = 0; bi < Beads.size() && plane == nullptr; bi++)
+        plane = planeInteraction(bi);
+    if (plane == nullptr)
+        return;
+
+    geometry->requireVertexPositions();
+    Vector3 lo{1e30, 1e30, 1e30}, hi{-1e30, -1e30, -1e30};
+    for (Vertex v : mesh->vertices())
+    {
+        const Vector3 &p = geometry->inputVertexPositions[v];
+        lo = Vector3{std::min(lo.x, p.x), std::min(lo.y, p.y), std::min(lo.z, p.z)};
+        hi = Vector3{std::max(hi.x, p.x), std::max(hi.y, p.y), std::max(hi.z, p.z)};
+    }
+    Vector3 extent = hi - lo;
+    Vector3 mid = 0.5 * (lo + hi);
+    double size = std::max(extent.x, std::max(extent.y, extent.z));
+
+    const Vector3 n = plane->normal();
+    Vector3 side = fabs(n.y) < 0.9 ? Vector3{0.0, -1.0, 0.0} : Vector3{1.0, 0.0, 0.0};
+    side = unit(side - dot(side, n) * n);
+    const double elevation = 0.45; // radians above the plane
+    Vector3 dir = cos(elevation) * side + sin(elevation) * n;
+
+    Vector3 eye = mid + 2.2 * size * dir;
+    polyscope::view::viewMat = glm::lookAt(glm::vec3(eye.x, eye.y, eye.z), glm::vec3(mid.x, mid.y, mid.z),
+                                           glm::vec3(n.x, n.y, n.z));
+}
 
 int counter_saved = 0;
 std::vector<Vector3> Saved_beadpos(6);
@@ -276,7 +370,10 @@ void redraw()
         std::cout << "Positions is " << Beads[i].Pos << "\n";
     }
     if (Beads.size() > 0)
+    {
         psCloud->updatePointPositions(BeadPositions);
+        updatePlanes();
+    }
     polyscope::requestRedraw();
 }
 
@@ -895,8 +992,7 @@ void Callback_qts()
         }
         if (Beads.size() > 0)
         {
-            psCloud = polyscope::registerPointCloud("Great beads", CurrentBeadPos);
-            psCloud->setPointRadius(Beads[0].sigma, false); // TODO adjust o different sizes
+            registerBeadCloud(CurrentBeadPos);
         }
     }
 
@@ -2301,8 +2397,10 @@ int main(int argc, char **argv)
     // std::cout<<"Points is "<< points[0][0]<<" "<< points[0][1] <<" "<< points[0][2] << "\n";
     if (Beads.size() > 0)
     {
-        psCloud = polyscope::registerPointCloud("Great beads", points);
-        psCloud->setPointRadius(Beads[0].sigma, false);
+        std::vector<Vector3> beadPositions;
+        for (size_t i = 0; i < Beads.size(); i++)
+            beadPositions.push_back(Beads[i].Pos);
+        registerBeadCloud(beadPositions);
     }
 
     // std::cout<<"The radius would be " <<Beads[0].sigma*1.0 <<"\n";
@@ -2318,6 +2416,8 @@ int main(int argc, char **argv)
     double lengthScale = geometry->meanEdgeLength();
     vertexRadius = 0.002;
     edgeRadius = 0.001;
+
+    frameCameraOnMembrane();
 
     std::cout << "Calling the mesh\n";
     polyscope::show();
