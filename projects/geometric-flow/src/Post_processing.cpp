@@ -9,6 +9,10 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <sstream>
+#include <algorithm>
+#include <map>
+#include <limits>
 
 #include <dirent.h>
 
@@ -514,7 +518,68 @@ std::pair<double, double> CalculateCoverageRays(std::string Simdir, int Step, Ve
     return {double(covered) / nDirections, double(multilayer) / nDirections};
 }
 
-std::vector<double> ReadCoverage(std::string Subdir)
+// A planar membrane is a run with "boundary": true (open sheet): there is no volume
+// constraint, so the columns of Output_data.txt are not the ones of a closed vesicle
+bool IsPlanar(std::string Subdir)
+{
+    std::ifstream JsonFile(Subdir + "Input_file.json");
+    if (!JsonFile.is_open())
+        return false;
+    json Data = json::parse(JsonFile);
+    return Data.value("boundary", false);
+}
+
+// Area, every energy term and Total_E of the last row of Output_data.txt, by the names in
+// its header (time step Volume Area <energy terms> Total_E ...). A repeated name, like the
+// two Bead columns, gets _0, _1, ... The terms depend on the energies of the run, so the
+// columns are found by name and not by position.
+std::vector<std::pair<std::string, double>> ReadFinalEnergies(std::string Subdir)
+{
+    std::vector<std::pair<std::string, double>> Result;
+    std::ifstream Output_data(Subdir + "Output_data.txt");
+    if (!Output_data.is_open())
+    {
+        std::cout << "ERROR OPENING " << Subdir << "Output_data.txt\n";
+        return Result;
+    }
+
+    std::string line, last, header_line;
+    std::getline(Output_data, header_line);
+    while (std::getline(Output_data, line))
+        if (!line.empty() && line[0] != '#')
+            last = line;
+
+    std::vector<std::string> header, values;
+    std::string token;
+    std::istringstream hs(header_line), vs(last);
+    while (hs >> token)
+        header.push_back(token);
+    while (vs >> token)
+        values.push_back(token);
+
+    auto area = std::find(header.begin(), header.end(), "Area");
+    auto total = std::find(header.begin(), header.end(), "Total_E");
+    if (area == header.end() || total == header.end() || values.size() < header.size())
+    {
+        std::cout << "Output_data.txt in " << Subdir << " has no Area / Total_E columns\n";
+        return Result;
+    }
+
+    std::map<std::string, int> count;
+    for (auto it = header.begin(); it != header.end(); it++)
+        count[*it]++;
+    std::map<std::string, int> seen;
+    for (auto it = area; it <= total; it++)
+    {
+        std::string name = *it;
+        if (count[name] > 1)
+            name += "_" + std::to_string(seen[name]++);
+        Result.push_back({name, std::stod(values[it - header.begin()])});
+    }
+    return Result;
+}
+
+std::vector<double> ReadCoverage(std::string Subdir, bool planar = false)
 {
     std::vector<double> Coverage_data(0);
     // We first need to read the params
@@ -592,6 +657,8 @@ std::vector<double> ReadCoverage(std::string Subdir)
     std::pair<double, double> RayCoverage = CalculateCoverageRays(Subdir, FinalStep, BeadPos, r);
     Coverage_data.push_back(RayCoverage.first);
     Coverage_data.push_back(RayCoverage.second);
+    if (planar)
+        Coverage_data.push_back(BeadPos.x); // the sheet starts in the plane x = 0
     return Coverage_data;
 }
 
@@ -636,16 +703,41 @@ int main(int argc, char **argv)
 
     // I think it would be better if we create a function that given a subirectory, return the desired quantities;
     std::ofstream CoverageData(SimsDir + "Coverage_data.txt", std::ios_base::app);
-    CoverageData << "#### DIR KA KB KI BeadRadius rc CoveredArea CoverageUnion MultilayerFrac\n";
+
+    // Planar membranes (boundary: true) also write the area and the final energies, with
+    // the columns of Output_data.txt found by name since they have no volume constraint
+    const bool planar = !Subdirs.empty() && IsPlanar(Subdirs[0]);
+    std::vector<std::string> EnergyNames;
+    if (planar)
+    {
+        for (auto &e : ReadFinalEnergies(Subdirs[0]))
+            EnergyNames.push_back(e.first);
+        CoverageData << "#### DIR KA KB KI BeadRadius rc CoveredArea CoverageUnion MultilayerFrac BeadX";
+        for (auto &n : EnergyNames)
+            CoverageData << " " << n;
+        CoverageData << "\n";
+    }
+    else
+        CoverageData << "#### DIR KA KB KI BeadRadius rc CoveredArea CoverageUnion MultilayerFrac\n";
 
     for (size_t i = 0; i < Subdirs.size(); i++)
     {
         std::cout << "Doing the subdir " << Subdirs[i] << " \n";
-        std::vector<double> CovData = ReadCoverage(Subdirs[i]);
+        std::vector<double> CovData = ReadCoverage(Subdirs[i], planar);
+        if (planar && CovData.empty())
+            continue; // unfinished run: no Input_file.json
         CoverageData << Subdirs[i];
         for (size_t j = 0; j < CovData.size(); j++)
         {
             CoverageData << " " << CovData[j];
+        }
+        if (planar)
+        {
+            std::map<std::string, double> Energies;
+            for (auto &e : ReadFinalEnergies(Subdirs[i]))
+                Energies[e.first] = e.second;
+            for (auto &n : EnergyNames)
+                CoverageData << " " << (Energies.count(n) ? Energies[n] : std::numeric_limits<double>::quiet_NaN());
         }
         CoverageData << "\n";
     }
