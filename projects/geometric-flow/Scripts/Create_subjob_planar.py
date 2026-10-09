@@ -13,6 +13,8 @@ parser.add_argument("--inter_str", type=number_str, required=True, help="bead-me
 parser.add_argument("--radius", type=number_str, required=True, help="bead radius")
 parser.add_argument("--KA", type=number_str, required=True, help="surface tension constant KA")
 parser.add_argument("--KB", type=number_str, required=True, help="bending constant KB")
+parser.add_argument("--tension", choices=["surface", "excess"], default="surface",
+                    help="surface: KA * area, excess: KA * (area - initial area) only while the area is above the initial one")
 parser.add_argument("--batch_tag", type=str, required=True, help="tag of the batch (also the results folder name)")
 parser.add_argument("--unique_tag", type=str, required=True, help="unique tag of this run (prefix of the config, subjob and output files)")
 args = parser.parse_args()
@@ -21,6 +23,7 @@ Strength = args.inter_str
 radius = args.radius
 KA = args.KA
 KB = args.KB
+Excess = args.tension == "excess"
 Batch_tag = args.batch_tag
 Unique_tag = args.unique_tag
 
@@ -34,7 +37,7 @@ def Create_json_wrapping_planar(ka, kb, r, inter_str):
 
     template = env.get_template('Wrapping_planar.txt')
     # The adhesion is soft, so the bead starts with its centre one radius above the plane (x = 0)
-    output_from_parsed_template = template.render(KA=ka, KB=kb, radius=r, xpos=float(r), interaction=inter_str)
+    output_from_parsed_template = template.render(KA=ka, KB=kb, radius=r, xpos=float(r), interaction=inter_str, excess=Excess)
 
     data = json.loads(output_from_parsed_template)
 

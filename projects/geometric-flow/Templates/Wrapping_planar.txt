@@ -16,7 +16,7 @@
     "remesh_quality": {
         "f_tol": 0.01,
         "min_every": 1,
-        "max_every": 300
+        "max_every": 100
     },
     "Remesh_log": true,
     "Count_remesh": true,
@@ -43,7 +43,12 @@
     "momentum": false,
     "rescale": 1.0,
     "Energies": [
+{# excess: Excess_tension [KA, 1.0] is KA (A - A0) only while the area A is above the initial area A0 (the 1.0 is the target area as a fraction of A0) #}
+{% if excess %}
+        {"Name": "Excess_tension", "constants": [ {{KA}}, 1.0 ] },
+{% else %}
         {"Name": "Surface_tension", "constants": [ {{KA}} ] },
+{% endif %}
         {"Name": "Bending_tan", "constants": [ {{KB}}, 0.0 ] }
     ],
     "Beads": [
