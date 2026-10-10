@@ -16,13 +16,14 @@
 #   full: input/Planar_full.obj, the membrane already wrapped around the bead
 # The results go to ../Results/<Base_Tag> (flat) and ../Results/<Base_Tag>_full
 set Nsim=1
-set Base_Tag = "Wrapping_planar_excess_dense_thinShell"
+set Base_Tag = "Wrapping_planar_excess_thinShell_p4"
 set KB = 1
 set radius = 1.0
 
 # Optional overrides of the template defaults, for example a narrower adhesion shell on a finer mesh:
 #   set Extra = ( --shell_width 0.1 --size_max 0.25 )
-set Extra = ( --shell_width 0.05 )
+# set Extra = ( --shell_width 0.05 )
+set Extra = ( --shell_width 0.05 --shell_power 4 --rescale 4.0 --size_min 0.005 --size_max 0.25--switch_normal 30000 )
 
 # foreach Init ( flat full )
 foreach Init ( flat )
