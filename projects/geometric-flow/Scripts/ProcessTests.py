@@ -34,7 +34,7 @@ def main():
     # OK so now we can read the data 
     line = f.readline()
     while line:
-        write_main.write("{} {} {} \n".format(p,shell_width,line))
+        write_main.write("{} {} {}".format(p,shell_width,line))
         line = f.readline()
     write_main.close()
     f.close()
