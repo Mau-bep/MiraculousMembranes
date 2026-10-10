@@ -296,7 +296,8 @@ target_include_directories(EigenRand INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/../.
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/lib")
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include")
 
-target_link_libraries(main_cluster PUBLIC geometry-central polyscope EigenRand nlohmann_json)
+# main_cluster uses no viewer code: without polyscope it builds faster and needs no OpenGL/X11
+target_link_libraries(main_cluster PUBLIC geometry-central EigenRand nlohmann_json)
 
 
 add_executable(PostProcessing "${SRCSprocessing}")
@@ -572,4 +573,4 @@ add_executable(Test_exactness src/Test_exactness.cpp ${SRCSexactness})
 target_include_directories(Test_exactness PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/"
   "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include" "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include/"
   "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/")
-target_link_libraries(Test_exactness geometry-central polyscope EigenRand nlohmann_json)
+target_link_libraries(Test_exactness geometry-central EigenRand nlohmann_json)
