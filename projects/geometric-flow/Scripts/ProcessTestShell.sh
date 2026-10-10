@@ -39,8 +39,9 @@ endif
 
 set Batch_Tag = "Shell_test_p${Pw}_s${Sw}"
 
-bin/PostProcessing ../Config_files/${Batch_Tag}_Strg_0.5_r_1.0_KA_0_KB_1_Nsim_1_ConfigFile.json
+../build/bin/PostProcessing ../Config_files/${Batch_Tag}_Strg_0.5_r_1.0_KA_0_KB_1_Nsim_1_ConfigFile.json
 
+python3 ProcessTests.py --folderpath ../Results/${Batch_Tag}/ --p ${Pw} --shell_width ${Sw}
 
 end
 end
