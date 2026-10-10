@@ -37,6 +37,7 @@ parser.add_argument("--tension", choices=["surface", "excess"], default="surface
                     help="surface: KA * area, excess: KA * (area - initial area) only while the area is above the initial one")
 parser.add_argument("--batch_tag", type=str, required=True, help="tag of the batch (also the results folder name)")
 parser.add_argument("--unique_tag", type=str, required=True, help="unique tag of this run (prefix of the config, subjob and output files)")
+parser.add_argument("--time", type=str, default="12:00:00", help="time limit for the sbatch job (default 12:00:00)")
 args = parser.parse_args()
 
 Strength = args.inter_str
@@ -49,7 +50,7 @@ Init = args.init
 Overrides = {k: v for k, v in (("shell_width", args.shell_width), ("shell_power", args.shell_power), ("rescale", args.rescale), ("refine_angle", args.refine_angle), ("saved_states", args.saved_states), ("switch_normal", args.switch_normal), ("size_min", args.size_min), ("size_max", args.size_max)) if v is not None}
 Batch_tag = args.batch_tag
 Unique_tag = args.unique_tag
-
+time = args.time
 # Planar_full.obj is a wrapped state: the bead (radius 1) sits at this position in it
 FULL_BEAD_POS = (-1.82316, 0.0744237, 0.00342679)
 
@@ -127,4 +128,4 @@ Output_name = '{0}_output.output'.format(Unique_tag)
 write_subjob('{0}_subjob'.format(Unique_tag),
              Output_name,
              '../build/bin/main_cluster {}'.format(Config_path),
-             job_name=Batch_tag, mem='16G', copy_output_to=sim_path)
+             job_name=Batch_tag, mem='16G', copy_output_to=sim_path, time=time)
