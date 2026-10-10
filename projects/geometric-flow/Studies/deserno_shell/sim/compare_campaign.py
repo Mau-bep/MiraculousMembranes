@@ -71,8 +71,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--tags", required=True)
     ap.add_argument("--out", default=None)
+    ap.add_argument("--lines_out", default=None, help="csv with the bracketed simulated lines per tag")
     args = ap.parse_args()
     rows = []
+    lines = []
     for tag in args.tags.split(","):
         man = json.load(open(os.path.join(CTL, tag, "manifest.json")))
         s = man["shell_width"] or 0.25
@@ -124,7 +126,16 @@ def main():
         print(" -> S1 sim in %s (jump of the flat start above G=%.1f), continuum %.3f" % (b1, GJUMP, th["S1"]))
         print(" -> S2 sim in %s (full start enveloped above), continuum %.3f" % (b2, th["S2"]))
         print(" -> E  sim in %s (flat-full energy crossing, linear), continuum %.3f" % (bE, th["E"]))
+        d1, dE_, d2 = deserno_lines(sigma)
+        lines.append(dict(tag=tag, s=s, p=p, sigma_t=sigma,
+                          S1_sim_lo=b1[0] if b1 else '', S1_sim_hi=b1[1] if b1 else '', S2_sim_lo=b2[0] if b2 else '', S2_sim_hi=b2[1] if b2 else '',
+                          E_sim=bE[2] if bE else '', E_sim_lo=bE[0] if bE else '', E_sim_hi=bE[1] if bE else '',
+                          S1_cont=th['S1'], E_cont=th['E'], S2_cont=th['S2'], S1_deserno=d1, E_deserno=dE_, S2_deserno=d2))
         print(" -> E_flat - E_full:", " ".join("w=%.1f:%+.3f" % d for d in diffs))
+    if args.lines_out and lines:
+        with open(args.lines_out, "w", newline="") as fh:
+            wr = csv.DictWriter(fh, fieldnames=list(lines[0].keys()))
+            wr.writeheader(); wr.writerows(lines)
     if args.out and rows:
         with open(args.out, "w", newline="") as fh:
             wr = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
