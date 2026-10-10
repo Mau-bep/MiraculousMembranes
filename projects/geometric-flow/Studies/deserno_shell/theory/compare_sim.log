@@ -1,0 +1,17 @@
+sigma~=0.133 cont S1 nan E nan S2 nan | sim 5.80 nan 5.80 | Deserno 4.576 4.276 3.723
+sigma~=0.267 cont S1 nan E nan S2 nan | sim 6.20 nan 6.20 | Deserno 5.061 4.556 3.527
+sigma~=0.400 cont S1 6.197 E 6.187 S2 6.174 | sim 6.60 nan 6.20 | Deserno 5.520 4.839 3.358
+sigma~=0.533 cont S1 6.662 E 6.560 S2 6.377 | sim 7.00 6.60 6.60 | Deserno 5.965 5.125 3.204
+sigma~=0.667 cont S1 7.146 E 6.936 S2 6.496 | sim 7.40 7.00 7.00 | Deserno 6.400 5.413 3.061
+sigma~=0.800 cont S1 7.634 E 7.317 S2 6.568 | sim 7.80 7.50 7.00 | Deserno 6.829 5.703 2.927
+sigma~=0.933 cont S1 8.123 E 7.699 S2 6.608 | sim 8.20 7.87 7.00 | Deserno 7.254 5.995 2.800
+sigma~=1.067 cont S1 8.609 E 8.082 S2 6.625 | sim 9.00 8.26 7.40 | Deserno 7.674 6.289 2.678
+sigma~=1.200 cont S1 9.095 E 8.467 S2 6.624 | sim 9.40 8.66 7.40 | Deserno 8.092 6.585 2.561
+sigma~=1.333 cont S1 9.580 E 8.854 S2 6.611 | sim 9.80 9.22 7.40 | Deserno 8.508 6.882 2.448
+sigma~=1.467 cont S1 10.063 E 9.241 S2 6.587 | sim 10.20 9.50 7.40 | Deserno 8.921 7.180 2.339
+sigma~=1.600 cont S1 10.545 E 9.631 S2 6.554 | sim 10.60 9.86 7.40 | Deserno 9.333 7.481 2.234
+sigma~=1.733 cont S1 11.027 E 10.021 S2 6.515 | sim 11.40 10.22 7.40 | Deserno 9.744 7.782 2.131
+sigma~=1.867 cont S1 11.507 E 10.412 S2 6.471 | sim 11.80 10.69 7.40 | Deserno 10.154 8.085 2.031
+sigma~=2.000 cont S1 11.987 E 10.804 S2 6.423 | sim nan 11.09 7.40 | Deserno 10.563 8.389 1.934
+partial-branch rows with a continuum partial state: 236 of 245
+E_sim - E_cont: mean 0.026  rms 0.050  (pi kappa);  zad_sim - G_cont: mean -0.038 rms 0.048
