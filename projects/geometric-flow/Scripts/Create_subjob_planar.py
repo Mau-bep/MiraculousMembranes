@@ -53,7 +53,7 @@ Unique_tag = args.unique_tag
 # Planar_full.obj is a wrapped state: the bead (radius 1) sits at this position in it
 FULL_BEAD_POS = (-1.82316, 0.0744237, 0.00342679)
 
-FLAT_MESH = '../../../input/Big_planar_mem.obj'
+FLAT_MESH = '../../../input/Planar_mem.obj'
 FULL_MESH = '../../../input/Planar_full.obj'
 
 

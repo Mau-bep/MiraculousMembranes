@@ -598,7 +598,7 @@ def _deserno_axes_data(filepath, columns):
 def planar_phase_deserno(filepath="../Results/Wrapping_planar_excess/Coverage_data.txt",
                          filepath_full="../Results/Wrapping_planar_excess/Coverage_data_full.txt",
                          column="CoverageUnion", as_z=True, regions=False, region_thresholds=(0.3, 0.95),
-                         contour_levels=None, theory=True, xlim=(3.0, 6.0), ylim=(0.0, 1.0), save=None):
+                         contour_levels=None, theory=True, xlim=(3.0, 7.0), ylim=(0.0, 1.0), save=None):
     """Planar membrane phase diagram in the axes of Fig. 2 of Deserno: w~ = 4 KI r^2/KB (x), sigma~ = 2 KA r^2/KB (y).
 
     filepath, filepath_full: the Coverage_data.txt of PostProcessing for the flat start and for the full (wrapped)
@@ -767,9 +767,9 @@ def deserno_fig5(filepath="../Results/WrappingPhaseSpaceNewFast/CoverageData.txt
     plt.show()
     return fig, ax
 
-deserno_fig5(filepath = "../Results/WrappingPhaseSpaceNewFast/Coverage_data.txt",as_z = False)                         # vesicle data, kappa = KB/2
+# deserno_fig5(filepath = "../Results/WrappingPhaseSpaceNewFast/Coverage_data.txt",as_z = False)                         # vesicle data, kappa = KB/2
 # deserno_fig5(filepath="../Results/Wrapping_planar_excess/Coverage_data.txt", filepath_full="../Results/Wrapping_planar_excess/Coverage_data_full.txt")
 # planar_phase_deserno(contour_levels=[0.5, 1.0, 1.5])
 # planar_phase_deserno(regions=True)
-# 
+planar_phase_deserno(filepath="../Results/Wrapping_planar_excess/Coverage_data_thin.txt",as_z=False)
 # planar_phase(contour_levels=[ 0.5 ,0.75],filepath="../Results/Wrapping_planar_excess/Coverage_data.txt")
