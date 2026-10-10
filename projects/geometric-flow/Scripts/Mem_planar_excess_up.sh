@@ -23,7 +23,7 @@ set radius = 1.0
 # Optional overrides of the template defaults, for example a narrower adhesion shell on a finer mesh:
 #   set Extra = ( --shell_width 0.1 --size_max 0.25 )
 # set Extra = ( --shell_width 0.05 )
-set Extra = ( --shell_width 0.05 --shell_power 4 --rescale 4.0 --size_min 0.005 --size_max 0.25--switch_normal 30000 )
+set Extra = ( --shell_width 0.05 --shell_power 4 --size_min 0.005 --size_max 0.25 --switch_normal 30000 )
 
 # foreach Init ( flat full )
 foreach Init ( flat )
