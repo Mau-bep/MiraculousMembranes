@@ -33,6 +33,7 @@ parser.add_argument("--refine_angle", type=number_str, default=None,
 parser.add_argument("--saved_states", type=number_str, default=None, help="BFGS_saved_states (template 15; the shell study used 60)")
 parser.add_argument("--switch_normal", type=number_str, default=None,
                     help="step of the BFGS -> BFGS-Normal switch, Switch_times[1] (template 40000; the shell study used 60000, the stopping block also switches on a plateau)")
+parser.add_argument("--time", type=str, default="10:00:00", help="slurm time limit of the subjob (default 10:00:00; the finest meshes of the shell study need more)")
 parser.add_argument("--tension", choices=["surface", "excess"], default="surface",
                     help="surface: KA * area, excess: KA * (area - initial area) only while the area is above the initial one")
 parser.add_argument("--batch_tag", type=str, required=True, help="tag of the batch (also the results folder name)")
@@ -127,4 +128,4 @@ Output_name = '{0}_output.output'.format(Unique_tag)
 write_subjob('{0}_subjob'.format(Unique_tag),
              Output_name,
              '../build/bin/main_cluster {}'.format(Config_path),
-             job_name=Batch_tag, mem='16G', copy_output_to=sim_path)
+             job_name=Batch_tag, mem='16G', time=args.time, copy_output_to=sim_path)

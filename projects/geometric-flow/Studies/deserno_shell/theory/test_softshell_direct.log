@@ -1,0 +1,56 @@
+
+[1] gradient and Hessian against finite differences
+p=1 gradient (max abs error / max |g|)                         value 1.2292451e-10  ref 0              tol 1e-07     PASS
+p=1 Hessian (max abs error / max |H|)                          value 1.0606389e-10  ref 0              tol 1e-06     PASS
+p=4 gradient (max abs error / max |g|)                         value 1.7135952e-10  ref 0              tol 1e-07     PASS
+p=4 Hessian (max abs error / max |H|)                          value 2.6971029e-10  ref 0              tol 1e-06     PASS
+
+[2] adhesion quadrature
+flat plate d=0.7 p=1  G (numeric vs 1-d quad)                  value 0.17943431     ref 0.17943437     tol 2e-06     PASS
+flat plate d=0.9 p=1  G (numeric vs 1-d quad)                  value 0.1853321      ref 0.18533198     tol 2e-06     PASS
+flat plate d=1.1 p=1  G (numeric vs 1-d quad)                  value 0.031523565    ref 0.031523453    tol 2e-06     PASS
+flat plate d=0.7 p=4  G (numeric vs 1-d quad)                  value 0.096518556    ref 0.096518556    tol 2e-06     PASS
+flat plate d=0.9 p=4  G (numeric vs 1-d quad)                  value 0.11956823     ref 0.11956823     tol 2e-06     PASS
+flat plate d=1.1 p=4  G (numeric vs 1-d quad)                  value 0.003444594    ref 0.003444594    tol 2e-06     PASS
+unit-sphere cap n=40: G vs 1-cos(alpha)                        value 0.7325009      ref 0.73250117     tol 0.004     PASS
+unit-sphere cap n=40: E_bend vs 4z - end cell                  value 2.8676436      ref 2.8673762      tol 0.003     PASS
+unit-sphere cap n=80: G vs 1-cos(alpha)                        value 0.73250115     ref 0.73250117     tol 0.001     PASS
+unit-sphere cap n=80: E_bend vs 4z - end cell                  value 2.8987566      ref 2.8986894      tol 0.00075   PASS
+
+[3] KKT branch vs fixed-w~ minimisation, e'(G) = w~, analytic limits
+de/dG (finite difference) vs multiplier w~, max relative deviation over branch value 0.0036802412   ref 0              tol 0.006     PASS
+e(G_end) - e(G_0) vs trapezoid integral of w~(G) (relative)    value 1.0002235      ref 1              tol 0.002     PASS
+fixed-w~ Newton from the KKT state: converged                  value 1              ref 1              tol 0         PASS
+   ... coverage unchanged                                      value 0.89198707     ref 0.89198707     tol 1e-07     PASS
+   ... E = e - w~ G                                            value -2.1175666     ref -2.1175666     tol 1e-08     PASS
+branch state is a constrained minimum (bordered-Hessian inertia 1) value 1              ref 1              tol 0         PASS
+plate at w~ = 1e-3 stays flat: bending energy                  value 1.040591e-08   ref 0              tol 1e-06     PASS
+
+[4] fully enveloped state: E vs -2(w~-4) + 4 sigma~ (exact for s -> 0)
+   s=0.05: G=1.9959  E=-13.9379  (Ebend 7.8894, tension 2.1236)  ideal -13.8800
+s=0.05 enveloped E - ideal, in units of w~ (2 - G) (neck + weight loss) value -0.057859701   ref 0              tol 0.8       PASS
+   s=0.25: G=1.9841  E=-14.1048  (Ebend 7.5612, tension 2.1431)  ideal -13.8800
+s=0.25 enveloped E - ideal, in units of w~ (2 - G) (neck + weight loss) value -0.224754      ref 0              tol 0.8       PASS
+
+[5] s -> 0 against Deserno (deserno_theory.py): shifts must vanish, ~ s^(1/2) for E and S2 (negative line tension)
+   Deserno S1 5.9534 E 5.1177 S2 3.2078
+   s=0.0500: shifts S1 +0.0986 E +0.4689 S2 +1.3066 (32 s)
+   s=0.0125: shifts S1 +0.0113 E +0.2017 S2 +0.6257 (37 s)
+S1 shift at s=0.0125 (small, positive side)                    value 0.011295598    ref 0              tol 0.05      PASS
+E shift at s=0.0125 below s=0.05 value by factor > 1.6         value 2.324981       ref 1.6            tol 0         PASS
+S2 shift at s=0.0125 below s=0.05 value by factor > 1.6        value 2.0880857      ref 1.6            tol 0         PASS
+E shift exponent between s=0.05 and 0.0125 (expect ~0.5-0.7)   value 0.60860948     ref 0.6            tol 0.2       PASS
+S2 shift exponent between s=0.05 and 0.0125 (expect ~0.5)      value 0.53109045     ref 0.5            tol 0.2       PASS
+
+[6] convergence of the lines at sigma~ = 0.53, s = 0.25
+S1: mid vs fine grids                                          value 6.6505292      ref 6.6497147      tol 0.005     PASS
+S2: mid vs fine grids                                          value 6.3742972      ref 6.3734586      tol 0.005     PASS
+E: mid vs fine grids                                           value 6.5509629      ref 6.5502638      tol 0.005     PASS
+S1: 6 vs 10 Gauss points                                       value 6.6505292      ref 6.6505459      tol 0.002     PASS
+S2: 6 vs 10 Gauss points                                       value 6.3742972      ref 6.3742881      tol 0.002     PASS
+E: 6 vs 10 Gauss points                                        value 6.5509629      ref 6.5509628      tol 0.002     PASS
+S1: R_dom = 10 vs 30                                           value 6.6505292      ref 6.6508884      tol 0.002     PASS
+S2: R_dom = 10 vs 30                                           value 6.3742972      ref 6.3740544      tol 0.002     PASS
+E: R_dom = 10 vs 30                                            value 6.5509629      ref 6.5509566      tol 0.002     PASS
+
+37 / 37 checks passed (222 s)
