@@ -174,17 +174,18 @@ VertexData<Vector3> Mem3DG::SurfaceGrad() const
  * @return The optimal step size for the backtracking algorithm.
  */
 // The bead test of the line searches: a trial may move each bead by less than
-// 0.1 sigma, estimated as |F_b| alpha or, with bead_test_displacement, measured
-// from the position before the search (Bead_init)
+// bead_step sigma (0.1 unless "line_search_bead_step" says otherwise), estimated
+// as |F_b| alpha or, with bead_test_displacement, measured from the position
+// before the search (Bead_init)
 bool Mem3DG::beads_within_reach(double alpha, const std::vector<Vector3> &Bead_init) const
 {
   bool ok = true;
   for (size_t i = 0; i < Beads.size(); i++)
   {
     if (bead_test_displacement)
-      ok = ok && (Beads[i]->Pos - Bead_init[i]).norm() < 0.1 * Beads[i]->sigma;
+      ok = ok && (Beads[i]->Pos - Bead_init[i]).norm() < bead_step * Beads[i]->sigma;
     else
-      ok = ok && Beads[i]->Free_force(Beads[i]->Total_force).norm() * alpha < 0.1 * Beads[i]->sigma;
+      ok = ok && Beads[i]->Free_force(Beads[i]->Total_force).norm() * alpha < bead_step * Beads[i]->sigma;
   }
   return ok;
 }

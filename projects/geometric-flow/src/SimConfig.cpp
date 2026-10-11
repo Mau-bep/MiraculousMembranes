@@ -333,6 +333,11 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
             throw std::runtime_error("Input file: line_search_bead_test must be \"force\" or \"displacement\"");
         cfg.bead_test_displacement = t == "displacement";
     }
+    // "line_search_bead_step": a line-search trial may move each bead by less than
+    // this many bead radii (default 0.1). The bead moves at most this far per step.
+    cfg.bead_step = data.value("line_search_bead_step", 0.1);
+    if (!(cfg.bead_step > 0.0))
+        throw std::runtime_error("Input file: line_search_bead_step must be positive");
     // "debug_dump": {"every": N}, for exact comparisons (Scripts/regression_compare.py)
     if (data.contains("debug_dump"))
     {
@@ -914,6 +919,7 @@ void build_simulation(const SimConfig &cfg, Simulation &sim, const std::string &
     M3DG.warm_start_factor = cfg.warm_start_factor;
     M3DG.skip_bead_rejected = cfg.skip_bead_rejected;
     M3DG.bead_test_displacement = cfg.bead_test_displacement;
+    M3DG.bead_step = cfg.bead_step;
 
     if (cfg.remesher.present)
     {

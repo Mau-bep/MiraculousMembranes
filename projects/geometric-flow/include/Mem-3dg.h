@@ -71,6 +71,9 @@ public:
   // BFGS-Normal step) no longer limit the step. Default true, to go with
   // LbfgsOptions::scaling.
   bool bead_test_displacement = true;
+  // The largest bead move per trial, in units of the bead radius sigma
+  // ("line_search_bead_step")
+  double bead_step = 0.1;
   bool momentum = false;
   double learn_rate = 0.5;
   bool recentering = true;
