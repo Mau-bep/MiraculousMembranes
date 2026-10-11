@@ -321,9 +321,10 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
     cfg.warm_start_factor = data.value("line_search_warm_start", 4.0);
     if (cfg.warm_start_factor < 0.0)
         throw std::runtime_error("Input file: line_search_warm_start must not be negative");
-    // "line_search_skip_bead_rejected": true skips the energy of line-search trials
-    // the bead displacement test rejects anyway (Mem3DG::skip_bead_rejected)
-    cfg.skip_bead_rejected = data.value("line_search_skip_bead_rejected", false);
+    // "line_search_skip_bead_rejected": true (default) skips the energy of
+    // line-search trials the bead displacement test rejects anyway
+    // (Mem3DG::skip_bead_rejected); false computes it as before
+    cfg.skip_bead_rejected = data.value("line_search_skip_bead_rejected", true);
     // "line_search_bead_test": "force" (default) or "displacement" (Mem3DG::bead_test_displacement)
     {
         const std::string t = data.value("line_search_bead_test", std::string("force"));
