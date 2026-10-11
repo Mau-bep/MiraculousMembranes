@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <Eigen/Core>
 #include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/vertex_position_geometry.h"
@@ -17,6 +18,21 @@ struct FaceGeometry
     std::vector<double> area;
     double total_area = 0.0;
     void compute(ManifoldSurfaceMesh &mesh, VertexPositionGeometry &geometry);
+};
+
+// The per-element quantities of the bending terms (see compute() in
+// Energy_Handler.cpp): per vertex the dual area and the scalar mean curvature
+// (or its Tan version), per edge the dihedral angle, 2 tan(dihedral / 2) and the
+// length. The vectors are indexed by element index and reused between calls.
+struct BendingGeometry
+{
+    std::vector<double> dual_area;
+    std::vector<double> mean_curv;
+    std::vector<double> dihedral; // 0 on the boundary
+    std::vector<double> tan_term; // only filled by the Tan version
+    std::vector<double> length;
+    void compute(ManifoldSurfaceMesh &mesh, VertexPositionGeometry &geometry, const FaceGeometry &faces,
+                 bool tan_version);
 };
 
 class E_Handler
@@ -163,6 +179,18 @@ private:
     mutable bool face_cache_fresh = false;
     bool face_cache_active = false;
     const FaceGeometry &faces() const;
+    // The same for the bending quantities, [0] plain and [1] Tan version
+    mutable BendingGeometry bending_cache[2];
+    mutable bool bending_fresh[2] = {false, false};
+    const BendingGeometry &bending(bool tan_version) const;
+    // Both caches stay valid from one evaluation to the next while the mesh and
+    // the positions are bit for bit the same: the gradient at an accepted line
+    // search point reuses those of the energy evaluated there. Called when an
+    // evaluation starts; drops the caches if anything changed.
+    void track_geometry();
+    const void *geo_mesh = nullptr, *geo_geometry = nullptr;
+    uint64_t geo_counts[5] = {0, 0, 0, 0, 0};
+    std::vector<Vector3> geo_positions;
     double total_area() const { return faces().total_area; }
 
     void compute_energies(double *E);
