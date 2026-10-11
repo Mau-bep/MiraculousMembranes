@@ -347,8 +347,8 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
         std::cout << "The integration method is not defined, using Gradient descent\n";
     cfg.bfgs_saved_states = data.value("BFGS_saved_states", 10);
     // "lbfgs": {"y": "force" | "gradient", "consistent_window": bool,
-    //           "armijo": "norm" | "gradient"}. Defaults gradient / true /
-    // gradient; "force" / false / "norm" is the original behaviour
+    //           "armijo": "norm" | "gradient", "scaling": bool}. Defaults gradient /
+    // true / gradient / false; "force" / false / "norm" is the original behaviour
     // (LbfgsOptions in Mem-3dg.h)
     if (data.contains("lbfgs"))
     {
@@ -362,9 +362,11 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
         if (armijo != "norm" && armijo != "gradient")
             throw std::runtime_error("Input file: lbfgs.armijo must be \"norm\" or \"gradient\"");
         cfg.lbfgs.gradient_armijo = armijo == "gradient";
+        cfg.lbfgs.scaling = l.value("scaling", cfg.lbfgs.scaling);
         std::cout << "L-BFGS: y from " << (cfg.lbfgs.gradient_y ? "gradient" : "force") << " differences, consistent window "
                   << (cfg.lbfgs.consistent_window ? "on" : "off") << ", Armijo slope "
-                  << (cfg.lbfgs.gradient_armijo ? "F.d" : "|d|^2") << "\n";
+                  << (cfg.lbfgs.gradient_armijo ? "F.d" : "|d|^2") << ", H0 "
+                  << (cfg.lbfgs.scaling ? "s.y/y.y I" : "I") << "\n";
         // Cylinder -> sphere without remeshing: gradient pairs with the old window
         // took huge tangential steps that broke the mesh
         if (cfg.lbfgs.gradient_y && !cfg.lbfgs.consistent_window)

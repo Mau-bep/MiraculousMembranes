@@ -1138,6 +1138,13 @@ Eigen::VectorXd Mem3DG::lbfgs_direction(Eigen::VectorXd &q) const
     q = q - alpha_i * y_list[i % m];
   }
   Eigen::VectorXd r = q;
+  if (lbfgs.scaling && BFGS_iter > 0)
+  {
+    const int newest = (BFGS_iter - 1) % m;
+    const double gamma = s_list[newest].dot(y_list[newest]) / y_list[newest].dot(y_list[newest]);
+    if (std::isfinite(gamma) && gamma > 0.0)
+      r = gamma * q;
+  }
   for (int i = std::max(0, BFGS_iter - m); i < BFGS_iter; i++)
   {
     double beta_i = rho_list[i % m] * y_list[i % m].dot(r);

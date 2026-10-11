@@ -28,6 +28,11 @@ struct LbfgsOptions
   // the step, instead of |d|^2 (equal for steepest descent, not for L-BFGS
   // steps). An L-BFGS direction with r.F <= 0 is then replaced by the force.
   bool gradient_armijo = true;
+  // Initial inverse Hessian H0 = gamma I with gamma = s.y / y.y of the newest
+  // pair (Nocedal-Wright eq. 7.20) instead of H0 = I, which leaves the step
+  // length in the units of the force: the searches then halved from alpha = 1
+  // 6-13 times per step. gamma <= 0 or not finite falls back to I.
+  bool scaling = false;
 };
 
 class Mem3DG
