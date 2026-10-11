@@ -324,6 +324,13 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
     // "line_search_skip_bead_rejected": true skips the energy of line-search trials
     // the bead displacement test rejects anyway (Mem3DG::skip_bead_rejected)
     cfg.skip_bead_rejected = data.value("line_search_skip_bead_rejected", false);
+    // "line_search_bead_test": "force" (default) or "displacement" (Mem3DG::bead_test_displacement)
+    {
+        const std::string t = data.value("line_search_bead_test", std::string("force"));
+        if (t != "force" && t != "displacement")
+            throw std::runtime_error("Input file: line_search_bead_test must be \"force\" or \"displacement\"");
+        cfg.bead_test_displacement = t == "displacement";
+    }
     // "debug_dump": {"every": N}, for exact comparisons (Scripts/regression_compare.py)
     if (data.contains("debug_dump"))
     {
@@ -904,6 +911,7 @@ void build_simulation(const SimConfig &cfg, Simulation &sim, const std::string &
     M3DG.lbfgs = cfg.lbfgs;
     M3DG.warm_start_factor = cfg.warm_start_factor;
     M3DG.skip_bead_rejected = cfg.skip_bead_rejected;
+    M3DG.bead_test_displacement = cfg.bead_test_displacement;
 
     if (cfg.remesher.present)
     {

@@ -62,6 +62,12 @@ public:
   // energy at such a trial no longer aborts the step: the search goes on.
   bool skip_bead_rejected = false;
   long skipped_trials = 0; // trials not evaluated (Timing.txt)
+  // The bead test of the line searches ("line_search_bead_test"): a trial may
+  // move each bead by less than 0.1 sigma. false ("force") estimates the move
+  // as |F_b| alpha, true ("displacement") measures it from the bead's position
+  // before the search, so beads that do not move (frozen, or every bead in a
+  // BFGS-Normal step) no longer limit the step.
+  bool bead_test_displacement = false;
   bool momentum = false;
   double learn_rate = 0.5;
   bool recentering = true;
@@ -154,6 +160,8 @@ public:
   void write_bead_rows(const std::vector<std::string> &Bead_data_filenames) const;
 
   Eigen::VectorXd lbfgs_direction(Eigen::VectorXd &q) const;
+  // The bead test of the line searches at step alpha (bead_test_displacement)
+  bool beads_within_reach(double alpha, const std::vector<Vector3> &Bead_init) const;
   void count_curvature_pair(double sy);
 
   double constraint_rhs(const std::string &name, double area) const;

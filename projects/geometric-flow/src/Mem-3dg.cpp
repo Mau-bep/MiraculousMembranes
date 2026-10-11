@@ -173,6 +173,22 @@ VertexData<Vector3> Mem3DG::SurfaceGrad() const
  *
  * @return The optimal step size for the backtracking algorithm.
  */
+// The bead test of the line searches: a trial may move each bead by less than
+// 0.1 sigma, estimated as |F_b| alpha or, with bead_test_displacement, measured
+// from the position before the search (Bead_init)
+bool Mem3DG::beads_within_reach(double alpha, const std::vector<Vector3> &Bead_init) const
+{
+  bool ok = true;
+  for (size_t i = 0; i < Beads.size(); i++)
+  {
+    if (bead_test_displacement)
+      ok = ok && (Beads[i]->Pos - Bead_init[i]).norm() < 0.1 * Beads[i]->sigma;
+    else
+      ok = ok && Beads[i]->Free_force(Beads[i]->Total_force).norm() * alpha < 0.1 * Beads[i]->sigma;
+  }
+  return ok;
+}
+
 double Mem3DG::Backtracking()
 {
   // std::cout << "Backtracking\n";
@@ -253,21 +269,15 @@ double Mem3DG::Backtracking()
 
   Projection = Sim_handler->Gradient_norms[Sim_handler->Energies.size()];
 
-  // The bead test of the loop below, at the current trial. The energy of a
-  // trial it rejects matters only for the NaN abort and, when Projection < 1e-4,
-  // for the small-gradient exit, so with skip_bead_rejected it is not computed
-  auto beads_within_reach = [&]() {
-    bool ok = true;
-    for (size_t i = 0; i < Beads.size(); i++)
-      ok = ok && Beads[i]->Free_force(Beads[i]->Total_force).norm() * alpha < 0.1 * Beads[i]->sigma;
-    return ok;
-  };
+  // The energy of a trial the bead test rejects matters only for the NaN abort
+  // and, when Projection < 1e-4, for the small-gradient exit, so with
+  // skip_bead_rejected it is not computed
   const bool may_skip = skip_bead_rejected && Projection >= 1e-4;
   bool evaluated = true;
 
   size_t bead_count = 0;
   NewE = 0.0;
-  if (may_skip && !beads_within_reach())
+  if (may_skip && !beads_within_reach(alpha, Bead_init))
   {
     evaluated = false;
     skipped_trials++;
@@ -289,10 +299,7 @@ double Mem3DG::Backtracking()
 
   while (true)
   {
-    displacement_cond = true;
-
-    for (size_t i = 0; i < Beads.size(); i++)
-      displacement_cond = displacement_cond && Beads[i]->Free_force(Beads[i]->Total_force).norm() * alpha < 0.1 * Beads[i]->sigma;
+    displacement_cond = beads_within_reach(alpha, Bead_init);
 
     if (evaluated && NewE <= previousE - c1 * alpha * Projection && displacement_cond && fabs(NewE - previousE) < 1e2)
     {
@@ -372,7 +379,7 @@ double Mem3DG::Backtracking()
     }
     bead_count = 0;
     NewE = 0.0;
-    evaluated = !(may_skip && !beads_within_reach());
+    evaluated = !(may_skip && !beads_within_reach(alpha, Bead_init));
     if (evaluated)
       Sim_handler->Calculate_energies(&NewE);
     else
@@ -863,20 +870,13 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
       Slope = Projection; // not downhill (the integrators replace such L-BFGS directions)
   }
 
-  // The bead test of the loop below, at the current trial. The energy of a
-  // trial it rejects matters only for the NaN abort, so with
-  // skip_bead_rejected it is not computed
-  auto beads_within_reach = [&]() {
-    bool ok = true;
-    for (size_t i = 0; i < Beads.size(); i++)
-      ok = ok && Beads[i]->Free_force(Beads[i]->Total_force).norm() * alpha < 0.1 * Beads[i]->sigma;
-    return ok;
-  };
+  // The energy of a trial the bead test rejects matters only for the NaN
+  // abort, so with skip_bead_rejected it is not computed
   bool evaluated = true;
 
   size_t bead_count = 0;
   NewE = 0.0;
-  if (skip_bead_rejected && !beads_within_reach())
+  if (skip_bead_rejected && !beads_within_reach(alpha, Bead_init))
   {
     evaluated = false;
     skipped_trials++;
@@ -893,10 +893,7 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
   // std::cout<<"Backtracking\n";
   while (true)
   {
-    displacement_cond = true;
-
-    for (size_t i = 0; i < Beads.size(); i++)
-      displacement_cond = displacement_cond && Beads[i]->Free_force(Beads[i]->Total_force).norm() * alpha < 0.1 * Beads[i]->sigma;
+    displacement_cond = beads_within_reach(alpha, Bead_init);
 
     if (evaluated && NewE <= previousE - c1 * alpha * Slope && displacement_cond && fabs(NewE - previousE) < 1e2)
     {
@@ -965,7 +962,7 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
     bead_count = 0;
 
     NewE = 0.0;
-    evaluated = !(skip_bead_rejected && !beads_within_reach());
+    evaluated = !(skip_bead_rejected && !beads_within_reach(alpha, Bead_init));
     if (evaluated)
       Sim_handler->Calculate_energies(&NewE);
     else
