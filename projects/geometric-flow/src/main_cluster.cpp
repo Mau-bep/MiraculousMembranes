@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -268,19 +269,58 @@ namespace
         }
     }
 
+    // Whether a corner angle is below `threshold`: the decision cornerAngles
+    // gives (computeCornerAngles: acos of the dot of the unit edge vectors, from
+    // vertexPositions), without an acos for the corners that are clearly wider.
+    //
+    // With u, v the edge vectors of a corner and d = u.v, the corner is skipped
+    // if d <= 0 or d^2 < K |u|^2 |v|^2, K = (cos(threshold) - 1e-6)^2: its exact
+    // cosine is then below cos(threshold) - 1e-6 + 1e-14, and the cosine
+    // computeCornerAngles rounds is within 1e-14 of it, so its angle there is
+    // above threshold + 1e-6. The other corners are computed as there. The test
+    // is only used for 0 < threshold <= 1 and |u|^2, |v|^2 in (1e-150, 1e150)
+    // (no overflow or underflow; NaN and inf fail it).
+    //
+    // Unlike requireCornerAngles(), this does not leave cornerAngles computed.
+    // That does not change what reads it later: the only reader before the next
+    // refreshQuantities() is remeshSmallAngles() (and the next call here), which
+    // sees the same vertexPositions and computes the same values. A cornerAngles
+    // that is still computed always matches vertexPositions in the same way, so
+    // the decision does not depend on the cache either.
     bool has_small_angle(Simulation &sim, double threshold)
     {
+        VertexPositionGeometry &geom = *sim.geometry;
+        geom.requireVertexPositions(); // as computeCornerAngles() does
+        const VertexData<Vector3> &P = geom.vertexPositions;
+        const bool fast = threshold > 0.0 && threshold <= 1.0;
+        const double cskip = std::cos(threshold) - 1e-6;
+        const double K = cskip * cskip;
+        auto in_range = [](double l2) { return l2 > 1e-150 && l2 < 1e150; };
+
         bool found = false;
-        sim.geometry->requireCornerAngles();
-        for (Corner c : sim.mesh->corners())
+        for (Face f : sim.mesh->faces())
         {
-            if (sim.geometry->cornerAngles[c] < threshold)
+            const Halfedge h0 = f.halfedge();
+            const Vector3 p[3] = {P[h0.vertex()], P[h0.next().vertex()], P[h0.next().next().vertex()]};
+            // Edge k goes from p[k] to p[k+1]; the corner at p[k] has u = e[k], v = -e[k+2]
+            const Vector3 e[3] = {p[1] - p[0], p[2] - p[1], p[0] - p[2]};
+            const double l2[3] = {dot(e[0], e[0]), dot(e[1], e[1]), dot(e[2], e[2])};
+            for (int k = 0; k < 3 && !found; k++)
             {
-                found = true;
-                break;
+                const int j = (k + 2) % 3;
+                const double d = -dot(e[k], e[j]);
+                if (fast && in_range(l2[k]) && in_range(l2[j]) && (d <= 0.0 || d * d < K * l2[k] * l2[j]))
+                    continue;
+                // As computeCornerAngles()
+                const Vector3 pA = p[k], pB = p[(k + 1) % 3], pC = p[j];
+                double q = dot(unit(pB - pA), unit(pC - pA));
+                q = geometrycentral::clamp(q, -1.0, 1.0);
+                found = std::acos(q) < threshold;
             }
+            if (found)
+                break;
         }
-        sim.geometry->unrequireCornerAngles();
+        geom.unrequireVertexPositions();
         return found;
     }
 
