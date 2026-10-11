@@ -325,9 +325,10 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
     // line-search trials the bead displacement test rejects anyway
     // (Mem3DG::skip_bead_rejected); false computes it as before
     cfg.skip_bead_rejected = data.value("line_search_skip_bead_rejected", true);
-    // "line_search_bead_test": "force" (default) or "displacement" (Mem3DG::bead_test_displacement)
+    // "line_search_bead_test": "displacement" (default) or "force", the original
+    // test (Mem3DG::bead_test_displacement)
     {
-        const std::string t = data.value("line_search_bead_test", std::string("force"));
+        const std::string t = data.value("line_search_bead_test", std::string("displacement"));
         if (t != "force" && t != "displacement")
             throw std::runtime_error("Input file: line_search_bead_test must be \"force\" or \"displacement\"");
         cfg.bead_test_displacement = t == "displacement";
@@ -356,8 +357,8 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
     cfg.bfgs_saved_states = data.value("BFGS_saved_states", 10);
     // "lbfgs": {"y": "force" | "gradient", "consistent_window": bool,
     //           "armijo": "norm" | "gradient", "scaling": bool}. Defaults gradient /
-    // true / gradient / false; "force" / false / "norm" is the original behaviour
-    // (LbfgsOptions in Mem-3dg.h)
+    // true / gradient / true; "force" / false / "norm" / false is the original
+    // behaviour (LbfgsOptions in Mem-3dg.h)
     if (data.contains("lbfgs"))
     {
         const json &l = data["lbfgs"];

@@ -31,8 +31,10 @@ struct LbfgsOptions
   // Initial inverse Hessian H0 = gamma I with gamma = s.y / y.y of the newest
   // pair (Nocedal-Wright eq. 7.20) instead of H0 = I, which leaves the step
   // length in the units of the force: the searches then halved from alpha = 1
-  // 6-13 times per step. gamma <= 0 or not finite falls back to I.
-  bool scaling = false;
+  // 6-13 times per step. gamma <= 0 or not finite falls back to I. Use it with
+  // the displacement bead test (line_search_bead_test): with the force test,
+  // runs with beads stopped making progress.
+  bool scaling = true;
 };
 
 class Mem3DG
@@ -66,8 +68,9 @@ public:
   // move each bead by less than 0.1 sigma. false ("force") estimates the move
   // as |F_b| alpha, true ("displacement") measures it from the bead's position
   // before the search, so beads that do not move (frozen, or every bead in a
-  // BFGS-Normal step) no longer limit the step.
-  bool bead_test_displacement = false;
+  // BFGS-Normal step) no longer limit the step. Default true, to go with
+  // LbfgsOptions::scaling.
+  bool bead_test_displacement = true;
   bool momentum = false;
   double learn_rate = 0.5;
   bool recentering = true;
