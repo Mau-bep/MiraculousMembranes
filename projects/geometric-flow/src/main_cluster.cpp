@@ -1483,7 +1483,7 @@ int main(int argc, char **argv)
                << integrate_elapsed_time << "\nsave_ms " << saving_mesh_time << "\nremeshes " << run.n_remesh << "\nremesh_rollbacks " << run.n_rollback
                << "\nvertices " << sim.mesh->nVertices() << "\nlbfgs_pairs " << M3DG.lbfgs_pairs
                << "\nlbfgs_negative_sy " << M3DG.lbfgs_negative_sy << "\nlbfgs_restarts " << M3DG.lbfgs_restarts
-               << "\nlbfgs_uphill " << M3DG.lbfgs_uphill << "\n";
+               << "\nlbfgs_uphill " << M3DG.lbfgs_uphill << "\nline_search_skipped " << M3DG.skipped_trials << "\n";
         // Where the integrator time goes: energy and gradient evaluations, per term
         const E_Handler &h = sim.Sim_handler;
         timing << "energy_calls " << h.energy_calls << "\nenergy_memo_hits " << h.energy_memo_hits << "\nenergy_ms "

@@ -173,6 +173,7 @@ struct SimConfig
     bool backtrack = true;
     double timestep = 1e-4;
     double warm_start_factor = 4.0; // "line_search_warm_start", 0 = always start at 1
+    bool skip_bead_rejected = false; // "line_search_skip_bead_rejected"
     bool has_momentum = false;
     bool momentum = false;
 

@@ -51,6 +51,12 @@ public:
   // each search starts at min(1, c * the last accepted step) instead of 1
   double warm_start_factor = 0.0;
   double last_alpha = 1.0;
+  // Line searches ("line_search_skip_bead_rejected"): a trial that moves a bead
+  // too far (|F_b| alpha >= 0.1 sigma) is rejected whatever its energy, so its
+  // energy is not computed. The searches end the same way, except that a NaN
+  // energy at such a trial no longer aborts the step: the search goes on.
+  bool skip_bead_rejected = false;
+  long skipped_trials = 0; // trials not evaluated (Timing.txt)
   bool momentum = false;
   double learn_rate = 0.5;
   bool recentering = true;
