@@ -73,6 +73,13 @@ double smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom
                          RemeshBoundaryCondition bc = RemeshBoundaryCondition::Fixed);
 double smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
                          double stepSize = 1, RemeshBoundaryCondition bc = RemeshBoundaryCondition::Fixed);
+// The same with the vertex normals given (from smoothingVertexNormals). They only depend on
+// inputVertexPositions, which the smoothing does not move, so several passes can share them.
+double smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
+                         const VertexData<Vector3>& normals, double stepSize = 1,
+                         RemeshBoundaryCondition bc = RemeshBoundaryCondition::Fixed);
+VertexData<Vector3> smoothingVertexNormals(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom,
+                                           RemeshBoundaryCondition bc = RemeshBoundaryCondition::Fixed);
 
 // Average positions of vertices based on surrounding triangle circumenters as in [Chen & Holst 2011]
 // Returns the average amount each vertex was moved by
@@ -90,9 +97,11 @@ std::vector<Face> splitSubset(std::vector<Face> activeFaces, ManifoldSurfaceMesh
                               MutationManager& mm, const RemeshOptions& options);
 bool collapseSubset(std::vector<Face> activeFaces, ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom,
                     MutationManager& mm, RemeshOptions options);
+// compressMesh = false leaves the dead elements in place (remesh() compresses once at the end)
 bool splitWorstEdges(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
-                     RemeshOptions& options);
-bool improveFaces(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm, RemeshOptions& options);
+                     RemeshOptions& options, bool compressMesh = true);
+bool improveFaces(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm, RemeshOptions& options,
+                  bool compressMesh = true);
 int flipSubset(std::vector<Face> active, ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
                RemeshOptions options);
 void remeshSmallAngles(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, const RemeshOptions& options);

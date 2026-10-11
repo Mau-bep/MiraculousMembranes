@@ -182,7 +182,9 @@ void ExtrinsicGeometryInterface::computeFaceSizing() {
     // maximum curvature, and the value of the eigenvalue is related to the curvature in that direction.
     Eigen::EigenSolver<Eigen::Matrix2d> Solve;
     Eigen::Vector2d eigenvalues;
-    Solve.compute(Sizing_mat);
+    // Eigenvalues only: the real Schur form they come from is the same with or
+    // without the eigenvectors (computeEigenvectors only adds the U updates)
+    Solve.compute(Sizing_mat, false);
     eigenvalues = Solve.eigenvalues().real();
     // std::cout << "THe eigenvalues are " << eigenvalues << "\n";
     faceSizing[f] = std::max(fabs(eigenvalues[0]), fabs(eigenvalues[1]));

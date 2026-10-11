@@ -33,11 +33,15 @@ int remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationMana
     if (doConnectivityChanges) {
 
       // splitWorstEdges and improveFaces add their splits/collapses to
-      // options.numberOp, so remesh() returns all operations, not only flips
-      splitWorstEdges(mesh, geom, mm, options);
+      // options.numberOp, so remesh() returns all operations, not only flips.
+      // They do not compress the mesh: the compress() below does it once.
+      // Compressing keeps the order of the live elements and only splits create
+      // elements (before any compress), so every loop sees the same elements in
+      // the same order and the final indices are the same.
+      splitWorstEdges(mesh, geom, mm, options, false);
       nFlips = fixDelaunay(mesh, geom, mm);
       options.numberOp += nFlips;
-      improveFaces(mesh, geom, mm, options);
+      improveFaces(mesh, geom, mm, options, false);
     }
 
     nFlips = fixDelaunay(mesh, geom, mm);
@@ -47,23 +51,30 @@ int remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationMana
 
     geom.inputVertexPositions = geom.vertexPositions;
     mesh.compress();
+    // The sizings are not used below: unrequired here, the refresh does not
+    // recompute them (and the quantities they need) only for purgeQuantities().
+    // (The loop runs once, maxIterations = 1 above.)
+    geom.unrequireFaceSizing();
+    geom.unrequireVertexSizing();
     geom.refreshQuantities();
     // Tangential smoothing until the mean vertex movement is below 1e-4
     // (17-47 passes on average in the regression runs, at most 73). The cap
     // only guards against a smoothing that never settles.
+    // The passes move vertexPositions (MutationManager::repositionVertex) and the
+    // normals come from inputVertexPositions, so the normals are the same in
+    // every pass and are computed once.
+    const VertexData<Vector3> normals = smoothingVertexNormals(mesh, geom, RemeshBoundaryCondition::Fixed);
     const int maxSmoothingPasses = 100;
-    double smoothing = smoothByLaplacian(mesh, geom, mm);
+    double smoothing = smoothByLaplacian(mesh, geom, mm, normals);
     int smoothingPasses = 1;
     while (smoothing > 1e-4 && smoothingPasses < maxSmoothingPasses) {
-      smoothing = smoothByLaplacian(mesh, geom, mm);
+      smoothing = smoothByLaplacian(mesh, geom, mm, normals);
       smoothingPasses++;
     }
     if (smoothing > 1e-4)
       std::cout << "remesh: smoothing stopped after " << maxSmoothingPasses << " passes (mean movement " << smoothing
                 << ")\n";
   }
-  geom.unrequireFaceSizing();
-  geom.unrequireVertexSizing();
   geom.inputVertexPositions = geom.vertexPositions;
   geom.purgeQuantities();
 
@@ -424,8 +435,12 @@ inline double currentFaceArea(VertexPositionGeometry& geom, Face f) {
   return 0.5 * norm(cross(b - a, c - a));
 }
 
-bool shouldCollapse(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Edge e, const RemeshOptions& options) {
-  std::vector<Halfedge> edgesToCheck;
+// The link halfedges are gathered in `edgesToCheck` (cleared first):
+// improveFaces() passes one buffer for all its edges instead of allocating it
+// on every call
+bool shouldCollapse(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Edge e, const RemeshOptions& options,
+                    std::vector<Halfedge>& edgesToCheck) {
+  edgesToCheck.clear();
   Vertex v1 = e.halfedge().vertex();
   Vertex v2 = e.halfedge().twin().vertex();
 
@@ -504,6 +519,11 @@ bool shouldCollapse(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Edg
 
 
   return true;
+}
+
+bool shouldCollapse(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Edge e, const RemeshOptions& options) {
+  std::vector<Halfedge> edgesToCheck;
+  return shouldCollapse(mesh, geom, e, options, edgesToCheck);
 }
 
 bool shouldCollapseSimple(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Edge e, const RemeshOptions& options) {
@@ -716,12 +736,30 @@ double smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom
 
 double smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm, double stepSize,
                          RemeshBoundaryCondition bc) {
-  VertexData<Vector3> vertexOffsets(mesh);
-  geom.requireVertexPositions();
+  return smoothByLaplacian(mesh, geom, mm, smoothingVertexNormals(mesh, geom, bc), stepSize, bc);
+}
 
-  // The positions only change after the loop below, so every face normal can be computed once
+// The normals smoothByLaplacian() projects on, for the vertices that use one
+// (interior ones, and boundary ones with RemeshBoundaryCondition::Free). They
+// come from faceNormal() and cornerAngle(), i.e. from inputVertexPositions.
+VertexData<Vector3> smoothingVertexNormals(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom,
+                                           RemeshBoundaryCondition bc) {
+  // Every face normal is used by the three corners of its face: computed once
   FaceData<Vector3> faceNormals(mesh);
   for (Face f : mesh.faces()) faceNormals[f] = geom.faceNormal(f);
+
+  VertexData<Vector3> normals(mesh);
+  for (Vertex v : mesh.vertices()) {
+    if (v.isBoundary() && bc != RemeshBoundaryCondition::Free) continue;
+    normals[v] = vertexNormal(geom, v, faceNormals);
+  }
+  return normals;
+}
+
+double smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
+                         const VertexData<Vector3>& normals, double stepSize, RemeshBoundaryCondition bc) {
+  VertexData<Vector3> vertexOffsets(mesh);
+  geom.requireVertexPositions();
 
   for (Vertex v : mesh.vertices()) {
     // calculate average of surrounding vertices
@@ -746,12 +784,12 @@ double smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom
         break;
       case RemeshBoundaryCondition::Free:
         // for free boundary vertices, project the average to the surface tangent plane
-        stepDir = projectToPlane(updateDirection, vertexNormal(geom, v, faceNormals));
+        stepDir = projectToPlane(updateDirection, normals[v]);
         break;
       }
     } else {
       // for interior vertices, project the average to the tangent plane
-      stepDir = projectToPlane(updateDirection, vertexNormal(geom, v, faceNormals));
+      stepDir = projectToPlane(updateDirection, normals[v]);
     }
     vertexOffsets[v] = stepSize * stepDir;
   }
@@ -1010,7 +1048,7 @@ double Face_sizing(Face f, VertexPositionGeometry& geom) {
   Sizing = Sizing.transpose() * Sizing; // normalize by refine angle, so that the resulting sizing is in
   Eigen::EigenSolver<Eigen::Matrix2d> Solve;
   Eigen::Vector2d eigenvalues;
-  Solve.compute(Sizing);
+  Solve.compute(Sizing, false); // eigenvalues only (they do not depend on this flag)
   eigenvalues = Solve.eigenvalues().real();
 
   return std::max(fabs(eigenvalues[0]), fabs(eigenvalues[1]));
@@ -1321,7 +1359,7 @@ std::vector<Edge> findBadEdges(ManifoldSurfaceMesh& mesh, VertexPositionGeometry
 }
 
 bool splitWorstEdges(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
-                     RemeshOptions& options) {
+                     RemeshOptions& options, bool compressMesh) {
   geom.requireVertexDualAreas();
   geom.requireVertexSizing();
   geom.requireEdgeLengths();
@@ -1375,7 +1413,7 @@ bool splitWorstEdges(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Mu
   geom.unrequireEdgeLengths();
   geom.unrequireVertexDualAreas();
   geom.unrequireVertexSizing();
-  mesh.compress();
+  if (compressMesh) mesh.compress();
   return didSplit;
 }
 
@@ -1439,7 +1477,8 @@ void deleteLowValence(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, M
   geom.unrequireVertexSizing();
   mesh.compress();
 }
-bool improveFaces(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm, RemeshOptions& options) {
+bool improveFaces(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm, RemeshOptions& options,
+                  bool compressMesh) {
   geom.requireVertexDualAreas();
   geom.requireVertexSizing();
   geom.requireEdgeLengths();
@@ -1475,6 +1514,7 @@ bool improveFaces(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Mutat
     if (v.isBoundary()) Valence[v] += 10;
   }
   int ValenceNew = 0;
+  std::vector<Halfedge> linkBuffer; // for shouldCollapse
   while (!toCollapse.empty()) {
 
     Edge e = toCollapse.back();
@@ -1486,7 +1526,7 @@ bool improveFaces(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Mutat
     if (length_e < options.max_absolute_length) {
       Vector3 newPos = edgeMidpoint(mesh, geom, e);
       newSizing = std::max(geom.vertexSizing[e.halfedge().tipVertex()], geom.vertexSizing[e.halfedge().tailVertex()]);
-      if (shouldCollapse(mesh, geom, e, options) || Valence[e.halfedge().vertex()] == 3 ||
+      if (shouldCollapse(mesh, geom, e, options, linkBuffer) || Valence[e.halfedge().vertex()] == 3 ||
           Valence[e.halfedge().twin().vertex()] == 3 || Valence[e.halfedge().vertex()] == 4 ||
           Valence[e.halfedge().twin().vertex()] == 4) {
         // I need to make sure that the edges are not boundary
@@ -1511,7 +1551,7 @@ bool improveFaces(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Mutat
   geom.unrequireEdgeLengths();
   geom.unrequireVertexDualAreas();
   geom.unrequireVertexSizing();
-  mesh.compress();
+  if (compressMesh) mesh.compress();
   return didCollapse;
 }
 void remeshSmallAngles(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, const RemeshOptions& options) {
