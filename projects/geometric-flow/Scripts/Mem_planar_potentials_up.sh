@@ -25,10 +25,14 @@ set Nsim=1
 set KB = 1
 set radius = 1.0
 set KA = 0
-# 17 values, w~ = 4 KI from 3.2 to 9.6 in steps of 0.4. At sigma~ = 0 Deserno's wrapping transition E is at w~ = 4 (KI = 1.0,
-# deserno_table.csv); the finite range of the adhesion moves it to larger KI (the cosine shell scans put it near w~ = 5 and above), so the
-# window reaches w~ = 9.6; widen it if the lines are not bracketed
-set KIs = ( 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0 2.1 2.2 2.3 2.4 )
+# The same 27 points as the shell test (Mem_planar_shell_test_up.sh, p = 1, s = 0.05): KI = 0.5 ... 1.8 in steps of 0.05, w~ = 4 KI = 2 ... 7.2,
+# so every potential can be compared point by point with the thin cosine shell. At sigma~ = 0 Deserno's wrapping transition is at
+# w~ = 4 (KI = 1.0, deserno_table.csv). The first scan of these potentials used KI = 0.8 ... 2.4 in steps of 0.1 (up to 2.4, 17 points):
+# its KI = 0.8, 0.9, ..., 1.8 are the same points, SkipDone = 1 does not run them again (the results are added to the same
+# ../Results/Potentials_<cond>_<init>/ folders; Process_potentials.py gathers all of them); SkipDone = 0 runs all 27.
+set SkipDone = 1
+set Done = ( 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 )
+set KIs = ( 0.5 0.55 0.6 0.65 0.7 0.75 0.8 0.85 0.9 0.95 1.0 1.05 1.1 1.15 1.2 1.25 1.3 1.35 1.4 1.45 1.5 1.55 1.6 1.65 1.7 1.75 1.8 )
 
 # Conditions: name, profile and range. Comment out what you do not need.
 # LJ: rc = 2.5 and 2 sigma_LJ, sigma_LJ = radius / 2^(1/6) (the minimum is at the radius), i.e. rc = 2.2272 and 1.7818 radius,
@@ -50,9 +54,15 @@ set Batch_Tag = "Potentials_${Cond}_${Init}"
 
 foreach Strg ( ${KIs} )
 
+set IsDone = 0
+foreach d ( ${Done} )
+if ( ${d} == ${Strg} ) set IsDone = 1
+end
+if ( ${SkipDone} == 1 && ${IsDone} == 1 ) continue
+
 set Unique_Tag = "${Batch_Tag}_Strg_${Strg}_r_${radius}_KA_${KA}_KB_${KB}_Nsim_${Nsim}"
 
-python3 Create_subjob_planar.py --inter_str ${Strg} --radius ${radius} --KA ${KA} --KB ${KB} --tension excess --init ${Init} --rescale 1.0 --size_min 0.01 --size_max 1.0 --refine_angle 0.3 --switch_normal 120000 --saved_states 60 ${Cfg} --batch_tag ${Batch_Tag} --unique_tag ${Unique_Tag} --time 6:00:00
+python3 Create_subjob_planar.py --inter_str ${Strg} --radius ${radius} --KA ${KA} --KB ${KB} --tension excess --init ${Init} --rescale 1.0 --size_min 0.01 --size_max 1.0 --refine_angle 0.3 --switch_normal 120000 --saved_states 60 ${Cfg} --batch_tag ${Batch_Tag} --unique_tag ${Unique_Tag} --time 12:00:00
 sbatch ../Subjobs/${Unique_Tag}_subjob
 
 end
