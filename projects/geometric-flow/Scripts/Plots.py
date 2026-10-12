@@ -820,8 +820,176 @@ def Shell_test_comparison(filepath="../Results/CoverageShellSum/CoverageSum.txt"
         panel(s, ss, ps, lambda p: (p, s), lambda p: f"p = {p}", f"s = {s:g}", f"s{s:g}")
 
 
+
+def Potentials_comparison(filepath="../Results/Potentials_sum/CoverageSum.txt", save=None,
+                          conds=("cos", "frenkel", "lj25", "lj20", "morse2", "morse10"), deserno=True):
+    """Planar wrapping at zero tension with other radial profiles of the adhesion (Process_potentials.py output).
+
+    Columns are found by name in the header (Cond Init Profile shell_width shell_alpha shell_power DIR KA KB KI ...).
+    One figure with four panels, against the adhesion strength KI (top axis: w~ = 4 KI r^2/KB):
+    coverage (CoverageUnion), Total_E, Total_E(flat) - Total_E(full) (the lower one is the equilibrium state; 0 means
+    no hysteresis) and the bending energy Bending_tan (the dashed line is 4 pi K_B, the energy of a fully wrapped sphere of
+    radius 1 with H = 1). Lines are the flat start, hollow markers the full start. BeadX is not plotted: the free sheet drifts
+    along x, flat and full starts with the same energy end at different BeadX.
+    The dotted vertical line is Deserno's wrapping transition at zero tension (w~ = 4, KI = 1 for r = KB = 1).
+    deserno=True adds Deserno's zero-tension result as a black step line: nothing is wrapped for w~ < 4 (coverage 0, E = 0), the
+    bead is fully wrapped above (coverage 1 = z/2 with z = 2, E~ = -2 (w~ - 4), i.e. E = -4 pi (KI - 1) for r = KB = 1, bending
+    8 pi kappa = 4 pi KB); checked against deserno_theory.py at sigma~ = 1e-4.
+    Prints the KI where the coverage of each condition crosses 0.5 and 0.9.
+    """
+    from collections import defaultdict
+
+    names, data = None, defaultdict(lambda: defaultdict(dict))   # (cond, init) -> column -> {KI: value}
+    labels = {}
+    for line in open(filepath):
+        if not line.strip():
+            continue
+        if line.startswith("#"):
+            names = line.lstrip("#").split()
+            continue
+        d = dict(zip(names, line.split()))
+        key = (d["Cond"], d["Init"])
+        ki = float(d["KI"])
+        for col in ("CoverageUnion", "Total_E", "Bending_tan"):
+            data[key][col][ki] = float(d[col])
+        prof, sw, al = d["Profile"], float(d["shell_width"]), d["shell_alpha"]
+        labels[d["Cond"]] = {"cosine": f"cosine, s = {sw:g}", "frenkel": f"Frenkel, rc = {1 + sw:.2f} r",
+                             "lj": f"LJ, rc = {1 + sw:.2f} r", "morse": f"Morse a = {al}, rc = {1 + sw:.2f} r"}[prof]
+
+    conds = [c for c in conds if (c, "flat") in data]
+    # Cove categorical hues, fixed order
+    colors = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#6250d6"]
+    markers = "osD^vP"
+
+    def curve(cond, init, col):
+        c = data[(cond, init)][col]
+        ki = np.array(sorted(c))
+        return ki, np.array([c[k] for k in ki])
+
+    fig, axes = plt.subplots(2, 2, figsize=(11, 8))
+    panels = [("CoverageUnion", "Coverage"), ("Total_E", r"Total energy $E$"),
+              ("dE", r"$E_{\rm flat} - E_{\rm full}$"), ("Bending_tan", r"Bending energy $E_{\rm bend}$")]
+    for ax, (col, ylabel) in zip(axes.ravel(), panels):
+        for i, cond in enumerate(conds):
+            color, marker = colors[i % len(colors)], markers[i % len(markers)]
+            if col == "dE":
+                ki, flat = curve(cond, "flat", "Total_E")
+                if (cond, "full") in data:
+                    ki_f, full = curve(cond, "full", "Total_E")
+                    common = np.intersect1d(ki, ki_f)
+                    ax.plot(common, [data[(cond, "flat")]["Total_E"][k] - data[(cond, "full")]["Total_E"][k] for k in common], "-",
+                            marker=marker, ms=4, lw=1.4, color=color, label=labels.get(cond, cond))
+                continue
+            ki, y = curve(cond, "flat", col)
+            ax.plot(ki, y, "-", marker=marker, ms=4, lw=1.6, color=color, label=labels.get(cond, cond))
+            if (cond, "full") in data:
+                ki_f, y_f = curve(cond, "full", col)
+                ax.plot(ki_f, y_f, "none", marker=marker, ms=7, mfc="none", mec=color, mew=1.0)
+        ax.axvline(1.0, color="gray", ls=":", lw=1.0)
+        if deserno and col != "dE":
+            kd = np.array([0.5, 1.0, 1.0, 3.0])
+            step = {"CoverageUnion": [0, 0, 1, 1], "Total_E": [0, 0, 0, -8 * np.pi],
+                    "Bending_tan": [0, 0, 4 * np.pi, 4 * np.pi]}[col]
+            ax.plot(kd, step, color="black", lw=1.3, label=r"Deserno, $\tilde\sigma = 0$")
+        if col == "dE":
+            ax.axhline(0.0, color="black", lw=0.6)
+        if col == "Bending_tan":
+            ax.axhline(4 * np.pi, color="black", lw=0.8, ls="--")
+            ax.text(0.98, 4 * np.pi, r"$4\pi K_B$", ha="right", va="bottom", fontsize=8, transform=ax.get_yaxis_transform())
+        ax.set_xlabel(r"Adhesion strength $K_I$")
+        ax.set_ylabel(ylabel)
+        ax.grid(alpha=0.3)
+        top = ax.secondary_xaxis("top", functions=(lambda x: 4 * x, lambda x: x / 4))
+        top.set_xlabel(r"$\tilde w = 4 K_I r^2/K_B$")
+    axes[0, 0].legend(frameon=False, fontsize=8, loc="lower right")
+    axes[0, 0].set_ylim(-0.02, 1.02)
+    for ax in axes.ravel():
+        ax.set_xlim(0.72, 2.48)
+    fig.suptitle(r"Planar membrane, $K_A = 0$: lines = flat start, hollow markers = full start; black = Deserno ($\tilde w = 4$)", y=1.0, fontsize=10)
+    fig.tight_layout()
+    if save is not None:
+        fig.savefig(f"{save}.png", dpi=200, bbox_inches="tight")
+    plt.show()
+
+    print("KI where the coverage (flat start) crosses 0.5 and 0.9:")
+    for cond in conds:
+        ki, y = curve(cond, "flat", "CoverageUnion")
+        order = np.argsort(y)
+        cross = [float(np.interp(level, y[order], ki[order])) for level in (0.5, 0.9)]
+        print(f"  {cond:8s} {labels.get(cond, cond):26s} KI(0.5) = {cross[0]:.3f}   KI(0.9) = {cross[1]:.3f}")
+
+
+def Softshell_prediction(filepath="../Results/Potentials_sum/CoverageSum.txt",
+                         prediction="../Studies/deserno_shell/data/softshell_sigma0.csv", cond="cos", save=None):
+    """Continuum soft-shell prediction against the simulation at zero tension, cosine shell (the 'cos' condition, s = 0.25).
+
+    prediction: ../Studies/deserno_shell/theory/softshell_sigma0.py writes it (the constrained minimum e(G) of softshell_direct.py
+    for sigma~ = 0, s = 0.25, p = 1, R = 10: columns G wt e Ebend Aex, a = 1, kappa = KB/2, energies in pi kappa). At w~ = 4 KI
+    the state with wt(G) = w~ has coverage G, E~ = e - w~ G and bending Ebend; Total_E = (pi KB/2) E~ and E_bend = (pi KB/2) Ebend
+    (KB = r = 1). The simulation's G is the adhesion-weighted covered solid angle, G = -Bead/(2 pi KI) (not CoverageUnion, which counts
+    the directions hidden by any selected face). Simulation: flat start filled markers, full start hollow; prediction red, Deserno's
+    zero-tension step black. The fourth panel is Total_E(simulation) - Total_E(prediction).
+    """
+    names, sim = None, {"flat": [], "full": []}
+    for line in open(filepath):
+        if not line.strip():
+            continue
+        if line.startswith("#"):
+            names = line.lstrip("#").split()
+            continue
+        d = dict(zip(names, line.split()))
+        if d["Cond"] == cond:
+            ki = float(d["KI"])
+            sim[d["Init"]].append((ki, -float(d["Bead"]) / (2 * np.pi * ki), float(d["Total_E"]), float(d["Bending_tan"])))
+    sim = {k: np.array(sorted(v)).T for k, v in sim.items() if v}
+    G, wt, e, Eb = np.loadtxt(prediction, comments="#", usecols=(0, 1, 2, 3), unpack=True)
+
+    def predicted(ki):
+        """coverage G, total energy and bending energy of the stationary state at w~ = 4 KI (wt(G) is monotonic at zero tension)"""
+        w = 4 * np.asarray(ki, float)
+        Gp = np.interp(w, wt, G)
+        return Gp, 0.5 * np.pi * (np.interp(w, wt, e) - w * Gp), 0.5 * np.pi * np.interp(w, wt, Eb)
+
+    ki_line = np.linspace(max(0.72, wt.min() / 4), min(2.48, wt.max() / 4), 300)
+    Gp, Ep, Ebp = predicted(ki_line)
+    fig, axes = plt.subplots(2, 2, figsize=(11, 8))
+    ax_G, ax_E, ax_B, ax_R = axes.ravel()
+    kd = np.array([0.5, 1.0, 1.0, 3.0])
+    for ax, y_pred, y_des, ylabel, col in ((ax_G, Gp, [0, 0, 2, 2], r"Adhesion-weighted coverage $G = -E_{\rm adh}/(2\pi K_I)$", 1),
+                                           (ax_E, Ep, [0, 0, 0, -8 * np.pi], r"Total energy $E$", 2),
+                                           (ax_B, Ebp, [0, 0, 4 * np.pi, 4 * np.pi], r"Bending energy $E_{\rm bend}$", 3)):
+        ax.plot(kd, y_des, color="black", lw=1.3, label=r"Deserno, $\tilde\sigma = 0$")
+        ax.plot(ki_line, y_pred, color="#d03b3b", lw=2.0, label="continuum soft shell, $s = 0.25$")
+        for init, ms, mfc in (("flat", 5, "#2a78d6"), ("full", 8, "none")):
+            if init in sim:
+                ax.plot(sim[init][0], sim[init][col], "none", marker="o", ms=ms, mfc=mfc, mec="#2a78d6", label=f"simulation, {init} start")
+        ax.set_ylabel(ylabel)
+    for init, ms, mfc in (("flat", 5, "#2a78d6"), ("full", 8, "none")):
+        if init in sim:
+            ki = sim[init][0]
+            ax_R.plot(ki, sim[init][2] - predicted(ki)[1], "o", ms=ms, mfc=mfc, mec="#2a78d6", label=f"{init} start")
+    ax_R.axhline(0, color="black", lw=0.6)
+    ax_R.set_ylabel(r"$E_{\rm sim} - E_{\rm soft\,shell}$")
+    ax_R.legend(frameon=False, fontsize=8)
+    for ax in axes.ravel():
+        ax.axvline(1.0, color="gray", ls=":", lw=1.0)
+        ax.set_xlabel(r"Adhesion strength $K_I$")
+        ax.set_xlim(0.72, 2.48)
+        ax.grid(alpha=0.3)
+        top = ax.secondary_xaxis("top", functions=(lambda x: 4 * x, lambda x: x / 4))
+        top.set_xlabel(r"$\tilde w = 4 K_I r^2/K_B$")
+    ax_G.set_ylim(-0.05, 2.1)
+    ax_G.legend(frameon=False, fontsize=8, loc="lower right")
+    fig.suptitle(r"Planar membrane, $K_A = 0$, cosine shell $s = 0.25$: simulation vs continuum prediction", y=1.0, fontsize=10)
+    fig.tight_layout()
+    if save is not None:
+        fig.savefig(f"{save}.png", dpi=200, bbox_inches="tight")
+    plt.show()
+
 Shell_test_comparison(filepath="../Results/CoverageShellSum/CoverageSum.txt",save="../Results/CoverageShellSum/CoverageSum")
 
+# Potentials_comparison(save="../Results/Potentials_sum/Potentials_comparison")                                      # Frenkel / LJ / Morse adhesion, KA = 0
+# Softshell_prediction(save="../Results/Potentials_sum/Softshell_prediction")                                           # cosine shell vs continuum model, needs Studies/deserno_shell/theory/softshell_sigma0.py
 # deserno_fig5(filepath = "../Results/WrappingPhaseSpaceNewFast/Coverage_data.txt",as_z = False)                         # vesicle data, kappa = KB/2
 # deserno_fig5(filepath="../Results/Wrapping_planar_excess/Coverage_data.txt", filepath_full="../Results/Wrapping_planar_excess/Coverage_data_full.txt")
 # planar_phase_deserno(contour_levels=[0.5, 1.0, 1.5])
