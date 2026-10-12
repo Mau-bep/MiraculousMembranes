@@ -1,0 +1,180 @@
+{# Two beads wrapped by a closed vesicle: the interaction energy u(s) of van der Wel et al., Sci. Rep. 6, 32825 (2016), Fig. 3e / 4a.
+
+   Units: bead radius = 1 (D_p = 2), kappa = KB/2 = 1 energy unit (the code's bending energy is KB * H^2, H = (c1 + c2)/2),
+   vesicle radius Rv = 6.25 (D_v/D_p = 6.25, as in the paper's simulation). To go to the paper's units: u [kBT] = 20.9 u [kappa],
+   length [um] = 0.49 length.
+
+   What differs from Wrapping_two_cov / Wrapping_two_fixed, and why (Studies/two_beads_vesicle/README.md):
+     * floppy membrane: sigma~ = sigma a^2/kappa = 0.02 (the floppy vesicles of the experiment have sigma~ < 0.03), the old runs had
+       sigma~ = 2.3 (KB 0.85) to 16 (KB 0.12): there is no bending-mediated interaction left at that tension
+     * the wrapped area is fixed by an adhesive PATCH with a sharp edge ("patch_angle", the theta_Wr of the paper's Eq. 4), the contact
+       line is pinned and the cap does not change with the separation; the soft shell of the Coverage energy (+-25 % of the radius)
+       makes the wrapped fraction depend on the neck, and with it the energy at the level of the signal (0.1 kappa = 0.2 % of the bending)
+     * frozen beads, the vesicle finds its position; the axis of each patch is fixed in space (Run_two_vesicle_chain.py points it to the
+       centre of the vesicle again at every separation). "patch_free": true (generator: --free_axis) lets it turn, the axis being the
+       one that maximises the covered weight at every evaluation: the energy then gains ~0.03 kappa at s = 2.7, but in a test it ran
+       into a state with one neck closed (cov 0.99) when the beads were moved, so it is not the default
+   wrap_mode: "patch" (default: Adhesion with the angular patch, needs the build with patch_angle), "coverage" (the Coverage energy
+   as in Wrapping_two_cov), "adhesion" (plain Adhesion, the wrapping is whatever the energy gives)
+   area_mode: "tension" (default: Surface_tension sigma, no area constraint), "constraint" (Area_constraint, the paper's A_t = (1 + excess) A_sphere
+   with a fixed volume), "excess" (Excess_tension: free area until A_t, then a tension), "none"
+   outside: 1 (default) the beads are outside the vesicle, -1 inside (needs the build with "outside": -1 for Adhesion; the Coverage energy does not know it)
+   planar: true (generator: --planar) a flat disk with a clamped edge (input/Big_planar_mem.obj, radius 10 * rescale, normal along x) instead of the closed vesicle:
+   no volume constraint, "boundary": true, the beads above the disk (x > 0) pushing into it; the large-vesicle limit of the experiment (D_v/D_p >= 14) #}
+{
+    "init_file": "{{ init_file | default('../../../input/Simplesphere.obj') }}",
+    "save_interval": {{ save_interval | default(5000) }},
+    "timesteps": {{ timesteps | default(200000) }},
+    "continue_sim": false,
+    "resize_vol": false,
+    "Integration": "Gradient_descent",
+    "lbfgs": {
+        "y": "gradient",
+        "consistent_window": true
+    },
+    "BFGS_saved_states": {{ saved_states | default(15) }},
+    "remeshing": true,
+    "remesh_every": 1,
+    "adapt_remesh": "quality",
+    "remesh_quality": {
+        "f_tol": 0.01,
+        "min_every": 1,
+        "max_every": {{ remesh_max_every | default(300) }}
+    },
+    "Remesh_log": true,
+    "Count_remesh": true,
+    "backtrack": true,
+    "Timestep": 1.0,
+    "first_dir": "{{ first_dir }}",
+    "boundary": {{ 'true' if planar | default(false) else 'false' }},
+    "recentering": false,
+    "saving_states": false,
+    "Switches": [
+        "BFGS",
+        "BFGS-Normal"
+    ],
+    "Switch_times": [
+        {{ switch_bfgs | default(2000) }},
+        {{ switch_normal | default(80000) }}
+    ],
+    "momentum": false,
+    "rescale": {{ rescale | default(6.25) }},
+    "Rv": {{ Rv | default(6.25) }},
+    "finish_sim": false,
+    "theta": {{ dist }},
+{% if displacement %}
+    "Displacement": [
+        {{ displacement[0] }},
+        {{ displacement[1] }},
+        {{ displacement[2] }}
+    ],
+{% endif %}
+    "Energies": [
+        {
+            "Name": "Bending_tan",
+            "constants": [
+                {{ KB | default(2.0) }},
+                0.0
+            ]
+        }{% if not planar | default(false) %},
+        {
+            "Name": "Volume_constraint",
+            "constants": [
+                {{ KV | default(200000.0) }},
+                {{ Vbar | default(-1.0) }}
+            ]
+        }{% endif %}{% if area_mode | default('tension') == 'tension' %},
+        {
+            "Name": "Surface_tension",
+            "constants": [
+                {{ sigma | default(0.02) }}
+            ]
+        }{% elif area_mode == 'constraint' %},
+        {
+            "Name": "Area_constraint",
+            "constants": [
+                {{ KA | default(200000.0) }},
+                {{ Abar | default(-1.0) }},
+                {{ nu | default(0.929429) }},
+                10000.0
+            ]
+        }{% elif area_mode == 'excess' %},
+        {
+            "Name": "Excess_tension",
+            "constants": [
+                {{ sigma | default(1.0) }},
+                {{ area_factor | default(1.05) }}
+            ]
+        }{% endif %}{% if wrap_mode | default('patch') == 'coverage' %},
+        {
+            "Name": "Coverage",
+            "constants": [
+                {{ Kcov | default(20000.0) }}{% for b in beads %},
+                {{ cov }}{% endfor %}
+
+            ]
+        }{% endif %}
+
+    ],
+    "Beads": [
+{% for b in beads %}
+        {
+            "gradient_order": "Bead",
+            "radius": {{ radius | default(1.0) }},
+            "state": "{{ bead_state | default('froze') }}",
+            "outside": {{ outside | default(1) }},
+            "Velocity": [0.0, 0.0, 0.0],
+            "Pos": [{{ b.pos[0] }}, {{ b.pos[1] }}, {{ b.pos[2] }}],
+{% if wrap_mode | default('patch') == 'coverage' %}
+            "mem_inter": "None",
+            "inter_str": 0.0,
+{% else %}
+            "mem_inter": "Adhesion",
+            "inter_str": {{ W | default(6.0) }},
+            "shell_width": {{ shell_width | default(0.1) }},
+{% if wrap_mode | default('patch') == 'patch' %}
+            "patch_angle": {{ patch_angle | default(143.13) }},
+            "patch_width": {{ patch_width | default(5.0) }},
+            "patch_axis": [{{ b.axis[0] }}, {{ b.axis[1] }}, {{ b.axis[2] }}],
+            "patch_free": {{ 'true' if patch_free | default(false) else 'false' }},
+{% endif %}
+{% endif %}
+            "rc": 0.1,
+            "bonds": [],
+            "bonds_constants": [],
+            "Beads": [],
+            "Constraint": "None",
+            "Constraint_constants": []
+        }{% if not loop.last %},{% endif %}
+
+{% endfor %}
+    ],
+    "remesher": {
+        "aspect_min": 0.2,
+        "refine_angle": {{ refine_angle | default(0.3) }},
+        "refine_compression": 0.0001,
+        "refine_velocity": 1.0,
+        "size_max": {{ size_max | default(0.6) }},
+        "size_min": {{ size_min | default(0.05) }}
+    },
+    "remesh_rollback": {
+        "max_rise": 10.0,
+        "wait": 10
+    },
+    "polish": {
+        "gd_steps": 100,
+        "then": "BFGS-Normal",
+        "max_cycles": -1
+    },
+    "stopping": {
+        "window": 50,
+        "patience": 3,
+        "bfgs_tol_E": 5e-05,
+        "normal_tol_E": 1e-08,
+        "normal_tol_g": 0.0,
+        "E_floor": 1.0,
+        "bfgs_switch": true,
+        "normal_stop": true,
+        "stall_steps": 10
+    }
+}

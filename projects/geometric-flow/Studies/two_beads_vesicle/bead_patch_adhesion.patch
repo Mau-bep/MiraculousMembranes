@@ -1,0 +1,1011 @@
+diff --git a/projects/geometric-flow/CMakeLists.txt b/projects/geometric-flow/CMakeLists.txt
+index 0836074b..d3e53312 100644
+--- a/projects/geometric-flow/CMakeLists.txt
++++ b/projects/geometric-flow/CMakeLists.txt
+@@ -565,6 +565,11 @@ add_executable(Test_shell_power src/Test_shell_power.cpp src/Interaction.cpp src
+ target_include_directories(Test_shell_power PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+ target_link_libraries(Test_shell_power geometry-central)
+ 
++# Weight and finite-difference checks of the Adhesion angular patch (patch_angle, patch_width, patch_axis)
++add_executable(Test_patch_adhesion src/Test_patch_adhesion.cpp src/Interaction.cpp src/Beads.cpp src/BeadGeometry.cpp)
++target_include_directories(Test_patch_adhesion PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
++target_link_libraries(Test_patch_adhesion geometry-central)
++
+ # Energies and forces of perturbed states in hexfloat: a refactor that keeps the
+ # results bit-identical gives a byte-identical dump
+ set(SRCSexactness ${SRCScluster})
+diff --git a/projects/geometric-flow/include/BeadGeometry.h b/projects/geometric-flow/include/BeadGeometry.h
+index 016b353a..974f191f 100644
+--- a/projects/geometric-flow/include/BeadGeometry.h
++++ b/projects/geometric-flow/include/BeadGeometry.h
+@@ -110,6 +110,33 @@ namespace bead_geometry
+     double coverageShellWeight(double r, double sigma, double &dWeightDr, double shellWidth = 0.25,
+                                double shellPower = 1.0);
+ 
++    /*
++     * Angular patch of the bead (a pinned contact line). Only the part of the
++     * bead within the polar angle theta_Wr of an axis can adhere, as in the
++     * adhesive patch of Saric & Cacciuto (theta_Wr of van der Wel et al., Sci.
++     * Rep. 6, 32825): the membrane wraps the patch and its edge pins the
++     * contact line, whatever the shape of the free membrane beyond it.
++     *
++     * With u the unit vector from the bead centre to the face centroid and
++     *
++     *   t = dot(u, axis),   cosEdge = cos(theta_Wr),
++     *   dCos = cos(theta_Wr - width) - cosEdge > 0,
++     *
++     * the patch weight is 0 for t <= cosEdge, 1 for t >= cosEdge + dCos and
++     * 1/2 (1 - cos(pi (t - cosEdge) / dCos)) in between: a C1 ramp of angular
++     * width `width` just inside theta_Wr (the energy and its slope are
++     * continuous, so the line searches see a smooth function). The axis points
++     * from the bead centre towards the pole of the patch (where the membrane
++     * touches first), so the inactive cap is opposite to it. The axis is fixed
++     * in space (use it with frozen beads or beads that do not turn).
++     *
++     * Returns the weight and writes d weight / dt in dWeightDt.
++     */
++    double patchWeight(double t, double cosEdge, double dCos, double &dWeightDt);
++
++    // The same with the second derivative too (a jump at the two ends of the ramp), for the Newton iteration of the free axis
++    double patchWeight2(double t, double cosEdge, double dCos, double &dWeightDt, double &d2WeightDt2);
++
+     /*
+      * Compute the signed solid angle of triangle p0,p1,p2 as seen from
+      * beadPosition, together with derivatives with respect to p0,p1,p2.
+@@ -126,6 +153,11 @@ namespace bead_geometry
+      * derivatives needed by Coverage and Adhesion.
+      *
+      * Assumes mesh normals are outward-oriented.
++     *
++     * side = +1 (default): the bead is outside, a face counts if its outward
++     * normal points to the bead (dot(bead -> centroid, normal) < 0).
++     * side = -1: the bead is inside the closed membrane, a face counts if its
++     * outward normal points away from the bead (dot(bead -> centroid, normal) > 0).
+      */
+     FaceCoverageData evaluateFaceCoverage(
+         const VertexPositionGeometry &geometry,
+@@ -133,7 +165,8 @@ namespace bead_geometry
+         const Vector3 &beadPosition,
+         double sigma,
+         double shellWidth = 0.25,
+-        double shellPower = 1.0);
++        double shellPower = 1.0,
++        double side = 1.0);
+ 
+     // Coverage constants are [K, cov_0, ..., cov_(N-1)], one target per bead.
+     // Throws std::invalid_argument if the count does not match.
+diff --git a/projects/geometric-flow/include/Interaction.h b/projects/geometric-flow/include/Interaction.h
+index 2e9906d7..8839b655 100644
+--- a/projects/geometric-flow/include/Interaction.h
++++ b/projects/geometric-flow/include/Interaction.h
+@@ -296,13 +296,39 @@ public:
+ // r = sigma and 0 with zero slope at the edges, but it falls off faster away from the minimum,
+ // so the contact is stiffer around r = sigma. p = 1 is exactly the plain shell.
+ //
+-// Energy_constants = {W, sigma, rc (unused), shell_width (optional), shell_power (optional)}
++// The adhesive part of the bead can be limited to a patch ("patch_angle", "patch_width" and
++// "patch_axis" in the input file, see bead_geometry::patchWeight): only faces within the polar
++// angle theta_Wr of a fixed axis count, w(r_f) is multiplied by the patch weight. The edge of the
++// patch pins the contact line, so the wrapped area is set by the patch (the model of the
++// simulations of van der Wel et al., Sci. Rep. 6, 32825) and not by the balance of adhesion,
++// bending and tension. Without these keys the energy and the force are bit-identical to before.
++//
++// "patch_free": true lets the patch turn: a bead that does not rotate keeps the axis it was given,
++// which costs energy when the pocket tilts (the pair of beads of Studies/two_beads_vesicle: 0.1 kappa
++// at 2 degrees, as much as the interaction measured). With the key the axis is the one that
++// maximises the weighted covered area S(n) = sum_f w(r_f) |omega_f| w_patch(u_f . n) at the current
++// positions, found by a Newton iteration on the sphere at the start of each energy and gradient
++// evaluation (starting from the previous axis). The energy is then the minimum over the axis, E(x) =
++// min_n E(n, x), so the force with the axis held at its minimum is exactly -dE/dx (envelope theorem)
++// and nothing else changes. The axis in the input file is the starting value.
++//
++// Energy_constants = {W, sigma, rc (unused), shell_width (optional), shell_power (optional),
++//                     patch: cosEdge, dCos, axis_x, axis_y, axis_z, free (all six or none, axis of unit length,
++//                     free = 1 turns the axis solve on, the constants then hold the current axis)}
+ // (inter_str, radius in the input file)
++//
++// A bead INSIDE a closed membrane (the vesicle wraps it from the inside, with an outward bulge) has
++// "outside": -1 in the input file: `side` = -1, and the faces that count are those whose outward normal
++// points away from the bead (bead_geometry::evaluateFaceCoverage). With the default side = +1 (the
++// bead outside, "outside": 1 or not given) nothing changes. For a bead inside, the patch axis points
++// from the bead to the membrane it wraps, as always: away from the centre of the vesicle.
+ class Adhesion : public Face_Integrated_Interaction
+ {
+ public:
+     Adhesion() = default;
+ 
++    double side = 1.0; // +1 bead outside the membrane (default), -1 inside
++
+     Adhesion(ManifoldSurfaceMesh *inputMesh,
+              VertexPositionGeometry *inputGeometry,
+              std::vector<double> constants)
+@@ -319,11 +345,24 @@ public:
+         VertexData<Vector3> &membraneForce,
+         Vector3 &beadForce) override;
+ 
++    // With a free patch axis these first move the axis to its maximum at the current positions
++    double Tot_Energy() override;
++    VertexData<double> V_Tot_Energy() override;
++    VertexData<Vector3> Gradient() override;
++
++    // The current axis of the patch (the free one moves with the membrane), (0, 0, 0) without a patch
++    Vector3 PatchAxis() const { return hasPatch() ? patchAxis() : Vector3{0.0, 0.0, 0.0}; }
++
+ private:
++    // The axis that maximises S(n), see above; starts from the current one
++    void updatePatchAxis();
++    bool freeAxis() const { return Energy_constants.size() > 10 && Energy_constants[10] != 0.0; }
+     double strength() const { return Energy_constants[0]; }
+     double sigma() const { return Energy_constants[1]; }
+     double shellWidth() const { return Energy_constants.size() > 3 ? Energy_constants[3] : 0.25; }
+     double shellPower() const { return Energy_constants.size() > 4 ? Energy_constants[4] : 1.0; }
++    bool hasPatch() const { return Energy_constants.size() > 9; }
++    Vector3 patchAxis() const { return Vector3{Energy_constants[7], Energy_constants[8], Energy_constants[9]}; }
+ };
+ 
+ // Adhesion to a flat wall through the membrane area projected on it:
+diff --git a/projects/geometric-flow/include/SimConfig.h b/projects/geometric-flow/include/SimConfig.h
+index 0069e6eb..7f81f28f 100644
+--- a/projects/geometric-flow/include/SimConfig.h
++++ b/projects/geometric-flow/include/SimConfig.h
+@@ -49,11 +49,16 @@ struct BeadSpec
+ 
+     bool has_rc = false;
+     double rc = -1.0;
+-    double outside = 1.0; // Frenkel, Frenkel_Normal_nopush, Linear, Linear_Normal, One_over_r_x
++    double outside = 1.0; // Frenkel, Frenkel_Normal_nopush, Linear, Linear_Normal, One_over_r_x; Adhesion: -1 = bead inside the closed membrane
+     bool has_shift = false;
+     double shift = 0.0;   // LJ; Shifted-LJ computes it from rc unless given
+     double shell_width = 0.25; // Adhesion: half width of the contact shell as a fraction of the radius, in (0, 1)
+     double shell_power = 1.0;  // Adhesion: the shell weight is [1/2 (1 + cos(pi x))]^shell_power, real, >= 1 (1 = plain shell)
++    bool has_patch = false;    // Adhesion: only the part of the bead within patch_angle of patch_axis adheres (see bead_geometry::patchWeight)
++    double patch_angle = 180.0; // degrees, polar angle theta_Wr of the patch edge from the axis, in (0, 180]
++    double patch_width = 5.0;   // degrees, width of the smooth ramp just inside the edge, in (0, patch_angle)
++    Vector3 patch_axis{0.0, 0.0, 1.0}; // from the bead centre towards the pole of the patch (normalised when read)
++    bool patch_free = false;    // the patch turns: its axis is the one that maximises the covered weight at every evaluation (patch_axis is the start)
+     std::vector<double> z_axis; // Gravity, Pinch
+ 
+     std::vector<std::string> bonds;
+diff --git a/projects/geometric-flow/src/BeadGeometry.cpp b/projects/geometric-flow/src/BeadGeometry.cpp
+index 3f4393c7..17cb007a 100644
+--- a/projects/geometric-flow/src/BeadGeometry.cpp
++++ b/projects/geometric-flow/src/BeadGeometry.cpp
+@@ -70,6 +70,30 @@ namespace bead_geometry
+         return std::pow(base, shellPower);
+     }
+ 
++    double patchWeight(double t, double cosEdge, double dCos, double &dWeightDt)
++    {
++        dWeightDt = 0.0;
++        if (t <= cosEdge)
++            return 0.0;
++        if (t >= cosEdge + dCos)
++            return 1.0;
++        const double y = (t - cosEdge) / dCos;
++        dWeightDt = 0.5 * PI_VALUE * std::sin(PI_VALUE * y) / dCos;
++        return 0.5 * (1.0 - std::cos(PI_VALUE * y));
++    }
++
++    double patchWeight2(double t, double cosEdge, double dCos, double &dWeightDt, double &d2WeightDt2)
++    {
++        d2WeightDt2 = 0.0;
++        const double w = patchWeight(t, cosEdge, dCos, dWeightDt);
++        if (t > cosEdge && t < cosEdge + dCos)
++        {
++            const double y = (t - cosEdge) / dCos;
++            d2WeightDt2 = 0.5 * PI_VALUE * PI_VALUE * std::cos(PI_VALUE * y) / (dCos * dCos);
++        }
++        return w;
++    }
++
+     double planeContactWeight(double h, double width, double &dWdh)
+     {
+         if (width <= 0.0)
+@@ -175,7 +199,8 @@ namespace bead_geometry
+         const Vector3 &beadPosition,
+         double sigma,
+         double shellWidth,
+-        double shellPower)
++        double shellPower,
++        double side)
+     {
+         FaceCoverageData result;
+ 
+@@ -244,8 +269,11 @@ namespace bead_geometry
+          *
+          * This criterion is deliberately selection-only. Its derivative
+          * is not included.
++         *
++         * Internal bead (side = -1): the other way round, the faces that
++         * count have their outward normal pointing away from the bead.
+          */
+-        if (dot(result.radialDirection, faceNormal) >= 0.0)
++        if (side * dot(result.radialDirection, faceNormal) >= 0.0)
+         {
+             return result;
+         }
+diff --git a/projects/geometric-flow/src/Interaction.cpp b/projects/geometric-flow/src/Interaction.cpp
+index 6d3dc3d1..2c63b8e7 100644
+--- a/projects/geometric-flow/src/Interaction.cpp
++++ b/projects/geometric-flow/src/Interaction.cpp
+@@ -1293,22 +1293,53 @@ SparseMatrix<double> Face_Integrated_Interaction::Hessian_IP()
+ double Adhesion::Face_Energy(Face f)
+ {
+     const bead_geometry::FaceCoverageData face =
+-        bead_geometry::evaluateFaceCoverage(*geometry, f, Bead_1->Pos, sigma(), shellWidth(), shellPower());
++        bead_geometry::evaluateFaceCoverage(*geometry, f, Bead_1->Pos, sigma(), shellWidth(), shellPower(), side);
+     if (!face.selected)
+         return 0.0;
++    if (hasPatch())
++    {
++        double dPatch;
++        const double wPatch = bead_geometry::patchWeight(dot(face.radialDirection, patchAxis()), Energy_constants[5],
++                                                         Energy_constants[6], dPatch);
++        return -strength() * sigma() * sigma() * face.weight * wPatch * face.omegaUnsigned;
++    }
+     return -strength() * sigma() * sigma() * face.weight * face.omegaUnsigned;
+ }
+ 
+ void Adhesion::Add_Face_Force(Face f, VertexData<Vector3> &membraneForce, Vector3 &beadForce)
+ {
+     const bead_geometry::FaceCoverageData face =
+-        bead_geometry::evaluateFaceCoverage(*geometry, f, Bead_1->Pos, sigma(), shellWidth(), shellPower());
++        bead_geometry::evaluateFaceCoverage(*geometry, f, Bead_1->Pos, sigma(), shellWidth(), shellPower(), side);
+     if (!face.selected)
+         return;
+ 
+     // a_f = sigma^2 w(r_f) |omega_f|, r_f measured to the centroid, so
+     // dr_f/dp_i = radialDirection / 3 for each corner p_i
+     const double sigma2 = sigma() * sigma();
++    if (hasPatch())
++    {
++        // a_f = sigma^2 w(r_f) w_patch(t_f) |omega_f|, t_f = dot(u_f, axis), u_f the unit vector from the bead to the
++        // centroid c_f: dt_f/dc_f = (axis - t_f u_f) / r_f, and each corner carries a third of the centroid derivative
++        const Vector3 axis = patchAxis();
++        const double t = dot(face.radialDirection, axis);
++        double dPatch;
++        const double wPatch = bead_geometry::patchWeight(t, Energy_constants[5], Energy_constants[6], dPatch);
++        if (wPatch <= 0.0)
++            return;
++        const Vector3 dtdc = (axis - t * face.radialDirection) / face.centroidDistance;
++        const Vector3 gradWeightP = (wPatch * face.dWeightDr * face.radialDirection + face.weight * dPatch * dtdc) / 3.0;
++        const double wTotal = face.weight * wPatch;
++        const Vector3 force0p = strength() * sigma2 * (wTotal * face.gradOmega0 + face.omegaUnsigned * gradWeightP);
++        const Vector3 force1p = strength() * sigma2 * (wTotal * face.gradOmega1 + face.omegaUnsigned * gradWeightP);
++        const Vector3 force2p = strength() * sigma2 * (wTotal * face.gradOmega2 + face.omegaUnsigned * gradWeightP);
++
++        Halfedge hep = f.halfedge();
++        membraneForce[hep.vertex()] += force0p;
++        membraneForce[hep.next().vertex()] += force1p;
++        membraneForce[hep.next().next().vertex()] += force2p;
++        beadForce -= force0p + force1p + force2p;
++        return;
++    }
+     const Vector3 gradWeight = face.dWeightDr * face.radialDirection / 3.0;
+     const Vector3 dA0 = sigma2 * (face.weight * face.gradOmega0 + face.omegaUnsigned * gradWeight);
+     const Vector3 dA1 = sigma2 * (face.weight * face.gradOmega1 + face.omegaUnsigned * gradWeight);
+@@ -1328,6 +1359,131 @@ void Adhesion::Add_Face_Force(Face f, VertexData<Vector3> &membraneForce, Vector
+     beadForce -= force0 + force1 + force2;
+ }
+ 
++void Adhesion::updatePatchAxis()
++{
++    // The faces that count and what each adds to S(n) = sum_f b_f w_patch(u_f . n), b_f = w(r_f) |omega_f|
++    std::vector<Vector3> u;
++    std::vector<double> b;
++    for (Face f : mesh->faces())
++    {
++        const bead_geometry::FaceCoverageData face =
++            bead_geometry::evaluateFaceCoverage(*geometry, f, Bead_1->Pos, sigma(), shellWidth(), shellPower(), side);
++        if (!face.selected)
++            continue;
++        u.push_back(face.radialDirection);
++        b.push_back(face.weight * face.omegaUnsigned);
++    }
++    if (u.empty())
++        return;
++    double btotal = 0.0;
++    for (double x : b)
++        btotal += x;
++    if (!(btotal > 0.0))
++        return;
++
++    const double cosEdge = Energy_constants[5], dCos = Energy_constants[6];
++    Vector3 n = unit(patchAxis());
++    auto S_of = [&](const Vector3 &m)
++    {
++        double s = 0.0, d;
++        for (size_t k = 0; k < u.size(); ++k)
++            s += b[k] * bead_geometry::patchWeight(dot(u[k], m), cosEdge, dCos, d);
++        return s;
++    };
++    double S = S_of(n);
++
++    // Newton iteration for the maximum of S on the unit sphere (Riemannian gradient and Hessian in a tangent basis),
++    // a short step along the gradient where the Hessian is not negative definite; both with backtracking so that S never decreases
++    for (int iter = 0; iter < 100; ++iter)
++    {
++        const Vector3 a = std::abs(n.x) < 0.9 ? Vector3{1.0, 0.0, 0.0} : Vector3{0.0, 1.0, 0.0};
++        const Vector3 e1 = unit(cross(n, a));
++        const Vector3 e2 = cross(n, e1);
++        double g1 = 0.0, g2 = 0.0, h11 = 0.0, h12 = 0.0, h22 = 0.0, nG = 0.0;
++        for (size_t k = 0; k < u.size(); ++k)
++        {
++            const double t = dot(u[k], n);
++            double d1, d2;
++            bead_geometry::patchWeight2(t, cosEdge, dCos, d1, d2);
++            if (d1 == 0.0 && d2 == 0.0)
++                continue;
++            const double ue1 = dot(u[k], e1), ue2 = dot(u[k], e2);
++            g1 += b[k] * d1 * ue1;
++            g2 += b[k] * d1 * ue2;
++            h11 += b[k] * d2 * ue1 * ue1;
++            h12 += b[k] * d2 * ue1 * ue2;
++            h22 += b[k] * d2 * ue2 * ue2;
++            nG += b[k] * d1 * t;
++        }
++        // Riemannian Hessian of S on the sphere: e_i^T (sum b w'' u u^T) e_j - (n . grad S) delta_ij
++        h11 -= nG;
++        h22 -= nG;
++        const double gnorm = std::sqrt(g1 * g1 + g2 * g2);
++        if (gnorm <= 1e-13 * btotal)
++            break;
++        double s1, s2;
++        const double det = h11 * h22 - h12 * h12;
++        if (det > 0.0 && h11 + h22 < 0.0)
++        {
++            s1 = -(h22 * g1 - h12 * g2) / det;
++            s2 = -(-h12 * g1 + h11 * g2) / det;
++        }
++        else
++        {
++            s1 = 0.05 * g1 / gnorm;
++            s2 = 0.05 * g2 / gnorm;
++        }
++        const double snorm = std::sqrt(s1 * s1 + s2 * s2);
++        if (snorm > 0.3)
++        {
++            s1 *= 0.3 / snorm;
++            s2 *= 0.3 / snorm;
++        }
++        double lambda = 1.0;
++        bool moved = false;
++        for (int bt = 0; bt < 40; ++bt)
++        {
++            const Vector3 m = unit(n + lambda * (s1 * e1 + s2 * e2));
++            const double Sm = S_of(m);
++            if (Sm >= S)
++            {
++                n = m;
++                S = Sm;
++                moved = true;
++                break;
++            }
++            lambda *= 0.5;
++        }
++        if (!moved || lambda * std::min(snorm, 0.3) < 1e-15)
++            break;
++    }
++    Energy_constants[7] = n.x;
++    Energy_constants[8] = n.y;
++    Energy_constants[9] = n.z;
++}
++
++double Adhesion::Tot_Energy()
++{
++    if (hasPatch() && freeAxis())
++        updatePatchAxis();
++    return Face_Integrated_Interaction::Tot_Energy();
++}
++
++VertexData<double> Adhesion::V_Tot_Energy()
++{
++    if (hasPatch() && freeAxis())
++        updatePatchAxis();
++    return Face_Integrated_Interaction::V_Tot_Energy();
++}
++
++VertexData<Vector3> Adhesion::Gradient()
++{
++    // The energy is the minimum over the axis, so the force at the axis that minimises it is the whole force
++    if (hasPatch() && freeAxis())
++        updatePatchAxis();
++    return Face_Integrated_Interaction::Gradient();
++}
++
+ Plane_Adhesion::Plane_Adhesion(ManifoldSurfaceMesh *inputMesh,
+                                VertexPositionGeometry *inputGeometry,
+                                std::vector<double> constants)
+diff --git a/projects/geometric-flow/src/SimConfig.cpp b/projects/geometric-flow/src/SimConfig.cpp
+index 1fdfcd67..a2d42291 100644
+--- a/projects/geometric-flow/src/SimConfig.cpp
++++ b/projects/geometric-flow/src/SimConfig.cpp
+@@ -90,6 +90,26 @@ namespace
+                 throw std::runtime_error("Input file: \"shell_power\" in " + where +
+                                          " must be a finite number >= 1 (1 = plain cosine shell, 2 and 4 = cos^4 and cos^8 of pi x / 2)");
+         }
++        if (b.contains("patch_angle"))
++        {
++            // The adhesive patch: faces within patch_angle (degrees) of patch_axis adhere, the contact line is pinned at its edge
++            if (spec.mem_inter != "Adhesion")
++                throw std::runtime_error("Input file: \"patch_angle\" in " + where + " is only used by the Adhesion interaction");
++            spec.has_patch = true;
++            spec.patch_angle = b["patch_angle"].get<double>();
++            spec.patch_width = b.value("patch_width", 5.0);
++            spec.patch_axis = to_vector3(b, "patch_axis", where);
++            if (!(spec.patch_angle > 0.0 && spec.patch_angle <= 180.0))
++                throw std::runtime_error("Input file: \"patch_angle\" in " + where + " must be in (0, 180] degrees");
++            if (!(spec.patch_width > 0.0 && spec.patch_width < spec.patch_angle))
++                throw std::runtime_error("Input file: \"patch_width\" in " + where + " must be in (0, patch_angle) degrees");
++            if (!(spec.patch_axis.norm() > 0.0))
++                throw std::runtime_error("Input file: \"patch_axis\" in " + where + " is zero");
++            spec.patch_axis = spec.patch_axis.normalize();
++            spec.patch_free = b.value("patch_free", false);
++        }
++        else if (b.contains("patch_width") || b.contains("patch_axis") || b.contains("patch_free"))
++            throw std::runtime_error("Input file: \"patch_width\" / \"patch_axis\" / \"patch_free\" in " + where + " need \"patch_angle\"");
+         if (b.contains("shift"))
+         {
+             spec.has_shift = true;
+@@ -531,6 +551,14 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
+         }
+     }
+ 
++    // The Coverage energy and the face selection of its post-processing know beads outside the membrane only
++    for (const EnergySpec &e : cfg.energies)
++        if (e.name == "Coverage")
++            for (size_t k = 0; k < cfg.beads.size(); k++)
++                if (cfg.beads[k].outside < 0.0)
++                    throw std::runtime_error("Input file: Beads[" + std::to_string(k) + "] has \"outside\": -1 (inside the membrane), "
++                                             "which the Coverage energy does not support: use the Adhesion interaction");
++
+     cfg.raw = data;
+     return cfg;
+ }
+@@ -697,7 +725,21 @@ std::unique_ptr<Interaction> make_interaction(const BeadSpec &spec, ManifoldSurf
+     {
+         params.push_back(spec.shell_width);
+         params.push_back(spec.shell_power);
+-        return make_unique_ptr<Adhesion>(mesh, geometry, params);
++        if (spec.has_patch)
++        {
++            // cosEdge, dCos = cos(theta_Wr - width) - cos(theta_Wr), the unit axis (see bead_geometry::patchWeight)
++            const double theta = spec.patch_angle * PI / 180.0, width = spec.patch_width * PI / 180.0;
++            params.push_back(std::cos(theta));
++            params.push_back(std::cos(theta - width) - std::cos(theta));
++            params.push_back(spec.patch_axis.x);
++            params.push_back(spec.patch_axis.y);
++            params.push_back(spec.patch_axis.z);
++            params.push_back(spec.patch_free ? 1.0 : 0.0);
++        }
++        auto adhesion = make_unique_ptr<Adhesion>(mesh, geometry, params);
++        // "outside": -1 is a bead inside the closed membrane (the faces that count face away from it), anything else the usual outside
++        adhesion->side = spec.outside < 0.0 ? -1.0 : 1.0;
++        return adhesion;
+     }
+     if (type == "Plane_adhesion")
+     {
+diff --git a/projects/geometric-flow/src/Test_patch_adhesion.cpp b/projects/geometric-flow/src/Test_patch_adhesion.cpp
+new file mode 100644
+index 00000000..419586bb
+--- /dev/null
++++ b/projects/geometric-flow/src/Test_patch_adhesion.cpp
+@@ -0,0 +1,518 @@
++// Checks for the angular patch of the Adhesion interaction ("patch_angle", "patch_width", "patch_axis"):
++//   E = -W sigma^2 sum_f w(r_f) w_patch(t_f) |omega_f|,   t_f = dot(u_f, axis),
++//   w_patch = 0 for t <= cos(theta_Wr), 1 for t >= cos(theta_Wr - width), a C1 cosine ramp in between
++//
++//   1. the patch weight: 0 below the edge, 1 above the ramp, continuous with zero slope at both ends of the ramp,
++//      monotone, d w / d t against central differences
++//   2. Adhesion::Add_Face_Force against central finite differences of Adhesion::Face_Energy, membrane vertices AND
++//      bead position, on random triangles whose centroid sits at polar angles below, on and above the ramp (and in the
++//      shell at x = 0, +-0.5, +-0.9)
++//   3. the same for a whole sphere of faces around the bead (Tot_Energy / Gradient of the interaction), with the
++//      bead and the membrane shifted at random
++//   4. the energy of a sphere of radius sigma around the bead, normals pointing to the bead, is -W 4 pi sigma^2 f with f
++//      the area fraction of the patch (a quadrature of the ramp), within the mesh error
++//   5. an Adhesion without the patch constants is not changed (same energy as the explicit formula)
++//   6. the free patch axis ("patch_free"): started 12 degrees off, the Newton iteration finds the axis of the covered cap, the
++//      energy is the one at that axis (and below the one at the start), and the force with the axis at its maximum matches
++//      finite differences of the profiled energy (vertices and bead), because dE/dx = dE/dx at fixed axis there
++//
++// Usage: Test_patch_adhesion [mesh.obj]   (default ../../../input/Simplesphere.obj)
++
++#include <algorithm>
++#include <cmath>
++#include <cstdio>
++#include <memory>
++#include <random>
++#include <string>
++#include <vector>
++
++#include "geometrycentral/surface/manifold_surface_mesh.h"
++#include "geometrycentral/surface/meshio.h"
++#include "geometrycentral/surface/vertex_position_geometry.h"
++
++#include "Beads.h"
++#include "BeadGeometry.h"
++#include "Interaction.h"
++
++using namespace geometrycentral;
++using namespace geometrycentral::surface;
++
++namespace
++{
++    bool check(bool ok, const char *what)
++    {
++        std::printf("%s: %s\n", ok ? "ok  " : "FAIL", what);
++        return ok;
++    }
++
++    const double PI_ = bead_geometry::PI_VALUE;
++
++    std::vector<double> patchConstants(double W, double a, double s, double thetaDeg, double widthDeg, Vector3 axis)
++    {
++        const double th = thetaDeg * PI_ / 180.0, w = widthDeg * PI_ / 180.0;
++        axis = axis.normalize();
++        return {W, a, 0.0, s, 1.0, std::cos(th), std::cos(th - w) - std::cos(th), axis.x, axis.y, axis.z};
++    }
++
++    std::vector<double> patchConstantsFree(double W, double a, double s, double thetaDeg, double widthDeg, Vector3 axis)
++    {
++        std::vector<double> c = patchConstants(W, a, s, thetaDeg, widthDeg, axis);
++        c.push_back(1.0);
++        return c;
++    }
++
++    struct Setup
++    {
++        std::unique_ptr<ManifoldSurfaceMesh> mesh;
++        std::unique_ptr<VertexPositionGeometry> geometry;
++        std::unique_ptr<Adhesion> adhesion;
++        Bead bead;
++
++        void attach(const std::vector<double> &constants)
++        {
++            adhesion.reset(new Adhesion(mesh.get(), geometry.get(), constants));
++            bead.mesh = mesh.get();
++            bead.geometry = geometry.get();
++            bead.Pos = Vector3{0.0, 0.0, 0.0};
++            bead.sigma = constants[1];
++            bead.strength = constants[0];
++            bead.Bead_I = adhesion.get();
++            adhesion->Bead_1 = &bead;
++            bead.CoverageForce = Vector3{0.0, 0.0, 0.0};
++        }
++    };
++} // namespace
++
++int main(int argc, char **argv)
++{
++    std::string path = argc > 1 ? argv[1] : "../../../input/Simplesphere.obj";
++    bool ok = true;
++
++    // ---- 1. the weight ---------------------------------------------------------------------------
++    {
++        const double thetaDeg = 143.0, widthDeg = 5.0;
++        const double th = thetaDeg * PI_ / 180.0, w = widthDeg * PI_ / 180.0;
++        const double cosEdge = std::cos(th), dCos = std::cos(th - w) - std::cos(th);
++        double d;
++        ok &= check(dCos > 0.0, "dCos > 0");
++        ok &= check(bead_geometry::patchWeight(cosEdge, cosEdge, dCos, d) == 0.0 && d == 0.0, "weight 0 at the edge, slope 0");
++        ok &= check(bead_geometry::patchWeight(cosEdge - 0.3, cosEdge, dCos, d) == 0.0, "weight 0 beyond the edge (inactive cap)");
++        ok &= check(bead_geometry::patchWeight(cosEdge + dCos, cosEdge, dCos, d) == 1.0 && d == 0.0, "weight 1 at the end of the ramp, slope 0");
++        ok &= check(bead_geometry::patchWeight(1.0, cosEdge, dCos, d) == 1.0, "weight 1 at the pole");
++        double dw, wprev = 0.0, worst = 0.0;
++        bool monotone = true;
++        for (int i = 1; i < 1000; i++)
++        {
++            const double t = cosEdge + dCos * i / 1000.0;
++            const double wv = bead_geometry::patchWeight(t, cosEdge, dCos, dw);
++            monotone &= wv >= wprev && dw >= 0.0;
++            wprev = wv;
++            const double h = 1e-7 * dCos;
++            double d1, d2;
++            const double wp = bead_geometry::patchWeight(t + h, cosEdge, dCos, d1);
++            const double wm = bead_geometry::patchWeight(t - h, cosEdge, dCos, d2);
++            worst = std::max(worst, std::abs((wp - wm) / (2 * h) - dw) * dCos);
++        }
++        ok &= check(monotone, "weight is monotone in t on the ramp");
++        char msg[100];
++        std::snprintf(msg, sizeof msg, "dw/dt against central differences, worst |error| * dCos = %.2e", worst);
++        ok &= check(worst < 1e-6, msg);
++    }
++
++    // ---- 2. single triangles ---------------------------------------------------------------------
++    std::mt19937 gen(4321);
++    std::normal_distribution<double> gauss(0.0, 1.0);
++    {
++        const double a = 1.0, s = 0.25, W = 1.7;
++        const double thetaDeg = 130.0, widthDeg = 8.0;
++        const Vector3 axis = unit(Vector3{0.3, -0.5, 0.8});
++        std::printf("\nsingle triangles around the patch edge (theta_Wr = %g deg, ramp %g deg), polar angle theta of the centroid\n", thetaDeg, widthDeg);
++        std::printf("  theta[deg]   x       E            max|F|      rel.err(membrane)  rel.err(bead)\n");
++        double worstAll = 0.0;
++        // polar angles: pole, inside the patch, in the ramp (122..130), at the edge, beyond it
++        // (a centroid exactly on the edge is left out: the energy is C1 there, a central difference of the quadratic onset is O(h) off)
++        for (double thetaPos : {10.0, 60.0, 110.0, 121.0, 123.0, 125.0, 127.0, 129.0, 129.9, 130.1, 131.0, 150.0})
++        {
++            for (double x : {0.0, -0.5, 0.5, -0.9, 0.9})
++            {
++                for (int trial = 0; trial < 3; trial++)
++                {
++                    // a direction at polar angle thetaPos from the axis, random azimuth
++                    Vector3 e1 = unit(cross(axis, Vector3{gauss(gen), gauss(gen), gauss(gen)}));
++                    Vector3 e2 = cross(axis, e1);
++                    const double phi = 2.0 * PI_ * (0.5 + 0.1 * gauss(gen));
++                    const double thr = thetaPos * PI_ / 180.0 + 0.002 * trial;
++                    Vector3 u = std::cos(thr) * axis + std::sin(thr) * (std::cos(phi) * e1 + std::sin(phi) * e2);
++                    u = unit(u);
++                    Vector3 t1 = unit(cross(u, Vector3{gauss(gen), gauss(gen), gauss(gen)}));
++                    Vector3 t2 = cross(u, t1);
++                    const double r = a * (1.0 + s * x);
++                    std::vector<Vector3> pos(3);
++                    Vector3 mean{0, 0, 0};
++                    for (int i = 0; i < 3; i++)
++                    {
++                        pos[i] = 0.1 * (gauss(gen) * t1 + gauss(gen) * t2) + 0.02 * gauss(gen) * u;
++                        mean += pos[i] / 3.0;
++                    }
++                    Vector3 centre = r * u;
++                    for (int i = 0; i < 3; i++)
++                        pos[i] = pos[i] - mean + centre;
++                    Vector3 n = cross(pos[1] - pos[0], pos[2] - pos[0]);
++                    std::vector<std::vector<size_t>> faces = {{0, 1, 2}};
++                    if (dot(n, u) > 0)
++                        faces = {{0, 2, 1}};
++                    const double h = 1e-7;
++                    Setup S;
++                    S.mesh.reset(new ManifoldSurfaceMesh(faces));
++                    S.geometry.reset(new VertexPositionGeometry(*S.mesh));
++                    for (Vertex v : S.mesh->vertices())
++                        S.geometry->inputVertexPositions[v] = pos[v.getIndex()];
++                    S.geometry->refreshQuantities();
++                    S.attach(patchConstants(W, a, s, thetaDeg, widthDeg, axis));
++                    Face f = S.mesh->face(0);
++
++                    const double E0 = S.adhesion->Face_Energy(f);
++                    VertexData<Vector3> F(*S.mesh, Vector3{0, 0, 0});
++                    Vector3 Fb{0, 0, 0};
++                    S.adhesion->Add_Face_Force(f, F, Fb);
++
++                    double worstM = 0.0, fmax = 0.0;
++                    for (Vertex v : S.mesh->vertices())
++                        for (int k = 0; k < 3; k++)
++                        {
++                            Vector3 &q = S.geometry->inputVertexPositions[v];
++                            const double old = q[k];
++                            q[k] = old + h;
++                            double Ep = S.adhesion->Face_Energy(f);
++                            q[k] = old - h;
++                            double Em = S.adhesion->Face_Energy(f);
++                            q[k] = old;
++                            double fd = -(Ep - Em) / (2 * h);
++                            worstM = std::max(worstM, std::abs(fd - F[v][k]));
++                            fmax = std::max(fmax, std::abs(F[v][k]));
++                        }
++                    double worstB = 0.0;
++                    for (int k = 0; k < 3; k++)
++                    {
++                        const double old = S.bead.Pos[k];
++                        S.bead.Pos[k] = old + h;
++                        double Ep = S.adhesion->Face_Energy(f);
++                        S.bead.Pos[k] = old - h;
++                        double Em = S.adhesion->Face_Energy(f);
++                        S.bead.Pos[k] = old;
++                        double fd = -(Ep - Em) / (2 * h);
++                        worstB = std::max(worstB, std::abs(fd - Fb[k]));
++                        fmax = std::max(fmax, std::abs(Fb[k]));
++                    }
++                    const double scale = std::max(fmax, 1e-8);
++                    if (trial == 0)
++                        std::printf("  %-10g %-7g %-12.5e %-11.4e %-18.3e %.3e\n", thetaPos, x, E0, fmax, worstM / scale, worstB / scale);
++                    worstAll = std::max(worstAll, std::max(worstM, worstB) / scale);
++                    if (thetaPos >= 130.1)
++                        ok &= check(E0 == 0.0 && fmax == 0.0, "beyond the patch edge: no energy and no force");
++                }
++            }
++        }
++        std::printf("worst relative error over all single-triangle checks: %.3e\n", worstAll);
++        ok &= check(worstAll < 1e-6, "single triangles: force matches finite differences (rel. < 1e-6)");
++    }
++
++    // ---- 3. a sphere of faces around the bead, shifted at random ----------------------------------
++    {
++        const double a = 1.0, s = 0.25, W = 2.3;
++        std::printf("\nwhole mesh (radius-1 sphere around the bead, normals towards the bead), patch 120 deg / ramp 10 deg\n");
++        Setup S;
++        std::tie(S.mesh, S.geometry) = readManifoldSurfaceMesh(path);
++        // reverse the orientation: faces looking at the bead
++        {
++            std::vector<std::vector<size_t>> faces;
++            for (Face f : S.mesh->faces())
++            {
++                Halfedge he = f.halfedge();
++                faces.push_back({he.vertex().getIndex(), he.next().next().vertex().getIndex(), he.next().vertex().getIndex()});
++            }
++            std::vector<Vector3> pos;
++            for (Vertex v : S.mesh->vertices())
++                pos.push_back(S.geometry->inputVertexPositions[v]);
++            S.mesh.reset(new ManifoldSurfaceMesh(faces));
++            S.geometry.reset(new VertexPositionGeometry(*S.mesh));
++            for (Vertex v : S.mesh->vertices())
++                S.geometry->inputVertexPositions[v] = pos[v.getIndex()];
++        }
++        for (Vertex v : S.mesh->vertices())
++            S.geometry->inputVertexPositions[v] = S.geometry->inputVertexPositions[v] * (1.0 + 0.03 * gauss(gen));
++        S.geometry->refreshQuantities();
++        const Vector3 axis = unit(Vector3{0.2, 0.1, -1.0});
++        S.attach(patchConstants(W, a, s, 120.0, 10.0, axis));
++        S.bead.Pos = Vector3{0.03, -0.02, 0.01};
++        double E0 = S.adhesion->Tot_Energy();
++        VertexData<Vector3> F = S.adhesion->Gradient();
++        Vector3 Fb = S.bead.Total_force;
++        const double h = 1e-6;
++        double worst = 0.0, fmax = 0.0;
++        for (Vertex v : S.mesh->vertices())
++            for (int k = 0; k < 3; k++)
++            {
++                Vector3 &q = S.geometry->inputVertexPositions[v];
++                const double old = q[k];
++                q[k] = old + h;
++                double Ep = S.adhesion->Tot_Energy();
++                q[k] = old - h;
++                double Em = S.adhesion->Tot_Energy();
++                q[k] = old;
++                worst = std::max(worst, std::abs(-(Ep - Em) / (2 * h) - F[v][k]));
++                fmax = std::max(fmax, std::abs(F[v][k]));
++            }
++        double wb = 0.0;
++        for (int k = 0; k < 3; k++)
++        {
++            const double old = S.bead.Pos[k];
++            S.bead.Pos[k] = old + h;
++            double Ep = S.adhesion->Tot_Energy();
++            S.bead.Pos[k] = old - h;
++            double Em = S.adhesion->Tot_Energy();
++            S.bead.Pos[k] = old;
++            wb = std::max(wb, std::abs(-(Ep - Em) / (2 * h) - Fb[k]));
++            fmax = std::max(fmax, std::abs(Fb[k]));
++        }
++        std::printf("  E = %.8g, max|F| %.3e, rel.err membrane %.2e, bead %.2e\n", E0, fmax, worst / fmax, wb / fmax);
++        ok &= check(E0 < 0.0 && worst < 1e-6 * fmax && wb < 1e-6 * fmax, "whole mesh: forces match finite differences");
++    }
++
++    // ---- 4. the area of the patch and 5. no patch: unchanged --------------------------------------
++    {
++        const double a = 1.0, s = 0.25, W = 1.0;
++        std::printf("\nsphere of radius sigma around the bead (the shell weight is 1 on the sphere, the faces' centroids sit slightly inside)\n");
++        Setup S;
++        std::tie(S.mesh, S.geometry) = readManifoldSurfaceMesh(path);
++        {
++            std::vector<std::vector<size_t>> faces;
++            for (Face f : S.mesh->faces())
++            {
++                Halfedge he = f.halfedge();
++                faces.push_back({he.vertex().getIndex(), he.next().next().vertex().getIndex(), he.next().vertex().getIndex()});
++            }
++            std::vector<Vector3> pos;
++            for (Vertex v : S.mesh->vertices())
++                pos.push_back(unit(S.geometry->inputVertexPositions[v]));
++            S.mesh.reset(new ManifoldSurfaceMesh(faces));
++            S.geometry.reset(new VertexPositionGeometry(*S.mesh));
++            for (Vertex v : S.mesh->vertices())
++                S.geometry->inputVertexPositions[v] = pos[v.getIndex()];
++        }
++        S.geometry->refreshQuantities();
++        const Vector3 axis{0.0, 0.0, 1.0};
++        // the reference without patch: the faces' share of the sphere
++        S.attach({W, a, 0.0, s, 1.0});
++        const double Efull = S.adhesion->Tot_Energy();
++        for (double thetaDeg : {60.0, 90.0, 143.13, 165.0, 180.0})
++        {
++            const double widthDeg = 6.0;
++            S.attach(patchConstants(W, a, s, thetaDeg, widthDeg, axis));
++            const double E = S.adhesion->Tot_Energy();
++            // quadrature of the area fraction of the weight on the sphere
++            const double th = thetaDeg * PI_ / 180.0, wd = widthDeg * PI_ / 180.0;
++            double frac = 0.0;
++            const int N = 20000;
++            for (int i = 0; i < N; i++)
++            {
++                const double theta = PI_ * (i + 0.5) / N; // polar angle from the axis
++                const double t = std::cos(theta);
++                double d;
++                frac += bead_geometry::patchWeight(t, std::cos(th), std::cos(th - wd) - std::cos(th), d) * std::sin(theta) * PI_ / N / 2.0;
++            }
++            const double ratio = E / Efull, expected = frac;
++            std::printf("  theta_Wr = %-7g E/E(no patch) = %.5f, quadrature %.5f (area fraction of the cap %.5f)\n", thetaDeg, ratio, expected,
++                        (1.0 - std::cos(th)) / 2.0);
++            char msg[120];
++            std::snprintf(msg, sizeof msg, "theta_Wr = %g: energy ratio matches the quadrature of the weight within 2e-2", thetaDeg);
++            ok &= check(std::abs(ratio - expected) < 2e-2, msg);
++        }
++        // 5. the old formula, written out: E = -W sigma^2 sum w |omega|
++        S.attach({W, a, 0.0, s, 1.0});
++        double Eold = 0.0;
++        for (Face f : S.mesh->faces())
++        {
++            double dwdr;
++            const bead_geometry::FaceCoverageData face = bead_geometry::evaluateFaceCoverage(*S.geometry, f, S.bead.Pos, a, s, 1.0);
++            if (face.selected)
++                Eold += -W * a * a * face.weight * face.omegaUnsigned;
++        }
++        ok &= check(std::abs(S.adhesion->Tot_Energy() - Eold) <= 1e-12 * std::abs(Eold), "no patch constants: the energy is the old formula");
++    }
++
++    // ---- 6. the free patch axis -------------------------------------------------------------------
++    {
++        const double a = 1.0, s = 0.25, W = 2.3;
++        std::printf("\nfree patch axis: sphere around the bead that lifts off beyond 100 deg of the true axis (unique maximum)\n");
++        Setup S;
++        std::tie(S.mesh, S.geometry) = readManifoldSurfaceMesh(path);
++        {
++            std::vector<std::vector<size_t>> faces;
++            for (Face f : S.mesh->faces())
++            {
++                Halfedge he = f.halfedge();
++                faces.push_back({he.vertex().getIndex(), he.next().next().vertex().getIndex(), he.next().vertex().getIndex()});
++            }
++            std::vector<Vector3> pos;
++            for (Vertex v : S.mesh->vertices())
++                pos.push_back(unit(S.geometry->inputVertexPositions[v]));
++            S.mesh.reset(new ManifoldSurfaceMesh(faces));
++            S.geometry.reset(new VertexPositionGeometry(*S.mesh));
++            const Vector3 trueAxis = unit(Vector3{0.3, -0.2, 0.9});
++            for (Vertex v : S.mesh->vertices())
++            {
++                Vector3 p = pos[v.getIndex()];
++                // on the sphere up to 100 deg of the axis, then the membrane lifts off smoothly (the weight falls with the radius),
++                // so the maximum of the covered weight over the axis is unique (a cap that fits inside the patch would be a plateau)
++                const double polar = std::acos(std::max(-1.0, std::min(1.0, dot(p, trueAxis))));
++                const double y = std::min(1.0, std::max(0.0, (polar - 100.0 * PI_ / 180.0) / (60.0 * PI_ / 180.0)));
++                S.geometry->inputVertexPositions[v] = (1.0 + 0.35 * y * y * (3.0 - 2.0 * y)) * p;
++            }
++            S.geometry->refreshQuantities();
++            // start the axis 12 degrees away from the true one
++            Vector3 off = unit(cross(trueAxis, Vector3{0.2, 1.0, -0.3}));
++            const double tilt = 12.0 * PI_ / 180.0;
++            const Vector3 start = std::cos(tilt) * trueAxis + std::sin(tilt) * off;
++            S.attach(patchConstantsFree(W, a, s, 120.0, 10.0, start));
++            const double Efixed = [&]
++            {
++                Setup T;
++                T.mesh.reset(new ManifoldSurfaceMesh(S.mesh->getFaceVertexList()));
++                T.geometry.reset(new VertexPositionGeometry(*T.mesh));
++                for (Vertex v : T.mesh->vertices())
++                    T.geometry->inputVertexPositions[v] = S.geometry->inputVertexPositions[v];
++                T.geometry->refreshQuantities();
++                T.attach(patchConstants(W, a, s, 120.0, 10.0, start));
++                return T.adhesion->Tot_Energy();
++            }();
++            const double Efree = S.adhesion->Tot_Energy();
++            const Vector3 found = S.adhesion->PatchAxis();
++            const double err = std::acos(std::max(-1.0, std::min(1.0, dot(found, trueAxis))));
++            std::printf("  start tilt 12 deg, found axis %.3e rad from the true one, E(start axis) = %.8f, E(free) = %.8f\n", err, Efixed, Efree);
++            // the mesh is not symmetric about the axis, so the maximum sits a little off the true axis: check it is near, and that
++            // it is a stationary point (a first difference of the energy under tilts of the axis vanishes, the second is positive)
++            ok &= check(err < 0.05, "the free axis is near the axis of the covered cap");
++            ok &= check(Efree <= Efixed, "the energy at the free axis is below the one at the start axis");
++            {
++                const Vector3 e1 = unit(cross(found, Vector3{0.0, 1.0, 0.3}));
++                const Vector3 e2 = cross(found, e1);
++                auto energyAt = [&](const Vector3 &axisHere)
++                {
++                    Setup T;
++                    T.mesh.reset(new ManifoldSurfaceMesh(S.mesh->getFaceVertexList()));
++                    T.geometry.reset(new VertexPositionGeometry(*T.mesh));
++                    for (Vertex v : T.mesh->vertices())
++                        T.geometry->inputVertexPositions[v] = S.geometry->inputVertexPositions[v];
++                    T.geometry->refreshQuantities();
++                    T.attach(patchConstants(W, a, s, 120.0, 10.0, axisHere));
++                    return T.adhesion->Tot_Energy();
++                };
++                const double d = 1e-4, E0 = energyAt(found);
++                double firstWorst = 0.0, secondMin = 1e30;
++                for (const Vector3 &e : {e1, e2})
++                {
++                    const double Ep = energyAt(unit(found + d * e)), Em = energyAt(unit(found - d * e));
++                    firstWorst = std::max(firstWorst, std::abs(Ep - Em) / (2 * d));
++                    secondMin = std::min(secondMin, (Ep - 2 * E0 + Em) / (d * d));
++                }
++                std::printf("  at the found axis: |dE/dtilt| = %.2e, d2E/dtilt2 = %.3f (E0 = %.8f)\n", firstWorst, secondMin, E0);
++                ok &= check(firstWorst < 1e-7 && secondMin > 0.0, "the free axis is a stationary minimum of the energy over the axis");
++            }
++
++            // forces of the profiled energy against finite differences
++            S.bead.Pos = Vector3{0.03, -0.02, 0.01};
++            for (Vertex v : S.mesh->vertices())
++                S.geometry->inputVertexPositions[v] = S.geometry->inputVertexPositions[v] +
++                                                      0.02 * Vector3{gauss(gen), gauss(gen), gauss(gen)};
++            S.geometry->refreshQuantities();
++            VertexData<Vector3> F = S.adhesion->Gradient();
++            Vector3 Fb = S.bead.Total_force;
++            const double h = 1e-6;
++            double worst = 0.0, fmax = 0.0;
++            for (Vertex v : S.mesh->vertices())
++                for (int k = 0; k < 3; k++)
++                {
++                    Vector3 &q = S.geometry->inputVertexPositions[v];
++                    const double old = q[k];
++                    q[k] = old + h;
++                    double Ep = S.adhesion->Tot_Energy();
++                    q[k] = old - h;
++                    double Em = S.adhesion->Tot_Energy();
++                    q[k] = old;
++                    worst = std::max(worst, std::abs(-(Ep - Em) / (2 * h) - F[v][k]));
++                    fmax = std::max(fmax, std::abs(F[v][k]));
++                }
++            double wb = 0.0;
++            for (int k = 0; k < 3; k++)
++            {
++                const double old = S.bead.Pos[k];
++                S.bead.Pos[k] = old + h;
++                double Ep = S.adhesion->Tot_Energy();
++                S.bead.Pos[k] = old - h;
++                double Em = S.adhesion->Tot_Energy();
++                S.bead.Pos[k] = old;
++                wb = std::max(wb, std::abs(-(Ep - Em) / (2 * h) - Fb[k]));
++                fmax = std::max(fmax, std::abs(Fb[k]));
++            }
++            std::printf("  profiled energy: max|F| %.3e, rel.err membrane %.2e, bead %.2e\n", fmax, worst / fmax, wb / fmax);
++            ok &= check(worst < 1e-6 * fmax && wb < 1e-6 * fmax, "free axis: forces match finite differences of the profiled energy");
++        }
++    }
++
++    // ---- 7. a bead inside the membrane: side = -1 ----------------------------------------------------
++    {
++        const double a = 1.0, s = 0.25, W = 2.3;
++        std::printf("\nbead inside the membrane (side = -1) on the outward-oriented sphere against the same bead and positions on the reversed sphere (side = +1)\n");
++        Setup base;
++        std::tie(base.mesh, base.geometry) = readManifoldSurfaceMesh(path);
++        std::vector<std::vector<size_t>> outward, reversed;
++        for (Face f : base.mesh->faces())
++        {
++            Halfedge he = f.halfedge();
++            const size_t i0 = he.vertex().getIndex(), i1 = he.next().vertex().getIndex(), i2 = he.next().next().vertex().getIndex();
++            outward.push_back({i0, i1, i2});
++            reversed.push_back({i0, i2, i1});
++        }
++        std::vector<Vector3> pos;
++        for (Vertex v : base.mesh->vertices())
++            pos.push_back(base.geometry->inputVertexPositions[v] * (1.0 + 0.03 * gauss(gen)));
++        auto build = [&](Setup &S, const std::vector<std::vector<size_t>> &faces) {
++            S.mesh.reset(new ManifoldSurfaceMesh(faces));
++            S.geometry.reset(new VertexPositionGeometry(*S.mesh));
++            for (Vertex v : S.mesh->vertices())
++                S.geometry->inputVertexPositions[v] = pos[v.getIndex()];
++            S.geometry->refreshQuantities();
++        };
++        const Vector3 axis = unit(Vector3{0.2, 0.1, -1.0});
++        Setup A, B; // A: faces look at the bead (the usual case, side +1), B: outward faces around a bead inside (side -1)
++        build(A, reversed);
++        build(B, outward);
++        A.attach(patchConstants(W, a, s, 120.0, 10.0, axis));
++        B.attach(patchConstants(W, a, s, 120.0, 10.0, axis));
++        B.adhesion->side = -1.0;
++        A.bead.Pos = B.bead.Pos = Vector3{0.03, -0.02, 0.01};
++        const double EA = A.adhesion->Tot_Energy(), EB = B.adhesion->Tot_Energy();
++        VertexData<Vector3> FA = A.adhesion->Gradient(), FB = B.adhesion->Gradient();
++        double fdiff = 0.0, fmax = 0.0;
++        for (Vertex v : A.mesh->vertices())
++        {
++            fdiff = std::max(fdiff, norm(FA[v] - FB[v]));
++            fmax = std::max(fmax, norm(FA[v]));
++        }
++        const double bdiff = norm(A.bead.Total_force - B.bead.Total_force);
++        std::printf("  E(side +1, reversed) = %.12g, E(side -1, outward) = %.12g, max|F diff| %.2e (max|F| %.3e), bead force diff %.2e\n", EA, EB, fdiff, fmax, bdiff);
++        ok &= check(EA < 0.0 && std::abs(EA - EB) <= 1e-12 * std::abs(EA), "side -1 on the outward sphere gives the energy of side +1 on the reversed one");
++        ok &= check(fdiff <= 1e-12 * fmax && bdiff <= 1e-12 * fmax, "... and the same forces on the membrane and on the bead");
++        // the wrong side selects nothing
++        A.adhesion->side = -1.0;
++        B.adhesion->side = 1.0;
++        ok &= check(A.adhesion->Tot_Energy() == 0.0 && B.adhesion->Tot_Energy() == 0.0, "the wrong side selects no face (energy 0)");
++        // the default side is +1
++        Adhesion fresh;
++        ok &= check(fresh.side == 1.0, "the default side is +1 (a bead outside)");
++    }
++
++    std::printf(ok ? "PASS\n" : "FAILED\n");
++    return ok ? 0 : 1;
++}

@@ -767,9 +767,64 @@ def deserno_fig5(filepath="../Results/WrappingPhaseSpaceNewFast/CoverageData.txt
     plt.show()
     return fig, ax
 
+
+
+
+def Shell_test_comparison(filepath="../Results/CoverageShellSum/CoverageSum.txt", save=None):
+    """Bead coverage (CoverageUnion) vs adhesion strength KI for the shell test.
+
+    Columns follow the CoverageSum header: P_order (0), shell_width (1),
+    KI (5), CoverageUnion (9). Rows are grouped by (p, s), sorted by KI and
+    duplicates (same p, s, KI) are collapsed, so the lines are properly ordered.
+    One figure per fixed p (curves for each s) and one per fixed s (curves per p).
+    """
+    from collections import defaultdict
+
+    curves = defaultdict(dict)          # (p, s) -> {KI: coverage}
+    for line in open(filepath):
+        if line.startswith("#") or not line.strip():
+            continue
+        d = line.split()
+        curves[(int(d[0]), float(d[1]))][float(d[5])] = float(d[9])
+
+    ps = sorted({p for p, _ in curves})
+    ss = sorted({s for _, s in curves}, reverse=True)
+
+    def draw(ax, key, label, color, marker):
+        c = curves[key]
+        ki = sorted(c)
+        ax.plot(ki, [c[k] for k in ki], "-", marker=marker, ms=4, lw=1.6,
+                color=color, label=label)
+
+    def panel(fixed, values, varying, make_key, make_label, title, fname):
+        fig, ax = plt.subplots(figsize=(5.5, 4))
+        cmap = plt.get_cmap("inferno")
+        markers = "osD^v"
+        for i, v in enumerate(varying):
+            key = make_key(v)
+            if key in curves:
+                draw(ax, key, make_label(v), cmap(i / max(len(varying) - 1, 1) * 0.85), markers[i % len(markers)])
+        ax.set_xlabel(r"Adhesion strength $K_I$")
+        ax.set_ylabel("Bead coverage")
+        ax.set_title(title)
+        ax.grid(alpha=0.3)
+        ax.legend(frameon=False)
+        fig.tight_layout()
+        if save is not None:
+            fig.savefig(f"{save}_{fname}.png", dpi=200, bbox_inches="tight")
+        plt.show()
+
+    for p in ps:
+        panel(p, ps, ss, lambda s: (p, s), lambda s: f"s = {s:g}", f"p = {p}", f"p{p}")
+    for s in ss:
+        panel(s, ss, ps, lambda p: (p, s), lambda p: f"p = {p}", f"s = {s:g}", f"s{s:g}")
+
+
+Shell_test_comparison(filepath="../Results/CoverageShellSum/CoverageSum.txt",save="../Results/CoverageShellSum/CoverageSum")
+
 # deserno_fig5(filepath = "../Results/WrappingPhaseSpaceNewFast/Coverage_data.txt",as_z = False)                         # vesicle data, kappa = KB/2
 # deserno_fig5(filepath="../Results/Wrapping_planar_excess/Coverage_data.txt", filepath_full="../Results/Wrapping_planar_excess/Coverage_data_full.txt")
 # planar_phase_deserno(contour_levels=[0.5, 1.0, 1.5])
 # planar_phase_deserno(regions=True)
-planar_phase_deserno(filepath="../Results/Wrapping_planar_excess/Coverage_data_thin.txt",as_z=False)
+# planar_phase_deserno(filepath_full="../Results/Wrapping_planar_excess/Coverage_data_thin.txt", filepath="../Results/Wrapping_planar_excess/Coverage_data_thin.txt",as_z=False)
 # planar_phase(contour_levels=[ 0.5 ,0.75],filepath="../Results/Wrapping_planar_excess/Coverage_data.txt")
