@@ -14,7 +14,7 @@ Per run (from the last saved state, Final_state.obj if the run finished):
                centre of the vesicle, R_v the radius of the vesicle of the template (key "Rv" of the config, else "rescale")
                (not a geodesic on the mesh: the paper's s is the distance along the membrane between the two contact points
                of a nearly spherical vesicle)
-    E_bend     Bending_tan, in units of kappa = KB/2 (the code's bending energy is KB * H^2, H = (c1 + c2)/2)
+    E_bend     Bending (Bending_tan for the runs before 2026-10-12), in units of kappa = KB/2 (the code's bending energy is KB * H^2, H = (c1 + c2)/2)
     u(s)       E(s) - E(reference), reference = the run with the largest s of the series (--ref far) or the mean of the runs
                with s above --s_far in D_p (--ref mean_far)
     u in kBT   u * kappa_kbt, with kappa = 20.9 kBT (Sci. Rep. Fig. 4)
@@ -143,15 +143,17 @@ def read_bead_positions(run, n=2):
 def analyze_run(run):
     cfg = json.load(open(os.path.join(run, "Input_file.json")))
     energies = {e["Name"]: e["constants"] for e in cfg["Energies"]}
-    kappa = energies["Bending_tan"][0] / 2.0
+    bend_name = "Bending" if "Bending" in energies else "Bending_tan"  # Bending since 2026-10-12, Bending_tan in the older runs
+    kappa = energies[bend_name][0] / 2.0
     a = cfg["Beads"][0]["radius"]
     Rv = cfg.get("Rv", cfg.get("rescale", 1.0))
     col, data = read_output(run)
     last = data[-1]
     out = {"run": run, "kappa": kappa, "a": a, "Rv": Rv, "step": last[col["step"]]}
-    for name in ("Volume", "Area", "Bending_tan", "Volume_constraint", "Area_constraint", "Surface_tension",
+    for name in ("Volume", "Area", "Bending", "Volume_constraint", "Area_constraint", "Surface_tension",
                  "Excess_tension", "Coverage", "Total_E"):
-        out[name] = last[col[name]] if name in col else 0.0
+        key = bend_name if name == "Bending" else name  # the column of the bending energy carries the name of the energy
+        out[name] = last[col[key]] if key in col else 0.0
     mesh, finished = last_mesh(run)
     out["finished"] = finished
     V, F = read_obj(mesh)
@@ -177,7 +179,7 @@ def analyze_run(run):
         w, plain, rmean = coverage(V, F, p, cfg["Beads"][i]["radius"], side=-1.0 if cfg["Beads"][i].get("outside", 1) < 0 else 1.0)
         out["cov%d" % i], out["cap%d" % i], out["rmean%d" % i] = w, plain, rmean
     out["Ebead_kappa"] = sum(last[i] for i in col["_bead_columns"]) / kappa
-    out["Ebend_kappa"] = out["Bending_tan"] / kappa
+    out["Ebend_kappa"] = out["Bending"] / kappa
     out["Esigma_kappa"] = (out["Surface_tension"] + out["Excess_tension"]) / kappa
     out["Etot_kappa"] = out["Total_E"] / kappa
     out["sigma_eff"] = 0.0

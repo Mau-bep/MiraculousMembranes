@@ -9,7 +9,7 @@
 #   python3 Analyze_two_vesicle.py --ref mean_far --s_far 4.3 --curves total --ylim -0.5 1.0 --out ../Studies/two_beads_vesicle/u_of_s \
 #           inside98=../Results/Wrapping_two_vesicle/inside_area5_98_rep0 floppy98=../Results/Wrapping_two_vesicle/inside_floppy_98_rep0
 #   python3 Slice_two_vesicle.py ../Results/Wrapping_two_vesicle/inside_area5_98_rep0/link12_s2.70/1 ...    (look at the states)
-# Needs the build with the adhesive patch and the inside option (branch bead-patch-adhesion), the generator checks it.
+# Needs a build of main from the merge of bead-patch-adhesion (68af27c6) or later (the adhesive patch, the inside option); the generator checks it.
 # Units: bead radius 1, kappa = KB/2 = 1 (KB = 2), so u in kappa; u [kBT] = 20.9 u, length [um] = 0.49 length.
 # Physics, choices, results (no attraction found so far) and what to scan next: ../Studies/two_beads_vesicle/README.md
 

@@ -96,9 +96,10 @@ def summary(run, cfg, s_target):
     for i, name in enumerate(header):
         col.setdefault(name, i)
     last = rows[-1]
-    kappa = [e for e in cfg["Energies"] if e["Name"] == "Bending_tan"][0]["constants"][0] / 2.0
+    bend = [e for e in cfg["Energies"] if e["Name"] in ("Bending", "Bending_tan")][0]  # Bending since 2026-10-12, Bending_tan before
+    kappa = bend["constants"][0] / 2.0
     out = {"s_target": s_target, "s_actual": arc_s(run, cfg["Rv"], cfg["Beads"][0]["radius"], planar=bool(cfg.get("boundary"))), "run": os.path.basename(os.path.dirname(run.rstrip("/"))), "step": last[col["step"]],
-           "E_bend_kappa": last[col["Bending_tan"]] / kappa, "E_total_kappa": last[col["Total_E"]] / kappa,
+           "E_bend_kappa": last[col[bend["Name"]]] / kappa, "E_total_kappa": last[col["Total_E"]] / kappa,
            "Volume": last[col["Volume"]], "Area": last[col["Area"]]}
     return out
 

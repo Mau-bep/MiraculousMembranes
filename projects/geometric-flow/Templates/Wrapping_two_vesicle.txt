@@ -12,12 +12,19 @@
        makes the wrapped fraction depend on the neck, and with it the energy at the level of the signal (0.1 kappa = 0.2 % of the bending)
      * frozen beads, the vesicle finds its position; the axis of each patch is fixed in space (Run_two_vesicle_chain.py points it to the
        centre of the vesicle again at every separation). "patch_free": true (generator: --free_axis) lets it turn, the axis being the
-       one that maximises the covered weight at every evaluation: the energy then gains ~0.03 kappa at s = 2.7, but in a test it ran
-       into a state with one neck closed (cov 0.99) when the beads were moved, so it is not the default
+       one that maximises the covered weight at every evaluation, every solve starting from the axis set for the link (it finds the
+       maximum within about 25 degrees of it). Needs the build with commit 8ced2182 of the branch bead-patch-adhesion: in the merge 68af27c6
+       the solve started from where the last one ended and was dragged onto a false maximum (+2 kappa, a closed neck). Not the default: it
+       gains 0 to 0.01 kappa at 98 percent and at 90 percent 0.1 to 0.4, inside the scatter between relaxations (README, checks of the patch)
    wrap_mode: "patch" (default: Adhesion with the angular patch, needs the build with patch_angle), "coverage" (the Coverage energy
    as in Wrapping_two_cov), "adhesion" (plain Adhesion, the wrapping is whatever the energy gives)
    area_mode: "tension" (default: Surface_tension sigma, no area constraint), "constraint" (Area_constraint, the paper's A_t = (1 + excess) A_sphere
    with a fixed volume), "excess" (Excess_tension: free area until A_t, then a tension), "none"
+   bending: "Bending" (default) or "Bending_tan" (generator: --bending): the same energy sum KB H_v^2 A_v with H_v = (1/4) sum_e l_e t_e / A_v, the edge term
+   t_e being the dihedral angle theta_e for "Bending" and 2 tan(theta_e / 2) for "Bending_tan" (every run before 2026-10-12), so kappa = KB/2 for both.
+   They differ by a factor 1 + theta^2/12 per edge (1.4 percent at the largest angle of these meshes, 0.4 rad; the tan version diverges for a fold, theta -> pi,
+   which these meshes do not reach): on the stored planar chains the two energies of the same shape differ by 0.09 kappa (98 percent) and 0.08 kappa (90 percent),
+   constant in s to 0.01 kappa, so the switch is not expected to change u(s)
    outside: 1 (default) the beads are outside the vesicle, -1 inside (needs the build with "outside": -1 for Adhesion; the Coverage energy does not know it)
    planar: true (generator: --planar) a flat disk with a clamped edge (input/Big_planar_mem.obj, radius 10 * rescale, normal along x) instead of the closed vesicle:
    no volume constraint, "boundary": true, the beads above the disk (x > 0) pushing into it; the large-vesicle limit of the experiment (D_v/D_p >= 14) #}
@@ -71,7 +78,7 @@
 {% endif %}
     "Energies": [
         {
-            "Name": "Bending_tan",
+            "Name": "{{ bending | default('Bending') }}",
             "constants": [
                 {{ KB | default(2.0) }},
                 0.0

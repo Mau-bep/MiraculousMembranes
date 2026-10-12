@@ -52,7 +52,7 @@ foreach Strg ( ${KIs} )
 
 set Unique_Tag = "${Batch_Tag}_Strg_${Strg}_r_${radius}_KA_${KA}_KB_${KB}_Nsim_${Nsim}"
 
-python3 Create_subjob_planar.py --inter_str ${Strg} --radius ${radius} --KA ${KA} --KB ${KB} --tension excess --init ${Init} --rescale 1.0 --size_min 0.01 --size_max 1.0 --refine_angle 0.15 --switch_normal 60000 --saved_states 60 ${Cfg} --batch_tag ${Batch_Tag} --unique_tag ${Unique_Tag} --time 12:00:00
+python3 Create_subjob_planar.py --inter_str ${Strg} --radius ${radius} --KA ${KA} --KB ${KB} --tension excess --init ${Init} --rescale 1.0 --size_min 0.01 --size_max 1.0 --refine_angle 0.3 --switch_normal 120000 --saved_states 60 ${Cfg} --batch_tag ${Batch_Tag} --unique_tag ${Unique_Tag} --time 6:00:00
 sbatch ../Subjobs/${Unique_Tag}_subjob
 
 end

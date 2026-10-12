@@ -49,7 +49,7 @@ parser.add_argument("--patch_angle", type=number_str, default="143.13",
                          "the active area of a cap of half-angle theta is (1 - cos theta)/2")
 parser.add_argument("--patch_width", type=number_str, default="5.0", help="width in degrees of the smooth ramp inside the edge of the patch")
 parser.add_argument("--replica", type=int, default=0, help="replica number: the vesicle starts 0.003 * replica bead radii off the symmetry plane, a negligible change that sends the (chaotic) mesh history of the run elsewhere, for error bars from several replicas")
-parser.add_argument("--free_axis", action="store_true", help="let each patch turn: its axis is the one that maximises the covered weight at every evaluation (default: fixed in space, pointed to the centre of the vesicle at every separation; the free axis gained 0.03 kappa in a test but ran into a closed neck when the beads were moved)")
+parser.add_argument("--free_axis", action="store_true", help="let each patch turn: its axis maximises the covered weight at every evaluation, every solve starting from the axis set for the link (default: fixed in space, pointed to the centre of the vesicle at every separation); needs the build with commit 8ced2182 of the branch bead-patch-adhesion (the merge 68af27c6 alone has a warm-started solve that ends on a false maximum, 2 kappa too high); finds the axis within ~25 degrees of the start")
 parser.add_argument("--W", type=number_str, default="6.0", help="adhesion energy per area in kappa/a^2 (w~ = 2 W a^2/kappa = 12 for 6: far above 4)")
 parser.add_argument("--shell_width", type=number_str, default="0.1", help="half width of the adhesion shell, fraction of the radius")
 parser.add_argument("--cov", type=number_str, default="0.6", help="coverage target for --wrap coverage")
@@ -61,6 +61,9 @@ parser.add_argument("--area", choices=["tension", "constraint", "excess", "none"
 parser.add_argument("--sigma", type=number_str, default="0.02", help="tension in kappa/a^2 (tension, and above A_t for excess)")
 parser.add_argument("--excess", type=number_str, default="0.05", help="relative excess area (constraint and excess), the paper: 0.05")
 parser.add_argument("--KB", type=number_str, default="2.0", help="bending constant KB = 2 kappa, 2 gives kappa = 1: energies in units of kappa")
+parser.add_argument("--bending", choices=["Bending", "Bending_tan"], default="Bending",
+                    help="the bending energy: Bending (default, edge term = dihedral angle) or Bending_tan (2 tan(angle/2), the energy of all runs before 2026-10-12); "
+                         "same KB, same kappa = KB/2, they differ by a nearly constant 0.09 kappa on the wrapped shapes (the dihedral angles are below 0.4 rad)")
 parser.add_argument("--KV", type=number_str, default="200000.0", help="stiffness of the volume constraint")
 parser.add_argument("--KA", type=number_str, default="200000.0", help="stiffness of the area constraint")
 parser.add_argument("--Rv", type=number_str, default="6.25", help="radius of the vesicle in bead radii (the paper: D_v/D_p = 6.25)")
@@ -76,7 +79,7 @@ parser.add_argument("--prewrap", choices=["coverage", "none"], default="coverage
                          "(the patch axes then point where the vesicle centre is expected, which is only right for shallow pockets). With --inside there is no pre-wrap "
                          "(the Coverage energy knows beads outside only): the patch run starts from the tangent contact, 30000-60000 steps (about half an hour) just to wrap")
 parser.add_argument("--prewrap_cov", type=number_str, default=None, help="Coverage target of the pre-wrap (default: 0.5 or the area fraction of the patch minus 0.2, whichever is smaller: forcing 0.8 from the tangent contact crumples the membrane)")
-parser.add_argument("--prewrap_steps", type=number_str, default="8000", help="steps of the pre-wrap run")
+parser.add_argument("--prewrap_steps", type=number_str, default="30000", help="steps of the pre-wrap run")
 parser.add_argument("--batch_tag", type=str, required=True, help="tag of the batch (also the results folder name)")
 parser.add_argument("--unique_tag", type=str, required=True, help="unique tag of this scan (prefix of the config, subjob and output files)")
 parser.add_argument("--time", type=str, default="48:00:00", help="time limit of the sbatch job (default 48:00:00: a scan is a chain of about 20 runs of minutes to an hour)")
@@ -93,7 +96,7 @@ if args.wrap == "patch" and not args.no_binary_check:
     except IOError:
         has_patch = None
     if has_patch is False:
-        raise SystemExit("{} does not know \"patch_angle\": build the branch with the adhesive patch (bead-patch-adhesion) first, "
+        raise SystemExit("{} does not know \"patch_angle\": build main from the merge of bead-patch-adhesion (68af27c6) or later first (make main_cluster in ../build), "
                          "or use --wrap coverage".format(BINARY))
     if has_patch is None:
         print("Warning: {} not found, the patch option of the build was not checked".format(BINARY))
@@ -113,7 +116,7 @@ if args.inside:
             with open(BINARY, 'rb') as f:
                 content = f.read()
             if b'inside the membrane' not in content:
-                raise SystemExit("{} does not know beads inside the membrane (\"outside\": -1 of the Adhesion interaction): build the branch bead-patch-adhesion first".format(BINARY))
+                raise SystemExit("{} does not know beads inside the membrane (\"outside\": -1 of the Adhesion interaction): build main from the merge of bead-patch-adhesion (68af27c6) or later first".format(BINARY))
         except IOError:
             print("Warning: {} not found, the inside option of the build was not checked".format(BINARY))
 
@@ -167,6 +170,7 @@ def create_json():
         params = dict(first_dir=Batch_dir, dist=d_cold, beads=beads, displacement=[0.0, yc, 0.003 * args.replica], Vbar=V_bar, Rv=Rv, rescale=Rv,
                       radius=a, KB=args.KB, KV=args.KV, wrap_mode=args.wrap, area_mode=args.area, outside=-1 if args.inside else 1,
                       bead_state="default" if (args.free_cold or args.inside) else "froze")
+    params["bending"] = args.bending
     if args.wrap == "coverage":
         params.update(cov=args.cov, Kcov=args.Kcov)
     else:
