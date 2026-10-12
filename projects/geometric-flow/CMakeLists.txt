@@ -565,6 +565,11 @@ add_executable(Test_shell_power src/Test_shell_power.cpp src/Interaction.cpp src
 target_include_directories(Test_shell_power PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
 target_link_libraries(Test_shell_power geometry-central)
 
+# Weight and finite-difference checks of the Adhesion angular patch (patch_angle, patch_width, patch_axis)
+add_executable(Test_patch_adhesion src/Test_patch_adhesion.cpp src/Interaction.cpp src/Beads.cpp src/BeadGeometry.cpp)
+target_include_directories(Test_patch_adhesion PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+target_link_libraries(Test_patch_adhesion geometry-central)
+
 # Energies and forces of perturbed states in hexfloat: a refactor that keeps the
 # results bit-identical gives a byte-identical dump
 set(SRCSexactness ${SRCScluster})

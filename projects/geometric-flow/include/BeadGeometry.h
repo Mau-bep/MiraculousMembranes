@@ -111,6 +111,33 @@ namespace bead_geometry
                                double shellPower = 1.0);
 
     /*
+     * Angular patch of the bead (a pinned contact line). Only the part of the
+     * bead within the polar angle theta_Wr of an axis can adhere, as in the
+     * adhesive patch of Saric & Cacciuto (theta_Wr of van der Wel et al., Sci.
+     * Rep. 6, 32825): the membrane wraps the patch and its edge pins the
+     * contact line, whatever the shape of the free membrane beyond it.
+     *
+     * With u the unit vector from the bead centre to the face centroid and
+     *
+     *   t = dot(u, axis),   cosEdge = cos(theta_Wr),
+     *   dCos = cos(theta_Wr - width) - cosEdge > 0,
+     *
+     * the patch weight is 0 for t <= cosEdge, 1 for t >= cosEdge + dCos and
+     * 1/2 (1 - cos(pi (t - cosEdge) / dCos)) in between: a C1 ramp of angular
+     * width `width` just inside theta_Wr (the energy and its slope are
+     * continuous, so the line searches see a smooth function). The axis points
+     * from the bead centre towards the pole of the patch (where the membrane
+     * touches first), so the inactive cap is opposite to it. The axis is fixed
+     * in space (use it with frozen beads or beads that do not turn).
+     *
+     * Returns the weight and writes d weight / dt in dWeightDt.
+     */
+    double patchWeight(double t, double cosEdge, double dCos, double &dWeightDt);
+
+    // The same with the second derivative too (a jump at the two ends of the ramp), for the Newton iteration of the free axis
+    double patchWeight2(double t, double cosEdge, double dCos, double &dWeightDt, double &d2WeightDt2);
+
+    /*
      * Compute the signed solid angle of triangle p0,p1,p2 as seen from
      * beadPosition, together with derivatives with respect to p0,p1,p2.
      */

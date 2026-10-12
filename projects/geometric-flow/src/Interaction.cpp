@@ -1296,6 +1296,13 @@ double Adhesion::Face_Energy(Face f)
         bead_geometry::evaluateFaceCoverage(*geometry, f, Bead_1->Pos, sigma(), shellWidth(), shellPower());
     if (!face.selected)
         return 0.0;
+    if (hasPatch())
+    {
+        double dPatch;
+        const double wPatch = bead_geometry::patchWeight(dot(face.radialDirection, patchAxis()), Energy_constants[5],
+                                                         Energy_constants[6], dPatch);
+        return -strength() * sigma() * sigma() * face.weight * wPatch * face.omegaUnsigned;
+    }
     return -strength() * sigma() * sigma() * face.weight * face.omegaUnsigned;
 }
 
@@ -1309,6 +1316,30 @@ void Adhesion::Add_Face_Force(Face f, VertexData<Vector3> &membraneForce, Vector
     // a_f = sigma^2 w(r_f) |omega_f|, r_f measured to the centroid, so
     // dr_f/dp_i = radialDirection / 3 for each corner p_i
     const double sigma2 = sigma() * sigma();
+    if (hasPatch())
+    {
+        // a_f = sigma^2 w(r_f) w_patch(t_f) |omega_f|, t_f = dot(u_f, axis), u_f the unit vector from the bead to the
+        // centroid c_f: dt_f/dc_f = (axis - t_f u_f) / r_f, and each corner carries a third of the centroid derivative
+        const Vector3 axis = patchAxis();
+        const double t = dot(face.radialDirection, axis);
+        double dPatch;
+        const double wPatch = bead_geometry::patchWeight(t, Energy_constants[5], Energy_constants[6], dPatch);
+        if (wPatch <= 0.0)
+            return;
+        const Vector3 dtdc = (axis - t * face.radialDirection) / face.centroidDistance;
+        const Vector3 gradWeightP = (wPatch * face.dWeightDr * face.radialDirection + face.weight * dPatch * dtdc) / 3.0;
+        const double wTotal = face.weight * wPatch;
+        const Vector3 force0p = strength() * sigma2 * (wTotal * face.gradOmega0 + face.omegaUnsigned * gradWeightP);
+        const Vector3 force1p = strength() * sigma2 * (wTotal * face.gradOmega1 + face.omegaUnsigned * gradWeightP);
+        const Vector3 force2p = strength() * sigma2 * (wTotal * face.gradOmega2 + face.omegaUnsigned * gradWeightP);
+
+        Halfedge hep = f.halfedge();
+        membraneForce[hep.vertex()] += force0p;
+        membraneForce[hep.next().vertex()] += force1p;
+        membraneForce[hep.next().next().vertex()] += force2p;
+        beadForce -= force0p + force1p + force2p;
+        return;
+    }
     const Vector3 gradWeight = face.dWeightDr * face.radialDirection / 3.0;
     const Vector3 dA0 = sigma2 * (face.weight * face.gradOmega0 + face.omegaUnsigned * gradWeight);
     const Vector3 dA1 = sigma2 * (face.weight * face.gradOmega1 + face.omegaUnsigned * gradWeight);
@@ -1326,6 +1357,131 @@ void Adhesion::Add_Face_Force(Face f, VertexData<Vector3> &membraneForce, Vector
 
     // a_f depends only on p_i - bead position, so da_f/dq = -sum_i da_f/dp_i
     beadForce -= force0 + force1 + force2;
+}
+
+void Adhesion::updatePatchAxis()
+{
+    // The faces that count and what each adds to S(n) = sum_f b_f w_patch(u_f . n), b_f = w(r_f) |omega_f|
+    std::vector<Vector3> u;
+    std::vector<double> b;
+    for (Face f : mesh->faces())
+    {
+        const bead_geometry::FaceCoverageData face =
+            bead_geometry::evaluateFaceCoverage(*geometry, f, Bead_1->Pos, sigma(), shellWidth(), shellPower());
+        if (!face.selected)
+            continue;
+        u.push_back(face.radialDirection);
+        b.push_back(face.weight * face.omegaUnsigned);
+    }
+    if (u.empty())
+        return;
+    double btotal = 0.0;
+    for (double x : b)
+        btotal += x;
+    if (!(btotal > 0.0))
+        return;
+
+    const double cosEdge = Energy_constants[5], dCos = Energy_constants[6];
+    Vector3 n = unit(patchAxis());
+    auto S_of = [&](const Vector3 &m)
+    {
+        double s = 0.0, d;
+        for (size_t k = 0; k < u.size(); ++k)
+            s += b[k] * bead_geometry::patchWeight(dot(u[k], m), cosEdge, dCos, d);
+        return s;
+    };
+    double S = S_of(n);
+
+    // Newton iteration for the maximum of S on the unit sphere (Riemannian gradient and Hessian in a tangent basis),
+    // a short step along the gradient where the Hessian is not negative definite; both with backtracking so that S never decreases
+    for (int iter = 0; iter < 100; ++iter)
+    {
+        const Vector3 a = std::abs(n.x) < 0.9 ? Vector3{1.0, 0.0, 0.0} : Vector3{0.0, 1.0, 0.0};
+        const Vector3 e1 = unit(cross(n, a));
+        const Vector3 e2 = cross(n, e1);
+        double g1 = 0.0, g2 = 0.0, h11 = 0.0, h12 = 0.0, h22 = 0.0, nG = 0.0;
+        for (size_t k = 0; k < u.size(); ++k)
+        {
+            const double t = dot(u[k], n);
+            double d1, d2;
+            bead_geometry::patchWeight2(t, cosEdge, dCos, d1, d2);
+            if (d1 == 0.0 && d2 == 0.0)
+                continue;
+            const double ue1 = dot(u[k], e1), ue2 = dot(u[k], e2);
+            g1 += b[k] * d1 * ue1;
+            g2 += b[k] * d1 * ue2;
+            h11 += b[k] * d2 * ue1 * ue1;
+            h12 += b[k] * d2 * ue1 * ue2;
+            h22 += b[k] * d2 * ue2 * ue2;
+            nG += b[k] * d1 * t;
+        }
+        // Riemannian Hessian of S on the sphere: e_i^T (sum b w'' u u^T) e_j - (n . grad S) delta_ij
+        h11 -= nG;
+        h22 -= nG;
+        const double gnorm = std::sqrt(g1 * g1 + g2 * g2);
+        if (gnorm <= 1e-13 * btotal)
+            break;
+        double s1, s2;
+        const double det = h11 * h22 - h12 * h12;
+        if (det > 0.0 && h11 + h22 < 0.0)
+        {
+            s1 = -(h22 * g1 - h12 * g2) / det;
+            s2 = -(-h12 * g1 + h11 * g2) / det;
+        }
+        else
+        {
+            s1 = 0.05 * g1 / gnorm;
+            s2 = 0.05 * g2 / gnorm;
+        }
+        const double snorm = std::sqrt(s1 * s1 + s2 * s2);
+        if (snorm > 0.3)
+        {
+            s1 *= 0.3 / snorm;
+            s2 *= 0.3 / snorm;
+        }
+        double lambda = 1.0;
+        bool moved = false;
+        for (int bt = 0; bt < 40; ++bt)
+        {
+            const Vector3 m = unit(n + lambda * (s1 * e1 + s2 * e2));
+            const double Sm = S_of(m);
+            if (Sm >= S)
+            {
+                n = m;
+                S = Sm;
+                moved = true;
+                break;
+            }
+            lambda *= 0.5;
+        }
+        if (!moved || lambda * std::min(snorm, 0.3) < 1e-15)
+            break;
+    }
+    Energy_constants[7] = n.x;
+    Energy_constants[8] = n.y;
+    Energy_constants[9] = n.z;
+}
+
+double Adhesion::Tot_Energy()
+{
+    if (hasPatch() && freeAxis())
+        updatePatchAxis();
+    return Face_Integrated_Interaction::Tot_Energy();
+}
+
+VertexData<double> Adhesion::V_Tot_Energy()
+{
+    if (hasPatch() && freeAxis())
+        updatePatchAxis();
+    return Face_Integrated_Interaction::V_Tot_Energy();
+}
+
+VertexData<Vector3> Adhesion::Gradient()
+{
+    // The energy is the minimum over the axis, so the force at the axis that minimises it is the whole force
+    if (hasPatch() && freeAxis())
+        updatePatchAxis();
+    return Face_Integrated_Interaction::Gradient();
 }
 
 Plane_Adhesion::Plane_Adhesion(ManifoldSurfaceMesh *inputMesh,

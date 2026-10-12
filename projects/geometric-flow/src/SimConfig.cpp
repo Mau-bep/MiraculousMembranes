@@ -90,6 +90,26 @@ namespace
                 throw std::runtime_error("Input file: \"shell_power\" in " + where +
                                          " must be a finite number >= 1 (1 = plain cosine shell, 2 and 4 = cos^4 and cos^8 of pi x / 2)");
         }
+        if (b.contains("patch_angle"))
+        {
+            // The adhesive patch: faces within patch_angle (degrees) of patch_axis adhere, the contact line is pinned at its edge
+            if (spec.mem_inter != "Adhesion")
+                throw std::runtime_error("Input file: \"patch_angle\" in " + where + " is only used by the Adhesion interaction");
+            spec.has_patch = true;
+            spec.patch_angle = b["patch_angle"].get<double>();
+            spec.patch_width = b.value("patch_width", 5.0);
+            spec.patch_axis = to_vector3(b, "patch_axis", where);
+            if (!(spec.patch_angle > 0.0 && spec.patch_angle <= 180.0))
+                throw std::runtime_error("Input file: \"patch_angle\" in " + where + " must be in (0, 180] degrees");
+            if (!(spec.patch_width > 0.0 && spec.patch_width < spec.patch_angle))
+                throw std::runtime_error("Input file: \"patch_width\" in " + where + " must be in (0, patch_angle) degrees");
+            if (!(spec.patch_axis.norm() > 0.0))
+                throw std::runtime_error("Input file: \"patch_axis\" in " + where + " is zero");
+            spec.patch_axis = spec.patch_axis.normalize();
+            spec.patch_free = b.value("patch_free", false);
+        }
+        else if (b.contains("patch_width") || b.contains("patch_axis") || b.contains("patch_free"))
+            throw std::runtime_error("Input file: \"patch_width\" / \"patch_axis\" / \"patch_free\" in " + where + " need \"patch_angle\"");
         if (b.contains("shift"))
         {
             spec.has_shift = true;
@@ -697,6 +717,17 @@ std::unique_ptr<Interaction> make_interaction(const BeadSpec &spec, ManifoldSurf
     {
         params.push_back(spec.shell_width);
         params.push_back(spec.shell_power);
+        if (spec.has_patch)
+        {
+            // cosEdge, dCos = cos(theta_Wr - width) - cos(theta_Wr), the unit axis (see bead_geometry::patchWeight)
+            const double theta = spec.patch_angle * PI / 180.0, width = spec.patch_width * PI / 180.0;
+            params.push_back(std::cos(theta));
+            params.push_back(std::cos(theta - width) - std::cos(theta));
+            params.push_back(spec.patch_axis.x);
+            params.push_back(spec.patch_axis.y);
+            params.push_back(spec.patch_axis.z);
+            params.push_back(spec.patch_free ? 1.0 : 0.0);
+        }
         return make_unique_ptr<Adhesion>(mesh, geometry, params);
     }
     if (type == "Plane_adhesion")

@@ -296,7 +296,25 @@ public:
 // r = sigma and 0 with zero slope at the edges, but it falls off faster away from the minimum,
 // so the contact is stiffer around r = sigma. p = 1 is exactly the plain shell.
 //
-// Energy_constants = {W, sigma, rc (unused), shell_width (optional), shell_power (optional)}
+// The adhesive part of the bead can be limited to a patch ("patch_angle", "patch_width" and
+// "patch_axis" in the input file, see bead_geometry::patchWeight): only faces within the polar
+// angle theta_Wr of a fixed axis count, w(r_f) is multiplied by the patch weight. The edge of the
+// patch pins the contact line, so the wrapped area is set by the patch (the model of the
+// simulations of van der Wel et al., Sci. Rep. 6, 32825) and not by the balance of adhesion,
+// bending and tension. Without these keys the energy and the force are bit-identical to before.
+//
+// "patch_free": true lets the patch turn: a bead that does not rotate keeps the axis it was given,
+// which costs energy when the pocket tilts (the pair of beads of Studies/two_beads_vesicle: 0.1 kappa
+// at 2 degrees, as much as the interaction measured). With the key the axis is the one that
+// maximises the weighted covered area S(n) = sum_f w(r_f) |omega_f| w_patch(u_f . n) at the current
+// positions, found by a Newton iteration on the sphere at the start of each energy and gradient
+// evaluation (starting from the previous axis). The energy is then the minimum over the axis, E(x) =
+// min_n E(n, x), so the force with the axis held at its minimum is exactly -dE/dx (envelope theorem)
+// and nothing else changes. The axis in the input file is the starting value.
+//
+// Energy_constants = {W, sigma, rc (unused), shell_width (optional), shell_power (optional),
+//                     patch: cosEdge, dCos, axis_x, axis_y, axis_z, free (all six or none, axis of unit length,
+//                     free = 1 turns the axis solve on, the constants then hold the current axis)}
 // (inter_str, radius in the input file)
 class Adhesion : public Face_Integrated_Interaction
 {
@@ -319,11 +337,24 @@ public:
         VertexData<Vector3> &membraneForce,
         Vector3 &beadForce) override;
 
+    // With a free patch axis these first move the axis to its maximum at the current positions
+    double Tot_Energy() override;
+    VertexData<double> V_Tot_Energy() override;
+    VertexData<Vector3> Gradient() override;
+
+    // The current axis of the patch (the free one moves with the membrane), (0, 0, 0) without a patch
+    Vector3 PatchAxis() const { return hasPatch() ? patchAxis() : Vector3{0.0, 0.0, 0.0}; }
+
 private:
+    // The axis that maximises S(n), see above; starts from the current one
+    void updatePatchAxis();
+    bool freeAxis() const { return Energy_constants.size() > 10 && Energy_constants[10] != 0.0; }
     double strength() const { return Energy_constants[0]; }
     double sigma() const { return Energy_constants[1]; }
     double shellWidth() const { return Energy_constants.size() > 3 ? Energy_constants[3] : 0.25; }
     double shellPower() const { return Energy_constants.size() > 4 ? Energy_constants[4] : 1.0; }
+    bool hasPatch() const { return Energy_constants.size() > 9; }
+    Vector3 patchAxis() const { return Vector3{Energy_constants[7], Energy_constants[8], Energy_constants[9]}; }
 };
 
 // Adhesion to a flat wall through the membrane area projected on it:
