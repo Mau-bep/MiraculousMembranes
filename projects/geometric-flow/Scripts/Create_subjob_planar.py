@@ -21,6 +21,12 @@ parser.add_argument("--shell_width", type=number_str, default=None,
                          "a narrower shell needs a finer mesh")
 parser.add_argument("--shell_power", type=number_str, default=None,
                     help="exponent p >= 1 of the adhesion shell, weight = [1/2 (1 + cos(pi x))]^p (default of the code: 1; 2, 4 = cos^4, cos^8 of pi x/2)")
+parser.add_argument("--shell_profile", choices=["cosine", "frenkel", "lj", "morse"], default=None,
+                    help="radial profile of the adhesion weight (default of the code: cosine). frenkel, lj and morse are the potentials with their "
+                         "repulsive core, depth 1 at the bead radius (W = inter_str stays the contact energy per area), cut at radius (1 + shell_width) "
+                         "(shell_width up to 4), lj and morse shifted to zero at the cutoff; not with --shell_power")
+parser.add_argument("--shell_alpha", type=number_str, default=None,
+                    help="range of the morse profile, alpha * radius (default of the code: 6, about the curvature of LJ)")
 parser.add_argument("--size_min", type=number_str, default=None, help="smallest edge length of the remesher (template default)")
 parser.add_argument("--size_max", type=number_str, default=None, help="largest edge length of the remesher (template default)")
 parser.add_argument("--rescale", type=number_str, default=None,
@@ -47,7 +53,7 @@ KB = args.KB
 Excess = args.tension == "excess"
 Init = args.init
 # Optional template overrides, left out of the render (so the template defaults apply) when not given
-Overrides = {k: v for k, v in (("shell_width", args.shell_width), ("shell_power", args.shell_power), ("rescale", args.rescale), ("refine_angle", args.refine_angle), ("saved_states", args.saved_states), ("switch_normal", args.switch_normal), ("size_min", args.size_min), ("size_max", args.size_max)) if v is not None}
+Overrides = {k: v for k, v in (("shell_width", args.shell_width), ("shell_power", args.shell_power), ("shell_profile", args.shell_profile), ("shell_alpha", args.shell_alpha), ("rescale", args.rescale), ("refine_angle", args.refine_angle), ("saved_states", args.saved_states), ("switch_normal", args.switch_normal), ("size_min", args.size_min), ("size_max", args.size_max)) if v is not None}
 Batch_tag = args.batch_tag
 Unique_tag = args.unique_tag
 time = args.time

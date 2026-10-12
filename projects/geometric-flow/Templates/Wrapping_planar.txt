@@ -64,6 +64,12 @@
 {% if shell_power %}
             "shell_power": {{ shell_power }},
 {% endif %}
+{% if shell_profile %}
+            "shell_profile": "{{ shell_profile }}",
+{% endif %}
+{% if shell_alpha %}
+            "shell_alpha": {{ shell_alpha }},
+{% endif %}
             "inter_str": {{interaction}},
             "bonds": [],
             "bonds_constants": [],
