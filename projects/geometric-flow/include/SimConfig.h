@@ -54,6 +54,8 @@ struct BeadSpec
     double shift = 0.0;   // LJ; Shifted-LJ computes it from rc unless given
     double shell_width = 0.25; // Adhesion: half width of the contact shell as a fraction of the radius, in (0, 1)
     double shell_power = 1.0;  // Adhesion: the shell weight is [1/2 (1 + cos(pi x))]^shell_power, real, >= 1 (1 = plain shell)
+    std::string shell_profile = "cosine"; // Adhesion: radial profile of the weight, cosine (shell_width, shell_power), frenkel, lj or morse (cutoff rc = radius (1 + shell_width))
+    double shell_alpha = 6.0;  // Adhesion, morse profile: range of the potential, alpha / radius, > 0
     bool has_patch = false;    // Adhesion: only the part of the bead within patch_angle of patch_axis adheres (see bead_geometry::patchWeight)
     double patch_angle = 180.0; // degrees, polar angle theta_Wr of the patch edge from the axis, in (0, 180]
     double patch_width = 5.0;   // degrees, width of the smooth ramp just inside the edge, in (0, patch_angle)

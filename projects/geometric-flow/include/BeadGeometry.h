@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <string>
 
 #include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/vertex_position_geometry.h"
@@ -49,7 +50,7 @@ namespace bead_geometry
      *
      * `selected == true` only if:
      *
-     * 1. The face centroid lies in the cosine shell:
+     * 1. The face centroid lies in the shell (cosine, or the support of the profile):
      *
      *      sigma - 0.25 sigma < distance < sigma + 0.25 sigma
      *
@@ -111,6 +112,58 @@ namespace bead_geometry
                                double shellPower = 1.0);
 
     /*
+     * Radial profile of the adhesion weight w(r). The default is the cosine shell above
+     * (shellPower included). The others are radial pair potentials V(r) turned into a
+     * weight, w = -V_shifted / depth, so that w = 1 at r = sigma (the bead radius, the
+     * minimum of the well) for every profile and W = inter_str stays the adhesion energy
+     * per unit of contact area, the same as the "w" of Deserno's phase diagram:
+     *
+     *   Frenkel:  V = alpha (s^2/r^2 - 1) (rc^2/r^2 - 1)^2 (zero value and slope at rc, depth 1),
+     *             s solved so that the minimum is at r = sigma: s^2 = 2 rc^2 sigma^2 / (3 rc^2 - sigma^2)
+     *   LJ:       V = (sigma/r)^12 - 2 (sigma/r)^6, minimum -1 at r = sigma
+     *   Morse:    V = (1 - exp(-alpha (r - sigma) / sigma))^2 - 1, minimum -1 at r = sigma
+     *
+     * All three keep their repulsive core (w < 0 for r below about sigma) and are cut at
+     * rc = sigma (1 + width). LJ and Morse are shifted by V(rc) so that the energy is zero
+     * at the cutoff, w = (V(rc) - V(r)) / (1 + V(rc)); the force then jumps at rc (Frenkel
+     * does not). A narrow width makes the shifted depth 1 + V(rc) small and the wall
+     * relatively stiff, since the depth is renormalised to 1.
+     *
+     * `width` is the shell width of the profile (the cutoff), in (0, MAX_PROFILE_WIDTH];
+     * `power` is only used by Cosine and `alpha` only by Morse.
+     */
+    enum class ShellKind
+    {
+        Cosine,
+        Frenkel,
+        LJ,
+        Morse
+    };
+
+    constexpr double MAX_PROFILE_WIDTH = 4.0;
+
+    struct ShellProfile
+    {
+        ShellKind kind = ShellKind::Cosine;
+        double width = 0.25;
+        double power = 1.0;
+        double alpha = 6.0;
+    };
+
+    // Name of the profile as written in the input file ("cosine", "frenkel", "lj", "morse")
+    const char *shellKindName(ShellKind kind);
+    // The inverse; throws std::invalid_argument for an unknown name
+    ShellKind shellKindFromName(const std::string &name);
+
+    /*
+     * Weight of the profile at distance r from the bead centre (radius sigma) and dw/dr.
+     * Cosine takes exactly the coverageShellWeight path. Throws std::invalid_argument for
+     * a non-positive sigma, a width outside (0, MAX_PROFILE_WIDTH] (Cosine: (0, 1)),
+     * a Morse alpha <= 0 or a Cosine power < 1.
+     */
+    double shellProfileWeight(double r, double sigma, double &dWeightDr, const ShellProfile &profile);
+
+    /*
      * Angular patch of the bead (a pinned contact line). Only the part of the
      * bead within the polar angle theta_Wr of an axis can adhere, as in the
      * adhesive patch of Saric & Cacciuto (theta_Wr of van der Wel et al., Sci.
@@ -158,6 +211,11 @@ namespace bead_geometry
      * normal points to the bead (dot(bead -> centroid, normal) < 0).
      * side = -1: the bead is inside the closed membrane, a face counts if its
      * outward normal points away from the bead (dot(bead -> centroid, normal) > 0).
+     *
+     * profile = nullptr or Cosine: the cosine shell of shellWidth and shellPower, as always.
+     * Another kind replaces the weight by that profile (shellWidth and shellPower are then
+     * ignored); its weight can be negative (the repulsive core), a face is selected whenever
+     * the weight is not exactly zero.
      */
     FaceCoverageData evaluateFaceCoverage(
         const VertexPositionGeometry &geometry,
@@ -166,7 +224,8 @@ namespace bead_geometry
         double sigma,
         double shellWidth = 0.25,
         double shellPower = 1.0,
-        double side = 1.0);
+        double side = 1.0,
+        const ShellProfile *profile = nullptr);
 
     // Coverage constants are [K, cov_0, ..., cov_(N-1)], one target per bead.
     // Throws std::invalid_argument if the count does not match.

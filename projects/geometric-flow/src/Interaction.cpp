@@ -1292,8 +1292,9 @@ SparseMatrix<double> Face_Integrated_Interaction::Hessian_IP()
 
 double Adhesion::Face_Energy(Face f)
 {
+    const bead_geometry::ShellProfile profile = shellProfile();
     const bead_geometry::FaceCoverageData face =
-        bead_geometry::evaluateFaceCoverage(*geometry, f, Bead_1->Pos, sigma(), shellWidth(), shellPower(), side);
+        bead_geometry::evaluateFaceCoverage(*geometry, f, Bead_1->Pos, sigma(), shellWidth(), shellPower(), side, &profile);
     if (!face.selected)
         return 0.0;
     if (hasPatch())
@@ -1308,8 +1309,9 @@ double Adhesion::Face_Energy(Face f)
 
 void Adhesion::Add_Face_Force(Face f, VertexData<Vector3> &membraneForce, Vector3 &beadForce)
 {
+    const bead_geometry::ShellProfile profile = shellProfile();
     const bead_geometry::FaceCoverageData face =
-        bead_geometry::evaluateFaceCoverage(*geometry, f, Bead_1->Pos, sigma(), shellWidth(), shellPower(), side);
+        bead_geometry::evaluateFaceCoverage(*geometry, f, Bead_1->Pos, sigma(), shellWidth(), shellPower(), side, &profile);
     if (!face.selected)
         return;
 
@@ -1364,10 +1366,11 @@ void Adhesion::updatePatchAxis()
     // The faces that count and what each adds to S(n) = sum_f b_f w_patch(u_f . n), b_f = w(r_f) |omega_f|
     std::vector<Vector3> u;
     std::vector<double> b;
+    const bead_geometry::ShellProfile profile = shellProfile();
     for (Face f : mesh->faces())
     {
         const bead_geometry::FaceCoverageData face =
-            bead_geometry::evaluateFaceCoverage(*geometry, f, Bead_1->Pos, sigma(), shellWidth(), shellPower(), side);
+            bead_geometry::evaluateFaceCoverage(*geometry, f, Bead_1->Pos, sigma(), shellWidth(), shellPower(), side, &profile);
         if (!face.selected)
             continue;
         u.push_back(face.radialDirection);

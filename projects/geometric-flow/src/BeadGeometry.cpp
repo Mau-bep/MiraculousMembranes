@@ -70,6 +70,85 @@ namespace bead_geometry
         return std::pow(base, shellPower);
     }
 
+    const char *shellKindName(ShellKind kind)
+    {
+        switch (kind)
+        {
+        case ShellKind::Frenkel:
+            return "frenkel";
+        case ShellKind::LJ:
+            return "lj";
+        case ShellKind::Morse:
+            return "morse";
+        default:
+            return "cosine";
+        }
+    }
+
+    ShellKind shellKindFromName(const std::string &name)
+    {
+        if (name == "cosine" || name == "cos")
+            return ShellKind::Cosine;
+        if (name == "frenkel")
+            return ShellKind::Frenkel;
+        if (name == "lj")
+            return ShellKind::LJ;
+        if (name == "morse")
+            return ShellKind::Morse;
+        throw std::invalid_argument("shell profile \"" + name + "\" is unknown, use cosine, frenkel, lj or morse");
+    }
+
+    double shellProfileWeight(double r, double sigma, double &dWeightDr, const ShellProfile &profile)
+    {
+        if (profile.kind == ShellKind::Cosine)
+            return coverageShellWeight(r, sigma, dWeightDr, profile.width, profile.power);
+
+        if (!(sigma > 0.0))
+            throw std::invalid_argument("shellProfileWeight(): sigma must be strictly positive.");
+        if (!(profile.width > 0.0 && profile.width <= MAX_PROFILE_WIDTH))
+            throw std::invalid_argument("shellProfileWeight(): the width of a Frenkel, LJ or Morse profile must be in (0, 4].");
+        if (profile.kind == ShellKind::Morse && !(profile.alpha > 0.0 && std::isfinite(profile.alpha)))
+            throw std::invalid_argument("shellProfileWeight(): the Morse alpha must be finite and positive.");
+
+        dWeightDr = 0.0;
+        const double rc = sigma * (1.0 + profile.width);
+        if (r >= rc)
+            return 0.0;
+
+        if (profile.kind == ShellKind::Frenkel)
+        {
+            // V = alpha (s2/r^2 - 1)(c2/r^2 - 1)^2, minimum -1 at r = sigma, zero value and slope at rc
+            const double c2 = rc * rc, s2 = 2.0 * c2 * sigma * sigma / (3.0 * c2 - sigma * sigma);
+            const double alpha = 27.0 * c2 * s2 * s2 / (4.0 * std::pow(c2 - s2, 3.0));
+            const double r2 = r * r, q2 = c2 / r2 - 1.0, q3 = s2 / r2 - 1.0;
+            // dV/dr = -2 alpha / r^3 (c2/r^2 - 1) [s2 (c2/r^2 - 1) + 2 c2 (s2/r^2 - 1)]
+            const double dV = -2.0 * alpha / (r2 * r) * q2 * (s2 * q2 + 2.0 * c2 * q3);
+            dWeightDr = -dV;
+            return -alpha * q3 * q2 * q2;
+        }
+
+        // LJ and Morse: depth 1 at sigma, shifted by V(rc), w = (V(rc) - V(r)) / (1 + V(rc))
+        double V, dV, Vc;
+        if (profile.kind == ShellKind::LJ)
+        {
+            const double sc6 = std::pow(sigma / rc, 6.0), s6 = std::pow(sigma / r, 6.0);
+            Vc = sc6 * sc6 - 2.0 * sc6;
+            V = s6 * s6 - 2.0 * s6;
+            dV = -12.0 * (s6 * s6 - s6) / r;
+        }
+        else
+        {
+            const double k = profile.alpha / sigma;
+            const double e = std::exp(-k * (r - sigma)), ec = std::exp(-k * (rc - sigma));
+            Vc = (1.0 - ec) * (1.0 - ec) - 1.0;
+            V = (1.0 - e) * (1.0 - e) - 1.0;
+            dV = 2.0 * (1.0 - e) * k * e;
+        }
+        const double depth = 1.0 + Vc;
+        dWeightDr = -dV / depth;
+        return (Vc - V) / depth;
+    }
+
     double patchWeight(double t, double cosEdge, double dCos, double &dWeightDt)
     {
         dWeightDt = 0.0;
@@ -200,7 +279,8 @@ namespace bead_geometry
         double sigma,
         double shellWidth,
         double shellPower,
-        double side)
+        double side,
+        const ShellProfile *profile)
     {
         FaceCoverageData result;
 
@@ -233,16 +313,28 @@ namespace bead_geometry
         /*
          * Radial cosine shell selection.
          */
-        result.weight = coverageShellWeight(
-            centroidDistance,
-            sigma,
-            result.dWeightDr,
-            shellWidth,
-            shellPower);
-
-        if (result.weight <= 0.0)
+        if (profile != nullptr && profile->kind != ShellKind::Cosine)
         {
-            return result;
+            result.weight = shellProfileWeight(centroidDistance, sigma, result.dWeightDr, *profile);
+            // the repulsive core of a profile has a negative weight, it counts as well
+            if (result.weight == 0.0)
+            {
+                return result;
+            }
+        }
+        else
+        {
+            result.weight = coverageShellWeight(
+                centroidDistance,
+                sigma,
+                result.dWeightDr,
+                shellWidth,
+                shellPower);
+
+            if (result.weight <= 0.0)
+            {
+                return result;
+            }
         }
 
         /*

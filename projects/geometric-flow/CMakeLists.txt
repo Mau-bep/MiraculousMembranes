@@ -565,6 +565,11 @@ add_executable(Test_shell_power src/Test_shell_power.cpp src/Interaction.cpp src
 target_include_directories(Test_shell_power PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
 target_link_libraries(Test_shell_power geometry-central)
 
+# Weight and finite-difference checks of the Frenkel, LJ and Morse profiles of the Adhesion weight (shell_profile)
+add_executable(Test_shell_profile src/Test_shell_profile.cpp src/Interaction.cpp src/Beads.cpp src/BeadGeometry.cpp)
+target_include_directories(Test_shell_profile PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+target_link_libraries(Test_shell_profile geometry-central)
+
 # Weight and finite-difference checks of the Adhesion angular patch (patch_angle, patch_width, patch_axis)
 add_executable(Test_patch_adhesion src/Test_patch_adhesion.cpp src/Interaction.cpp src/Beads.cpp src/BeadGeometry.cpp)
 target_include_directories(Test_patch_adhesion PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")

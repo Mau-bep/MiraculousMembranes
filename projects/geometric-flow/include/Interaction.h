@@ -2,6 +2,7 @@
 
 #include <Eigen/Core>
 #include <omp.h>
+#include "BeadGeometry.h"
 #include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/vertex_position_geometry.h"
 // Interaction only stores a Bead pointer; the .cpp files include Beads.h
@@ -296,6 +297,13 @@ public:
 // r = sigma and 0 with zero slope at the edges, but it falls off faster away from the minimum,
 // so the contact is stiffer around r = sigma. p = 1 is exactly the plain shell.
 //
+// The radial profile can also be a pair potential: "shell_profile": "frenkel", "lj" or "morse" ("cosine" is the
+// default). Its weight w(r) = -V(r) / depth is 1 at r = sigma (the minimum of the well) for each of them, so W stays
+// the adhesion energy per unit of contact area, but unlike the cosine shell it keeps the repulsive core (w < 0
+// inside the well) and is cut at rc = sigma (1 + shell_width) (up to 4). LJ and Morse are shifted to zero at rc; Morse
+// has the range "shell_alpha" (alpha sigma, default 6, about the curvature of LJ). See bead_geometry::ShellProfile.
+// shell_power belongs to the cosine shell only.
+//
 // The adhesive part of the bead can be limited to a patch ("patch_angle", "patch_width" and
 // "patch_axis" in the input file, see bead_geometry::patchWeight): only faces within the polar
 // angle theta_Wr of a fixed axis count, w(r_f) is multiplied by the patch weight. The edge of the
@@ -329,6 +337,12 @@ public:
 
     double side = 1.0; // +1 bead outside the membrane (default), -1 inside
 
+    // Radial profile of the weight: the cosine shell (default, shell_width and shell_power) or a Frenkel,
+    // Lennard-Jones or Morse potential turned into a weight (bead_geometry::ShellProfile, "shell_profile" and
+    // "shell_alpha" in the input file). For the potentials shell_width is their cutoff, rc = sigma (1 + shell_width).
+    bead_geometry::ShellKind shellKind = bead_geometry::ShellKind::Cosine;
+    double shellAlpha = 6.0; // Morse range, in 1 / sigma
+
     Adhesion(ManifoldSurfaceMesh *inputMesh,
              VertexPositionGeometry *inputGeometry,
              std::vector<double> constants)
@@ -361,6 +375,15 @@ private:
     double sigma() const { return Energy_constants[1]; }
     double shellWidth() const { return Energy_constants.size() > 3 ? Energy_constants[3] : 0.25; }
     double shellPower() const { return Energy_constants.size() > 4 ? Energy_constants[4] : 1.0; }
+    bead_geometry::ShellProfile shellProfile() const
+    {
+        bead_geometry::ShellProfile profile;
+        profile.kind = shellKind;
+        profile.width = shellWidth();
+        profile.power = shellPower();
+        profile.alpha = shellAlpha;
+        return profile;
+    }
     bool hasPatch() const { return Energy_constants.size() > 9; }
     Vector3 patchAxis() const { return Vector3{Energy_constants[7], Energy_constants[8], Energy_constants[9]}; }
 };

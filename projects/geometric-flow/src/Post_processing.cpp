@@ -624,6 +624,13 @@ std::vector<double> ReadCoverage(std::string Subdir, bool planar = false)
         KI = Bead_data["inter_str"];
         shellWidth = Bead_data.value("shell_width", 0.25);
         shellPower = Bead_data.value("shell_power", 1.0);
+        if (Bead_data.value("shell_profile", std::string("cosine")) != "cosine")
+        {
+            // A Frenkel, LJ or Morse adhesion has no cosine shell: the coverage is measured with the plain default one
+            // (half width 0.25 of the radius), the same for every profile
+            shellWidth = 0.25;
+            shellPower = 1.0;
+        }
     }
 
     int FinalStep = Last_step(Subdir);

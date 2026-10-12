@@ -72,18 +72,45 @@ namespace
             spec.rc = b["rc"].get<double>();
         }
         spec.outside = b.value("outside", 1.0);
+        bool potential_profile = false;
+        if (b.contains("shell_profile"))
+        {
+            spec.shell_profile = b["shell_profile"].get<std::string>();
+            if (spec.mem_inter != "Adhesion")
+                throw std::runtime_error("Input file: \"shell_profile\" in " + where + " is only used by the Adhesion interaction");
+            try
+            {
+                potential_profile = bead_geometry::shellKindFromName(spec.shell_profile) != bead_geometry::ShellKind::Cosine;
+            }
+            catch (const std::invalid_argument &e)
+            {
+                throw std::runtime_error("Input file: \"shell_profile\" in " + where + ": " + e.what());
+            }
+        }
+        if (b.contains("shell_alpha"))
+        {
+            spec.shell_alpha = b["shell_alpha"].get<double>();
+            if (bead_geometry::shellKindFromName(spec.shell_profile) != bead_geometry::ShellKind::Morse)
+                throw std::runtime_error("Input file: \"shell_alpha\" in " + where + " is only used by \"shell_profile\": \"morse\"");
+            if (!(std::isfinite(spec.shell_alpha) && spec.shell_alpha > 0.0))
+                throw std::runtime_error("Input file: \"shell_alpha\" in " + where + " must be a finite number > 0");
+        }
         if (b.contains("shell_width"))
         {
             spec.shell_width = b["shell_width"].get<double>();
             if (spec.mem_inter != "Adhesion")
                 std::cout << "Warning: \"shell_width\" in " << where << " is only used by the Adhesion interaction\n";
-            if (!(spec.shell_width > 0.0 && spec.shell_width < 1.0))
-                throw std::runtime_error("Input file: \"shell_width\" in " + where + " must be in (0, 1)");
+            // the cosine shell is a fraction of the radius below 1, the potentials are cut at radius (1 + shell_width)
+            const double max_width = potential_profile ? bead_geometry::MAX_PROFILE_WIDTH : 1.0;
+            if (!(spec.shell_width > 0.0 && (potential_profile ? spec.shell_width <= max_width : spec.shell_width < max_width)))
+                throw std::runtime_error("Input file: \"shell_width\" in " + where + (potential_profile ? " must be in (0, 4]" : " must be in (0, 1)"));
         }
         if (b.contains("shell_power"))
         {
             // shell_width keeps its default (0.25) when it is not given: the Adhesion constants always carry both
             spec.shell_power = b["shell_power"].get<double>();
+            if (potential_profile)
+                throw std::runtime_error("Input file: \"shell_power\" in " + where + " belongs to the cosine shell, not to \"shell_profile\": \"" + spec.shell_profile + "\"");
             if (spec.mem_inter != "Adhesion")
                 std::cout << "Warning: \"shell_power\" in " << where << " is only used by the Adhesion interaction\n";
             if (!(std::isfinite(spec.shell_power) && spec.shell_power >= 1.0))
@@ -739,6 +766,8 @@ std::unique_ptr<Interaction> make_interaction(const BeadSpec &spec, ManifoldSurf
         auto adhesion = make_unique_ptr<Adhesion>(mesh, geometry, params);
         // "outside": -1 is a bead inside the closed membrane (the faces that count face away from it), anything else the usual outside
         adhesion->side = spec.outside < 0.0 ? -1.0 : 1.0;
+        adhesion->shellKind = bead_geometry::shellKindFromName(spec.shell_profile);
+        adhesion->shellAlpha = spec.shell_alpha;
         return adhesion;
     }
     if (type == "Plane_adhesion")
