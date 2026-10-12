@@ -70,6 +70,30 @@ namespace bead_geometry
         return std::pow(base, shellPower);
     }
 
+    double patchWeight(double t, double cosEdge, double dCos, double &dWeightDt)
+    {
+        dWeightDt = 0.0;
+        if (t <= cosEdge)
+            return 0.0;
+        if (t >= cosEdge + dCos)
+            return 1.0;
+        const double y = (t - cosEdge) / dCos;
+        dWeightDt = 0.5 * PI_VALUE * std::sin(PI_VALUE * y) / dCos;
+        return 0.5 * (1.0 - std::cos(PI_VALUE * y));
+    }
+
+    double patchWeight2(double t, double cosEdge, double dCos, double &dWeightDt, double &d2WeightDt2)
+    {
+        d2WeightDt2 = 0.0;
+        const double w = patchWeight(t, cosEdge, dCos, dWeightDt);
+        if (t > cosEdge && t < cosEdge + dCos)
+        {
+            const double y = (t - cosEdge) / dCos;
+            d2WeightDt2 = 0.5 * PI_VALUE * PI_VALUE * std::cos(PI_VALUE * y) / (dCos * dCos);
+        }
+        return w;
+    }
+
     double planeContactWeight(double h, double width, double &dWdh)
     {
         if (width <= 0.0)
@@ -175,7 +199,8 @@ namespace bead_geometry
         const Vector3 &beadPosition,
         double sigma,
         double shellWidth,
-        double shellPower)
+        double shellPower,
+        double side)
     {
         FaceCoverageData result;
 
@@ -244,8 +269,11 @@ namespace bead_geometry
          *
          * This criterion is deliberately selection-only. Its derivative
          * is not included.
+         *
+         * Internal bead (side = -1): the other way round, the faces that
+         * count have their outward normal pointing away from the bead.
          */
-        if (dot(result.radialDirection, faceNormal) >= 0.0)
+        if (side * dot(result.radialDirection, faceNormal) >= 0.0)
         {
             return result;
         }
