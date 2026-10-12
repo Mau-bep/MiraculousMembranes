@@ -199,7 +199,8 @@ namespace bead_geometry
         const Vector3 &beadPosition,
         double sigma,
         double shellWidth,
-        double shellPower)
+        double shellPower,
+        double side)
     {
         FaceCoverageData result;
 
@@ -268,8 +269,11 @@ namespace bead_geometry
          *
          * This criterion is deliberately selection-only. Its derivative
          * is not included.
+         *
+         * Internal bead (side = -1): the other way round, the faces that
+         * count have their outward normal pointing away from the bead.
          */
-        if (dot(result.radialDirection, faceNormal) >= 0.0)
+        if (side * dot(result.radialDirection, faceNormal) >= 0.0)
         {
             return result;
         }

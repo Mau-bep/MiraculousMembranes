@@ -49,7 +49,7 @@ struct BeadSpec
 
     bool has_rc = false;
     double rc = -1.0;
-    double outside = 1.0; // Frenkel, Frenkel_Normal_nopush, Linear, Linear_Normal, One_over_r_x
+    double outside = 1.0; // Frenkel, Frenkel_Normal_nopush, Linear, Linear_Normal, One_over_r_x; Adhesion: -1 = bead inside the closed membrane
     bool has_shift = false;
     double shift = 0.0;   // LJ; Shifted-LJ computes it from rc unless given
     double shell_width = 0.25; // Adhesion: half width of the contact shell as a fraction of the radius, in (0, 1)

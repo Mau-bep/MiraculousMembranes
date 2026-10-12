@@ -1293,7 +1293,7 @@ SparseMatrix<double> Face_Integrated_Interaction::Hessian_IP()
 double Adhesion::Face_Energy(Face f)
 {
     const bead_geometry::FaceCoverageData face =
-        bead_geometry::evaluateFaceCoverage(*geometry, f, Bead_1->Pos, sigma(), shellWidth(), shellPower());
+        bead_geometry::evaluateFaceCoverage(*geometry, f, Bead_1->Pos, sigma(), shellWidth(), shellPower(), side);
     if (!face.selected)
         return 0.0;
     if (hasPatch())
@@ -1309,7 +1309,7 @@ double Adhesion::Face_Energy(Face f)
 void Adhesion::Add_Face_Force(Face f, VertexData<Vector3> &membraneForce, Vector3 &beadForce)
 {
     const bead_geometry::FaceCoverageData face =
-        bead_geometry::evaluateFaceCoverage(*geometry, f, Bead_1->Pos, sigma(), shellWidth(), shellPower());
+        bead_geometry::evaluateFaceCoverage(*geometry, f, Bead_1->Pos, sigma(), shellWidth(), shellPower(), side);
     if (!face.selected)
         return;
 
@@ -1367,7 +1367,7 @@ void Adhesion::updatePatchAxis()
     for (Face f : mesh->faces())
     {
         const bead_geometry::FaceCoverageData face =
-            bead_geometry::evaluateFaceCoverage(*geometry, f, Bead_1->Pos, sigma(), shellWidth(), shellPower());
+            bead_geometry::evaluateFaceCoverage(*geometry, f, Bead_1->Pos, sigma(), shellWidth(), shellPower(), side);
         if (!face.selected)
             continue;
         u.push_back(face.radialDirection);

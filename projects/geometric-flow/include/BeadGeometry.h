@@ -153,6 +153,11 @@ namespace bead_geometry
      * derivatives needed by Coverage and Adhesion.
      *
      * Assumes mesh normals are outward-oriented.
+     *
+     * side = +1 (default): the bead is outside, a face counts if its outward
+     * normal points to the bead (dot(bead -> centroid, normal) < 0).
+     * side = -1: the bead is inside the closed membrane, a face counts if its
+     * outward normal points away from the bead (dot(bead -> centroid, normal) > 0).
      */
     FaceCoverageData evaluateFaceCoverage(
         const VertexPositionGeometry &geometry,
@@ -160,7 +165,8 @@ namespace bead_geometry
         const Vector3 &beadPosition,
         double sigma,
         double shellWidth = 0.25,
-        double shellPower = 1.0);
+        double shellPower = 1.0,
+        double side = 1.0);
 
     // Coverage constants are [K, cov_0, ..., cov_(N-1)], one target per bead.
     // Throws std::invalid_argument if the count does not match.

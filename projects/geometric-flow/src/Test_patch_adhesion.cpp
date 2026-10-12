@@ -15,6 +15,8 @@
 //   6. the free patch axis ("patch_free"): started 12 degrees off, the Newton iteration finds the axis of the covered cap, the
 //      energy is the one at that axis (and below the one at the start), and the force with the axis at its maximum matches
 //      finite differences of the profiled energy (vertices and bead), because dE/dx = dE/dx at fixed axis there
+//   7. a bead inside the closed membrane ("outside": -1, Adhesion::side = -1): on the outward-oriented sphere it gives the energy
+//      and the forces that the usual side = +1 gives on the reversed sphere, the wrong side selects no face, the default is +1
 //
 // Usage: Test_patch_adhesion [mesh.obj]   (default ../../../input/Simplesphere.obj)
 
@@ -458,6 +460,59 @@ int main(int argc, char **argv)
             std::printf("  profiled energy: max|F| %.3e, rel.err membrane %.2e, bead %.2e\n", fmax, worst / fmax, wb / fmax);
             ok &= check(worst < 1e-6 * fmax && wb < 1e-6 * fmax, "free axis: forces match finite differences of the profiled energy");
         }
+    }
+
+    // ---- 7. a bead inside the membrane: side = -1 ----------------------------------------------------
+    {
+        const double a = 1.0, s = 0.25, W = 2.3;
+        std::printf("\nbead inside the membrane (side = -1) on the outward-oriented sphere against the same bead and positions on the reversed sphere (side = +1)\n");
+        Setup base;
+        std::tie(base.mesh, base.geometry) = readManifoldSurfaceMesh(path);
+        std::vector<std::vector<size_t>> outward, reversed;
+        for (Face f : base.mesh->faces())
+        {
+            Halfedge he = f.halfedge();
+            const size_t i0 = he.vertex().getIndex(), i1 = he.next().vertex().getIndex(), i2 = he.next().next().vertex().getIndex();
+            outward.push_back({i0, i1, i2});
+            reversed.push_back({i0, i2, i1});
+        }
+        std::vector<Vector3> pos;
+        for (Vertex v : base.mesh->vertices())
+            pos.push_back(base.geometry->inputVertexPositions[v] * (1.0 + 0.03 * gauss(gen)));
+        auto build = [&](Setup &S, const std::vector<std::vector<size_t>> &faces) {
+            S.mesh.reset(new ManifoldSurfaceMesh(faces));
+            S.geometry.reset(new VertexPositionGeometry(*S.mesh));
+            for (Vertex v : S.mesh->vertices())
+                S.geometry->inputVertexPositions[v] = pos[v.getIndex()];
+            S.geometry->refreshQuantities();
+        };
+        const Vector3 axis = unit(Vector3{0.2, 0.1, -1.0});
+        Setup A, B; // A: faces look at the bead (the usual case, side +1), B: outward faces around a bead inside (side -1)
+        build(A, reversed);
+        build(B, outward);
+        A.attach(patchConstants(W, a, s, 120.0, 10.0, axis));
+        B.attach(patchConstants(W, a, s, 120.0, 10.0, axis));
+        B.adhesion->side = -1.0;
+        A.bead.Pos = B.bead.Pos = Vector3{0.03, -0.02, 0.01};
+        const double EA = A.adhesion->Tot_Energy(), EB = B.adhesion->Tot_Energy();
+        VertexData<Vector3> FA = A.adhesion->Gradient(), FB = B.adhesion->Gradient();
+        double fdiff = 0.0, fmax = 0.0;
+        for (Vertex v : A.mesh->vertices())
+        {
+            fdiff = std::max(fdiff, norm(FA[v] - FB[v]));
+            fmax = std::max(fmax, norm(FA[v]));
+        }
+        const double bdiff = norm(A.bead.Total_force - B.bead.Total_force);
+        std::printf("  E(side +1, reversed) = %.12g, E(side -1, outward) = %.12g, max|F diff| %.2e (max|F| %.3e), bead force diff %.2e\n", EA, EB, fdiff, fmax, bdiff);
+        ok &= check(EA < 0.0 && std::abs(EA - EB) <= 1e-12 * std::abs(EA), "side -1 on the outward sphere gives the energy of side +1 on the reversed one");
+        ok &= check(fdiff <= 1e-12 * fmax && bdiff <= 1e-12 * fmax, "... and the same forces on the membrane and on the bead");
+        // the wrong side selects nothing
+        A.adhesion->side = -1.0;
+        B.adhesion->side = 1.0;
+        ok &= check(A.adhesion->Tot_Energy() == 0.0 && B.adhesion->Tot_Energy() == 0.0, "the wrong side selects no face (energy 0)");
+        // the default side is +1
+        Adhesion fresh;
+        ok &= check(fresh.side == 1.0, "the default side is +1 (a bead outside)");
     }
 
     std::printf(ok ? "PASS\n" : "FAILED\n");

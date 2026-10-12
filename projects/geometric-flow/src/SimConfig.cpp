@@ -551,6 +551,14 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
         }
     }
 
+    // The Coverage energy and the face selection of its post-processing know beads outside the membrane only
+    for (const EnergySpec &e : cfg.energies)
+        if (e.name == "Coverage")
+            for (size_t k = 0; k < cfg.beads.size(); k++)
+                if (cfg.beads[k].outside < 0.0)
+                    throw std::runtime_error("Input file: Beads[" + std::to_string(k) + "] has \"outside\": -1 (inside the membrane), "
+                                             "which the Coverage energy does not support: use the Adhesion interaction");
+
     cfg.raw = data;
     return cfg;
 }
@@ -728,7 +736,10 @@ std::unique_ptr<Interaction> make_interaction(const BeadSpec &spec, ManifoldSurf
             params.push_back(spec.patch_axis.z);
             params.push_back(spec.patch_free ? 1.0 : 0.0);
         }
-        return make_unique_ptr<Adhesion>(mesh, geometry, params);
+        auto adhesion = make_unique_ptr<Adhesion>(mesh, geometry, params);
+        // "outside": -1 is a bead inside the closed membrane (the faces that count face away from it), anything else the usual outside
+        adhesion->side = spec.outside < 0.0 ? -1.0 : 1.0;
+        return adhesion;
     }
     if (type == "Plane_adhesion")
     {

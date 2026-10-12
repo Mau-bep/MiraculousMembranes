@@ -316,10 +316,18 @@ public:
 //                     patch: cosEdge, dCos, axis_x, axis_y, axis_z, free (all six or none, axis of unit length,
 //                     free = 1 turns the axis solve on, the constants then hold the current axis)}
 // (inter_str, radius in the input file)
+//
+// A bead INSIDE a closed membrane (the vesicle wraps it from the inside, with an outward bulge) has
+// "outside": -1 in the input file: `side` = -1, and the faces that count are those whose outward normal
+// points away from the bead (bead_geometry::evaluateFaceCoverage). With the default side = +1 (the
+// bead outside, "outside": 1 or not given) nothing changes. For a bead inside, the patch axis points
+// from the bead to the membrane it wraps, as always: away from the centre of the vesicle.
 class Adhesion : public Face_Integrated_Interaction
 {
 public:
     Adhesion() = default;
+
+    double side = 1.0; // +1 bead outside the membrane (default), -1 inside
 
     Adhesion(ManifoldSurfaceMesh *inputMesh,
              VertexPositionGeometry *inputGeometry,
