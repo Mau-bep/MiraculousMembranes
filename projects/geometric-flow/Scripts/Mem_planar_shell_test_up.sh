@@ -35,7 +35,7 @@ if ( $status == 0 ) set Rescale = 5.0
 echo "rescale ${Rescale}"
 
 foreach Pw ( 1 2 4 )
-foreach Sw ( 0.25 0.1 0.05 )
+foreach Sw ( 0.1 0.05 )
 
 # refine_angle (edge length near the bead), BFGS -> BFGS-Normal step and slurm time limit for this shell
 if ( ${Sw} == "0.25" ) then
@@ -61,8 +61,8 @@ endif
 set Batch_Tag = "Shell_test_p${Pw}_s${Sw}"
 
 # 27 values: 0.5 ... 1.8 in steps of 0.05
-foreach Strg ( 0.5 0.55 0.6 0.65 0.7 0.75 0.8 0.85 0.9 0.95 1.0 1.05 1.1 1.15 1.2 1.25 1.3 1.35 1.4 1.45 1.5 1.55 1.6 1.65 1.7 1.75 1.8 )
-
+# foreach Strg ( 0.5 0.55 0.6 0.65 0.7 0.75 0.8 0.85 0.9 0.95 1.0 1.05 1.1 1.15 1.2 1.25 1.3 1.35 1.4 1.45 1.5 1.55 1.6 1.65 1.7 1.75 1.8 )
+foreach Strg ( 1.11 1.12 1.13 1.14 1.16 1.17 1.18 1.19 )
 set Unique_Tag = "${Batch_Tag}_Strg_${Strg}_r_${radius}_KA_${KA}_KB_${KB}_Nsim_${Nsim}"
 
 python3 Create_subjob_planar.py --inter_str ${Strg} --radius ${radius} --KA ${KA} --KB ${KB} --tension excess --init flat --rescale ${Rescale} --shell_width ${Sw} --shell_power ${Pw} --size_min 0.01 --size_max 1.0 --refine_angle ${Refine} --saved_states 60 --switch_normal ${Switch} --time ${Time} --batch_tag ${Batch_Tag} --unique_tag ${Unique_Tag}
