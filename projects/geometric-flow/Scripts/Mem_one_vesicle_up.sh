@@ -37,7 +37,7 @@ foreach Init ( flat )
 if ( ${Init} == "flat" ) set List = ${ListUp}
 if ( ${Init} == "full" ) set List = ${ListDown}
 set Tag = "transition_${Init}"
-python3 Create_subjob_one_vesicle.py --batch_tag ${Batch_Tag}/${Tag} --unique_tag ${Batch_Tag}_${Tag} --scan wt --scan_list ${List} --wrap adhesion --KB 42 --sigma_tilde 0.02 --Rv 6.25 --refine_angle 0.30 --no_return --time 24:00:00 --prewrap_cov 0.3
+python3 Create_subjob_one_vesicle.py --batch_tag ${Batch_Tag}/${Tag} --unique_tag ${Batch_Tag}_${Tag} --scan wt --scan_list ${List} --wrap adhesion --KB 42 --sigma_tilde 0.02 --Rv 6.25 --refine_angle 0.20 --no_return --time 24:00:00 --prewrap_cov 0.3
 sbatch ../Subjobs/${Batch_Tag}_${Tag}_subjob
 end
 
