@@ -40,16 +40,18 @@ parser.add_argument("--s_list", type=str, default=None,
 parser.add_argument("--max_step", type=number_str, default="0.5", help="largest change of s (D_p) between two relaxations, bigger moves of the list go through waypoints")
 parser.add_argument("--no_return", action="store_true", help="do not walk the list backwards after the last separation (the way back gives the hysteresis, 0.03-0.2 kappa, "
                                                             "and a second value at every s: it doubles the time of the job)")
-parser.add_argument("--wrap", choices=["patch", "coverage", "adhesion"], default="patch",
-                    help="how the wrapped area is set: patch = Adhesion limited to an angular patch (pinned contact line, the paper's theta_Wr; "
-                         "needs the build with patch_angle), coverage = the Coverage energy of Wrapping_two_cov, adhesion = plain Adhesion")
-parser.add_argument("--patch_angle", type=number_str, default="143.13",
-                    help="theta_Wr in degrees, the polar angle of the edge of the patch: 143.13 = 90 percent of the bead area (the paper's text), "
+parser.add_argument("--wrap", choices=["patch", "coverage", "adhesion"], default="adhesion",
+                    help="how the wrapped area is set: adhesion (default) = plain Adhesion, a shell around the bead, the contact line is free and the wrapping is "
+                         "whatever the energy gives (no patch logic, works with any build, --planar and --inside); patch = Adhesion limited to an angular patch "
+                         "(pinned contact line, the paper's theta_Wr; needs the build with patch_angle, and --patch_angle/--patch_width/--free_axis only act with it); "
+                         "coverage = the Coverage energy of Wrapping_two_cov")
+parser.add_argument("--patch_angle", type=number_str, default=None,
+                    help="only with --wrap patch (default 143.13). theta_Wr in degrees, the polar angle of the edge of the patch: 143.13 = 90 percent of the bead area (the paper's text), "
                          "165 = 98 percent (the example of the paper's Fig. S5: an inactive cone of 30 degrees), 101.5 = 60 percent, 90 = 50 percent; "
                          "the active area of a cap of half-angle theta is (1 - cos theta)/2")
-parser.add_argument("--patch_width", type=number_str, default="5.0", help="width in degrees of the smooth ramp inside the edge of the patch")
+parser.add_argument("--patch_width", type=number_str, default=None, help="only with --wrap patch (default 5.0): width in degrees of the smooth ramp inside the edge of the patch")
 parser.add_argument("--replica", type=int, default=0, help="replica number: the vesicle starts 0.003 * replica bead radii off the symmetry plane, a negligible change that sends the (chaotic) mesh history of the run elsewhere, for error bars from several replicas")
-parser.add_argument("--free_axis", action="store_true", help="let each patch turn: its axis maximises the covered weight at every evaluation, every solve starting from the axis set for the link (default: fixed in space, pointed to the centre of the vesicle at every separation); needs the build with commit 8ced2182 of the branch bead-patch-adhesion (the merge 68af27c6 alone has a warm-started solve that ends on a false maximum, 2 kappa too high); finds the axis within ~25 degrees of the start")
+parser.add_argument("--free_axis", action="store_true", help="only with --wrap patch: let each patch turn: its axis maximises the covered weight at every evaluation, every solve starting from the axis set for the link (default: fixed in space, pointed to the centre of the vesicle at every separation); needs the build with commit 8ced2182 of the branch bead-patch-adhesion (the merge 68af27c6 alone has a warm-started solve that ends on a false maximum, 2 kappa too high); finds the axis within ~25 degrees of the start")
 parser.add_argument("--W", type=number_str, default="6.0", help="adhesion energy per area in kappa/a^2 (w~ = 2 W a^2/kappa = 12 for 6: far above 4)")
 parser.add_argument("--shell_width", type=number_str, default="0.1", help="half width of the adhesion shell, fraction of the radius")
 parser.add_argument("--cov", type=number_str, default="0.6", help="coverage target for --wrap coverage")
@@ -73,7 +75,7 @@ parser.add_argument("--size_max", type=number_str, default=None, help="largest e
 parser.add_argument("--refine_angle", type=number_str, default=None, help="remesher refine_angle (template 0.3: edges of about 0.2 near a bead)")
 parser.add_argument("--switch", type=str, default="100,1500", help="Switch_times of the warm-started links (BFGS, BFGS-Normal)")
 parser.add_argument("--prewrap", choices=["coverage", "none"], default="coverage",
-                    help="coverage (default for --wrap patch): the beads are first wrapped quickly by the stiff Coverage energy (--prewrap_steps steps, "
+                    help="coverage (default, used with --wrap patch only): the beads are first wrapped quickly by the stiff Coverage energy (--prewrap_steps steps, "
                          "target --prewrap_cov), then the patch run starts from that mesh. A patch run started from the tangent contact needs "
                          "30000 steps just to wrap; the pre-wrapped state is already close to its minimum. none: start from the tangent contact "
                          "(the patch axes then point where the vesicle centre is expected, which is only right for shallow pockets). With --inside there is no pre-wrap "
@@ -85,6 +87,16 @@ parser.add_argument("--unique_tag", type=str, required=True, help="unique tag of
 parser.add_argument("--time", type=str, default="48:00:00", help="time limit of the sbatch job (default 48:00:00: a scan is a chain of about 20 runs of minutes to an hour)")
 parser.add_argument("--no_binary_check", action="store_true", help="do not look for the patch option in ../build/bin/main_cluster")
 args = parser.parse_args()
+
+if args.wrap != "patch":
+    # the patch keys would be dropped without a word: a launcher line written for the old default (--wrap patch) must not silently run another model
+    given = [name for name, value in (("--patch_angle", args.patch_angle), ("--patch_width", args.patch_width), ("--free_axis", args.free_axis or None)) if value is not None]
+    if given:
+        raise SystemExit("{} only act with --wrap patch (the default is now --wrap {}, no patch): add --wrap patch or drop them".format(", ".join(given), args.wrap))
+if args.patch_angle is None:
+    args.patch_angle = "143.13"
+if args.patch_width is None:
+    args.patch_width = "5.0"
 
 BINARY = '../build/bin/main_cluster'
 if args.wrap == "patch" and not args.no_binary_check:

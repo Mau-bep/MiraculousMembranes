@@ -63,7 +63,7 @@ foreach rep ( 0 1 )
 # python3 Create_subjob_two_vesicle.py --batch_tag ${Batch_Tag}/${Tag} --unique_tag ${Batch_Tag}_${Tag} --inside --sigma 0.02 --patch_angle 165 --replica ${rep}
 # sbatch ../Subjobs/${Batch_Tag}_${Tag}_subjob
 
-set Tag = "outside_floppy_rep${rep}"
-python3 Create_subjob_two_vesicle.py --batch_tag ${Batch_Tag}/${Tag} --unique_tag ${Batch_Tag}_${Tag} --area "constraint" --patch_angle 165 --replica ${rep}
+set Tag = "shell_nopatch_rep${rep}"
+python3 Create_subjob_two_vesicle.py --batch_tag ${Batch_Tag}/${Tag} --unique_tag ${Batch_Tag}_${Tag} --area tension --sigma 0.02 --replica ${rep} --prewrap_cov 0.6 --prewrap_steps 40000 --switch "100, 20000" --wrap adhesion
 sbatch ../Subjobs/${Batch_Tag}_${Tag}_subjob
 end
