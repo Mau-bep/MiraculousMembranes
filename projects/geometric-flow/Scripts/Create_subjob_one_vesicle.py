@@ -103,7 +103,7 @@ parser.add_argument("--refine_angle", type=number_str, default=None,
                     help="remesher refine_angle (template 0.3: edges of about 0.2 near a bead; 0.10 for --wrap frenkel unless given: the well of the potential is 0.2 a wide and a state that "
                          "wraps the bead needs edges of about 0.1 there, with 0.3 a 5000-step relaxation at w~ = 4.5 had 51 vertices in the well and 16 percent of the bead covered, with 0.1 793 and 56 percent)")
 # --- how long each run is (the numbers of the stopping block of the config; the links copy the cold start unless a --link_ value is given)
-parser.add_argument("--switch", type=str, default="100,1500", help="Switch_times of the warm-started links (BFGS, BFGS-Normal)")
+parser.add_argument("--switch", type=str, default="100,10000", help="Switch_times of the warm-started links (BFGS, BFGS-Normal)")
 parser.add_argument("--timesteps", type=number_str, default=None, help="largest number of steps of a run (template 200000, never reached in practice); the links copy it")
 parser.add_argument("--window", type=number_str, default=None, help="stopping: steps of one window (template 50)")
 parser.add_argument("--patience", type=number_str, default=None, help="stopping: windows in a row that must pass the test (template 3)")
