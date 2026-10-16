@@ -31,7 +31,7 @@ set Batch_Tag = "Wrapping_one_vesicle"
 #        hysteresis. The way back along the list is switched off here (--no_return): leave it out to walk the list back too (doubles the runs).
 #        Time: about 35 s per 5000 steps at 3000-6000 vertices, a link takes minutes, the whole chain a few hours; the time limit is generous.
 # set ListUp = "2,2.6,3,3.3,3.5,3.7,3.8,3.9,4,4.1,4.2,4.3,4.4,4.5,4.6,4.7,4.8,4.9,5,5.1,5.2,5.4,5.6,5.8,6,6.5,7,8,10,12"
-set ListUp = "2,2.5,3,3.5,4,4.2,4.4,4.3,4.4,4.6,4.62,4.64,4.66,4.68,4.7,4.72, 4.74,4.76,4.78,4.8"
+set ListUp = "2,2.5,3,3.5,4,4.2,4.4,4.3,4.4,4.6,4.62,4.64,4.66,4.68,4.7,4.72,4.74,4.76,4.78,4.8"
 set ListDown = `python3 -c "print(','.join(reversed('${ListUp}'.split(','))))"`
 foreach Init ( flat )
 # foreach Init ( flat full )
