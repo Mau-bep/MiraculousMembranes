@@ -6,8 +6,8 @@
 set Nsim=1
 # "full": start from input/Planar_full.obj (membrane already wrapped around the bead),
 # "flat": start from Big_planar_mem.obj with the bead above the plane
-set Init = "full"
-set Batch_Tag = "Wrapping_planar"
+set Init = "flat"
+set Batch_Tag = "Wrapping_planar_chain"
 if ( ${Init} == "full" ) set Batch_Tag = "${Batch_Tag}_full"
 set KB = 1
 set radius = 1.0
