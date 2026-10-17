@@ -147,7 +147,11 @@ which rows count as points is the `points()` function (awk, ten lines). The same
 
 `chain_summary.csv` has no coverage (it is measured on the meshes), so `Collect_chain_results.sh` also runs `Coverage_data_chain.py` (python3 + numpy): **`<batch>/Coverage_data_<Tag>.csv`**, one line per point, both legs (a point of the way back appears twice,
 `leg` = in / out; `cold` is the cold start, the same KB as the first link). Columns: `DIR, link, leg, scan_var, scan_value, KA, KB, KI, BeadRadius, rc` (the constants of the run, those of the `Coverage_data.txt` of PostProcessing), `CoveredArea` (the coverage of the Coverage energy),
-`CoverageUnion` and `MultilayerFrac` (PostProcessing's: the fraction of 20000 directions from the bead hit by one, by two or more faces of the shell; a port to numpy, not compared with the C++ numbers), `cap_cfg`, `f_ad`, `shell_width`, `nV`, `finished`. `DO_COV=0` skips it.
+`CoverageUnion` and `MultilayerFrac` (PostProcessing's: the fraction of 20000 directions from the bead hit by one, by two or more faces of the shell; a port to numpy, not compared with the C++ numbers), `cap_cfg`, `f_ad`, `Total_E` (the total energy of the run), `shell_width`, `nV`, `finished`. `DO_COV=0` skips it.
 
 `Plots.py: phase_one_vesicle(batch="../Results/Phase_one_vesicle")` reads all the `Coverage_data_*.csv` of the batch and draws them as `deserno_fig5` does (w/sigma = KI/KA against a/lambda = a sqrt(KA/(0.5 KB)), log axis, the E and W curves of Deserno, coloured by z = 2 CoverageUnion): the way in as circles, the way back as smaller squares on top (`legs=("in",)`
 for one leg, `column="cap_cfg"` for another coverage, `kappa_over_KB` and `w_over_KI` as in `deserno_fig5`, `save=`, `show=`).
+
+`Plots.py: phase_one_vesicle_map(batch=...)` is the same data as a `pcolormesh` in the fashion of `contour()` (no theory curves): the points are binned (24 log-spaced bins in x, 16 linear in y) and a bin is coloured by the mean of `CoveredArea` of its points
+(`column=` for another one); x = a sqrt(sigma/KB) as in `contour()` (`kappa_over_KB=0.5` for the a/lambda of `deserno_fig5`), y = w/sigma, `legs="lowest"` by default: every point once, the way in or the way back, whichever has the lower `Total_E` (`Plots.py: coverage_lowest_energy(batch)`, which takes all the `Coverage_data_*.csv` of the folder and does that; `legs=("in",)`, `("out",)`, `("in", "out")` (the mean of the two numbers) are the other choices). The figure is saved
+as `Phase_one_vesicle_coverage.png` in the folder of the csv's.

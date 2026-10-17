@@ -218,6 +218,95 @@ def contour():
 
 # contour()
 
+def coverage_lowest_energy(batch="../Results/Phase_one_vesicle", legs=("in", "out")):
+    """All the points of the Coverage_data_*.csv of a folder (one file per chain, Coverage_data_chain.py), one row per point: where a chain has two numbers
+    for the same scanned value, the way in and the way back, the one with the lower Total_E is kept (the same constants, so the lower energy is the more
+    stable state; a tie keeps the way in). The cold start is left out. Returns the rows (dicts of strings, as the csv has them, plus "file").
+    batch: the folder, or a glob of csv's. Needs the Total_E column: the csv's written before 2026-10-17 do not have it, run Collect_chain_results.sh again."""
+    import csv
+    import glob
+    import os
+
+    files = sorted(glob.glob(os.path.join(batch, "Coverage_data_*.csv") if os.path.isdir(batch) else batch))
+    if not files:
+        raise FileNotFoundError("no Coverage_data_*.csv in " + str(batch))
+    best, seen = {}, {}
+    for fn in files:
+        with open(fn) as f:
+            for r in csv.DictReader(f):
+                if r["leg"] not in legs:
+                    continue
+                if "Total_E" not in r:
+                    raise KeyError("no Total_E column in {}: run Collect_chain_results.sh again".format(fn))
+                r["file"] = os.path.basename(fn)
+                key = (fn, r["scan_var"], float(r["scan_value"]))
+                seen[key] = seen.get(key, 0) + 1
+                if key not in best or float(r["Total_E"]) < float(best[key]["Total_E"]):
+                    best[key] = r
+    pairs = [k for k, n in seen.items() if n > 1]
+    back = sum(best[k]["leg"] == "out" for k in pairs)
+    print("{} points from {} files; {} have both legs, the way back has the lower energy in {}".format(len(best), len(files), len(pairs), back))
+    return list(best.values())
+
+
+def phase_one_vesicle_map(batch="../Results/Phase_one_vesicle", legs="lowest", column="CoveredArea", kappa_over_KB=1.0, w_over_KI=1.0,
+                          nx=24, ny=16, save="Phase_one_vesicle_coverage.png", show=True):
+    """pcolormesh of the chains of Phase_one_vesicle in the fashion of contour(): the points are binned (nx bins log-spaced in x, ny linear in y) and the
+    colour of a bin is the mean of the column of its points; bins without points are left empty.
+        x = a sqrt(KA / (kappa_over_KB KB))  (log axis; kappa_over_KB = 1 is a sqrt(sigma/KB) as in contour(), 0.5 the a/lambda of deserno_fig5),   y = w_over_KI KI / KA = w/sigma
+    batch: the folder with the Coverage_data_<Tag>.csv of every chain (Coverage_data_chain.py, run by Collect_chain_results.sh on the cluster), or a glob of csv's.
+    legs: "lowest" (default) takes every point once, the way in or the way back, whichever has the lower Total_E (coverage_lowest_energy); ("in",) the way
+    along the KB list, ("out",) the way back, ("in", "out") both (a bin then takes the mean of the two numbers of its points).
+    column: CoveredArea (as contour()), CoverageUnion, cap_cfg or f_ad.
+    save: file name of the figure, a bare name goes to the folder of the csv's (None: not saved).
+    """
+    import csv
+    import glob
+    import os
+
+    files = sorted(glob.glob(os.path.join(batch, "Coverage_data_*.csv") if os.path.isdir(batch) else batch))
+    if not files:
+        raise FileNotFoundError("no Coverage_data_*.csv in " + str(batch))
+    if legs == "lowest":
+        rows = [r for r in coverage_lowest_energy(batch) if float(r["KA"]) > 0]                  # w/sigma = KI/KA is undefined at zero tension
+    else:
+        rows = []
+        for fn in files:
+            with open(fn) as f:
+                rows += [r for r in csv.DictReader(f) if r["leg"] in legs and float(r["KA"]) > 0]
+    KA, KB, KI, r0 = (np.array([float(r[k]) for r in rows]) for k in ("KA", "KB", "KI", "BeadRadius"))
+    C = np.array([float(r[column]) for r in rows])
+    X = r0 * np.sqrt(KA / (kappa_over_KB * KB))
+    Y = w_over_KI * KI / KA
+    good = np.isfinite(X) & np.isfinite(Y) & np.isfinite(C) & (X > 0)
+    X, Y, C = X[good], Y[good], C[good]
+    print("{} points from {} files".format(len(X), len(files)))
+
+    x_min, x_max = X.min(), X.max()
+    y_min, y_max = (Y.min(), Y.max()) if Y.max() > Y.min() else (Y.min() - 0.5, Y.max() + 0.5)
+    x_edges = np.logspace(np.log10(x_min), np.log10(x_max), nx + 1)
+    y_edges = np.linspace(y_min, y_max, ny + 1)
+    sum_grid, _, _ = np.histogram2d(X, Y, bins=[x_edges, y_edges], weights=C)
+    cnt_grid, _, _ = np.histogram2d(X, Y, bins=[x_edges, y_edges])
+    avg_grid = np.full_like(sum_grid, np.nan, dtype=float)
+    mask = cnt_grid > 0
+    avg_grid[mask] = sum_grid[mask] / cnt_grid[mask]
+
+    fig, ax = plt.subplots()
+    ax.pcolormesh(x_edges, y_edges, np.ma.masked_invalid(avg_grid.T), shading="flat", cmap="viridis", vmin=0.0 if column != "f_ad" else None, vmax=1.0 if column != "f_ad" else None)
+    ax.set_xscale("log")
+    ax.set_ylabel(r"$w/\sigma$")
+    ax.set_xlabel(r"$a\,\sqrt{ \sigma / \kappa_\text{B}}$" if kappa_over_KB == 1.0 else r"$a/\lambda$")
+    cbar = fig.colorbar(ax.collections[0], ticks=[0.1 * i for i in range(11)] if column != "f_ad" else None)
+    cbar.set_label("Coverage", rotation=90)
+    if save is not None:
+        path = save if os.path.dirname(save) else os.path.join(batch if os.path.isdir(batch) else os.path.dirname(files[0]), save)
+        fig.savefig(path, bbox_inches="tight")
+    if show:
+        plt.show()
+    return fig, ax
+
+
 def EdgePlot():
     dir = "../Results/Mem_shape_PR/41/"
     filepath = dir + "Edge_data_step_9850.txt"

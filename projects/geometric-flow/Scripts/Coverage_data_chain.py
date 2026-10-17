@@ -15,6 +15,8 @@ not the waypoints _w1 nor the half step _mid of a retry; the same points as Coll
         MultilayerFrac the fraction hit by two or more (membrane folded over itself in the shell)
         cap_cfg        the plain solid-angle fraction of the faces in the shell (Analyze_one_vesicle: the wrapped fraction of its coverage plot for the Frenkel potential)
         f_ad           the coverage the adhesion energy of the bead measures, -E_bead/(4 pi W r0^2) (Analyze_one_vesicle: the wrapped fraction for the Adhesion potential)
+        Total_E        the total energy of the run (last row of Output_data.txt, in the units of the config): the two numbers of a point of the way in and the way back
+                       have the same constants, so the lower one is the more stable state (Plots.py: coverage_lowest_energy)
         shell_width    the shell of the three coverages: the half width of the cosine shell of the config (Adhesion), rc/a - 1 for the Frenkel potential
         nV, finished   vertices of the mesh, 1 if the run wrote Final_state.obj
 The points of a chain that goes back appear twice, once for each leg. Tube chains (chain_summary.csv with a column "kind") have no bead to wrap and are skipped.
@@ -39,7 +41,7 @@ N_DIRECTIONS = 20000   # as PostProcessing
 EPS = 1e-12            # a face seen edge-on from the bead has no solid angle
 
 FIELDS = ["DIR", "link", "leg", "scan_var", "scan_value", "KA", "KB", "KI", "BeadRadius", "rc", "CoveredArea", "CoverageUnion", "MultilayerFrac",
-          "cap_cfg", "f_ad", "shell_width", "nV", "finished"]
+          "cap_cfg", "f_ad", "Total_E", "shell_width", "nV", "finished"]
 
 
 def chain_points(chain):
@@ -107,7 +109,7 @@ def coverage_row(run, point, chain_name):
     return {"DIR": os.path.relpath(run, os.path.dirname(chain_name)) + "/", "link": q["link"], "leg": q["leg"], "scan_var": q["scan_var"], "scan_value": q["scan_value"],
             "KA": KA, "KB": q["KB"], "KI": bead.get("inter_str", 0.0), "BeadRadius": bead["radius"], "rc": 0.0 if q["rc"] != q["rc"] else q["rc"],
             "CoveredArea": q["cov_cfg"], "CoverageUnion": union, "MultilayerFrac": multi, "cap_cfg": q["cap_cfg"], "f_ad": q["f_ad"],
-            "shell_width": q["shell_width"], "nV": q["nV"], "finished": int(q["finished"])}
+            "Total_E": q["E_total"] * q["kappa"], "shell_width": q["shell_width"], "nV": q["nV"], "finished": int(q["finished"])}
 
 
 def main(batch, tags):
