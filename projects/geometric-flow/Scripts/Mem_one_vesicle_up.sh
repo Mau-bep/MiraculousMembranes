@@ -12,7 +12,7 @@
 # the Frenkel potential: see the examples at the end). The generator checks the build for what it needs.
 # Everything about the pipeline, the units, the scanned variables and the options: ../Studies/one_bead_vesicle/README.md ; python3 Create_subjob_one_vesicle.py --help
 
-set Batch_Tag = "Wrapping_one_vesicle"
+# set Batch_Tag =   "Wrapping_one_flat"
 
 # --- 1. the wrapping transition at low tension with a soft potential: the coverage as a function of the interaction strength ----------------------------------------------
 #        kappa = 21 kBT (--KB 42, the energies come out in kBT), the vesicle 6.25 bead diameters across (the paper's D_v/D_p, --Rv 6.25 bead radii), sigma~ = sigma a^2/kappa = 0.02 (7 nN/m,
@@ -31,18 +31,47 @@ set Batch_Tag = "Wrapping_one_vesicle"
 #        hysteresis. The way back along the list is switched off here (--no_return): leave it out to walk the list back too (doubles the runs).
 #        Time: about 35 s per 5000 steps at 3000-6000 vertices, a link takes minutes, the whole chain a few hours; the time limit is generous.
 # set ListUp = "2,2.6,3,3.3,3.5,3.7,3.8,3.9,4,4.1,4.2,4.3,4.4,4.5,4.6,4.7,4.8,4.9,5,5.1,5.2,5.4,5.6,5.8,6,6.5,7,8,10,12"
-set ListUp = "2,2.5,3,3.5,4,4.2,4.4,4.3,4.4,4.6,4.62,4.64,4.66,4.68,4.7,4.72,4.74,4.76,4.78,4.8"
-set ListDown = `python3 -c "print(','.join(reversed('${ListUp}'.split(','))))"`
-foreach s_tilde (0.02 0.04)
-foreach Init ( flat )
-# foreach Init ( flat full )
-if ( ${Init} == "flat" ) set List = ${ListUp}
-if ( ${Init} == "full" ) set List = ${ListDown}
-set Tag = "detailed_transition_02_shell_${Init}"
-python3 Create_subjob_one_vesicle.py --batch_tag ${Batch_Tag}/${Tag} --shell_width 0.2 --unique_tag ${Batch_Tag}_${Tag} --scan wt --scan_list ${List} --wrap adhesion --KB 42 --sigma_tilde ${s_tilde} --Rv 6.25 --refine_angle 0.20 --time 24:00:00 --prewrap_cov 0.3
+# set ListUp = "2,2.5,3,3.5,4,4.2,4.4,4.3,4.4,4.6,4.62,4.64,4.66,4.68,4.7,4.72,4.74,4.76,4.78,4.8"
+# set ListDown = `python3 -c "print(','.join(reversed('${ListUp}'.split(','))))"`
+# foreach s_tilde (0.02 0.04)
+# foreach Init ( flat )
+# # foreach Init ( flat full )
+# if ( ${Init} == "flat" ) set List = ${ListUp}
+# if ( ${Init} == "full" ) set List = ${ListDown}
+# set Tag = "detailed_transition_02_shell_${Init}"
+# python3 Create_subjob_one_vesicle.py --batch_tag ${Batch_Tag}/${Tag} --shell_width 0.2 --unique_tag ${Batch_Tag}_${Tag} --scan wt --scan_list ${List} --wrap adhesion --KB 42 --sigma_tilde ${s_tilde} --Rv 6.25 --refine_angle 0.20 --time 24:00:00 --prewrap_cov 0.3
+# sbatch ../Subjobs/${Batch_Tag}_${Tag}_subjob
+# end
+# end
+
+
+set Batch_Tag = "Phase_one_flat"
+
+set ListUp = "0.5,0.6,0.7,0.8,0.9,1,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2,2.1,2.2,2.3,2.4,2.5"
+set List = ${ListUp}
+
+foreach KA (0 0.06667 0.1333 0.2 0.2667 0.3333 0.4 0.4667 0.5333 0.6 0.6667 0.7333 0.8 0.8667 0.9333 1)
+
+
+set Tag = "KA_${KA}"
+python3 Create_subjob_one_vesicle.py --batch_tag ${Batch_Tag}/${Tag} --wrap adhesion --shell_width 0.2 --sigma ${KA} --unique_tag ${Batch_Tag}_${Tag} --scan W --scan_list ${List} --wrap adhesion --KB 1 --refine_angle 0.20 --planar --area excess --excess 0.0 --size_min 0.02 --size_max 0.8 --time 24:00:00
 sbatch ../Subjobs/${Batch_Tag}_${Tag}_subjob
 end
+
+
+set ListUp = "2.915,2.144,1.577,1.16,0.8536,0.628,0.462,0.3398,0.25,0.1839,0.1353,0.09953,0.07322,0.05386,0.03962,0.02915,0.02144,0.01577,0.0116,0.008536,0.00628,0.00462,0.003398,0.0025"
+set List = ${ListUp}
+
+foreach KI (0 0.3333 0.6667 1 1.333 1.667 2 2.333 2.667 3 3.333 3.667 4 4.333 4.667 5)
+
+
+set Batch_Tag = "Phase_one_vesicle"
+set Tag = "KI_${KI}"
+python3 Create_subjob_one_vesicle.py --batch_tag ${Batch_Tag}/${Tag} --wrap adhesion --shell_width 0.2 --W  ${KI} --sigma 1.0 --unique_tag ${Batch_Tag}_${Tag} --scan KB --scan_list ${List} --wrap adhesion --refine_angle 0.20 --area excess --excess 0.0 --size_min 0.01 --size_max 0.6 --time 24:00:00
+sbatch ../Subjobs/${Batch_Tag}_${Tag}_subjob
 end
+
+
 # --- More to try (uncomment) ---------------------------------------------------------------------------------------------------------------------------------------------------
 # the same at other tensions (sigma~ = 0 is a free area, 0.1 and 0.3 are stiffer), and replicas for error bars
 # foreach St ( 0 0.1 0.3 )
