@@ -126,3 +126,19 @@ the coverage.
   The `Timestep` key of the template is not read by `main_cluster`.
 * **Not done**: the 30 links (every test run is 400-6000 steps and not converged), a long return leg, the fully wrapped cold start of the `full` chain (w~ = 12: expect it to be slow and the Frenkel core to be stiff, eps = 126 kBT/a^2), `--planar`, `--inside` and the patch scans with a binary,
   the other scan variables (configs and the runner's mapping only). Nothing in the repository was changed except the new files (no C++).
+
+## 7. Collecting a batch (`Scripts/Collect_chain_results.sh`)
+
+A launcher like `Mem_one_vesicle_up.sh` makes one chain folder per Tag inside the batch folder (`Results/Phase_one_flat/KA_0.2/`, `.../KA_0.4/`, ...). To bring the results of the whole batch home:
+
+```
+cd Scripts
+bash Collect_chain_results.sh ../Results/Phase_one_flat                # all the chains of the batch
+bash Collect_chain_results.sh ../Results/Phase_one_flat KA_0.2 KA_1    # only these
+DO_OBJ=0 bash Collect_chain_results.sh ../Results/Phase_one_vesicle    # only the csv's
+```
+
+For every chain it copies `chain_summary.csv` to **`<batch>/Chain_data_<Tag>.csv`** (all the csv's of the batch in one folder, ready to download together) and the `Final_state.obj` of every **point** of the chain
+(the links of the list: not the waypoints `..._w1` nor the half step `..._mid` of a retry) to **`<batch>/<Tag>/Final_states/<Tag>_Final_link_NNN.obj`**, numbered as in the chain (link 0 = cold start, the way back after the way in), so
+that the files sort in the order of the animation. The files are copies (the chain folder is not touched, a chain resumes from its meshes); run it again when more of the chain has finished. `PAD` (digits of NNN), `FINAL_DIR`, `DO_CSV` and `DO_OBJ` are variables at the top of the script;
+which rows count as points is the `points()` function (awk, ten lines). The same script works for the tube chains (`Results/Tube_material`, whose csv has a `kind` column).

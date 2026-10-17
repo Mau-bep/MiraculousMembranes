@@ -63,4 +63,20 @@ prints the table (with the hysteresis of the way back against the way out), writ
 squares the way back, red crosses for capped links, grey crosses the old scan (`Results/Pulling_and_relaxing_2/Force_data.csv`, a spring pulled the bead to each x) for the same KA. Reference values of that scan: **F(0.2) = 15.6 (KA 16) and 27.6 (KA 32)**,
 linear up to x about 1, a peak at the snap of the dimple into a tube (61.7 at x = 2.1 for KA 16, 97.6 at 1.8 for KA 32) and then the plateau 50.1 and 70.4 (99 percent of f0) beyond x = 3.
 
+## 5. Scatter plots of a chain summary (`Scripts/Plot_tube_data.py`)
 
+For the `chain_summary.csv` files copied from the cluster (e.g. `Results/Tube_material/Chain_data_KA_16.csv`; nothing else of the chain folder is needed). It draws the rows of kind `point` (the positions of the list;
+waypoints and the half move of a retry are left out, `--kinds point,waypoint,mid` puts them back), x and y are any column or a derived one (`F` = -Fx, the default y, `E_rel`, `A_rel`, `tip_gap`, ...; `--list_columns`), as scatter plots:
+
+```
+python3 Plot_tube_data.py --x x --y F --color leg --theory ../Results/Tube_material/Chain_data_KA_*.csv        # way out and way back in two colours, dotted f0 of the infinite tube
+python3 Plot_tube_data.py --x x --y F --color same --leg_marker --out F.png ../Results/Tube_material/Chain_data_KA_*.csv   # one colour per file, circles out / squares back
+python3 Plot_tube_data.py --x Area --y E_total --legs out --xlim 0 3 a=../Results/Tube_material/Chain_data_KA_16.csv
+```
+The figure is written next to the (first) csv (`tube_F_vs_x_leg.png`; `--out name.png` also goes there, `--out some/dir/name.png` is used as given). `--color leg` colours the way out (blue) and the way back (red, drawn larger underneath so that both show where they coincide) and tells the files apart by the marker; `--color same` gives each file one colour for both legs.
+From Python: `from Plot_tube_data import plot_chain_data` (`plot_chain_data(files, x="x", y="F", color="leg", out="F.png")` returns the figure, the axes and the data). Needs matplotlib (`micromamba run -n mir_mem`).
+
+## 6. Collecting a batch (`Scripts/Collect_chain_results.sh`)
+
+`bash Collect_chain_results.sh ../Results/Tube_material` copies every `chain_summary.csv` to `Results/Tube_material/Chain_data_<Tag>.csv` (the files that `Plot_tube_data.py` reads) and the `Final_state.obj` of every point (`kind` = point, the way back included) to
+`<Tag>/Final_states/<Tag>_Final_link_NNN.obj`, for an animation of the end states. Details and options in `Studies/one_bead_vesicle/README.md` section 7.
