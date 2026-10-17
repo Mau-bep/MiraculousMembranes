@@ -320,8 +320,9 @@ def main(chain_path):
         tag = "link%02d_%s%g" % (k, var, value)
         # a patch edge that advances by more than about a tenth of a bead radius per relaxation leaves the membrane behind: go in steps of at most max_step
         n_steps = max(1, int(math.ceil(abs(value - cur) / max_step - 1e-9))) if max_step else 1
+        v_from = cur
         for i in range(1, n_steps):
-            v_way = cur + (value - cur) * i / n_steps
+            v_way = v_from + (value - v_from) * i / n_steps
             say("link %02d: waypoint %d of %d at %s = %g" % (k, i, n_steps, var, v_way))
             res = attempt(k, "%s_w%d" % (tag, i), v_way, leg, prev_run, prev_cfg)
             if res is None:
