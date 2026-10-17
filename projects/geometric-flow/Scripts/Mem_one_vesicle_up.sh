@@ -33,15 +33,16 @@ set Batch_Tag = "Wrapping_one_vesicle"
 # set ListUp = "2,2.6,3,3.3,3.5,3.7,3.8,3.9,4,4.1,4.2,4.3,4.4,4.5,4.6,4.7,4.8,4.9,5,5.1,5.2,5.4,5.6,5.8,6,6.5,7,8,10,12"
 set ListUp = "2,2.5,3,3.5,4,4.2,4.4,4.3,4.4,4.6,4.62,4.64,4.66,4.68,4.7,4.72,4.74,4.76,4.78,4.8"
 set ListDown = `python3 -c "print(','.join(reversed('${ListUp}'.split(','))))"`
+foreach s_tilde (0.02 0.04)
 foreach Init ( flat )
 # foreach Init ( flat full )
 if ( ${Init} == "flat" ) set List = ${ListUp}
 if ( ${Init} == "full" ) set List = ${ListDown}
 set Tag = "detailed_transition_02_shell_${Init}"
-python3 Create_subjob_one_vesicle.py --batch_tag ${Batch_Tag}/${Tag} --shell_width 0.2 --unique_tag ${Batch_Tag}_${Tag} --scan wt --scan_list ${List} --wrap adhesion --KB 42 --sigma_tilde 0.02 --Rv 6.25 --refine_angle 0.20 --no_return --time 24:00:00 --prewrap_cov 0.3
+python3 Create_subjob_one_vesicle.py --batch_tag ${Batch_Tag}/${Tag} --shell_width 0.2 --unique_tag ${Batch_Tag}_${Tag} --scan wt --scan_list ${List} --wrap adhesion --KB 42 --sigma_tilde ${s_tilde} --Rv 6.25 --refine_angle 0.20 --time 24:00:00 --prewrap_cov 0.3
 sbatch ../Subjobs/${Batch_Tag}_${Tag}_subjob
 end
-
+end
 # --- More to try (uncomment) ---------------------------------------------------------------------------------------------------------------------------------------------------
 # the same at other tensions (sigma~ = 0 is a free area, 0.1 and 0.3 are stiffer), and replicas for error bars
 # foreach St ( 0 0.1 0.3 )
