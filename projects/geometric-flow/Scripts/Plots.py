@@ -770,6 +770,74 @@ def deserno_fig5(filepath="../Results/WrappingPhaseSpaceNewFast/CoverageData.txt
 
 
 
+def phase_one_vesicle(batch="../Results/Phase_one_vesicle", legs=("in", "out"), column="CoverageUnion", as_z=True,
+                      kappa_over_KB=0.5, w_over_KI=1.0, xlim=(0.8, 1.0e3), ylim=(0.0, 5.0), shade=True, save=None, show=True):
+    """The chains of Phase_one_vesicle (Mem_one_vesicle_up.sh: KB scanned at fixed KI, KA = 1) in the axes and scaling of deserno_fig5:
+    w/sigma against a/lambda (log axis), the E and W curves of Deserno, coloured by z = 2 * CoverageUnion.
+        a/lambda = r sqrt(KA / (kappa_over_KB KB)),   w/sigma = w_over_KI KI / KA      (as deserno_fig5; points with KA = 0 are left out)
+    batch: the folder with the Coverage_data_<Tag>.csv of every chain (Coverage_data_chain.py, run by Collect_chain_results.sh on the cluster), or a glob of csv's.
+    legs: which legs to draw. "in" (the way along the KB list) as circles, "out" (the way back) as smaller squares on top, so that both numbers of a point
+    show where they differ; "cold" (the cold start, the same KB as the first link) is left out by default.
+    column: the coloured column of the csv (CoverageUnion; CoveredArea, cap_cfg or f_ad are the others); as_z multiplies the coverage columns by 2 (z in [0, 2]).
+    """
+    import csv
+    import glob
+    import os
+    import deserno_theory as dt
+
+    files = sorted(glob.glob(os.path.join(batch, "Coverage_data_*.csv") if os.path.isdir(batch) else batch))
+    if not files:
+        raise FileNotFoundError("no Coverage_data_*.csv in " + str(batch))
+    rows = []
+    for fn in files:
+        with open(fn) as f:
+            rows += [r for r in csv.DictReader(f)]
+    print("{} points from {} files".format(len(rows), len(files)))
+
+    fig, ax = plt.subplots()
+    a = np.logspace(np.log10(xlim[0]), np.log10(xlim[1]), 400)
+    w_E, w_W = dt.fig5_curves(a)
+    if shade:
+        ax.fill_between(a, w_E, ylim[1], color="0.72", lw=0)         # fully enveloped
+        ax.fill_between(a, w_W, w_E, color="0.86", lw=0)             # partially wrapped
+        ax.fill_between(a, 0, w_W, color="0.97", lw=0)               # free
+    ax.plot(a, w_E, color="black", lw=2.0)
+    ax.plot(a, w_W, color="black", lw=2.0, ls="dashed")
+    ax.plot([40, xlim[1]], [2, 2], color="black", lw=1.0, ls="dashed")   # E tends to w/sigma = 2
+
+    scale = 2.0 if as_z and column in ("CoverageUnion", "CoveredArea") else 1.0
+    sc = None
+    for leg, marker, size in (("in", "o", 34), ("cold", "D", 20), ("out", "s", 14)):       # the way back is drawn last, smaller, on top
+        if leg not in legs:
+            continue
+        sel = [r for r in rows if r["leg"] == leg and float(r["KA"]) > 0]
+        if not sel:
+            continue
+        KA, KB, KI, r0 = (np.array([float(r[k]) for r in sel]) for k in ("KA", "KB", "KI", "BeadRadius"))
+        x = r0 * np.sqrt(KA / (kappa_over_KB * KB))
+        y = w_over_KI * KI / KA
+        c = scale * np.array([float(r[column]) for r in sel])
+        sc = ax.scatter(x, y, c=c, s=size, marker=marker, cmap="viridis", vmin=0.0 if scale == 2.0 else None, vmax=2.0 if scale == 2.0 else None,
+                        edgecolor="black", linewidth=0.3, zorder=3, label="way " + leg if leg != "cold" else "cold start")
+    if sc is not None:
+        cbar = fig.colorbar(sc, ax=ax)
+        cbar.set_label(r"$z$ (degree of wrapping)" if scale == 2.0 else column.replace("_", " "), rotation=90)
+        if len(legs) > 1:
+            ax.legend(loc="upper left", fontsize="small", framealpha=0.9)
+
+    ax.set_xscale("log")
+    ax.set_xlim(*xlim)
+    ax.set_ylim(*ylim)
+    ax.set_xlabel(r"$a/\lambda$")
+    ax.set_ylabel(r"$w/\sigma$")
+
+    if save is not None:
+        fig.savefig(save, bbox_inches="tight")
+    if show:
+        plt.show()
+    return fig, ax
+
+
 def Shell_test_comparison(filepath="../Results/CoverageShellSum/CoverageSum.txt", save=None):
     """Bead coverage (CoverageUnion) vs adhesion strength KI for the shell test.
 

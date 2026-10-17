@@ -9,6 +9,8 @@
 # For every chain folder <BATCH>/<TAG>/ (the one that has a chain_summary.csv) it makes
 #   <BATCH>/Chain_data_<TAG>.csv                          a copy of the chain_summary.csv, so that the csv's of all the chains sit in one folder
 #   <BATCH>/<TAG>/Final_states/<TAG>_Final_link_NNN.obj   the Final_state.obj of every POINT of the chain, in the order of the chain
+#   <BATCH>/Coverage_data_<TAG>.csv                       the coverage of every point, measured on its mesh (Coverage_data_chain.py, python3 + numpy; one-bead chains only:
+#                                                         chain_summary.csv has no coverage). The points of the way back are there too (leg = out)
 # The files are COPIES: the chain folder stays as it is (a chain resumes from its Final_state.obj files). Run it again whenever more of the chain is
 # finished; the files are overwritten.
 #
@@ -22,6 +24,7 @@ FINAL_DIR=${FINAL_DIR:-Final_states}   # folder of the meshes, inside the chain 
 PAD=${PAD:-3}                          # digits of the link number in the file name (007), so that the files sort in the order of the chain
 DO_CSV=${DO_CSV:-1}                    # 0: do not copy the csv's
 DO_OBJ=${DO_OBJ:-1}                    # 0: do not copy the meshes
+DO_COV=${DO_COV:-1}                    # 0: do not measure the coverage (the tube chains have none: they are skipped anyway)
 
 BATCH=${1:?usage: bash Collect_chain_results.sh BATCH_DIR [TAG ...]   (BATCH_DIR holds the chain folders, e.g. ../Results/Phase_one_flat)}
 BATCH=${BATCH%/}
@@ -86,3 +89,7 @@ for TAG in "${TAGS[@]}"; do
     fi
     echo "$msg"
 done
+
+if [ "$DO_COV" = 1 ]; then
+    python3 "$(dirname "$0")/Coverage_data_chain.py" "$BATCH" "${TAGS[@]}"
+fi

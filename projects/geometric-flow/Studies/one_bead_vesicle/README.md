@@ -142,3 +142,12 @@ For every chain it copies `chain_summary.csv` to **`<batch>/Chain_data_<Tag>.csv
 (the links of the list: not the waypoints `..._w1` nor the half step `..._mid` of a retry) to **`<batch>/<Tag>/Final_states/<Tag>_Final_link_NNN.obj`**, numbered as in the chain (link 0 = cold start, the way back after the way in), so
 that the files sort in the order of the animation. The files are copies (the chain folder is not touched, a chain resumes from its meshes); run it again when more of the chain has finished. `PAD` (digits of NNN), `FINAL_DIR`, `DO_CSV` and `DO_OBJ` are variables at the top of the script;
 which rows count as points is the `points()` function (awk, ten lines). The same script works for the tube chains (`Results/Tube_material`, whose csv has a `kind` column).
+
+### Coverage of a batch, and the Fig. 5 plot of `Phase_one_vesicle`
+
+`chain_summary.csv` has no coverage (it is measured on the meshes), so `Collect_chain_results.sh` also runs `Coverage_data_chain.py` (python3 + numpy): **`<batch>/Coverage_data_<Tag>.csv`**, one line per point, both legs (a point of the way back appears twice,
+`leg` = in / out; `cold` is the cold start, the same KB as the first link). Columns: `DIR, link, leg, scan_var, scan_value, KA, KB, KI, BeadRadius, rc` (the constants of the run, those of the `Coverage_data.txt` of PostProcessing), `CoveredArea` (the coverage of the Coverage energy),
+`CoverageUnion` and `MultilayerFrac` (PostProcessing's: the fraction of 20000 directions from the bead hit by one, by two or more faces of the shell; a port to numpy, not compared with the C++ numbers), `cap_cfg`, `f_ad`, `shell_width`, `nV`, `finished`. `DO_COV=0` skips it.
+
+`Plots.py: phase_one_vesicle(batch="../Results/Phase_one_vesicle")` reads all the `Coverage_data_*.csv` of the batch and draws them as `deserno_fig5` does (w/sigma = KI/KA against a/lambda = a sqrt(KA/(0.5 KB)), log axis, the E and W curves of Deserno, coloured by z = 2 CoverageUnion): the way in as circles, the way back as smaller squares on top (`legs=("in",)`
+for one leg, `column="cap_cfg"` for another coverage, `kappa_over_KB` and `w_over_KI` as in `deserno_fig5`, `save=`, `show=`).
