@@ -27,6 +27,9 @@ SCAN = {
     "excess": ("constraint", "0.2,0.15,0.1,0.07,0.05", 0.02, "relative excess area of the fixed-area vesicle (--area constraint or excess)"),
     "volume": ("closed", "1.0,0.95,0.9,0.85,0.8", 0.05, "volume of the vesicle, fraction of the sphere of radius R_v"),
     "cov": ("coverage", "0.2,0.3,0.4,0.5,0.6,0.7,0.8", 0.05, "target of the Coverage energy (--wrap coverage)"),
+    "KB": ("none", "1,2,4,8,16,32", None, "bending constant KB of the Bending energy (E = KB H^2, kappa = KB/2) with W, sigma, the excess area and the volume kept as absolute numbers: the dimensionless "
+                                           "w~ = 4 W a^2/KB and sigma~ = 2 sigma a^2/KB change along the chain (--w_tilde and --sigma_tilde are converted once, at the first value of the list); the stiffness of the "
+                                           "volume, area and Coverage constraints is that of the first value (2e5 kappa) and stays"),
 }
 
 parser = argparse.ArgumentParser(description="Writes the config, the chain file and the sbatch subjob of one scan of a single wrapped bead.")
@@ -91,7 +94,7 @@ parser.add_argument("--sigma", type=number_str, default="0.02", help="tension, i
 parser.add_argument("--sigma_tilde", type=number_str, default=None, help="the same as the dimensionless sigma~ = sigma a^2/kappa = 2 sigma a^2/KB (overrides --sigma; the floppy vesicles of the experiment have sigma~ < 0.03)")
 parser.add_argument("--excess", type=number_str, default="0.05", help="relative excess area when the chain does not scan it (constraint and excess), the paper: 0.05")
 parser.add_argument("--volume", type=number_str, default="1.0", help="volume of the vesicle as a fraction of the sphere of radius R_v when the chain does not scan it")
-parser.add_argument("--KB", type=number_str, default="2.0", help="bending constant KB = 2 kappa: 2 gives kappa = 1 (energies in units of kappa), 42 gives the kappa = 21 kBT of the paper (energies in kBT). "
+parser.add_argument("--KB", type=number_str, default="2.0", help="(ignored with --scan KB, which starts at the first value of the list) bending constant KB = 2 kappa: 2 gives kappa = 1 (energies in units of kappa), 42 gives the kappa = 21 kBT of the paper (energies in kBT). "
                                                                  "The energy scale only enters through the constants below, which are scaled with kappa so that the problem stays the same")
 parser.add_argument("--bending", choices=["Bending", "Bending_tan"], default="Bending", help="the bending energy: Bending (edge term = dihedral angle) or Bending_tan (2 tan(angle/2))")
 parser.add_argument("--KV", type=number_str, default=None, help="stiffness of the volume constraint (default 2e5 kappa)")
@@ -103,7 +106,7 @@ parser.add_argument("--refine_angle", type=number_str, default=None,
                     help="remesher refine_angle (template 0.3: edges of about 0.2 near a bead; 0.10 for --wrap frenkel unless given: the well of the potential is 0.2 a wide and a state that "
                          "wraps the bead needs edges of about 0.1 there, with 0.3 a 5000-step relaxation at w~ = 4.5 had 51 vertices in the well and 16 percent of the bead covered, with 0.1 793 and 56 percent)")
 # --- how long each run is (the numbers of the stopping block of the config; the links copy the cold start unless a --link_ value is given)
-parser.add_argument("--switch", type=str, default="100,10000", help="Switch_times of the warm-started links (BFGS, BFGS-Normal)")
+parser.add_argument("--switch", type=str, default="100,20000", help="Switch_times of the warm-started links (BFGS, BFGS-Normal)")
 parser.add_argument("--timesteps", type=number_str, default=None, help="largest number of steps of a run (template 200000, never reached in practice); the links copy it")
 parser.add_argument("--window", type=number_str, default=None, help="stopping: steps of one window (template 50)")
 parser.add_argument("--patience", type=number_str, default=None, help="stopping: windows in a row that must pass the test (template 3)")
@@ -174,8 +177,8 @@ if need == "coverage" and args.wrap != "coverage":
     problems.append("--scan cov needs --wrap coverage")
 if args.planar and args.inside:
     problems.append("--planar and --inside do not combine")
-if args.planar and args.area in ("constraint", "excess"):
-    problems.append("--planar has no volume to fix: use --area tension or none")
+if args.planar and args.area == "constraint":
+    problems.append("--planar has no volume to fix and no closed area: use --area tension, excess (free area up to the area of the flat disk times 1 + --excess, then a tension) or none")
 if args.inside and args.wrap == "coverage":
     problems.append("--inside needs --wrap patch or adhesion: the Coverage energy knows beads outside only")
 if args.inside and args.wrap == "frenkel":
@@ -206,7 +209,7 @@ for v in values + [cold]:
         raise SystemExit("theta must be in (0, 180] degrees, not %g" % v)
     if args.scan == "cov" and not (0.0 < v <= 1.0):
         raise SystemExit("cov must be in (0, 1], not %g" % v)
-    if args.scan in ("W", "wt", "volume") and not v > 0.0:
+    if args.scan in ("W", "wt", "volume", "KB") and not v > 0.0:
         raise SystemExit("%s must be positive, not %g" % (args.scan, v))
     if args.scan in ("sigma", "st", "excess") and v < 0.0:
         raise SystemExit("%s must not be negative, not %g" % (args.scan, v))
@@ -218,7 +221,8 @@ def theta_of_f(f):
 
 Rv = float(args.Rv)
 a = float(args.radius)
-KB = float(args.KB)
+KB = cold if args.scan == "KB" else float(args.KB)     # a KB scan starts at the cold value; the constants below (stiffness of the constraints, w~, sigma~) are those of that KB
+KB_text = ("%.10g" % cold) if args.scan == "KB" else args.KB
 kappa = KB / 2.0                      # the code's bending energy is KB * H^2, H = (c1 + c2)/2
 R_disk = float(args.R_disk)
 Batch_dir = '../Results/{}/'.format(args.batch_tag)
@@ -273,7 +277,7 @@ def create_json():
     if args.planar:
         beads = [{"pos": [a, 0.0, 0.003 * args.replica], "axis": [-1.0, 0.0, 0.0]}]
         params = dict(first_dir=Batch_dir, beads=beads, displacement=None, Rv=R_disk, rescale=R_disk / 10.0, init_file="../../../input/Big_planar_mem.obj",
-                      planar=True, bead_state="default", radius=a, KB=args.KB, wrap_mode=args.wrap, area_mode=args.area, outside=1,
+                      planar=True, bead_state="default", radius=a, KB=KB_text, wrap_mode=args.wrap, area_mode=args.area, outside=1,
                       size_max=1.0)  # the bead is free in the cold start of a planar run (it sinks to its height)
     else:
         if args.inside:
@@ -283,7 +287,7 @@ def create_json():
             beads = [{"pos": [0.0, 0.0, 0.0], "axis": [0.0, -1.0, 0.0]}]
             displacement = [0.0, -(Rv + a), 0.003 * args.replica]
         params = dict(first_dir=Batch_dir, beads=beads, displacement=displacement, Vbar=V_ref * volume, Rv=Rv, rescale=Rv,
-                      radius=a, KB=args.KB, KV=KV, wrap_mode=args.wrap, area_mode=args.area, outside=-1 if args.inside else 1,
+                      radius=a, KB=KB_text, KV=KV, wrap_mode=args.wrap, area_mode=args.area, outside=-1 if args.inside else 1,
                       bead_state="default" if (args.free_cold or args.inside) else "froze")
     params["bending"] = args.bending
     if args.wrap == "coverage":
@@ -304,7 +308,8 @@ def create_json():
     elif args.area == "excess":
         # Excess_tension takes the target as a fraction of the area of the initial mesh of each run: the cold start begins on the coarse Simplesphere,
         # which has 99.8 percent of the ideal area (the runner sets the factor of every link from the area of its own initial mesh)
-        params.update(sigma=sigma, area_factor=(1.0 + excess) * 1.002)
+        # a flat disk starts on exactly its reference area (the runner sets the factor of every link from the area of the flat disk)
+        params.update(sigma=sigma, area_factor=(1.0 + excess) * (1.0 if args.planar else 1.002))
     if args.wrap == "frenkel" and args.refine_angle is None:
         params["refine_angle"] = 0.10
     for key in ("size_min", "size_max", "refine_angle"):

@@ -44,6 +44,7 @@ The only physics is dimensionless, so the generator takes it that way too:
 |---|---|---|---|---|
 | `wt` | w~, the strength of the bead | `--wrap frenkel`, `adhesion` or `patch` | 30 values, 2 ... 12 (section 4) | none |
 | `W` | W in the energy unit of the config per a^2 | same | 1,2,3,4,5,6,8 | none |
+| `KB` | the bending constant KB (kappa = KB/2); W, sigma, excess and volume stay absolute, so w~ and sigma~ change along the chain (the stiffness of the constraints stays at 2e5 kappa of the first value) | none | 1,2,4,8,16,32 | none |
 | `st` | sigma~ | `--area tension` or `excess` | 0.5 ... 0.005 | none |
 | `sigma` | sigma in the energy unit of the config per a^2 | same | 3 ... 0.01 | none |
 | `f` | the wrapped area fraction of the patch, (1 - cos theta_Wr)/2 | `--wrap patch` | 0.3 ... 0.98 | 0.05 |

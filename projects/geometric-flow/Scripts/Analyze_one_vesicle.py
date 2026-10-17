@@ -6,7 +6,7 @@ usage:  python3 Analyze_one_vesicle.py [options] [label=]RESULTS_DIR [[label=]RE
 
 Every folder below a RESULTS_DIR that holds an Input_file.json, an Output_data.txt and the bead file is one point of the curve. The scanned parameter and its
 value come from chain_summary.csv of the RESULTS_DIR (columns scan_var, scan_value, leg: in = the way along the list, out = the way back), or, without it, from
-the config of the run (--var says which parameter: f, theta, wt, W, st, sigma, excess, volume or cov). The Coverage pre-wrap and the cold start of a chain are skipped
+the config of the run (--var says which parameter: f, theta, wt, W, KB, st, sigma, excess, volume or cov). The Coverage pre-wrap and the cold start of a chain are skipped
 (--keep_cold keeps the cold start): they are only the starting mesh of the chain.
 
 Per run (from the last saved state, Final_state.obj if the run finished), energies in units of kappa = KB/2:
@@ -66,6 +66,8 @@ def value_from_cfg(cfg, var):
             return float("nan")
         return theta if var == "theta" else (1.0 - math.cos(math.radians(theta))) / 2.0
     KB = [energies[n][0] for n in ("Bending", "Bending_tan") if n in energies][0]
+    if var == "KB":
+        return KB
     if var == "W":
         return b["inter_str"]
     if var == "wt":
@@ -221,7 +223,7 @@ def coverage_figure(series_points, path, plt):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("series", nargs="+", help="[label=]results folder")
-    ap.add_argument("--var", default=None, help="the scanned parameter when a folder has no chain_summary.csv: f, theta, wt, W, st, sigma, excess, volume or cov")
+    ap.add_argument("--var", default=None, help="the scanned parameter when a folder has no chain_summary.csv: f, theta, wt, W, KB, st, sigma, excess, volume or cov")
     ap.add_argument("--out", default="one_vesicle", help="output prefix (<out>.csv, <out>.png)")
     ap.add_argument("--ref", default="none", help='energy zero of the energy panel: "none" (absolute), "first" or "last" (the point with the first / last value of the way along the list), or a number (kappa)')
     ap.add_argument("--only_finished", action="store_true", help="skip runs that did not finish")
@@ -328,9 +330,9 @@ def main():
     ax[1, 1].set_ylabel(r"tension $\sigma a^2/\kappa$")
     for a_ in (ax[0, 0], ax[0, 1], ax[1, 1]):
         a_.set_xlabel(var)
-    if args.var == "sigma" or var in ("sigma", "W"):
+    if args.var == "sigma" or var in ("sigma", "W", "KB"):
         for a_ in (ax[0, 0], ax[0, 1], ax[1, 1]):
-            if all(q["scan_value"] > 0 for q in allrows) and max(q["scan_value"] for q in allrows) / min(q["scan_value"] for q in allrows) > 20 and var == "sigma":
+            if all(q["scan_value"] > 0 for q in allrows) and max(q["scan_value"] for q in allrows) / min(q["scan_value"] for q in allrows) > 20 and var in ("sigma", "KB"):
                 a_.set_xscale("log")
     for a_ in (ax[0, 0], ax[0, 1], ax[1, 0], ax[1, 1]):
         a_.grid(alpha=0.25, lw=0.5)

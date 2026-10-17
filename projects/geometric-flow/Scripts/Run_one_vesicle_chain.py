@@ -4,7 +4,7 @@
 usage:  python3 Run_one_vesicle_chain.py CHAIN.json          (CHAIN.json is written by Create_subjob_one_vesicle.py)
 
 The sister of Run_two_vesicle_chain.py: there the two beads move along the vesicle, here the bead stays where it is and one number of the config changes
-("scan": {"var", "list", "cold", "max_step"} of CHAIN.json): f (wrapped area fraction of the patch), theta (patch angle), W (adhesion), sigma (tension),
+("scan": {"var", "list", "cold", "max_step"} of CHAIN.json): f (wrapped area fraction of the patch), theta (patch angle), W (adhesion), KB (bending constant), sigma (tension),
 excess (relative excess area of a fixed-area vesicle), volume (fraction of the sphere of radius R_v) or cov (target of the Coverage energy);
 wt and st are the adhesion and the tension in the dimensionless w~ = 4 W a^2/KB and sigma~ = 2 sigma a^2/KB of the Deserno mapping.
 
@@ -127,9 +127,9 @@ def find_run_folder(first_dir):
     return os.path.join(first_dir, str(nums[-1])) + "/"
 
 
-def apply_scan(cfg, var, value, init_area, excess_fixed):
+def apply_scan(cfg, var, value, init_area, excess_fixed, area_ref=None):
     """Put the value of the scanned parameter into a config (the same places the generator puts the cold value in). init_area: area of the initial mesh of the run,
-    Excess_tension reads its target as a fraction of it."""
+    Excess_tension reads its target as a fraction of it. area_ref: the area the excess is relative to (a closed vesicle: the sphere of radius R_v, the default; a planar disk: the flat disk)."""
     Rv = cfg["Rv"]
     A_sphere = 4.0 * math.pi * Rv ** 2
     V_ref = 4.0 / 3.0 * math.pi * Rv ** 3
@@ -141,6 +141,11 @@ def apply_scan(cfg, var, value, init_area, excess_fixed):
     elif var == "W":
         for b in cfg["Beads"]:
             b["inter_str"] = value
+    elif var == "KB":
+        # the bending constant (kappa = KB/2); W, sigma and the constraints stay as they are, so w~ and sigma~ change along the chain
+        for e in cfg["Energies"]:
+            if e["Name"] in ("Bending", "Bending_tan"):
+                e["constants"][0] = value
     elif var == "wt":
         # w~ = 4 W a^2/KB of the Deserno mapping
         KB = [e for e in cfg["Energies"] if e["Name"] in ("Bending", "Bending_tan")][0]["constants"][0]
@@ -169,7 +174,7 @@ def apply_scan(cfg, var, value, init_area, excess_fixed):
             e["constants"][1] = A_sphere * (1.0 + excess)
         elif e["Name"] == "Excess_tension":
             # the loader multiplies the second constant by the area of the initial mesh of the run: keep the target absolute
-            e["constants"][1] = A_sphere * (1.0 + excess) / init_area
+            e["constants"][1] = (area_ref if area_ref is not None else A_sphere) * (1.0 + excess) / init_area
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -199,6 +204,11 @@ def main(chain_path):
     planar = bool(spec.get("planar"))
     cold = json.load(open(spec["config"]))
     n_beads = len(cold["Beads"])
+    area_ref = None
+    if planar:
+        # Excess_tension of a flat disk is relative to the area of the flat disk (the initial mesh of the cold start, scaled by "rescale")
+        Vd, Fd = read_obj(cold["init_file"])
+        area_ref = mesh_area(Vd, Fd) * float(cold.get("rescale", 1.0)) ** 2
     rows = []
     summary_path = os.path.join(batch, "chain_summary.csv")
 
@@ -288,7 +298,7 @@ def main(chain_path):
             cfg["stopping"].update(link_stopping)
         if link_timesteps:
             cfg["timesteps"] = int(link_timesteps)
-        apply_scan(cfg, var, value, mesh_area(V, F), excess_fixed)
+        apply_scan(cfg, var, value, mesh_area(V, F), excess_fixed, area_ref)
         for i, b in enumerate(cfg["Beads"]):
             b["Pos"] = [float(x) for x in p[i]]
             b["state"] = "froze"  # the bead is frozen from the first link on (a free cold start, --free_cold and --planar, lets it settle first)
