@@ -19,13 +19,13 @@ set Batch_Tag = "Tube_material"
 set radius = 0.3
 set XS = 0.2
 set XF = 6.0
-set Step = 0.1
+set Step = 0.05
 
-foreach KA ( 32.0 16.0 )
+foreach KA ( 32.0 24 16.0 )
 foreach KB ( 4.0 )
 
 set Tag = "KA_${KA}_KB_${KB}_r_${radius}"
-python3 Create_subjob_tube_material.py --KA ${KA} --KB ${KB} --radius ${radius} --x_start ${XS} --x_end ${XF} --step ${Step} --batch_tag ${Batch_Tag}/${Tag} --unique_tag ${Batch_Tag}_${Tag}
+python3 Create_subjob_tube_material.py --KA ${KA} --KB ${KB} --radius ${radius} --x_start ${XS} --x_end ${XF} --step ${Step} --batch_tag ${Batch_Tag}/${Tag} --unique_tag ${Batch_Tag}_${Tag} --x_back 0.0
 if ( $status != 0 ) exit 1
 sbatch ../Subjobs/${Batch_Tag}_${Tag}_subjob
 
