@@ -15,3 +15,5 @@ projects/geometric-flow/build_debug/
 projects/geometric-flow/legacy/Config_files/
 __pycache__/
 *.pyc
+projects/geometric-flow/ToRender/
+projects/geometric-flow/Renders/

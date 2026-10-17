@@ -51,7 +51,7 @@ parser.add_argument("--remesh_max_rise", type=number_str, default="1e9",
                     help="remesh_rollback max_rise of the frozen-bead runs: a remesh that raises a term of the energy by more than max_rise times its size is undone (template 10; here 1e9: never). "
                          "A remesh that puts a vertex inside the bead raises the bead energy and must be allowed there, or the run polishes for ever; the runner checks every result (README)")
 # --- how long each run is (the numbers of the stopping block of the config; the links copy the cold start unless a --link_ value is given)
-parser.add_argument("--switch", type=str, default="100,1500", help="Switch_times of the links (BFGS, BFGS-Normal): two numbers")
+parser.add_argument("--switch", type=str, default="100,20000", help="Switch_times of the links (BFGS, BFGS-Normal): two numbers")
 parser.add_argument("--timesteps", type=number_str, default=None, help="largest number of steps of the relaxation of the first position (template 200000, the stopping block ends a run long before)")
 parser.add_argument("--window", type=number_str, default=None, help="stopping: steps of one window (template 50)")
 parser.add_argument("--patience", type=number_str, default=None, help="stopping: windows in a row that must pass the test (template 4)")
