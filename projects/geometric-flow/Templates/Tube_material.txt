@@ -1,0 +1,95 @@
+{# A bead pushed through the big planar membrane to pull a tube, one frozen position of the bead: the starting state of a chain that walks the bead along x
+   (Scripts/Create_subjob_tube_material.py writes it, Scripts/Run_tube_material_chain.py walks it). The physics of Mem_tube_up.sh / Tube_eq.txt: the disk of
+   input/Big_planar_mem.obj (radius 10, in the plane x = 0, clamped edge), Surface_tension KA, Bending KB (kappa = KB/2), one bead of radius r with the shifted
+   LJ interaction of Tube_eq.txt (shift = inter_str = 10), the remesher of Tube_eq.txt. The bead is FROZEN: its force on the membrane is balanced by the clamped edge and
+   its position, not a constant pulling force, sets the length of the tube. The numerics are those of Wrapping_planar.txt (the planar template of the cluster
+   runs): BFGS then BFGS-Normal, adaptive remeshing, and the "stopping" block ends each run when the energy stops changing (timesteps is only the cap).
+   Energies come out in the energy unit of the config (KB and KA as given, no division by kappa). The tube of the theory has the force 2 pi sqrt(KB KA) and the radius
+   sqrt(KB/KA)/2 (kappa = KB/2, sigma = KA). #}
+{
+    "init_file": "{{ init_file | default('../../../input/Big_planar_mem.obj') }}",
+    "save_interval": {{ save_interval | default(5000) }},
+    "timesteps": {{ timesteps | default(200000) }},
+    "continue_sim": false,
+    "resize_vol": false,
+    "Integration": "Gradient_descent",
+    "lbfgs": {
+        "y": "gradient",
+        "consistent_window": true
+    },
+    "BFGS_saved_states": {{ saved_states | default(15) }},
+    "remeshing": true,
+    "remesh_every": 1,
+    "adapt_remesh": "quality",
+    "remesh_quality": {
+        "f_tol": 0.01,
+        "min_every": 1,
+        "max_every": {{ remesh_max_every | default(100) }}
+    },
+    "Remesh_log": true,
+    "Count_remesh": true,
+    "backtrack": true,
+    "Timestep": 1.0,
+    "first_dir": "{{ first_dir }}",
+    "boundary": true,
+    "recentering": false,
+    "saving_states": false,
+    "Switches": [
+        "BFGS",
+        "BFGS-Normal"
+    ],
+    "Switch_times": [
+        {{ switch_bfgs | default(2000) }},
+        {{ switch_normal | default(80000) }}
+    ],
+    "momentum": false,
+    "rescale": {{ rescale | default(1.0) }},
+    "Energies": [
+        {"Name": "Surface_tension", "constants": [{{ KA }}, 0.0]},
+        {"Name": "Bending", "constants": [{{ KB }}, 0.0]}
+    ],
+    "Beads": [
+        {
+            "gradient_order": "Bead",
+            "radius": {{ radius }},
+            "state": "froze",
+            "Pos": [{{ x }}, 0.0, 0.0],
+            "mem_inter": "LJ",
+            "shift": {{ shift | default(10) }},
+            "inter_str": {{ inter_str | default(10) }},
+            "bonds": [],
+            "bonds_constants": [],
+            "Beads": [],
+            "Constraint": "None",
+            "Constraint_constants": []
+        }
+    ],
+    "remesher": {
+        "aspect_min": {{ aspect_min | default(0.3) }},
+        "refine_angle": {{ refine_angle | default(0.5) }},
+        "refine_compression": 0.0001,
+        "refine_velocity": 1.0,
+        "size_max": {{ size_max | default(0.3) }},
+        "size_min": {{ size_min | default(0.001) }}
+    },
+    "remesh_rollback": {
+        "max_rise": {{ remesh_max_rise | default(10.0) }},
+        "wait": 10
+    },
+    "polish": {
+        "gd_steps": 100,
+        "then": "BFGS-Normal",
+        "max_cycles": -1
+    },
+    "stopping": {
+        "window": {{ stop_window | default(50) }},
+        "patience": {{ stop_patience | default(4) }},
+        "bfgs_tol_E": {{ bfgs_tol | default('5e-05') }},
+        "normal_tol_E": {{ normal_tol | default('1e-08') }},
+        "normal_tol_g": 0.0,
+        "E_floor": 1.0,
+        "bfgs_switch": true,
+        "normal_stop": true,
+        "stall_steps": {{ stall_steps | default(10) }}
+    }
+}
