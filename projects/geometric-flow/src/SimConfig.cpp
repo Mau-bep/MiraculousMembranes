@@ -76,8 +76,8 @@ namespace
         if (b.contains("shell_profile"))
         {
             spec.shell_profile = b["shell_profile"].get<std::string>();
-            if (spec.mem_inter != "Adhesion")
-                throw std::runtime_error("Input file: \"shell_profile\" in " + where + " is only used by the Adhesion interaction");
+            if (spec.mem_inter != "Adhesion" && spec.mem_inter != "Plane_adhesion")
+                throw std::runtime_error("Input file: \"shell_profile\" in " + where + " is only used by the Adhesion and Plane_adhesion interactions");
             try
             {
                 potential_profile = bead_geometry::shellKindFromName(spec.shell_profile) != bead_geometry::ShellKind::Cosine;
@@ -98,8 +98,8 @@ namespace
         if (b.contains("shell_width"))
         {
             spec.shell_width = b["shell_width"].get<double>();
-            if (spec.mem_inter != "Adhesion")
-                std::cout << "Warning: \"shell_width\" in " << where << " is only used by the Adhesion interaction\n";
+            if (spec.mem_inter != "Adhesion" && !(spec.mem_inter == "Plane_adhesion" && potential_profile))
+                std::cout << "Warning: \"shell_width\" in " << where << " is only used by the Adhesion interaction (and by Plane_adhesion with a shell_profile)\n";
             // the cosine shell is a fraction of the radius below 1, the potentials are cut at radius (1 + shell_width)
             const double max_width = potential_profile ? bead_geometry::MAX_PROFILE_WIDTH : 1.0;
             if (!(spec.shell_width > 0.0 && (potential_profile ? spec.shell_width <= max_width : spec.shell_width < max_width)))
@@ -116,6 +116,15 @@ namespace
             if (!(std::isfinite(spec.shell_power) && spec.shell_power >= 1.0))
                 throw std::runtime_error("Input file: \"shell_power\" in " + where +
                                          " must be a finite number >= 1 (1 = plain cosine shell, 2 and 4 = cos^4 and cos^8 of pi x / 2)");
+        }
+        if (b.contains("back_repulsion"))
+        {
+            // Repulsion of the faces that look away from the plane
+            spec.back_repulsion = b["back_repulsion"].get<double>();
+            if (spec.mem_inter != "Plane_adhesion")
+                throw std::runtime_error("Input file: \"back_repulsion\" in " + where + " is only used by the Plane_adhesion interaction");
+            if (!(std::isfinite(spec.back_repulsion) && spec.back_repulsion >= 0.0))
+                throw std::runtime_error("Input file: \"back_repulsion\" in " + where + " must be a finite number >= 0 (0 = none)");
         }
         if (b.contains("patch_angle"))
         {
@@ -150,8 +159,18 @@ namespace
         }
         if (spec.mem_inter == "Plane_adhesion")
         {
-            // rc is the width of the contact layer, Z_Axis the plane normal
-            if (!spec.has_rc || !(spec.rc > 0.0))
+            // rc is the width of the contact layer, Z_Axis the plane normal. With a Frenkel, LJ or Morse
+            // profile the layer is the well at height radius above the plane, cut at radius (1 + shell_width)
+            if (potential_profile)
+            {
+                if (spec.has_rc)
+                    throw std::runtime_error("Input file: \"rc\" in " + where + " is not used with a \"shell_profile\" on Plane_adhesion; "
+                                             "the cutoff is radius (1 + shell_width)");
+                if (!(spec.radius > 0.0))
+                    throw std::runtime_error("Input file: Plane_adhesion in " + where + " with a \"shell_profile\" needs \"radius\" > 0 "
+                                             "(the height of the minimum above the plane)");
+            }
+            else if (!spec.has_rc || !(spec.rc > 0.0))
                 throw std::runtime_error("Input file: Plane_adhesion in " + where +
                                          " needs \"rc\" > 0 (the contact width)");
             if (spec.z_axis[0] == 0.0 && spec.z_axis[1] == 0.0 && spec.z_axis[2] == 0.0)
@@ -605,6 +624,11 @@ bool wants_continue(const std::string &path)
 
 Simulation::~Simulation()
 {
+    reset();
+}
+
+void Simulation::reset()
+{
     // Everything holding MeshData must go before the mesh itself
     M3DG = Mem3DG();
     Sim_handler = E_Handler();
@@ -613,6 +637,15 @@ Simulation::~Simulation()
     Interaction_container.clear();
     delete geometry;
     delete mesh;
+    geometry = nullptr;
+    mesh = nullptr;
+
+    cfg = SimConfig();
+    Energies.clear();
+    Energy_constants.clear();
+    V_bar = 0.0;
+    A_bar = 0.0;
+    dA = 0.0;
 }
 
 namespace
@@ -773,11 +806,18 @@ std::unique_ptr<Interaction> make_interaction(const BeadSpec &spec, ManifoldSurf
     if (type == "Plane_adhesion")
     {
         // E = -inter_str * membrane area within rc of the plane through Pos
-        // with normal Z_Axis; params = {W, sigma, delta, nx, ny, nz}
+        // with normal Z_Axis; params = {W, sigma, delta, nx, ny, nz, back_repulsion}
+        const auto kind = bead_geometry::shellKindFromName(spec.shell_profile);
+        if (kind != bead_geometry::ShellKind::Cosine)
+            params[2] = spec.radius * (1.0 + spec.shell_width); // cutoff of the profile in place of the layer width rc
         params.push_back(spec.z_axis[0]);
         params.push_back(spec.z_axis[1]);
         params.push_back(spec.z_axis[2]);
-        return make_unique_ptr<Plane_Adhesion>(mesh, geometry, params);
+        params.push_back(spec.back_repulsion);
+        auto plane = make_unique_ptr<Plane_Adhesion>(mesh, geometry, params);
+        plane->shellKind = kind;
+        plane->shellAlpha = spec.shell_alpha;
+        return plane;
     }
     if (type == "None")
         return make_unique_ptr<No_mem_Inter>();
@@ -1025,7 +1065,7 @@ bool parse_command_line(int argc, char **argv, std::string &config_path, bool &c
     }
     if (config_path.empty())
     {
-        std::cerr << "Usage: " << argv[0] << " <input.json> [--check]\n";
+        std::cerr << "Usage: " << argv[0] << " <input.json or runs directory> [--check]\n";
         return false;
     }
     return true;

@@ -56,6 +56,7 @@ struct BeadSpec
     double shell_power = 1.0;  // Adhesion: the shell weight is [1/2 (1 + cos(pi x))]^shell_power, real, >= 1 (1 = plain shell)
     std::string shell_profile = "cosine"; // Adhesion: radial profile of the weight, cosine (shell_width, shell_power), frenkel, lj or morse (cutoff rc = radius (1 + shell_width))
     double shell_alpha = 6.0;  // Adhesion, morse profile: range of the potential, alpha / radius, > 0
+    double back_repulsion = 0.0; // Plane_adhesion: strength R (times inter_str) of the repulsion on the faces that look away from the plane, 0 = none
     bool has_patch = false;    // Adhesion: only the part of the bead within patch_angle of patch_axis adheres (see bead_geometry::patchWeight)
     double patch_angle = 180.0; // degrees, polar angle theta_Wr of the patch edge from the axis, in (0, 180]
     double patch_width = 5.0;   // degrees, width of the smooth ramp just inside the edge, in (0, patch_angle)
@@ -215,6 +216,11 @@ struct Simulation
     Simulation(const Simulation &) = delete;
     Simulation &operator=(const Simulation &) = delete;
     ~Simulation();
+
+    // Back to the default-constructed state, so build_simulation can fill it
+    // again (main_visualize switching runs). Whatever else holds MeshData of
+    // the mesh must be released before this deletes it.
+    void reset();
 
     SimConfig cfg;
 

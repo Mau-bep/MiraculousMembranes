@@ -404,8 +404,35 @@ private:
 // relative to P and only through n, so the plane feels a force along n alone
 // ("state": "froze" keeps it fixed). No repulsion: the membrane can cross it.
 //
-// Energy_constants = {W, sigma, delta, nx, ny, nz}
-//   (inter_str, radius (unused), rc and Z_Axis in the input file)
+// With "shell_profile": "frenkel" (or "lj", "morse") the weight is instead the pair
+// potential of the sphere bead (bead_geometry::planeProfileWeight) as a function of the
+// height h above the plane: w = 1 at h = radius (the minimum of the well), a repulsive
+// core (w < 0) below it that keeps the membrane on the +n side, and zero beyond the cutoff
+// radius (1 + shell_width). rc is not used then (the cutoff takes its place).
+//
+// "back_repulsion": R also acts on the faces that look away from the plane (outward normal
+// along +n, projected area a_f < 0 above), the back of a membrane sheet that has slipped
+// between the plane and the adhered membrane or through the plane. For the cosine layer it
+// is the same layer with the sign flipped:
+//
+//   E = +R W w(h_f) |a_f|
+//
+// and for a profile the repulsive branch of the potential,
+//
+//   E = +R W g(h_f) |a_f|,   g = 1 - w(h) below h = radius, 0 beyond (bead_geometry::planeProfileRepulsion)
+//
+// (flipping the sign of a profile would attract into its core). Purely repulsive; the profile
+// version has zero value and slope at h = radius, so it keeps overlapping sheets apart
+// without pulling anything in. Like the adhesion it is
+// weighted by the projected area, which goes to 0 as a face turns edge-on: the membrane
+// border, whose faces are tilted away from the plane, feels almost nothing and its
+// curvature is not forced. Both sides together are E = -W K a_f with a_f of either sign,
+// K = w (a_f > 0) or R g (a_f < 0).
+//
+// Energy_constants = {W, sigma, delta, nx, ny, nz, R}
+//   (inter_str, radius (unused for the cosine layer), rc and Z_Axis in the input file;
+//    with a profile sigma = radius and delta = the cutoff radius (1 + shell_width);
+//    R = back_repulsion, optional, 0 = none)
 class Plane_Adhesion : public Face_Integrated_Interaction
 {
 public:
@@ -424,9 +451,17 @@ public:
 
     const Vector3 &normal() const { return normal_; }
 
+    // Pair-potential profile of the weight (Cosine = the layer of width rc around the plane)
+    bead_geometry::ShellKind shellKind = bead_geometry::ShellKind::Cosine;
+    double shellAlpha = 6.0; // Morse range, alpha / radius
+
 private:
     double strength() const { return Energy_constants[0]; }
     double width() const { return Energy_constants[2]; }
+    double backRepulsion() const { return Energy_constants.size() > 6 ? Energy_constants[6] : 0.0; }
+    // K(h) and dK/dh of a face at height h, K = w for a face that looks at the plane (front, the cosine
+    // layer or the profile) and R g for one that looks away (back); the energy is -W K a_f
+    double weight(double h, bool front, double &dWdh) const;
 
     Vector3 normal_{0.0, 0.0, 1.0};
 };

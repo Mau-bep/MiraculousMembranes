@@ -1504,6 +1504,31 @@ Plane_Adhesion::Plane_Adhesion(ManifoldSurfaceMesh *inputMesh,
     normal_ = n / norm(n);
 }
 
+double Plane_Adhesion::weight(double h, bool front, double &dWdh) const
+{
+    if (shellKind == bead_geometry::ShellKind::Cosine)
+    {
+        const double w = bead_geometry::planeContactWeight(h, width(), dWdh);
+        if (front)
+            return w;
+        // the same layer with the sign flipped for the faces that look away from the plane
+        dWdh *= backRepulsion();
+        return backRepulsion() * w;
+    }
+
+    bead_geometry::ShellProfile profile;
+    profile.kind = shellKind;
+    profile.width = width() / Energy_constants[1] - 1.0; // the cutoff is sigma (1 + width)
+    profile.alpha = shellAlpha;
+    if (front)
+        return bead_geometry::planeProfileWeight(h, Energy_constants[1], dWdh, profile);
+
+    const double R = backRepulsion();
+    const double g = bead_geometry::planeProfileRepulsion(h, Energy_constants[1], dWdh, profile);
+    dWdh *= R;
+    return R * g;
+}
+
 double Plane_Adhesion::Face_Energy(Face f)
 {
     Halfedge he = f.halfedge();
@@ -1512,11 +1537,11 @@ double Plane_Adhesion::Face_Energy(Face f)
     const Vector3 p2 = geometry->inputVertexPositions[he.next().next().vertex()];
 
     const double projected = -0.5 * dot(cross(p1 - p0, p2 - p0), normal_);
-    if (projected <= 0.0)
+    if (projected == 0.0 || (projected < 0.0 && backRepulsion() == 0.0))
         return 0.0;
     double dWdh;
     const double h = dot(normal_, (p0 + p1 + p2) / 3.0 - Bead_1->Pos);
-    const double w = bead_geometry::planeContactWeight(h, width(), dWdh);
+    const double w = weight(h, projected > 0.0, dWdh);
     return -strength() * w * projected;
 }
 
@@ -1529,16 +1554,16 @@ void Plane_Adhesion::Add_Face_Force(Face f, VertexData<Vector3> &membraneForce, 
     const Vector3 p2 = geometry->inputVertexPositions[v2];
 
     const double projected = -0.5 * dot(cross(p1 - p0, p2 - p0), normal_);
-    if (projected <= 0.0)
+    if (projected == 0.0 || (projected < 0.0 && backRepulsion() == 0.0))
         return;
     double dWdh;
     const double h = dot(normal_, (p0 + p1 + p2) / 3.0 - Bead_1->Pos);
-    const double w = bead_geometry::planeContactWeight(h, width(), dWdh);
-    if (w == 0.0)
+    const double w = weight(h, projected > 0.0, dWdh);
+    if (w == 0.0 && dWdh == 0.0)
         return;
 
     // d a_f / d p_i = 1/2 (p_(i+2) - p_(i+1)) x n,  d h_f / d p_i = n / 3
-    // E = -W w a_f, force = -dE/dp = W (w da_f/dp + a_f dw/dh dh/dp)
+    // E = -W w a_f (w = K above, a_f of either sign), force = -dE/dp = W (w da_f/dp + a_f dw/dh dh/dp)
     const Vector3 heightTerm = projected * dWdh * normal_ / 3.0;
     const Vector3 force0 = strength() * (w * 0.5 * cross(p2 - p1, normal_) + heightTerm);
     const Vector3 force1 = strength() * (w * 0.5 * cross(p0 - p2, normal_) + heightTerm);

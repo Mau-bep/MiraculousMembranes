@@ -244,4 +244,31 @@ namespace bead_geometry
      */
     double planeContactWeight(double h, double width, double &dWdh);
 
+    /*
+     * Contact weight of a face at height h above a plane for a pair-potential profile
+     * (Frenkel, LJ or Morse, see ShellProfile): the planar version of the sphere bead, with
+     * the plane in place of the bead surface. sigma is the "radius", the height of the minimum
+     * of the well (w = 1 there), profile.width sets the cutoff sigma (1 + width), and the
+     * repulsive core (w < 0 for h below about sigma) keeps the membrane on the +n side.
+     * The potentials diverge at h = 0, so below h = PLANE_PROFILE_FLOOR sigma the weight is
+     * continued linearly (value and slope matched), still a very stiff wall but finite.
+     * Writes dw/dh in dWdh.
+     */
+    constexpr double PLANE_PROFILE_FLOOR = 0.25;
+
+    double planeProfileWeight(double h, double sigma, double &dWdh, const ShellProfile &profile);
+
+    /*
+     * Repulsive wall for the faces that look away from the plane (the back of a membrane
+     * sheet): the repulsive branch of the same profile, shifted to zero at its minimum,
+     *
+     *   g(h) = 1 - w(h)   for h < sigma,   0 beyond,
+     *
+     * so g and its slope vanish at h = sigma (w has its maximum 1 there) and g grows without
+     * a bump up to the core, monotonically decreasing in h: a back face is only ever pushed
+     * away from the plane. Same linear continuation as planeProfileWeight below the floor.
+     * Writes dg/dh in dGdh.
+     */
+    double planeProfileRepulsion(double h, double sigma, double &dGdh, const ShellProfile &profile);
+
 } // namespace bead_geometry

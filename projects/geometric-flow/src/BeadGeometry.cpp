@@ -187,6 +187,33 @@ namespace bead_geometry
         return 0.5 * (1.0 + std::cos(PI_VALUE * x));
     }
 
+    double planeProfileWeight(double h, double sigma, double &dWdh, const ShellProfile &profile)
+    {
+        if (profile.kind == ShellKind::Cosine)
+            throw std::invalid_argument("planeProfileWeight(): the profile must be Frenkel, LJ or Morse.");
+
+        const double floorH = PLANE_PROFILE_FLOOR * sigma;
+        if (h >= floorH)
+            return shellProfileWeight(h, sigma, dWdh, profile);
+
+        double slope;
+        const double w = shellProfileWeight(floorH, sigma, slope, profile);
+        dWdh = slope;
+        return w + slope * (h - floorH);
+    }
+
+    double planeProfileRepulsion(double h, double sigma, double &dGdh, const ShellProfile &profile)
+    {
+        dGdh = 0.0;
+        if (h >= sigma)
+            return 0.0;
+
+        double dWdh;
+        const double w = planeProfileWeight(h, sigma, dWdh, profile);
+        dGdh = -dWdh;
+        return 1.0 - w;
+    }
+
     SolidAngleResult triangleSolidAngleGradient(
         const Vector3 &p0,
         const Vector3 &p1,
