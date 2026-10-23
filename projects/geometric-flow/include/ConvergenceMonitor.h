@@ -38,8 +38,8 @@ using namespace geometrycentral::surface;
 
 struct StoppingParams
 {
-    bool bfgs_switch = true; // BFGS -> BFGS-Normal once the energy test holds
-    bool normal_stop = true; // end the run once both BFGS-Normal tests hold
+    bool bfgs_switch = true; // BFGS -> BFGS-Normal once the energy test holds; false: the run ends instead
+    bool normal_stop = true; // end the run once the final integrator's tests hold (BFGS-Normal, or BFGS if no switch)
     int window = 100;
     int patience = 3;
     double E_floor = 1.0;       // energy scale used when |E| is smaller
@@ -106,6 +106,10 @@ private:
 // areas of the faces around vertex i. Without normals |force_i| is used.
 double force_density_rms(ManifoldSurfaceMesh &mesh, const VertexPositionGeometry &geometry,
                          const VertexData<Vector3> &force, const VertexData<Vector3> *normals);
+
+// sqrt( sum_i |grad_i|^2 ), the Euclidean norm of the full gradient (all
+// vertices, all directions): the quantity the line searches work with
+double gradient_norm(ManifoldSurfaceMesh &mesh, const VertexData<Vector3> &grad);
 
 // KB / R^3 with R = sqrt(A / 4pi); KB = 1 when bending_modulus is 0
 double force_density_scale(ManifoldSurfaceMesh &mesh, const VertexPositionGeometry &geometry, double bending_modulus);

@@ -46,6 +46,14 @@ double force_density_rms(ManifoldSurfaceMesh &mesh, const VertexPositionGeometry
     return n ? std::sqrt(sum / n) : 0.0;
 }
 
+double gradient_norm(ManifoldSurfaceMesh &mesh, const VertexData<Vector3> &grad)
+{
+    double sum = 0.0;
+    for (Vertex v : mesh.vertices())
+        sum += norm2(grad[v]);
+    return std::sqrt(sum);
+}
+
 double force_density_scale(ManifoldSurfaceMesh &mesh, const VertexPositionGeometry &geometry, double bending_modulus)
 {
     double A = 0.0;

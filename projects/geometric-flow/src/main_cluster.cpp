@@ -820,6 +820,7 @@ namespace
         // BFGS moves along the full gradient and may not have normals yet
         const double f_rms = force_density_rms(*sim.mesh, *sim.geometry, sim.Sim_handler.Current_grad,
                                                normal ? &sim.Sim_handler.Vertex_normals : nullptr);
+        const double g_norm = gradient_norm(*sim.mesh, sim.Sim_handler.Current_grad);
         const double KB = bending_modulus(sim.Sim_handler.Energies, sim.Sim_handler.Energy_constants);
         const double f_scale = force_density_scale(*sim.mesh, *sim.geometry, KB);
         const bool force_ok = p.normal_tol_g == 0.0 || f_rms < p.normal_tol_g * f_scale;
@@ -829,14 +830,15 @@ namespace
         std::ofstream log(run.basic_name + "Convergence_log.txt", std::ios_base::app);
         if (!run.convergence_log)
         {
-            log << "# timestep integration E dE_rel f_rms f_scale passed_windows "
-                   "(f_rms: normal force density for BFGS-Normal, full for BFGS; f_scale = KB/R^3)\n";
+            log << "# timestep integration E dE_rel f_rms f_scale passed_windows g_norm "
+                   "(f_rms: normal force density for BFGS-Normal, full for BFGS; f_scale = KB/R^3; "
+                   "g_norm: Euclidean norm of the full gradient)\n";
             if (KB == 0.0)
                 std::cout << "No bending energy is on, the force density is measured in units of 1/R^3\n";
             run.convergence_log = true;
         }
         log << std::setprecision(10) << current_t << " " << run.Integration << " " << E << " " << dE_rel << " "
-            << f_rms << " " << f_scale << " " << monitor.passed_windows() << "\n";
+            << f_rms << " " << f_scale << " " << monitor.passed_windows() << " " << g_norm << "\n";
 
         if (converged && !normal && p.bfgs_switch)
         {
@@ -845,6 +847,13 @@ namespace
             run.Integration = "BFGS-Normal";
             M3DG.BFGS_iter = 0;
             run.remesh_every = -1;
+        }
+        if (converged && !normal && !p.bfgs_switch && p.normal_stop)
+        {
+            // No switch to BFGS-Normal wanted: the BFGS energy test ends the run
+            std::cout << "BFGS converged at t = " << current_t << ": relative energy change " << dE_rel
+                      << " per window\n";
+            return true;
         }
         if (converged && normal && p.normal_stop)
         {
