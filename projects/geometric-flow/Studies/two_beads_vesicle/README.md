@@ -53,7 +53,7 @@ in the paper the membrane sits 0.5 l above the particle surface (l_m = 4.5 l, 1.
 ## 3. What the template does (`Templates/Wrapping_two_vesicle.txt`)
 
 Closed vesicle of radius R_v = 6.25 a (the paper's D_v/D_p), two beads of radius a, **kappa = 1 energy unit (KB = 2)**: u comes out in kappa,
-u [kBT] = 20.9 u, length [um] = 0.49 length. Energies: `Bending_tan`, `Volume_constraint` (V = 4/3 pi R_v^3, K_V = 2e5) and one of
+u [kBT] = 20.9 u, length [um] = 0.49 length. Energies: `Bending` (since 2026-10-12, `--bending Bending_tan` gives the energy of all runs before, see below), `Volume_constraint` (V = 4/3 pi R_v^3, K_V = 2e5) and one of
 
 | `--area` | what | use |
 |---|---|---|
@@ -62,8 +62,10 @@ u [kBT] = 20.9 u, length [um] = 0.49 length. Energies: `Bending_tan`, `Volume_co
 | `excess` | `Excess_tension`: free area up to A_t, then a tension | soft version of the budget |
 | `none` | nothing | |
 
+**`Bending` and `Bending_tan`** (`--bending`, default `Bending` since 2026-10-12; every run and number below that is older than that used `Bending_tan`): both are the sum KB H_v^2 A_v with H_v = (1/4) sum_e l_e t_e / A_v, the edge term t_e being the dihedral angle theta_e (`Bending`) or 2 tan(theta_e/2) (`Bending_tan`), so kappa = KB/2 for both. They differ by a factor 1 + theta^2/12 per edge, 1.4 % at the largest angle of these meshes (0.42 rad); `Bending_tan` only diverges for a fold (theta -> pi), which these meshes do not reach. On the stored shapes of the two flat-disk chains (98 % and 90 %, s = 1.3 to 5) the two energies of the same shape differ by 0.09 and 0.08 kappa, **constant in s to 0.003 and 0.011 kappa**: the switch does not change u(s) at fixed shape. Relaxing the 98 % state at s = 1.5 again with `Bending` ends 0.085 kappa below the `Bending_tan` run (-83.223 vs -83.138), the same offset. The force of `Bending` equals finite differences of its energy to 2e-8 of the largest force on the 150 vertices with the largest force (relaxed s = 1.5 state; `Bending_tan` the same).
+
 **What "floppy", "taut" and "tense" mean in the runs** (units: bead radius a = 1, kappa = KB/2 = 1; the exact `Energies` of the generated config):
-* **floppy** = `--area tension --sigma 0.02`: `Bending_tan [KB = 2.0, H0 = 0]`, `Volume_constraint [K_V = 2e5, V_bar = 4 pi/3 R_v^3 = 1022.65]`, `Surface_tension [0.02]`. The area is **free**, it only costs sigma = 0.02 kappa/a^2
+* **floppy** = `--area tension --sigma 0.02`: `Bending [KB = 2.0, H0 = 0]`, `Volume_constraint [K_V = 2e5, V_bar = 4 pi/3 R_v^3 = 1022.65]`, `Surface_tension [0.02]`. The area is **free**, it only costs sigma = 0.02 kappa/a^2
   per unit area (sigma~ = sigma a^2/kappa = 0.02, i.e. 7 nN/m for kappa = 20.9 kBT and a = 0.49 um; the experiment's floppy GUVs have sigma < 10 nN/m). The vesicle uses the area it needs (1.049 to 1.067 A_sphere, depending on the
   wrapping), so it stays nearly spherical (reduced volume 0.93-0.95). A real GUV has a fixed area, usually with more excess than that, and a tension that is only the Lagrange multiplier of that constraint; the two agree when the
   excess area is not binding. It is not a flaccid, strongly fluctuating vesicle (reduced volume 0.7-0.9).
@@ -79,13 +81,9 @@ faces within theta_Wr of an axis, with a 5 degree cosine ramp. The membrane in t
 0.988 +- 0.010 with Coverage), its contact line is pinned at the edge and the lift-off beyond the edge is not counted, so the energy no longer
 depends on how the neck is shaped. `--wrap coverage` and `--wrap adhesion` give the old Coverage constraint and the plain adhesion.
 The beads are frozen, the vesicle finds its position; each patch axis points to the centre of the vesicle and is refreshed at every separation
-(`--free_axis` lets it turn, gain 0.03 kappa at s = 2.7, but it ran into a closed neck in one test).
+(`--free_axis` lets it turn; it needs commit 8ced2182 of the branch `bead-patch-adhesion`, see "Checks of the patch": 0 to 0.01 kappa at 98 %, undecided at 90 %).
 
-**The C++ change** (`bead_patch_adhesion.patch`, branch `bead-patch-adhesion`, worktree `../MM-patch`, tested by `Test_patch_adhesion`: forces vs finite
-differences 3e-9, area fraction of the patch vs quadrature, free axis stationary, `planar_adhesion_bfgs` benchmark byte-identical to the old binary) adds the
-bead keys `patch_angle`, `patch_width`, `patch_axis`, `patch_free` to the `Adhesion` interaction; without them nothing changes. An old build **ignores the keys
-silently** and runs a full-sphere adhesion, so `Create_subjob_two_vesicle.py` refuses to write the job unless `../build/bin/main_cluster` contains
-"patch_angle". Apply with `git apply Studies/two_beads_vesicle/bead_patch_adhesion.patch` and rebuild.
+**The C++ change** is in main (merge 68af27c6 of the branch `bead-patch-adhesion`; two commits, the patch with the free axis and, separately, the beads inside, which can be reverted on its own; new target `Test_patch_adhesion`: forces vs finite differences 3e-9, area fraction of the patch vs quadrature, free axis stationary; `Test_exactness` dumps of the six configs of `regression/` byte-identical to the build before). It adds the bead keys `patch_angle`, `patch_width`, `patch_axis`, `patch_free` to the `Adhesion` interaction; without them nothing changes. An old build **ignores the keys silently** and runs a full-sphere adhesion, so `Create_subjob_two_vesicle.py` refuses to write the job unless `../build/bin/main_cluster` contains "patch_angle": rebuild with `make main_cluster` in `build/` after the merge.
 
 **Beads inside the vesicle** (`--inside`, bead key `"outside": -1`): the Adhesion (and the Coverage energy) select the faces whose outward normal points to the bead
 (the external-bead convention), so a bead on the inner side of the closed membrane would see nothing. `Adhesion::side` = -1 (set from `"outside": -1` of the bead) selects the
@@ -228,7 +226,36 @@ the nonlinear continuum solution of this paper's geometry, which the chain compu
 with more wrapped area and more bending) that the outward chain does not find: basins 0.1-0.2 kappa apart exist at this wrapping, as large as the paper's well, and a single chain gives an upper bound of the minimum energy. The simulated annealing of the paper
 finds the lower ones; the pilot's replicas and the in/out legs are the poor man's version (take the minimum of the legs at each s: it is still above zero everywhere here).
 
-**What did not work.** A frozen-bead cold start for beads inside (the vesicle has to slide away from the beads; 60000 steps and not converged, free beads: 5000 steps to the wrapped state); free patch axes on the disk (the chain left its wrapped state at the third waypoint, E +9 kappa) and in the vesicle (closed neck, section 5);
+**Checks of the patch (2026-10-12).**
+* *Geometry.* theta_Wr is measured from the pole of the bead that faces the membrane (the patch axis) to the rim of the inactive cap, as in the sketch of Supplementary Fig. S5a: the patch is the cap of half-angle theta_Wr, its active area
+  (1 - cos theta_Wr)/2, the inactive cone at the top has the full angle 2 (180 - theta_Wr) degrees: 30 degrees and 1.7 % of the area for 165 degrees (98.3 % active), 73.7 degrees and 10 % for 143.13 degrees. With the 5 degree ramp inside the edge the weighted area
+  is 0.976 (165) and 0.886 (143.13). Measured on the converged meshes (solid angle of the membrane facing the bead): 0.98-0.99 at 165, 0.92-0.94 at 143.13, 0.78 at 120, 0.64 at 101.5.
+* *Code.* `Test_patch_adhesion` (all pass): weight function and its slope, forces against finite differences (3e-9 single faces, 2e-10 on a whole sphere, membrane and bead), energy ratio against the quadrature of the weight (0.974 against 0.975 at 165 degrees),
+  no energy or force beyond the edge, the free axis stationary, inside = outside after reversing the mesh; the planar adhesion benchmark is byte-identical to the old binary.
+* *Fixed axes and the free axis (`patch_free`).* The beads cannot tilt in the chains. I relaxed the final states of two fresh flat-disk chains (R = 16 a, `--s_list 5.0,3.0,2.2,1.8,1.5,1.3`, run only for this check) again with `patch_free`.
+  **As merged (68af27c6) it was not reliable:** at 98 % and s = 1.5 the relaxation ended 2 kappa above the fixed-axis state, reproducibly (also with `Bending`; bead 1 at -71.8 instead of -73.3 already at step 0). The covered weight S(n) that the axis maximises is almost flat
+  away from its maximum (the inactive cone of 30 degrees costs 1.7 %, 1.5 kappa, wherever it sits) and has many false maxima: 150 random starts of the Newton iteration on a relaxed pair end at 128 different axes. The solve started from where the previous call had ended,
+  was dragged away while the membrane moved (the trial points of a line search) and stayed on a false maximum, 1.5 kappa per bead too high. **Fix** (commit 8ced2182 of the branch, not in main yet): every solve starts from the axis of the input file, so the energy is a function of the positions alone.
+  It finds the true maximum from any start within 25 degrees of it (60 of 60 starts; 25 of 60 at 35 degrees, 4 of 60 at 40), the beads tilt by a few degrees. `Test_patch_adhesion`, test 8, reproduces the mechanism: the neck of a wrapped bead walks away in steps and the geometry jumps back, +0.64 of 27.8 with
+  the old solve, bitwise 0 with the new. Total energies (kappa, `Bending_tan`) of the eight states relaxed again with the fix; fixed = the state of the chain, restart = relaxed again with fixed axes (90 % only):
+
+  | state | fixed | fixed, restart | free |
+  |---|---|---|---|
+  | 98 %, s = 5.0 | -83.138 | | -83.147 |
+  | 98 %, s = 2.2 | -83.160 | | -83.162 |
+  | 98 %, s = 1.8 | -83.158 | | -83.158 |
+  | 98 %, s = 1.5 | -83.144 | -83.138 | -83.136 |
+  | 98 %, s = 1.3 | -83.118 | | -83.127 |
+  | 90 %, s = 5.0 | -75.141 | -75.216 | -75.223 |
+  | 90 %, s = 1.5 | -74.955 | -75.059 | -75.429 |
+  | 90 %, s = 1.3 | -74.848 | -74.944 | -75.084 |
+
+  At 98 % the free axis changes nothing (0.00 to 0.01 kappa, final axes within 1-2 degrees of the vertical). At 90 % the free relaxations ended 0.37 (s = 1.5) and 0.14 kappa (s = 1.3) below the fixed restarts, but the final axes are within 0.4-1.8 degrees of the vertical
+  (4 degrees for one bead at s = 5, worth 0.2 kappa of adhesion and as much of bending), and the free-axis shapes relaxed again with fixed axes ended at -75.082 and -74.899: relaxations of one 90 % state scatter by 0.1-0.5 kappa between restarts (mesh history, basins),
+  as much as the effect. One relaxation per condition cannot say whether rotation matters at 90 %: if the free value at s = 1.5 were representative, u(1.5) = -0.21 kappa (the paper: -0.16), with the fixed restarts it is +0.16 (the chain: +0.26). Not done: free-axis chains and replicas.
+  The two fresh fixed-axis chains reproduce the R = 24 a curves (98 %: u_tot <= +0.04 at 1.3; 90 %: +0.26 at 1.5, +0.37 at 1.3).
+
+**What did not work.** A frozen-bead cold start for beads inside (the vesicle has to slide away from the beads; 60000 steps and not converged, free beads: 5000 steps to the wrapped state); free patch axes on the disk (the chain left its wrapped state at the third waypoint, E +9 kappa) and in the vesicle (closed neck, section 5), both with the warm-started axis solve of 68af27c6 (explained above, not repeated with the fix);
 a tense disk (sigma~ = 3, W = 20, R = 12) as a control: the clamped disk domes and the frozen beads feel a vertical force of -5 kappa/a, the "attraction" it shows (-0.5 kappa, smooth over 5 D_p) is most likely that artifact, the run was discarded.
 
 ## 7. What is left to try (cluster: `Scripts/Mem_two_vesicle_up.sh`)
@@ -236,12 +263,12 @@ a tense disk (sigma~ = 3, W = 20, R = 12) as a control: the clamped disk domes a
 The continuum elastic model with a pinned contact line does not give the attraction of the paper in any of the geometries above, replicated where it matters (inside 98 %: 0.015 kappa) and cross-checked (patch vs free contact line, floppy vs 5 % area, in/out legs, vesicle vs disk, inside vs outside).
 What differs from the paper's simulation and from the experiment, in order of how likely each seems:
 
-1. **The paper's discretization.** Its curvature energy sqrt3 kappa sum(1 - n_i.n_j) saturates for sharp folds (a hinge costs at most 2 sqrt3 kappa = 3.5 kappa) and its vertices have a hard core (minimum edge l, "two layers of vertices between the particles" at 1.5 D_p); the code's `Bending_tan` grows without bound, so the finger
-   or stalk between two wrapped beads is presumably cheaper there than here (not tested). The necks of 98 % wrapped beads are one vertex wide (0.26 a = l) in the paper: their energy is set by the mesh. Testing it needs a saturating hinge energy (not in the code: add `Bending` with (1 - cos theta)) and a vertex hard core, or the authors' code.
+1. **The paper's discretization.** Its curvature energy sqrt3 kappa sum(1 - n_i.n_j) saturates for sharp folds (a hinge costs at most 2 sqrt3 kappa = 3.5 kappa) and its vertices have a hard core (minimum edge l, "two layers of vertices between the particles" at 1.5 D_p); the code's `Bending_tan` grows without bound for a fold and `Bending` (dihedral angle) stays below pi, but the adaptive remesher keeps the dihedral angles of these meshes
+   below 0.42 rad, where the two differ by 1.4 % (section 3): neither saturates here, so the finger or stalk between two wrapped beads could still be cheaper in the paper's coarse fixed mesh (not tested). The necks of 98 % wrapped beads are one vertex wide (0.26 a = l) in the paper: their energy is set by the mesh. Testing it needs a saturating hinge energy (not in the code: a term with (1 - cos theta) per edge) on a mesh of fixed edge length, and a vertex hard core, or the authors' code.
 2. **Topology.** Two pockets (or buds) that touch can merge into one pocket holding both beads, with one neck instead of two and no finger: a state that a mesh cannot reach by deformation and whose energy I did not compute (it saves the finger, 1 kappa at contact on the disk, and a neck). The experiment's beads at s ~ 1.0-1.4 D_p could be in it.
-3. **Sampling.** Basins 0.1-0.2 kappa apart (section 6): several starts per separation, or an annealing/basin-hopping step, then the minimum. Replicas (`--replica`) and the outward leg are in the launcher.
-4. **Their unspecified details.** epsilon, K_A, K_V in units of the bead, whether the particles rotate (a free patch axis gains 0.03 kappa at s = 2.7 in the pilot, `--free_axis`, but it is fragile), the annealing schedule. The supplementary material only has the potential and theta_Wr. Worth an email to the authors, with Fig. 4b,c in hand: are the particles inside?
+3. **Sampling.** Basins 0.1-0.5 kappa apart (section 6; at 90 % and s = 1.5 four relaxations of one state (the chain, a fixed restart, a free restart, the free shape relaxed again with fixed axes) ended between -74.95 and -75.43, the lowest with the free axis, which would make u(1.5) = -0.21 instead of +0.16 kappa): several starts per separation, or an annealing/basin-hopping step, then the minimum. Replicas (`--replica`) and the outward leg are in the launcher.
+4. **Their unspecified details.** epsilon, K_A, K_V in units of the bead, whether the particles rotate (`--free_axis`: 0.00-0.01 kappa at 98 %; at 90 % one relaxation with it ended 0.14-0.37 kappa below the fixed ones, inside the scatter of restarts, see above), the annealing schedule. The supplementary material only has the potential and theta_Wr. Worth an email to the authors, with Fig. 4b,c in hand: are the particles inside?
 5. A larger closed vesicle (`--Rv 12.5`, 4 times the faces: the experiment's GUVs are 14-40 D_p), the tense vesicle with the beads outside, outward legs of the inside chains for the hysteresis (the planar 90 % legs differ by up to 0.17 at single separations).
 
-Things that did not work and are not worth repeating: Coverage as the only wrapping control (soft shell, roughness), forcing 0.8 coverage from the tangent contact (crumples), moving the beads by more than 0.5 D_p in one link (unwraps them), the free patch axis as default (closed neck in one test, left the state on the disk),
+Things that did not work and are not worth repeating: Coverage as the only wrapping control (soft shell, roughness), forcing 0.8 coverage from the tangent contact (crumples), moving the beads by more than 0.5 D_p in one link (unwraps them), the free patch axis as default with the warm-started solve (closed neck in one test, left the state on the disk),
 frozen beads in the cold start of an inside run, a clamped disk with a high tension.

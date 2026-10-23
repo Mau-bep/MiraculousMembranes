@@ -17,4 +17,8 @@ __pycache__/
 *.pyc
 projects/geometric-flow/ToRender/
 projects/geometric-flow/Renders/
+*.csv#
+projects/geometric-flow/Scripts/one_vesicle.csv
+projects/geometric-flow/Scripts/one_vesicle.png
+projects/geometric-flow/Scripts/one_vesicle_coverage.png
 two_beads_analysis/

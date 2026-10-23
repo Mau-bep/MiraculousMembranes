@@ -206,8 +206,8 @@ def contour():
     # plt.axvline(x=4.4, ls='dashed', color='black')
     # plt.axhline(y=1.37, ls='dashed', color='black')
     cbar = plt.colorbar(ticks=[0.1*i for i in range(11)])
-    cbar.set_label('Wrapping fraction', rotation=90)
-    plt.savefig(folder + "PhaseSpaceVesicle.pdf",bbox_inches = 'tight')
+    cbar.set_label('Coverage', rotation=90)
+    plt.savefig(folder + "PhaseSpaceVesicle.png",bbox_inches = 'tight')
     plt.show()
     
 
@@ -687,7 +687,7 @@ def _deserno_axes_data(filepath, columns):
 def planar_phase_deserno(filepath="../Results/Wrapping_planar_excess/Coverage_data.txt",
                          filepath_full="../Results/Wrapping_planar_excess/Coverage_data_full.txt",
                          column="CoverageUnion", as_z=True, regions=False, region_thresholds=(0.3, 0.95),
-                         contour_levels=None, theory=True, xlim=(3.0, 7.0), ylim=(0.0, 1.0), save=None):
+                         contour_levels=None, theory=True, xlim=(2.0, 10.0), ylim=(0.0, 2.0), save=None):
     """Planar membrane phase diagram in the axes of Fig. 2 of Deserno: w~ = 4 KI r^2/KB (x), sigma~ = 2 KA r^2/KB (y).
 
     filepath, filepath_full: the Coverage_data.txt of PostProcessing for the flat start and for the full (wrapped)
@@ -753,6 +753,7 @@ def planar_phase_deserno(filepath="../Results/Wrapping_planar_excess/Coverage_da
         mesh = ax.pcolormesh(edges(ws), edges(ss), Z, cmap="viridis", shading="flat")
         cbar = fig.colorbar(mesh, ax=ax)
         cbar.set_label(label, rotation=90)
+        cbar.set_label(r" Coverage ", rotation=90,fontsize=25)
 
     # Contour lines through the cell centres, on top of the pcolormesh (NaN cells are left out)
     if contour_levels is not None:
@@ -771,8 +772,8 @@ def planar_phase_deserno(filepath="../Results/Wrapping_planar_excess/Coverage_da
             w_E, s_E = deserno_lines_small_tension()
             ax.plot(w_E, s_E, color="black", lw=1.6)                                # E, exact for sigma~ < 0.433
 
-    ax.set_xlabel(r"$\tilde w = 2 w a^2/\kappa = 4 K_I r^2/K_B$")
-    ax.set_ylabel(r"$\tilde\sigma = \sigma a^2/\kappa = 2 K_A r^2/K_B$")
+    ax.set_xlabel(r"$\tilde w = 2 w a^2/\kappa $",fontsize=25) # = 4 K_I r^2/K_B
+    ax.set_ylabel(r"$\tilde\sigma = \sigma a^2/\kappa $",fontsize=25) #= 2 K_A r^2/K_B
     ax.set_xlim(*xlim)
     ax.set_ylim(*ylim)
     ax.set_aspect("auto")
@@ -857,8 +858,6 @@ def deserno_fig5(filepath="../Results/WrappingPhaseSpaceNewFast/CoverageData.txt
     return fig, ax
 
 
-
-
 def phase_one_vesicle(batch="../Results/Phase_one_vesicle", legs=("in", "out"), column="CoverageUnion", as_z=True,
                       kappa_over_KB=0.5, w_over_KI=1.0, xlim=(0.8, 1.0e3), ylim=(0.0, 5.0), shade=True, save=None, show=True):
     """The chains of Phase_one_vesicle (Mem_one_vesicle_up.sh: KB scanned at fixed KI, KA = 1) in the axes and scaling of deserno_fig5:
@@ -927,55 +926,69 @@ def phase_one_vesicle(batch="../Results/Phase_one_vesicle", legs=("in", "out"), 
     return fig, ax
 
 
-def Shell_test_comparison(filepath="../Results/CoverageShellSum/CoverageSum.txt", save=None):
-    """Bead coverage (CoverageUnion) vs adhesion strength KI for the shell test.
+def Shell_test_comparison(filepath="../Results/CoverageShellSum/CoverageSum.txt", save=None, deserno=True,
+                          quantities=("coverage", "bending", "total")):
+    """Bead coverage (CoverageUnion), bending energy and total energy vs adhesion strength w~ = 4 KI r^2/KB for the shell test.
 
     Columns follow the CoverageSum header: P_order (0), shell_width (1),
-    KI (5), CoverageUnion (9). Rows are grouped by (p, s), sorted by KI and
-    duplicates (same p, s, KI) are collapsed, so the lines are properly ordered.
-    One figure per fixed p (curves for each s) and one per fixed s (curves per p).
+    KI (5), CoverageUnion (9), Bending_tan (14), Total_E (16). Rows are grouped by (p, s), sorted by KI and
+    duplicates (same p, s, KI) are collapsed, so the lines are properly ordered. The x axis is w~ = 4 KI (KB = r = 1).
+    One figure per fixed p (curves for each s) and one per fixed s (curves per p), for each quantity in `quantities`
+    ("coverage", "bending", "total"; a single name as a string is fine); the figures are saved as <save>_<p1|s0.25>.png (coverage),
+    <save>_bending_<...>.png and <save>_total_<...>.png.
+    deserno=True adds Deserno's zero-tension result (the shell test is KA = 0, KB = r = 1) as a black line: nothing wrapped below
+    w~ = 4 (KI = 1), fully wrapped above (coverage z/2 = 1, bending 8 pi kappa = 4 pi KB, total E = -pi (w~ - 4), a ramp).
     """
     from collections import defaultdict
 
-    curves = defaultdict(dict)          # (p, s) -> {KI: coverage}
+    if isinstance(quantities, str):
+        quantities = (quantities,)
+    spec = {"coverage": dict(col=9, ylabel="Bead coverage", full=lambda w: 1.0, tag=""),
+            "bending": dict(col=14, ylabel=r"Bending energy $E_{\rm bend}$", full=lambda w: 4 * np.pi, tag="bending_"),
+            "total": dict(col=16, ylabel=r"Total energy $E$", full=lambda w: -np.pi * (w - 4), tag="total_")}
+    curves = {q: defaultdict(dict) for q in quantities}          # quantity -> (p, s) -> {KI: value}
     for line in open(filepath):
         if line.startswith("#") or not line.strip():
             continue
         d = line.split()
-        curves[(int(d[0]), float(d[1]))][float(d[5])] = float(d[9])
+        for q in quantities:
+            curves[q][(int(d[0]), float(d[1]))][float(d[5])] = float(d[spec[q]["col"]])
 
-    ps = sorted({p for p, _ in curves})
-    ss = sorted({s for _, s in curves}, reverse=True)
+    keys = curves[quantities[0]]
+    ps = sorted({p for p, _ in keys})
+    ss = sorted({s for _, s in keys}, reverse=True)
 
-    def draw(ax, key, label, color, marker):
-        c = curves[key]
-        ki = sorted(c)
-        ax.plot(ki, [c[k] for k in ki], "-", marker=marker, ms=4, lw=1.6,
-                color=color, label=label)
-
-    def panel(fixed, values, varying, make_key, make_label, title, fname):
+    def panel(q, varying, make_key, make_label, title, fname):
         fig, ax = plt.subplots(figsize=(5.5, 4))
         cmap = plt.get_cmap("inferno")
         markers = "osD^v"
         for i, v in enumerate(varying):
             key = make_key(v)
-            if key in curves:
-                draw(ax, key, make_label(v), cmap(i / max(len(varying) - 1, 1) * 0.85), markers[i % len(markers)])
-        ax.set_xlabel(r"Adhesion strength $K_I$")
-        ax.set_ylabel("Bead coverage")
+            if key in curves[q]:
+                c = curves[q][key]
+                ki = sorted(c)
+                ax.plot([4 * k for k in ki], [c[k] for k in ki], "-", marker=markers[i % len(markers)], ms=4, lw=1.6,
+                        color=cmap(i / max(len(varying) - 1, 1) * 0.85), label=make_label(v))
+        if deserno:
+            xl = ax.get_xlim()
+            full = spec[q]["full"]
+            ax.plot([xl[0], 4.0, 4.0, xl[1]], [0, 0, full(4.0), full(xl[1])], "k-", lw=1.3, label=r"Deserno, $\tilde\sigma = 0$")
+            ax.set_xlim(xl)
+        ax.set_xlabel(r"Adhesion strength $\tilde w = 4 K_I r^2/K_B$")
+        ax.set_ylabel(spec[q]["ylabel"])
         ax.set_title(title)
         ax.grid(alpha=0.3)
         ax.legend(frameon=False)
         fig.tight_layout()
         if save is not None:
-            fig.savefig(f"{save}_{fname}.png", dpi=200, bbox_inches="tight")
+            fig.savefig(f"{save}_{spec[q]['tag']}{fname}.png", dpi=200, bbox_inches="tight")
         plt.show()
 
-    for p in ps:
-        panel(p, ps, ss, lambda s: (p, s), lambda s: f"s = {s:g}", f"p = {p}", f"p{p}")
-    for s in ss:
-        panel(s, ss, ps, lambda p: (p, s), lambda p: f"p = {p}", f"s = {s:g}", f"s{s:g}")
-
+    for q in quantities:
+        for p in ps:
+            panel(q, ss, lambda s: (p, s), lambda s: f"s = {s:g}", f"p = {p}", f"p{p}")
+        for s in ss:
+            panel(q, ps, lambda p: (p, s), lambda p: f"p = {p}", f"s = {s:g}", f"s{s:g}")
 
 
 def Potentials_comparison(filepath="../Results/Potentials_sum/CoverageSum.txt", save=None,
@@ -1076,6 +1089,78 @@ def Potentials_comparison(filepath="../Results/Potentials_sum/CoverageSum.txt", 
         print(f"  {cond:8s} {labels.get(cond, cond):26s} KI(0.5) = {cross[0]:.3f}   KI(0.9) = {cross[1]:.3f}")
 
 
+def Thin_shell_vs_potentials(filepath_shell="../Results/CoverageShellSum/CoverageSum.txt",
+                             filepath="../Results/Potentials_sum/CoverageSum.txt", p=1, s=0.05, save=None,
+                             conds=("cos", "frenkel", "lj25", "lj20", "morse2", "morse10"), deserno=True):
+    """The thin cosine shell of the shell test (power p, half width s; default p = 1, s = 0.05) against all the potentials of the
+    planar potentials scan, all at zero tension (KA = 0, KB = r = 1): total energy, bending energy and coverage against KI.
+
+    filepath_shell: CoverageSum.txt of the shell test (columns KI 5, CoverageUnion 9, Bending_tan 14, Total_E 16, a flat start);
+    filepath: the output of Process_potentials.py, flat start (lines). The thin shell is the thick black line, Deserno's zero-tension
+    step is gray. Total_E and the bending energy are comparable between all curves. CoverageUnion is NOT quite: it counts the faces
+    inside the shell of the run (half width 0.05 for the thin shell), the potentials are measured with the plain 0.25 shell.
+    """
+    names, rows = None, {}                                    # cond -> {column: {KI: value}}
+    labels = {}
+    for line in open(filepath):
+        if not line.strip():
+            continue
+        if line.startswith("#"):
+            names = line.lstrip("#").split()
+            continue
+        d = dict(zip(names, line.split()))
+        if d["Init"] != "flat" or d["Cond"] not in conds:
+            continue
+        ki = float(d["KI"])
+        r = rows.setdefault(d["Cond"], {"CoverageUnion": {}, "Total_E": {}, "Bending_tan": {}})
+        for col in r:
+            r[col][ki] = float(d[col])
+        prof, sw, al = d["Profile"], float(d["shell_width"]), d["shell_alpha"]
+        labels[d["Cond"]] = {"cosine": f"cosine, s = {sw:g}", "frenkel": f"Frenkel, rc = {1 + sw:.2f} r",
+                             "lj": f"LJ, rc = {1 + sw:.2f} r", "morse": f"Morse a = {al}, rc = {1 + sw:.2f} r"}[prof]
+    thin = {"CoverageUnion": {}, "Total_E": {}, "Bending_tan": {}}
+    for line in open(filepath_shell):
+        if line.startswith("#") or not line.strip():
+            continue
+        d = line.split()
+        if int(d[0]) == p and abs(float(d[1]) - s) < 1e-9:
+            ki = float(d[5])
+            thin["CoverageUnion"][ki], thin["Bending_tan"][ki], thin["Total_E"][ki] = float(d[9]), float(d[14]), float(d[16])
+    if not thin["Total_E"]:
+        raise ValueError(f"no rows with p = {p}, s = {s} in {filepath_shell}")
+
+    colors = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#6250d6"]
+    markers = "osD^vP"
+    panels = [("CoverageUnion", "Coverage (CoverageUnion)", 1.0), ("Total_E", r"Total energy $E$", None),
+              ("Bending_tan", r"Bending energy $E_{\rm bend}$", 4 * np.pi)]
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4.6))
+    for ax, (col, ylabel, full) in zip(axes, panels):
+        if deserno:
+            kd = np.array([0.4, 1.0, 1.0, 2.6])
+            y = {"CoverageUnion": [0, 0, 1, 1], "Total_E": [0, 0, 0, -4 * np.pi * 1.6], "Bending_tan": [0, 0, 4 * np.pi, 4 * np.pi]}[col]
+            ax.plot(kd, y, color="gray", lw=1.5, label=r"Deserno, $\tilde\sigma = 0$")
+        for i, cond in enumerate([c for c in conds if c in rows]):
+            ki = np.array(sorted(rows[cond][col]))
+            ax.plot(ki, [rows[cond][col][k] for k in ki], "-", marker=markers[i % len(markers)], ms=4, lw=1.3,
+                    color=colors[i % len(colors)], label=labels[cond])
+        ki = np.array(sorted(thin[col]))
+        ax.plot(ki, [thin[col][k] for k in ki], "-", marker="o", ms=5, lw=2.4, color="black", label=f"cosine, p = {p:g}, s = {s:g} (shell test)")
+        ax.axvline(1.0, color="gray", ls=":", lw=1.0)
+        ax.set_xlim(0.45, 2.45)
+        ax.set_xlabel(r"Adhesion strength $K_I$")
+        ax.set_ylabel(ylabel)
+        ax.grid(alpha=0.3)
+        top = ax.secondary_xaxis("top", functions=(lambda x: 4 * x, lambda x: x / 4))
+        top.set_xlabel(r"$\tilde w = 4 K_I r^2/K_B$")
+    axes[0].legend(frameon=False, fontsize=8, loc="lower right")
+    axes[1].set_ylim(-19.5, 1.0)
+    fig.suptitle(rf"Planar membrane, $K_A = 0$: thin cosine shell (p = {p:g}, s = {s:g}) against the other potentials (flat start)", y=1.02, fontsize=10)
+    fig.tight_layout()
+    if save is not None:
+        fig.savefig(f"{save}.png", dpi=200, bbox_inches="tight")
+    plt.show()
+
+
 def Softshell_prediction(filepath="../Results/Potentials_sum/CoverageSum.txt",
                          prediction="../Studies/deserno_shell/data/softshell_sigma0.csv", cond="cos", save=None):
     """Continuum soft-shell prediction against the simulation at zero tension, cosine shell (the 'cos' condition, s = 0.25).
@@ -1143,13 +1228,363 @@ def Softshell_prediction(filepath="../Results/Potentials_sum/CoverageSum.txt",
         fig.savefig(f"{save}.png", dpi=200, bbox_inches="tight")
     plt.show()
 
-Shell_test_comparison(filepath="../Results/CoverageShellSum/CoverageSum.txt",save="../Results/CoverageShellSum/CoverageSum")
+def _profile_spec(name):
+    """Parameters of an adhesion profile from its name. Named variants of the runs:
+        cos (cosine p = 1, s = 0.25), frenkel (s = 0.25), lj25 / lj20 (rc = 2.5 / 2 sigma_LJ), morse2 / morse10 (a = 2 / 10, rc = 2.5 sigma_LJ)
+    or any `kind_tokens`, kind in cos, frenkel, lj, morse and tokens p<exponent>, s<half width or cutoff width>, a<Morse alpha>,
+    e.g. cos_p4_s0.05, frenkel_s0.5, lj_s1, morse_a3_s1.2 (cos: p = 1, s = 0.25; others s = 0.25; morse a = 6 when not given).
+    s is the shell_width of the input file: the cosine shell reaches out to r = 1 +- s, the potentials are cut at rc = 1 + s (radius = 1)."""
+    s_lj25, s_lj20 = 2.5 * 2 ** (-1 / 6) - 1, 2.0 * 2 ** (-1 / 6) - 1
+    named = {"cos": dict(kind="cos", p=1.0, s=0.25), "frenkel": dict(kind="frenkel", s=0.25),
+             "lj25": dict(kind="lj", s=s_lj25), "lj20": dict(kind="lj", s=s_lj20),
+             "morse2": dict(kind="morse", a=2.0, s=s_lj25), "morse10": dict(kind="morse", a=10.0, s=s_lj25)}
+    if name in named:
+        return dict(dict(p=1.0, s=0.25, a=6.0, named=True), **named[name])
+    kind, *tokens = name.split("_")
+    if kind not in ("cos", "frenkel", "lj", "morse"):
+        raise ValueError(f"unknown potential '{name}': use {sorted(named)}, a group (cosine, scan, all) or kind_p<p>_s<s>_a<a> with kind in cos, frenkel, lj, morse")
+    spec = dict(kind=kind, p=1.0, s=0.25, a=6.0, named=False)
+    for t in tokens:
+        if t[:1] not in ("p", "s", "a") or not t[1:]:
+            raise ValueError(f"cannot read '{t}' in '{name}' (expected p<exponent>, s<width> or a<alpha>)")
+        spec[{"p": "p", "s": "s", "a": "a"}[t[0]]] = float(t[1:])
+    return spec
+
+
+def _profile_weight(r, spec):
+    """w(r) of the Adhesion weight (radius = 1, w = 1 at the minimum), the formulas of bead_geometry::shellProfileWeight."""
+    r = np.asarray(r, float)
+    kind, sw = spec["kind"], spec["s"]
+    if kind == "cos":
+        x = (r - 1.0) / sw
+        return np.where(np.abs(x) < 1.0, (0.5 * (1.0 + np.cos(np.pi * np.clip(x, -1, 1)))) ** spec["p"], 0.0)
+    rc = 1.0 + sw
+    if kind == "frenkel":
+        s2 = 2.0 * rc ** 2 / (3.0 * rc ** 2 - 1.0)                  # sigma_F^2, so that the minimum is at r = 1
+        alpha = 2.0 * (rc ** 2 / s2) * (3.0 / (2.0 * (rc ** 2 / s2 - 1.0))) ** 3
+        w = -alpha * (s2 / r ** 2 - 1.0) * (rc ** 2 / r ** 2 - 1.0) ** 2
+    else:
+        if kind == "lj":
+            V = lambda x: x ** -12.0 - 2.0 * x ** -6.0
+        else:
+            V = lambda x: (1.0 - np.exp(-spec["a"] * (x - 1.0))) ** 2 - 1.0
+        w = (V(rc) - V(r)) / (1.0 + V(rc))                          # shifted to zero at rc, depth renormalised to 1
+    return np.where(r < rc, w, 0.0)
+
+
+def Potential_data(tag, x=None, n=2000):
+    """The radial profile of the adhesion between the bead and the membrane, as numpy arrays [x, U(x)].
+
+    tag: `kind_p<p>_s<s>_a<a>` as in the input files, kind in cos, frenkel, lj, morse, for example cos_p1_s0.25, cos_p4_s0.05,
+         frenkel_s0.25, lj_s1.2272468, morse_a2_s1.2272468; or one of the named variants of the runs: cos, frenkel, lj25, lj20,
+         morse2, morse10 (see _profile_spec). p is the exponent of the cosine shell, s the shell_width (the cosine shell reaches
+         r = 1 +- s, the potentials are cut at rc = 1 + s, LJ and Morse also shifted to zero there), a the Morse range alpha.
+    x: where to evaluate, in units of the bead radius (default: n points from 0.3, or from just below the cosine shell, to 1.08 s
+       beyond r = 1: the whole support).
+    Returns x (bead radius = 1) and U(x) = -w(x) in units of W = inter_str: -1 at x = 1 (the minimum of the well), 0 beyond the cutoff,
+    positive in the repulsive core of the Frenkel, LJ and Morse (the cosine shell has none). The adhesion energy density is W U(x).
+    """
+    spec = _profile_spec(tag)
+    if x is None:
+        lo = max(0.0, 1.0 - 1.08 * spec["s"]) if spec["kind"] == "cos" else 0.3
+        x = np.linspace(max(lo, 1e-3), 1.0 + 1.08 * spec["s"], n)
+    else:
+        x = np.asarray(x, float)
+    return x, 0.0 - _profile_weight(x, spec)
+
+
+def potential_curve(tag, init="flat", filepath="../Results/Potentials_sum/CoverageSum.txt"):
+    """x, Cov(x), Total_E(x) of one potential of the planar potentials scan (Process_potentials.py output).
+
+    tag: the Cond column of the file ("cos", "frenkel", "lj25", "lj20", "morse2", "morse10").
+    init: "flat" or "full", the start of the run (the Init column).
+    x is the adhesion strength KI, Cov is CoverageUnion; the three arrays are sorted by KI, so
+    x, cov, E = potential_curve("cos") can be plotted directly.
+    """
+    names, rows, tags = None, [], set()
+    for line in open(filepath):
+        if not line.strip():
+            continue
+        if line.startswith("#"):
+            names = line.lstrip("#").split()
+            continue
+        d = dict(zip(names, line.split()))
+        tags.add(d["Cond"])
+        if d["Cond"] == tag and d["Init"] == init:
+            rows.append((float(d["KI"]), float(d["CoverageUnion"]), float(d["Total_E"])))
+    if not rows:
+        raise ValueError(f"no rows with Cond = {tag!r}, Init = {init!r} in {filepath} (tags: {sorted(tags)})")
+    x, cov, E = np.array(sorted(rows)).T
+    return x, cov, E
+
+
+
+def CosPlots():
+    """Profile U(r)/K_I of the cosine adhesion shell, drawn like Shell_test_comparison (5.5 x 4 figure, grid, legend without
+    frame). First figure: p = 1 with the three widths s, second: s = 0.1 with the three exponents p; both share the x and y
+    window. No markers: the profile is analytic, not data points."""
+    cmap = plt.get_cmap("inferno")
+    xlim, ylim = (0.7, 1.3), (-1.1, 0.1)
+
+    def panel(tags, labels, title, save):
+        fig, ax = plt.subplots(figsize=(5.5, 4))
+        ax.axhline(0,ls='solid',color='black')
+        ax.axhline(-1,ls='dashed',color='grey')
+        for tag, label, shade in zip(tags, labels, (0.75, 0.5, 0.25)):
+            x,U = Potential_data(tag)
+            ax.plot(x,U,color=cmap(shade),lw=1.6,label=label)
+        ax.set_xlim(*xlim)
+        ax.set_ylim(*ylim)
+        ax.set_xlabel(r"$r/a$")
+        ax.set_ylabel(r"$U(r)/K_I$")
+        ax.set_title(title)
+        ax.grid(alpha=0.3)
+        ax.legend(frameon=False)
+        fig.tight_layout()
+        fig.savefig(save, dpi=200, bbox_inches="tight")
+        plt.show()
+
+    panel(("cos_p1_s0.25", "cos_p1_s0.1", "cos_p1_s0.05"), ("s = 0.25", "s = 0.1", "s = 0.05"),
+          "p = 1", "../Results/SoftHour/CosPot1.png")
+    panel(("cos_p1_s0.1", "cos_p2_s0.1", "cos_p4_s0.1"), ("p = 1", "p = 2", "p = 4"),
+          "s = 0.1", "../Results/SoftHour/CosPot2.png")
+
+
+# CosPlots()
+
+def SoftHourPlots():
+    # OK lets see
+    # plt.scatter(1.0,-1.0,marker='*',color='black')
+    x, U = Potential_data("lj20")
+    plt.xlim(0.5,2.25)
+    plt.axhline(0,ls='solid',color='black')
+    plt.axhline(-1,ls='dashed',color='grey')
+    plt.ylim(-2,2)
+    # plt.plot(x,U,label=r'LJ 2.0',color='purple')
+    x, U = Potential_data("lj25")
+    plt.plot(x,U,label=r'LJ 2.5',color='purple')
+    
+    # plt.xlabel(r"$r/a$",fontsize=20)
+    # plt.legend(fontsize=15)
+    # plt.ylabel(r"$U(r)/K_I$",fontsize=20)
+    # plt.savefig("../Results/SoftHour/LJs.png",bbox_inches='tight')
+    # plt.show()
+
+    x, U = Potential_data("morse2")
+    # plt.xlim(0.5,2.25)
+    plt.axhline(0,ls='solid',color='black')
+    plt.axhline(-1,ls='dashed',color='grey')
+    # plt.ylim(-2,2)
+    # plt.plot(x,U,label=r'Morse 2',color='purple')
+    x, U = Potential_data("morse10")
+    plt.plot(x,U,label=r'Morse 10',color='magenta')
+    
+    plt.xlabel(r"$r/a$",fontsize=20)
+    plt.legend(fontsize=15)
+    plt.ylabel(r"$U(r)/K_I$",fontsize=20)
+    # plt.savefig("../Results/SoftHour/Morses.png",bbox_inches='tight')
+    # plt.show()
+
+    # x, U = Potential_data("morse2")
+    # plt.xlim(0.5,2.25)
+    # plt.axhline(0,ls='solid',color='black')
+    # plt.axhline(-1,ls='dashed',color='grey')
+    # plt.ylim(-2,2)
+    # plt.plot(x,U,label=r'Frenkel',color='purple')
+    x, U = Potential_data("frenkel")
+    plt.plot(x,U,label=r'Frenkel',color='pink')
+    
+    plt.xlabel(r"$r/a$",fontsize=20)
+    plt.legend(fontsize=15)
+    plt.ylabel(r"$U(r)/K_I$",fontsize=20)
+    # plt.scatter(1.0,-1.0,color='black')
+    plt.savefig("../Results/SoftHour/Potentials.png",bbox_inches='tight')
+    
+    plt.show()
+
+
+def SoftHourCov():
+    """Zero-tension theory and the Morse / Frenkel / LJ potentials against w~ = 4 KI, drawn like Shell_test_comparison
+    (5.5 x 4 figure, grid, markers, same axis labels, legend without frame). Solid lines: full start, dashed lines: flat start.
+    All four figures share the x window; the two coverage figures share their y window and so do the two energy figures."""
+    kd = np.array([0.0, 4.0, 4.0, 2.6*4])
+    yCov = [0, 0, 1, 1]
+    yEnergy = [0, 0, 0, -4 * np.pi * 1.6]
+    xlabel = r"Adhesion strength $\tilde w = 4 K_I r^2/K_B$"
+    theory = r"Deserno, $\tilde\sigma = 0$"
+    xlim = (2.0, 7.2)                                       # KI = 0.5 ... 1.8 of the shell test, in w~ = 4 KI
+    ylimCov = (-0.05, 1.05)
+    ylimE = (-11.6, 0.6)                                    # the lowest energy in the window is -11.1 (LJ)
+    style = dict(lw=1.6, ms=4)                              # as the curves of Shell_test_comparison
+
+    def finish(fig, ax, ylabel, ylim, save):
+        ax.set_xlim(*xlim)
+        ax.set_ylim(*ylim)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.grid(alpha=0.3)
+        ax.legend(frameon=False)
+        fig.tight_layout()
+        fig.savefig(save, dpi=200, bbox_inches="tight")
+        plt.show()
+
+    fig, ax = plt.subplots(figsize=(5.5, 4))
+    ax.plot(kd, yCov, color="gray", lw=1.5, label=theory)
+    finish(fig, ax, "Bead coverage", ylimCov, "../Results/SoftHour/TheoryCov.png")
+
+    fig, ax = plt.subplots(figsize=(5.5, 4))
+    ax.plot(kd, yEnergy, color="gray", lw=1.5, label=theory)
+    finish(fig, ax, r"Total energy $E$", ylimE, "../Results/SoftHour/TheoryE.png")
+
+    uMorse , covMorse, eMorse = potential_curve("morse10",init='full')
+    uFrenkel, covFrenkel,eFrenkel = potential_curve("frenkel",init='full')
+    uLJ, covLJ, eLJ = potential_curve("lj25",init='full')
+
+    uMorse2 , covMorse2, eMorse2 = potential_curve("morse10",init='flat')
+    uFrenkel2, covFrenkel2,eFrenkel2 = potential_curve("frenkel",init='flat')
+    uLJ2, covLJ2, eLJ2 = potential_curve("lj25",init='flat')
+
+
+    fig, ax = plt.subplots(figsize=(5.5, 4))
+    ax.plot(kd, yCov, color="gray", lw=1.5, label=theory)
+    ax.plot(uMorse*4,covMorse,color="magenta",marker='o',label="Morse",**style)
+    ax.plot(uFrenkel*4,covFrenkel,color='pink',marker='s',label="Frenkel",**style)
+    ax.plot(uLJ*4,covLJ,color='purple',marker='D',label="LJ",**style)
+
+    ax.plot(uMorse2*4,covMorse2,color="magenta",marker='o',ls='dashed',**style)
+    ax.plot(uFrenkel2*4,covFrenkel2,color='pink',marker='s',ls='dashed',**style)
+    ax.plot(uLJ2*4,covLJ2,color='purple',marker='D',ls='dashed',**style)
+    finish(fig, ax, "Bead coverage", ylimCov, "../Results/SoftHour/TheoryCovPotentials.png")
+
+
+    fig, ax = plt.subplots(figsize=(5.5, 4))
+    ax.plot(uMorse*4,eMorse,color="magenta",marker='o',label="Morse",**style)
+    ax.plot(uFrenkel*4,eFrenkel,color='pink',marker='s',label="Frenkel",**style)
+    ax.plot(uLJ*4,eLJ,color='purple',marker='D',label="LJ",**style)
+
+    ax.plot(uMorse2*4,eMorse2,color="magenta",marker='o',ls='dashed',**style)
+    ax.plot(uFrenkel2*4,eFrenkel2,color='pink',marker='s',ls='dashed',**style)
+    ax.plot(uLJ2*4,eLJ2,color='purple',marker='D',ls='dashed',**style)
+
+    ax.plot(kd, yEnergy, color="gray", lw=1.5, label=theory)
+    finish(fig, ax, r"Total energy $E$", ylimE, "../Results/SoftHour/TheoryEPotentials.png")
+
+
+    # Good now we add the other potentials.
+
+
+
+        
+def shell_curve(p, s, filepath="../Results/CoverageShellSum/CoverageSum.txt"):
+    """x, Cov(x), Total_E(x) of one cosine shell (power p, half width s) of the shell test, like potential_curve (flat start only).
+
+    x is the adhesion strength KI, Cov is CoverageUnion; the arrays are sorted by KI."""
+    names, rows = None, []
+    for line in open(filepath):
+        if not line.strip():
+            continue
+        if line.startswith("#"):
+            names = line.lstrip("#").split()
+            continue
+        d = dict(zip(names, line.split()))
+        if int(d["P_order"]) == p and abs(float(d["shell_width"]) - s) < 1e-9:
+            rows.append((float(d["KI"]), float(d["CoverageUnion"]), float(d["Total_E"])))
+    if not rows:
+        raise ValueError(f"no rows with p = {p}, s = {s} in {filepath}")
+    x, cov, E = np.array(sorted(rows)).T
+    return x, cov, E
+
+
+def CosPotentialsPlots():
+    """Coverage and total energy against w~ = 4 KI of two cosine shells (p = 1, s = 0.25 and p = 2, s = 0.05, from the shell test)
+    and of the Morse / Frenkel / LJ potentials, drawn like SoftHourCov (same colors, limits and style). All curves are the flat
+    start, the only one the shell test has."""
+    cmap = plt.get_cmap("inferno")
+    kd = np.array([0.0, 4.0, 4.0, 2.6*4])
+    yCov = [0, 0, 1, 1]
+    yEnergy = [0, 0, 0, -4 * np.pi * 1.6]
+    xlabel = r"Adhesion strength $\tilde w = 4 K_I r^2/K_B$"
+    theory = r"Deserno, $\tilde\sigma = 0$"
+    xlim = (2.0, 7.2)                                       # same windows as SoftHourCov
+    style = dict(lw=1.6, ms=4)                              # as the curves of Shell_test_comparison
+
+    curves = [("Cosine, p = 1, s = 0.25", shell_curve(1, 0.25), cmap(0.75), '^'),
+              ("Cosine, p = 2, s = 0.05", shell_curve(2, 0.05), cmap(0.1), 'v'),
+              ("Morse", potential_curve("morse10"), "magenta", 'o'),
+              ("Frenkel", potential_curve("frenkel"), "pink", 's'),
+              ("LJ", potential_curve("lj25"), "purple", 'D')]       # (x, cov, E) each
+
+    for ylabel, col, y_theory, ylim, save in (("Bead coverage", 1, yCov, (-0.05, 1.05), "../Results/SoftHour/CosPotentialsCov.png"),
+                                              (r"Total energy $E$", 2, yEnergy, (-11.6, 0.6), "../Results/SoftHour/CosPotentialsE.png")):
+        fig, ax = plt.subplots(figsize=(5.5, 4))
+        ax.plot(kd, y_theory, color="gray", lw=1.5, label=theory)
+        for label, curve, color, marker in curves:
+            ax.plot(curve[0]*4, curve[col], color=color, marker=marker, label=label, **style)
+        ax.set_xlim(*xlim)
+        ax.set_ylim(*ylim)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.grid(alpha=0.3)
+        ax.legend(frameon=False)
+        fig.tight_layout()
+        fig.savefig(saave, dpi=200, bbox_inches="tight")
+        plt.show()
+
+
+def Plot_data_foce(directory):
+    # Ok so he datafile would be
+    Data = np.loadtxt(directory+"Force_data.csv")
+    Distance_x= []
+    Force_x = []
+    Distance_x_2 = []
+    Force_x_2 = []
+    for i in range(len(Data)):
+        # Ok so thi is gonna go over whats in data
+        # print(Data[i,0])
+        if(Data[i,2]==0.3 ):
+            # print(Data[i,3])
+            if(Data[i,1] == 16):
+                Distance_x.append(Data[i,3])
+                Force_x.append(-1*Data[i,4])
+            else:
+                Distance_x_2.append(Data[i,3])
+                Force_x_2.append(-1*Data[i,4])
+                
+
+    plt.axhline(2*np.pi*np.sqrt(16*4),ls='dashed',color='purple')
+    plt.axhline(2*np.pi*np.sqrt(32*4),ls='dashed',color='magenta')
+    plt.scatter(np.array(Distance_x)+0.3,Force_x,color='purple',label=r'$\kappa=8$')
+    plt.xlabel("Membrane extension")
+    plt.ylabel("Membrane response to pulling")
+    # plt.axvline(2.1)
+    # plt.axvline(2.3)
+    plt.scatter(np.array(Distance_x_2)+0.3,Force_x_2,color='magenta',label=r'$\kappa=16$')
+    plt.ylim(0,150)
+    # print(Distance_x)
+    # print(Force_x)
+    plt.title(r'$\sigma = 4$')
+    plt.legend( )
+    plt.savefig(directory + "Scatter_plot.png",bbox_inches='tight')
+    plt.show()
+
+# load_pretty_figure_setup()
+# SoftHourPlots()
+# SoftHourCov()
+# CosPotentialsPlots()
+# Plot_data_foce("../Results/Pulling_and_relaxing_2/")
+# phase_one_vesicle(batch="../Results/Phase_one_vesicle/",legs="out",as_z=False)
+phase_one_vesicle_map(batch="../Results/Phase_one_vesicle/")
+
+# Shell_test_comparison(filepath="../Results/CoverageShellSum/CoverageSum.txt",save="../Results/CoverageShellSum/CoverageSum2",quantities="total")
 
 # Potentials_comparison(save="../Results/Potentials_sum/Potentials_comparison")                                      # Frenkel / LJ / Morse adhesion, KA = 0
+# Thin_shell_vs_potentials(save="../Results/Potentials_sum/Thin_shell_vs_potentials")                                 # cosine p = 1, s = 0.05 (shell test) against all the potentials
 # Softshell_prediction(save="../Results/Potentials_sum/Softshell_prediction")                                           # cosine shell vs continuum model, needs Studies/deserno_shell/theory/softshell_sigma0.py
+# x, U = Potential_data("cos_p1_s0.25")                                                                         # radial profile [x, U(x)] of an adhesion variant, x in bead radii, U in units of W
 # deserno_fig5(filepath = "../Results/WrappingPhaseSpaceNewFast/Coverage_data.txt",as_z = False)                         # vesicle data, kappa = KB/2
 # deserno_fig5(filepath="../Results/Wrapping_planar_excess/Coverage_data.txt", filepath_full="../Results/Wrapping_planar_excess/Coverage_data_full.txt")
-# planar_phase_deserno(contour_levels=[0.5, 1.0, 1.5])
+# planar_phase_deserno(filepath="../Results/Wrapping_planar_excess/Coverage_data_thin.txt",filepath_full="../Results/Wrapping_planar_excess/Coverage_data_thin.txt",as_z = False,save="../Results/Wrapping_planar_excess/Planar_phasepace_thin.png",theory=True)
+# planar_phase_deserno(as_z = False,save="../Results/Wrapping_planar_excess/Planar_phasepace_theory.png",theory=True)
 # planar_phase_deserno(regions=True)
 # planar_phase_deserno(filepath_full="../Results/Wrapping_planar_excess/Coverage_data_thin.txt", filepath="../Results/Wrapping_planar_excess/Coverage_data_thin.txt",as_z=False)
 # planar_phase(contour_levels=[ 0.5 ,0.75],filepath="../Results/Wrapping_planar_excess/Coverage_data.txt")

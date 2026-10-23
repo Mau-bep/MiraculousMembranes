@@ -184,6 +184,7 @@ def coverage_figure(series_points, path, plt):
         print("the Frenkel potential has no continuum theory: the coverage figure shows the sharp-contact line of Deserno only")
     else:
         theory = read_theory()
+        theory = None
         soft = all(abs(q["shell_width"] - 0.25) < 1e-9 and abs(q["shell_power"] - 1.0) < 1e-9 for q in allq)
         if theory is not None and soft:
             ax.plot(theory[1], theory[0] / 2.0, "k--", lw=1.1, label=r"planar disk, soft-shell theory ($\tilde\sigma=0$, $s=0.25$)")
@@ -206,14 +207,14 @@ def coverage_figure(series_points, path, plt):
     if frenkel:
         ax.set_ylabel(r"wrapped fraction of the bead: solid angle covered within the well, $r<r_c$")
     else:
-        ax.set_ylabel(r"wrapped fraction of the bead, $f=G/2$  ($G=-E_{adh}/(2\pi W a^2)$)")
+        ax.set_ylabel(r"wrapped fraction of the bead, $f$  ($f=-E_{adh}/(4\pi W a^2)$)")
     ax.set_ylim(-0.02, 1.02)
     ax.grid(alpha=0.25, lw=0.5)
     sec = ax.secondary_xaxis("top", functions=(lambda x: x * KB / (4.0 * a * a), lambda x: x * 4.0 * a * a / KB))
     sec.set_xlabel(r"$W$ [energy unit of the config per $a^2$; $k_BT/a^2$ for $K_B=42$]")
-    if not frenkel:
-        sec2 = ax.secondary_yaxis("right", functions=(lambda y: 2.0 * y, lambda y: y / 2.0))
-        sec2.set_ylabel(r"$G$ (2 = a closed sphere)")
+    # if not frenkel:
+        # sec2 = ax.secondary_yaxis("right", functions=(lambda y: 2.0 * y, lambda y: y / 2.0))
+        # sec2.set_ylabel(r"$G$ (2 = a closed sphere)")
     ax.legend(fontsize=6.5, loc="lower right")
     fig.tight_layout()
     fig.savefig(path, dpi=160)
