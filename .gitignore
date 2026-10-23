@@ -17,3 +17,4 @@ __pycache__/
 *.pyc
 projects/geometric-flow/ToRender/
 projects/geometric-flow/Renders/
+two_beads_analysis/
