@@ -612,7 +612,9 @@ std::vector<double> ReadCoverage(std::string Subdir, bool planar = false)
     double rc = 0;
     double KI = 0;
     double shellWidth = 0.25; // Adhesion shell, as in the run
+
     double shellPower = 1.0;
+
     for (auto Bead_data : Data["Beads"])
     {
         // We technically only have 1 bead

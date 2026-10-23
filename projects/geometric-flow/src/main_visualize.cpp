@@ -9,6 +9,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <limits>
 
 #include <dirent.h>
 
@@ -250,6 +251,23 @@ std::vector<Vector3> CurrentBeadPos;
 std::vector<Vector3> CurrentBeadForce;
 
 polyscope::SurfaceMesh *psMesh;
+
+// Light blue of the paper renders. showSelected paints the unselected faces with
+// it too, so a click on the membrane keeps the colour.
+const std::array<double, 3> MEMBRANE_COLOR = {0.25, 0.55, 0.87};
+
+// Polyscope forgets the look of a structure when it is registered again, and the
+// membrane is registered after every step, touch and frame change, so the look
+// is set here and not once at startup.
+polyscope::SurfaceMesh *registerMembrane()
+{
+    polyscope::SurfaceMesh *ps = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions, mesh->getFaceVertexList());
+    ps->setSmoothShade(false);
+    ps->setSurfaceColor({MEMBRANE_COLOR[0], MEMBRANE_COLOR[1], MEMBRANE_COLOR[2]});
+    ps->setEdgeColor({0.0, 0.0, 0.0});
+    ps->setEdgeWidth(1.0);
+    return ps;
+}
 double TOTAL_ANGLE_DEFECT;
 size_t EULER_CHARACTERISTIC;
 
@@ -289,7 +307,6 @@ int frame_counter = 0;
 std::vector<Eigen::VectorXd> Eigenvectors_Bending(0);
 std::vector<Eigen::VectorXd> Eigenvectors_Surface(0);
 
-std::array<double, 3> BLUE = {0.11, 0.388, 0.89};
 glm::vec<3, float> ORANGE_VEC = {1, 0.65, 0};
 std::array<double, 3> ORANGE = {1, 0.65, 0};
 
@@ -343,7 +360,7 @@ void showSelected()
     std::vector<std::array<double, 3>> faceColors(mesh->nFaces());
     for (size_t i = 0; i < mesh->nFaces(); i++)
     {
-        faceColors[i] = BLUE;
+        faceColors[i] = MEMBRANE_COLOR;
     }
     for (std::set<size_t>::iterator it = polyscope::state::subset.faces.begin();
          it != polyscope::state::subset.faces.end(); ++it)
@@ -770,6 +787,335 @@ VertexData<Vector3> NewtonStep()
     return M3DG.Newton_Normal_step(Sim_data, 0, Bead_filenames, false, Constraints, Constraints);
 }
 
+int currFrame = 0;
+bool autoPlaying = false;
+
+// The viewer shows one run folder (basic_name): its Input_file.json built the
+// simulation in sim, and its membrane_<t>.obj and Bead_<i>_data.txt are the
+// frames the slider goes through.
+
+// Reads the frames saved in basic_name into frames, mesh_names and frameBeadPos
+// (one row per saved frame for each bead). False, with a message, if the
+// folder cannot be read.
+bool read_frames()
+{
+    DIR *FD = opendir(basic_name.c_str());
+    if (FD == NULL)
+    {
+        fprintf(stderr, "Error : Failed to open target directory - %s\n", strerror(errno));
+        return false;
+    }
+    frames.resize(0);
+    struct dirent *in_file;
+    while ((in_file = readdir(FD)))
+    {
+        if (DT_REG == in_file->d_type && in_file->d_name[0] == 'm')
+        {
+            // membrane_<t>.obj: the frame is the second element
+            std::vector<std::string> split_result = split(in_file->d_name, "_");
+            if (split_result.size() > 1)
+                frames.push_back(std::stoi(split_result[1]));
+        }
+    }
+    closedir(FD);
+
+    std::sort(frames.begin(), frames.end());
+    mesh_names.resize(0);
+    for (size_t i = 0; i < frames.size(); i++)
+        mesh_names.push_back("membrane_" + std::to_string(frames[i]) + ".obj");
+
+    frameBeadPos.resize(0);
+    std::vector<std::pair<size_t, Vector3>> BeadPosPair;
+    for (size_t bi = 0; bi < Beads.size(); bi++)
+    {
+        BeadPosPair.resize(0);
+        std::ifstream BeadReadData(basic_name + "Bead_" + std::to_string(bi) + "_data.txt");
+        std::string line;
+        while (std::getline(BeadReadData, line))
+        {
+            if (line[0] == '#')
+                continue;
+            std::vector<std::string> splitted = split(line, " ");
+            size_t frame = std::stoi(splitted[0]);
+            Vector3 beadPos = Vector3{std::stod(splitted[1]), std::stod(splitted[2]), std::stod(splitted[3])};
+            BeadPosPair.push_back(std::make_pair(frame, beadPos));
+        }
+        std::sort(BeadPosPair.begin(), BeadPosPair.end(), deterministic_sort);
+        frameBeadPos.push_back(BeadPosPair);
+    }
+    return true;
+}
+
+// Sets the viewer up for the run held by sim: the settings it shows, the output
+// files and the frames. The run folder is the one of the config
+// (loaded_from_subfolder) or a new numbered one in first_dir. Throws
+// std::runtime_error if that folder cannot be made, or, with check_frames, if it
+// has no frame to show (nothing is written to it then).
+void prepare_run(bool check_frames = false)
+{
+    const SimConfig &cfg = sim.cfg;
+    const bool loaded = cfg.loaded_from_subfolder;
+
+    Switch = "None";
+    Switch_t = 0;
+    Integration = cfg.integration;
+    save_interval = cfg.save_interval;
+    remesh_every = cfg.remesh_every;
+    adapt_remesh = cfg.adapt_remesh;
+    Count_remesh = cfg.count_remesh;
+    Og_Energy_constants = Energy_constants;
+
+    integrating = false;
+    integration_counter = 0;
+    continueLastCall = false;
+    savedSteps = 0;
+    last_remesh = 0;
+    polish_left = 0;
+    n_polish = 0;
+    remesh_pause_until = 0;
+    first_newton = true;
+
+    // Constraints and area schedule used by the Newton tools and updateTargetArea
+    Constraints.clear();
+    Area_constraint = false;
+    minStepsReq = 0;
+    origA = geometry->totalArea();
+    for (size_t i = 0; i < Energies.size(); i++)
+    {
+        if (Energies[i] == "Volume_constraint")
+            Constraints.push_back("Volume");
+        if (Energies[i] == "Area_constraint")
+        {
+            Area_constraint = true;
+            Constraints.push_back("Area");
+            minStepsReq = fabs(dA) > 0 ? size_t(fabs((A_bar - origA) / dA)) : 0;
+        }
+    }
+    for (const char *name : {"CMx", "CMy", "CMz", "Rx", "Ry", "Rz"})
+        Constraints.push_back(name);
+
+    ORIG_VPOS = geometry->inputVertexPositions;
+    CoM = geometry->centerOfMass();
+
+    if (loaded)
+    {
+        basic_name = cfg.subfolder_dir;
+    }
+    else
+    {
+        basic_name = make_numbered_dir(cfg.first_dir);
+        record_run(cfg.first_dir, basic_name, build_descriptive_name(sim), cfg.source_path);
+    }
+    std::cout << "The output directory is " << basic_name << "\n";
+    CurrentBeadPos.resize(0);
+    CurrentBeadForce.resize(0);
+    if (!read_frames())
+        throw std::runtime_error("Could not read the frames in " + basic_name);
+    if (check_frames)
+    {
+        if (frames.empty())
+            throw std::runtime_error("there is no membrane_<t>.obj in " + basic_name);
+        for (size_t bi = 0; bi < Beads.size(); bi++)
+            if (frameBeadPos[bi].size() < frames.size())
+                throw std::runtime_error("Bead_" + std::to_string(bi) + "_data.txt has " + std::to_string(frameBeadPos[bi].size()) +
+                                         " rows for " + std::to_string(frames.size()) + " frames in " + basic_name);
+    }
+
+    filename = basic_name + "Output_data.txt";
+    Bead_filenames = open_output_files(sim, basic_name, loaded);
+
+    // The header goes in once, not at every opening of the run
+    const std::string timings_file = basic_name + "Simulation_timings.txt";
+    Bead_filenames.push_back(timings_file);
+    bool timings_empty = true;
+    {
+        std::ifstream probe(timings_file);
+        timings_empty = !probe.is_open() || probe.peek() == std::ifstream::traits_type::eof();
+    }
+    Bead_datas = std::ofstream(timings_file, std::ios_base::app);
+    if (timings_empty)
+        Bead_datas << "Remeshing_time Gradients Backtracking  Construction compute Solve \n";
+    Bead_datas.close();
+
+    TOTAL_ANGLE_DEFECT = geometry->totalAngleDefect();
+    EULER_CHARACTERISTIC = geometry->eulerCharacteristic();
+}
+
+// The run folders next to basic_name, to switch between similar simulations
+// ("12/" -> "../Results/Name/12/" and its siblings).
+struct RunFolder
+{
+    std::string name;        // without the trailing '/'
+    std::string description; // from runs_index.txt, empty if not recorded
+};
+std::vector<RunFolder> run_folders;
+std::string run_switch_error;
+
+// "a/b/12/" -> "a/b/"
+std::string run_parent(std::string run_dir)
+{
+    while (run_dir.size() > 1 && run_dir.back() == '/')
+        run_dir.pop_back();
+    size_t slash = run_dir.find_last_of('/');
+    return slash == std::string::npos ? "" : run_dir.substr(0, slash + 1);
+}
+
+// "a/b/12/" -> "12"
+std::string run_name(const std::string &run_dir)
+{
+    std::string parent = run_parent(run_dir);
+    std::string name = run_dir.substr(parent.size());
+    while (!name.empty() && name.back() == '/')
+        name.pop_back();
+    return name;
+}
+
+// Numbered folders first and in numeric order, then the others alphabetically
+bool run_name_less(const std::string &a, const std::string &b)
+{
+    auto numeric = [](const std::string &s)
+    { return !s.empty() && s.find_first_not_of("0123456789") == std::string::npos; };
+    auto no_zeros = [](const std::string &s)
+    {
+        size_t k = s.find_first_not_of('0');
+        return k == std::string::npos ? std::string("0") : s.substr(k);
+    };
+    const bool na = numeric(a), nb = numeric(b);
+    if (na != nb)
+        return na;
+    if (na)
+    {
+        const std::string x = no_zeros(a), y = no_zeros(b);
+        if (x.size() != y.size())
+            return x.size() < y.size();
+        if (x != y)
+            return x < y;
+    }
+    return a < b;
+}
+
+// The sub-directories of parent (with trailing '/', or empty for the current
+// directory) that hold an Input_file.json
+void scan_run_folders_in(const std::string &parent)
+{
+    run_folders.clear();
+
+    std::map<std::string, std::string> descriptions;
+    std::ifstream index(parent + "runs_index.txt");
+    std::string line;
+    while (std::getline(index, line))
+    {
+        std::vector<std::string> columns = split(line, "\t");
+        if (columns.size() < 2)
+            continue;
+        std::string folder = columns[0];
+        while (!folder.empty() && folder.back() == '/')
+            folder.pop_back();
+        descriptions[folder] = columns[1];
+    }
+
+    DIR *dir = opendir(parent.empty() ? "." : parent.c_str());
+    if (dir == NULL)
+        return;
+    while (struct dirent *entry = readdir(dir))
+    {
+        const std::string name = entry->d_name;
+        if (name[0] == '.')
+            continue;
+        struct stat info;
+        if (stat((parent + name + "/Input_file.json").c_str(), &info) != 0)
+            continue;
+        run_folders.push_back({name, descriptions[name]});
+    }
+    closedir(dir);
+    std::sort(run_folders.begin(), run_folders.end(),
+              [](const RunFolder &a, const RunFolder &b)
+              { return run_name_less(a.name, b.name); });
+}
+
+// The folders next to the run being shown
+void scan_run_folders()
+{
+    scan_run_folders_in(run_parent(basic_name));
+}
+
+// The config of the run in run_dir (with trailing '/'), as load_config gives it
+// for a file with "Subfolder". Throws if it cannot be read.
+SimConfig run_config(const std::string &run_dir)
+{
+    SimConfig cfg = load_config(run_dir + "Input_file.json");
+    cfg.loaded_from_subfolder = true;
+    cfg.subfolder_dir = run_dir;
+    return cfg;
+}
+
+// Drops the simulation and everything of the viewer that depends on it, then
+// builds the one of cfg. Throws if that fails, leaving the viewer without a run.
+void open_run(const SimConfig &cfg)
+{
+    // Whatever holds MeshData of the mesh goes before the mesh
+    ORIG_VPOS = VertexData<Vector3>();
+    Saved_vertex_positions = VertexData<Vector3>();
+    NewtonStepSaved = VertexData<Vector3>();
+    Vert_sizings = VertexData<double>();
+    Face_sizings = FaceData<double>();
+    Edge_sizings = EdgeData<double>();
+    Gradient_vertex = VertexData<Vector3>();
+
+    // The drawings of the beads of the old run (the mesh is registered again by the frame load)
+    for (size_t bi = 0; bi < Beads.size(); bi++)
+        polyscope::removeStructure("Plane bead " + std::to_string(bi), false);
+    polyscope::removeStructure("Great beads", false);
+    psCloud = nullptr;
+
+    sim.reset();
+    build_simulation(cfg, sim);
+    prepare_run(true);
+}
+
+// Show the run folder `name` next to the current one, at the same frame (or the
+// last one it has). If it cannot be opened the run we came from is kept (opened
+// again if it was already dropped) and run_switch_error says why. The caller
+// reloads the frame afterwards.
+void switch_run(const std::string &name)
+{
+    const std::string previous = basic_name;
+    const std::string target = run_parent(previous) + name + "/";
+    run_switch_error.clear();
+
+    SimConfig cfg;
+    try
+    {
+        cfg = run_config(target);
+    }
+    catch (const std::exception &e)
+    {
+        run_switch_error = "Could not open " + target + ": " + e.what();
+        std::cerr << run_switch_error << "\n";
+        return;
+    }
+    try
+    {
+        open_run(cfg);
+    }
+    catch (const std::exception &e)
+    {
+        run_switch_error = "Could not open " + target + ": " + e.what();
+        std::cerr << run_switch_error << "\n";
+        try
+        {
+            open_run(run_config(previous));
+        }
+        catch (const std::exception &e2)
+        {
+            std::cerr << "Could not go back to " << previous << ": " << e2.what() << "\n";
+            std::exit(EXIT_FAILURE);
+        }
+    }
+    currFrame = std::min(currFrame, int(frames.size()) - 1);
+    scan_run_folders();
+}
+
 static const ImVec4 pressColor = ImColor::HSV(1. / 7.0f, 0.6f, 0.6f); // gold
 static const ImVec4 releaseColor{0.35f, 0.61f, 0.49f, 0.62f};         // default green
 
@@ -779,8 +1125,62 @@ static ImVec4 F_sizing_currColor = releaseColor;
 
 std::vector<ImVec4 *> sState = {&off_currColor, &V_sizing_currColor, &F_sizing_currColor};
 
-int currFrame = 0;
-bool autoPlaying = false;
+// The run folder selector at the top of the window: a list of the folders next
+// to the current one, previous/next and a refresh. True if the run was switched,
+// so the caller loads the frame.
+bool run_folder_menu()
+{
+    const std::string current = run_name(basic_name);
+    int current_index = -1;
+    for (size_t i = 0; i < run_folders.size(); i++)
+        if (run_folders[i].name == current)
+            current_index = int(i);
+
+    // The label first and a narrow combo, so the row fits in the panel
+    std::string target;
+    ImGui::AlignTextToFramePadding();
+    ImGui::Text("Run folder");
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(ImGui::GetFontSize() * 8.0f);
+    if (ImGui::BeginCombo("##run_folder", current.c_str()))
+    {
+        for (size_t i = 0; i < run_folders.size(); i++)
+        {
+            const bool selected = int(i) == current_index;
+            if (ImGui::Selectable(run_folders[i].name.c_str(), selected) && !selected)
+                target = run_folders[i].name;
+            if (selected)
+                ImGui::SetItemDefaultFocus();
+            if (ImGui::IsItemHovered() && !run_folders[i].description.empty())
+            {
+                ImGui::BeginTooltip();
+                ImGui::PushTextWrapPos(ImGui::GetFontSize() * 30.0f);
+                ImGui::TextUnformatted(run_folders[i].description.c_str());
+                ImGui::PopTextWrapPos();
+                ImGui::EndTooltip();
+            }
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("<##run") && current_index > 0)
+        target = run_folders[current_index - 1].name;
+    ImGui::SameLine();
+    if (ImGui::Button(">##run") && current_index >= 0 && current_index + 1 < int(run_folders.size()))
+        target = run_folders[current_index + 1].name;
+    ImGui::SameLine();
+    if (ImGui::Button("Refresh##run"))
+        scan_run_folders();
+    if (current_index >= 0)
+        ImGui::Text("Run %d of %zu", current_index + 1, run_folders.size());
+    if (!run_switch_error.empty())
+        ImGui::TextColored(ImVec4(1.0f, 0.35f, 0.35f, 1.0f), "%s", run_switch_error.c_str());
+
+    if (target.empty())
+        return false;
+    switch_run(target);
+    return true;
+}
 
 void Callback_anim()
 {
@@ -828,7 +1228,7 @@ void Callback_anim()
         }
         geometry->requireVertexPositions();
         geometry->inputVertexPositions = geometry->vertexPositions;
-        psMesh = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions, mesh->getFaceVertexList());
+        psMesh = registerMembrane();
         M3DG.BFGS_iter = 0;
     }
     // Here go the display of the different gradients (easy to be said and to be done)
@@ -840,6 +1240,63 @@ void Callback_anim()
     }
 }
 
+// ---- Look of the right panel ------------------------------------------------
+// One blue accent (the blue of the membrane) for the main menus, buttons, sliders
+// and checkboxes, all with a thin outline. Set once after polyscope::init (which
+// sets its own style).
+void applyMenuStyle()
+{
+    ImGuiStyle &st = ImGui::GetStyle();
+    st.FrameRounding = 4.0f;
+    st.GrabRounding = 4.0f;
+    st.PopupRounding = 4.0f;
+    st.ScrollbarRounding = 6.0f;
+    st.FrameBorderSize = 1.0f; // the outline of buttons, headers, sliders and inputs
+    st.FramePadding = ImVec2(6.0f, 3.5f);
+    st.ItemSpacing = ImVec2(8.0f, 6.0f);
+    st.IndentSpacing = 14.0f;
+    st.GrabMinSize = 12.0f;
+
+    const ImVec4 accent(0.20f, 0.45f, 0.80f, 1.0f);
+    const ImVec4 accentHover(0.27f, 0.55f, 0.92f, 1.0f);
+    const ImVec4 accentActive(0.33f, 0.62f, 1.00f, 1.0f);
+    const ImVec4 outline(0.40f, 0.65f, 0.98f, 0.85f);
+    ImVec4 *c = st.Colors;
+    c[ImGuiCol_Border] = outline;
+    c[ImGuiCol_Button] = ImVec4(accent.x, accent.y, accent.z, 0.75f);
+    c[ImGuiCol_ButtonHovered] = accentHover;
+    c[ImGuiCol_ButtonActive] = accentActive;
+    c[ImGuiCol_Header] = ImVec4(accent.x, accent.y, accent.z, 0.75f);
+    c[ImGuiCol_HeaderHovered] = accentHover;
+    c[ImGuiCol_HeaderActive] = accentActive;
+    c[ImGuiCol_FrameBg] = ImVec4(0.12f, 0.20f, 0.32f, 0.70f);
+    c[ImGuiCol_FrameBgHovered] = ImVec4(0.18f, 0.30f, 0.48f, 0.80f);
+    c[ImGuiCol_FrameBgActive] = ImVec4(0.22f, 0.37f, 0.58f, 0.90f);
+    c[ImGuiCol_CheckMark] = accentActive;
+    c[ImGuiCol_SliderGrab] = accentHover;
+    c[ImGuiCol_SliderGrabActive] = accentActive;
+}
+
+// A main menu: a full-width blue header bar with an outline. Like TreeNodeEx:
+// call ImGui::TreePop() if it returns true.
+bool menuSection(const char *label)
+{
+    ImGui::Spacing();
+    return ImGui::TreeNodeEx(label, ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth |
+                                        ImGuiTreeNodeFlags_FramePadding);
+}
+
+// A group inside a main menu: a quiet grey bar. Same contract as menuSection.
+bool subSection(const std::string &label)
+{
+    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.30f, 0.33f, 0.38f, 0.55f));
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.38f, 0.42f, 0.48f, 0.70f));
+    ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.45f, 0.50f, 0.57f, 0.80f));
+    const bool open = ImGui::TreeNodeEx(label.c_str(), ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth);
+    ImGui::PopStyleColor(3);
+    return open;
+}
+
 void Callback_qts()
 {
     frame_counter++;
@@ -848,7 +1305,7 @@ void Callback_qts()
     ImGui::Text("The current frame is %i", frame_counter);
 
     bool updateFrameData = false;
-    bool currframeUpdated = false;
+    bool currframeUpdated = run_folder_menu();
     bool integratorUpdate = false;
     bool updateFrames = false;
     if (ImGui::Button("Update frames"))
@@ -862,65 +1319,8 @@ void Callback_qts()
         integratorUpdate = true;
 
         std::cout << "Done integrating, we will update the files available.\n";
-        DIR *FD;
-        struct dirent *in_file;
-        const char *target_dir = basic_name.c_str();
-
-        FD = opendir(target_dir);
-        if (FD == NULL)
-        {
-            fprintf(stderr, "Error : Failed to open target directory - %s\n", strerror(errno));
+        if (!read_frames())
             return;
-        }
-        frames.resize(0);
-        /* Reading object (files, directories ...) from the folder) */
-        while ((in_file = readdir(FD)))
-        {
-
-            if (DT_REG == in_file->d_type)
-            {
-                if (in_file->d_name[0] == 'm')
-                {
-                    // Ok SO THIS WILL GIVE ME
-                    std::vector<std::string> split_result = split(in_file->d_name, "_");
-                    // Ok now i want the second element
-                    int frame = std::stoi(split_result[1]);
-                    frames.push_back(frame);
-                }
-            }
-        }
-        std::sort(frames.begin(), frames.end());
-        mesh_names.resize(0);
-        for (int i = 0; i < frames.size(); i++)
-        {
-            mesh_names.push_back("membrane_" + std::to_string(frames[i]) + ".obj");
-        }
-        // We updated the size of the mesh names vector
-        // Now i need to resize the BEAD data
-        frameBeadPos.resize(0);
-        std::vector<std::pair<size_t, Vector3>> BeadPosPair;
-        std::ifstream BeadReadData;
-        size_t frame;
-        Vector3 beadPos;
-        for (size_t bi = 0; bi < Beads.size(); bi++)
-        {
-            BeadPosPair.resize(0);
-            BeadReadData = std::ifstream(basic_name + "Bead_" + std::to_string(bi) + "_data.txt");
-            std::string line;
-            while (std::getline(BeadReadData, line))
-            {
-                std::vector<std::string> splitted = split(line, " ");
-                if (line[0] == '#')
-                    continue;
-                // If not i need to use it
-                frame = std::stoi(splitted[0]);
-                beadPos = Vector3{std::stod(splitted[1]), std::stod(splitted[2]), std::stod(splitted[3])};
-                BeadPosPair.push_back(std::make_pair(frame, beadPos));
-            }
-            std::sort(BeadPosPair.begin(), BeadPosPair.end(), deterministic_sort);
-            // now we have a list of frames that is being sorter
-            frameBeadPos.push_back(BeadPosPair);
-        }
         std::cout << "Filenames updated\n";
         if (!updateFrames)
             currFrame = currFrame + savedSteps;
@@ -971,7 +1371,7 @@ void Callback_qts()
         }
         geometry->requireVertexPositions();
 
-        psMesh = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions, mesh->getFaceVertexList());
+        psMesh = registerMembrane();
         polyscope::state::facePickIndStart = mesh->nVertices();
         polyscope::state::edgePickIndStart = polyscope::state::facePickIndStart + mesh->nFaces();
         polyscope::state::halfedgePickIndStart = polyscope::state::edgePickIndStart + mesh->nEdges();
@@ -998,8 +1398,7 @@ void Callback_qts()
 
     ImGuiTreeNodeFlags flag2 = ImGuiTreeNodeFlags_None;
 
-    ImGuiTreeNodeFlags flag = ImGuiTreeNodeFlags_None;
-    if (ImGui::TreeNodeEx("Integration menu", flag))
+    if (menuSection("Integration"))
     {
         // Ok so i am here and I already decided there are two things i need to do
         // One is the integration settings and one is the actual integration
@@ -1017,7 +1416,7 @@ void Callback_qts()
         ImGui::SameLine(150);
         ImGui::Checkbox("Continue last call", &continueLastCall);
 
-        if (ImGui::TreeNodeEx("Options"))
+        if (subSection("Options"))
         {
             // int integrationSteps = integtration_steps;
             // int remeshEvery;
@@ -1051,7 +1450,7 @@ void Callback_qts()
             }
             ImGui::TreePop();
         }
-        if (ImGui::TreeNodeEx("Newton funoptions"))
+        if (subSection("Newton funoptions"))
         {
             // 3 THINGS
             // 1. Calculate the newton step
@@ -1233,7 +1632,7 @@ void Callback_qts()
         }
     }
 
-    if (ImGui::TreeNodeEx("Remeshing menu", flag))
+    if (menuSection("Remeshing"))
     {
         if (ImGui::IsItemClicked())
         {
@@ -1250,7 +1649,7 @@ void Callback_qts()
             geometry->refreshQuantities();
             // M3DG.mesh = mesh;
             // M3DG.geometry = geometry;
-            psMesh = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions, mesh->getFaceVertexList());
+            psMesh = registerMembrane();
             polyscope::state::facePickIndStart = mesh->nVertices();
             polyscope::state::edgePickIndStart = polyscope::state::facePickIndStart + mesh->nFaces();
             polyscope::state::halfedgePickIndStart = polyscope::state::edgePickIndStart + mesh->nEdges();
@@ -1290,7 +1689,7 @@ void Callback_qts()
             Options.angleThresh = angleThresh;
             remeshSmallAngles(*mesh, *geometry, Options);
             geometry->refreshQuantities();
-            psMesh = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions, mesh->getFaceVertexList());
+            psMesh = registerMembrane();
             polyscope::state::facePickIndStart = mesh->nVertices();
             polyscope::state::edgePickIndStart = polyscope::state::facePickIndStart + mesh->nFaces();
             polyscope::state::halfedgePickIndStart = polyscope::state::edgePickIndStart + mesh->nEdges();
@@ -1298,7 +1697,7 @@ void Callback_qts()
         ImGui::SameLine(200);
         ImGui::DragFloat("Min Angle", &angleThresh, 0.05f, 0.05f, 0.5f, "%.2f");
 
-        if (ImGui::TreeNodeEx("RemeshingOptions"))
+        if (subSection("RemeshingOptions"))
         {
             if (ImGui::Button("Vertex Sizings"))
             {
@@ -1330,10 +1729,11 @@ void Callback_qts()
                 // Mark rendered node as being clicked
             }
 
-            static float sizeMin = Options.min_absolute_length;
-            static float sizeMax = Options.max_absolute_length;
-            static float aspectMin = Options.aspect_min;
-            static float refineAngle = Options.refine_angle;
+            // Read from Options each time, so a switch of run shows the options of the new one
+            float sizeMin = Options.min_absolute_length;
+            float sizeMax = Options.max_absolute_length;
+            float aspectMin = Options.aspect_min;
+            float refineAngle = Options.refine_angle;
             ImGui::DragFloat("Min size", &sizeMin, 0.001f, 0.001f, 0.1f, "%.3f");
             Options.min_absolute_length = sizeMin;
             ImGui::DragFloat("Max size", &sizeMax, 0.05f, 0.05f, 1.0f, "%.2f");
@@ -1350,7 +1750,7 @@ void Callback_qts()
             M3DG.Sim_handler->update_vertex_normals();
             psMesh->addVertexVectorQuantity("Normals", M3DG.Sim_handler->Vertex_normals);
         }
-        if (ImGui::TreeNodeEx("Inspection"))
+        if (subSection("Inspection"))
         {
 
             if (ImGui::Button("Bending Energy"))
@@ -1368,7 +1768,7 @@ void Callback_qts()
         ImGui::TreePop(); // This is required at the end of the if block
     }
 
-    if (ImGui::TreeNodeEx("Geometry menu", flag))
+    if (menuSection("Geometry"))
     {
         if (ImGui::Button("Vertex valence"))
         {
@@ -1390,13 +1790,53 @@ void Callback_qts()
             psMesh->addVertexScalarQuantity("H", H);
         }
 
+        // Principal curvatures k_max >= k_min of the current shape (library values,
+        // 1/r on a sphere of radius r). The field goes on the mesh and the extreme
+        // value next to the button.
+        static double max_curvature = 0.0, min_curvature = 0.0;
+        static bool have_max_curvature = false, have_min_curvature = false;
+        if (ImGui::Button("Max Curvature"))
+        {
+            geometry->refreshQuantities(); // the positions moved since the last request
+            geometry->requireVertexMaxPrincipalCurvatures();
+            VertexData<double> k_max = geometry->vertexMaxPrincipalCurvatures;
+            geometry->unrequireVertexMaxPrincipalCurvatures();
+            max_curvature = -std::numeric_limits<double>::infinity();
+            for (Vertex v : mesh->vertices())
+                max_curvature = std::max(max_curvature, k_max[v]);
+            have_max_curvature = true;
+            psMesh->addVertexScalarQuantity("Max curvature", k_max);
+        }
+        if (have_max_curvature)
+        {
+            ImGui::SameLine();
+            ImGui::Text("max = %.4f", max_curvature);
+        }
+        if (ImGui::Button("Min Curvature"))
+        {
+            geometry->refreshQuantities();
+            geometry->requireVertexMinPrincipalCurvatures();
+            VertexData<double> k_min = geometry->vertexMinPrincipalCurvatures;
+            geometry->unrequireVertexMinPrincipalCurvatures();
+            min_curvature = std::numeric_limits<double>::infinity();
+            for (Vertex v : mesh->vertices())
+                min_curvature = std::min(min_curvature, k_min[v]);
+            have_min_curvature = true;
+            psMesh->addVertexScalarQuantity("Min curvature", k_min);
+        }
+        if (have_min_curvature)
+        {
+            ImGui::SameLine();
+            ImGui::Text("min = %.4f", min_curvature);
+        }
+
         ImGui::TreePop();
     }
 
     ImGuiTreeNodeFlags flag3 = ImGuiTreeNodeFlags_None;
     // Ok i want to do the energies
     // so the thing is that every energy has a different function that gets called. And i want the correct one to be called.
-    if (ImGui::TreeNodeEx("Energy menu", flag))
+    if (menuSection("Energy"))
     {
         if (ImGui::Button("Display energy"))
         {
@@ -1416,7 +1856,8 @@ void Callback_qts()
             psMesh->addVertexVectorQuantity("Newton step", NewtonStep());
         }
 
-        static std::vector<std::vector<float>> Menu_E_constants(Og_Energy_constants.size());
+        static std::vector<std::vector<float>> Menu_E_constants;
+        Menu_E_constants.resize(Energy_constants.size()); // another run can have other terms
         // Ok so now
         for (size_t i = 0; i < Energy_constants.size(); i++)
         {
@@ -1440,7 +1881,7 @@ void Callback_qts()
             std::string E_name = Energies[i];
             if (E_name == "Bead")
                 continue;
-            if (ImGui::TreeNodeEx(E_name.c_str()))
+            if (subSection(E_name.c_str()))
             {
                 // Here we add the button to show the gradient
                 if (ImGui::Button("Show Gradient"))
@@ -1463,7 +1904,7 @@ void Callback_qts()
         for (size_t bi = 0; bi < Beads.size(); bi++)
         {
             // we want to add the energy quantity here
-            if (ImGui::TreeNodeEx(("Bead " + std::to_string(bi)).c_str()))
+            if (subSection(("Bead " + std::to_string(bi)).c_str()))
             {
                 if (ImGui::Button("Show Gradient"))
                 {
@@ -1496,9 +1937,9 @@ void Callback_qts()
         }
         ImGui::TreePop();
     }
-    if (ImGui::TreeNodeEx("Transformation menu", flag))
+    if (menuSection("Transformation"))
     {
-        if (ImGui::TreeNodeEx("Rescale"))
+        if (subSection("Rescale"))
         {
             // THere are 3 factors Sx Sy and Sz
             ImGui::InputFloat("Scale x", &Sx, 0.1, 1.0, 4);
@@ -1521,7 +1962,7 @@ void Callback_qts()
         ImGui::TreePop();
     }
 
-    if (ImGui::TreeNodeEx("Selection menu", flag))
+    if (menuSection("Selection"))
     {
         if (ImGui::Button("Show selection"))
         {
@@ -1556,7 +1997,7 @@ void Callback_qts()
             mesh->compress();
             M3DG.mesh = mesh;
             M3DG.geometry = geometry;
-            psMesh = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions, mesh->getFaceVertexList());
+            psMesh = registerMembrane();
 
             polyscope::state::facePickIndStart = mesh->nVertices();
             polyscope::state::edgePickIndStart = polyscope::state::facePickIndStart + mesh->nFaces();
@@ -1572,7 +2013,7 @@ void Callback_qts()
                 MutationManager mm(*mesh, *geometry);
                 mm.flipEdge(e);
             }
-            psMesh = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions, mesh->getFaceVertexList());
+            psMesh = registerMembrane();
         }
         if (ImGui::Button("Collapse Edge selected"))
         {
@@ -1589,7 +2030,7 @@ void Callback_qts()
                 mesh->compress();
                 geometry->inputVertexPositions = geometry->vertexPositions;
             }
-            psMesh = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions, mesh->getFaceVertexList());
+            psMesh = registerMembrane();
         }
         if (ImGui::Button("SaveMesh"))
         {
@@ -1605,7 +2046,7 @@ void Callback_qts()
         }
         ImGui::TreePop();
     }
-    if (ImGui::TreeNodeEx("Dump menu", flag))
+    if (menuSection("Dump"))
     {
 
         if (ImGui::Button("Edge data"))
@@ -1954,7 +2395,7 @@ void functionCallback()
                 Gradient3[i] = Sample;
             }
 
-            psMesh = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions, mesh->getFaceVertexList());
+            psMesh = registerMembrane();
             psMesh->addVertexVectorQuantity("Gradient Lag", Gradient);
             psMesh->addVertexVectorQuantity("Gradient E", Gradient2);
             psMesh->addVertexVectorQuantity("Jacobian ", Gradient3);
@@ -2083,7 +2524,7 @@ void functionCallback()
         }
         geometry->requireVertexPositions();
         std::cout << "relocated\n";
-        psMesh = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions, mesh->getFaceVertexList());
+        psMesh = registerMembrane();
         std::cout << "re registered\n";
     }
     ImGui::InputInt("Load slot", &Load_slot);
@@ -2132,7 +2573,7 @@ void functionCallback()
         Beads[0].Pos = NewPos;
 
         std::cout << "10\n";
-        psMesh = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions, mesh->getFaceVertexList());
+        psMesh = registerMembrane();
 
         redraw();
     }
@@ -2223,8 +2664,25 @@ int main(int argc, char **argv)
 
     try
     {
-        // With "Subfolder" the run in first_dir/Subfolder is reopened and continued
-        SimConfig cfg = load_config(config_path, true);
+        // A directory instead of an input file: its sub-folders with an
+        // Input_file.json are the runs of the menu, and the first one opens
+        struct stat path_info;
+        const bool is_dir = stat(config_path.c_str(), &path_info) == 0 && S_ISDIR(path_info.st_mode);
+        SimConfig cfg;
+        if (is_dir)
+        {
+            std::string root = config_path;
+            if (root.back() != '/')
+                root += '/';
+            scan_run_folders_in(root);
+            if (run_folders.empty())
+                throw std::runtime_error("no sub-folder of " + root + " has an Input_file.json");
+            std::cout << "Found " << run_folders.size() << " runs in " << root << ", opening " << run_folders[0].name << "\n";
+            cfg = run_config(root + run_folders[0].name + "/");
+        }
+        else
+            // With "Subfolder" the run in first_dir/Subfolder is reopened and continued
+            cfg = load_config(config_path, true);
         if (cfg.subfolder_missing &&
             !ask_yes_no("Create " + cfg.subfolder_dir + " with the initial state of " + config_path + "?"))
             return EXIT_FAILURE;
@@ -2237,141 +2695,27 @@ int main(int argc, char **argv)
         std::cerr << "Error setting up the simulation: " << e.what() << "\n";
         return EXIT_FAILURE;
     }
-    const SimConfig &cfg = sim.cfg;
-    const bool loaded = cfg.loaded_from_subfolder;
-
-    Switch = "None";
-    Switch_t = 0;
-    Integration = cfg.integration;
-    save_interval = cfg.save_interval;
-    remesh_every = cfg.remesh_every;
-    adapt_remesh = cfg.adapt_remesh;
-    Count_remesh = cfg.count_remesh;
-    Og_Energy_constants = Energy_constants;
-
-    // Constraints and area schedule used by the Newton tools and updateTargetArea
-    origA = geometry->totalArea();
-    for (size_t i = 0; i < Energies.size(); i++)
+    try
     {
-        if (Energies[i] == "Volume_constraint")
-            Constraints.push_back("Volume");
-        if (Energies[i] == "Area_constraint")
-        {
-            Area_constraint = true;
-            Constraints.push_back("Area");
-            minStepsReq = fabs(dA) > 0 ? size_t(fabs((A_bar - origA) / dA)) : 0;
-        }
+        prepare_run();
     }
-    for (const char *name : {"CMx", "CMy", "CMz", "Rx", "Ry", "Rz"})
-        Constraints.push_back(name);
-
-    ORIG_VPOS = geometry->inputVertexPositions;
-    CoM = geometry->centerOfMass();
-
-    if (loaded)
+    catch (const std::exception &e)
     {
-        basic_name = cfg.subfolder_dir;
+        std::cerr << e.what() << "\n";
+        return EXIT_FAILURE;
     }
-    else
-    {
-        try
-        {
-            basic_name = make_numbered_dir(cfg.first_dir);
-            record_run(cfg.first_dir, basic_name, build_descriptive_name(sim), cfg.source_path);
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << e.what() << "\n";
-            return EXIT_FAILURE;
-        }
-    }
-    std::cout << "The output directory is " << basic_name << "\n";
-    filename = basic_name + "Output_data.txt";
-    Bead_filenames = open_output_files(sim, basic_name, loaded);
-
-    Bead_filenames.push_back(basic_name + "Simulation_timings.txt");
-    Bead_datas = std::ofstream(Bead_filenames[Beads.size()], std::ios_base::app);
-    Bead_datas << "Remeshing_time Gradients Backtracking  Construction compute Solve \n";
-    Bead_datas.close();
+    scan_run_folders();
 
     polyscope::state::facePickIndStart = mesh->nVertices();
     polyscope::state::edgePickIndStart = polyscope::state::facePickIndStart + mesh->nFaces();
     polyscope::state::halfedgePickIndStart = polyscope::state::edgePickIndStart + mesh->nEdges();
 
     polyscope::TransparencyMode::Pretty;
+    polyscope::options::groundPlaneMode = polyscope::GroundPlaneMode::None; // no floor, for the figures
     polyscope::init();
-    TOTAL_ANGLE_DEFECT = geometry->totalAngleDefect();
-    EULER_CHARACTERISTIC = geometry->eulerCharacteristic();
+    applyMenuStyle();
 
     std::cout << "Im here happy\n";
-
-    DIR *FD;
-    struct dirent *in_file;
-    const char *target_dir = basic_name.c_str();
-
-    FD = opendir(target_dir);
-    if (FD == NULL)
-    {
-        fprintf(stderr, "Error : Failed to open target directory - %s\n", strerror(errno));
-        return 1;
-    }
-
-    /* Reading object (files, directories ...) from the folder) */
-    while ((in_file = readdir(FD)))
-    {
-
-        if (DT_REG == in_file->d_type)
-        {
-            if (in_file->d_name[0] == 'm')
-            {
-                // Ok SO THIS WILL GIVE ME
-                std::vector<std::string> split_result = split(in_file->d_name, "_");
-                // Ok now i want the second element
-                int frame = std::stoi(split_result[1]);
-                frames.push_back(frame);
-                // mesh_names.push_back(in_file->d_name);
-                // printf("%s file added\n", in_file->d_name);
-            }
-        }
-    }
-
-    std::sort(frames.begin(), frames.end());
-    for (int i = 0; i < frames.size(); i++)
-    {
-        mesh_names.push_back("membrane_" + std::to_string(frames[i]) + ".obj");
-        // std::cout << "The frame is " << frames[i] << "\n";
-    }
-    // return 1;
-
-    /* Close the directory */
-    closedir(FD);
-
-    // OK i want to load the bead POSITIONS
-    std::vector<std::pair<size_t, Vector3>> BeadPosPair;
-    std::ifstream BeadReadData;
-    size_t frame;
-    Vector3 beadPos;
-    for (size_t bi = 0; bi < Beads.size(); bi++)
-    {
-        // I want to do it for each one
-        BeadPosPair.resize(0);
-        // OK now i want to add the pairs
-        BeadReadData = std::ifstream(basic_name + "Bead_" + std::to_string(bi) + "_data.txt");
-        std::string line;
-        while (std::getline(BeadReadData, line))
-        {
-            std::vector<std::string> splitted = split(line, " ");
-            if (line[0] == '#')
-                continue;
-            // If not i need to use it
-            frame = std::stoi(splitted[0]);
-            beadPos = Vector3{std::stod(splitted[1]), std::stod(splitted[2]), std::stod(splitted[3])};
-            BeadPosPair.push_back(std::make_pair(frame, beadPos));
-        }
-        std::sort(BeadPosPair.begin(), BeadPosPair.end(), deterministic_sort);
-        // now we have a list of frames that is being sorter
-        frameBeadPos.push_back(BeadPosPair);
-    }
 
     // std::sort(mesh_names.begin(), mesh_names.end());
 
@@ -2384,8 +2728,7 @@ int main(int argc, char **argv)
 
     geometry->requireVertexPositions();
 
-    psMesh = polyscope::registerSurfaceMesh("MyMesh", geometry->vertexPositions, mesh->getFaceVertexList());
-    psMesh->setEdgeColor({0.0, 0.0, 0.0});
+    psMesh = registerMembrane();
     psMesh->setTransparency(0.7);
     std::cout << "Registeredmesh\n";
     std::vector<glm::vec3> points;
@@ -2409,8 +2752,6 @@ int main(int argc, char **argv)
 
     std::cout << "Here7\n";
 
-    psMesh->setSmoothShade(false);
-    psMesh->setSurfaceColor({0.11, 0.388, 0.89});
 
     // i JUST WANT SOMETHING ELSE HERE
     double lengthScale = geometry->meanEdgeLength();

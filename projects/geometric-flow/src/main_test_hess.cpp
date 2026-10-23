@@ -33,7 +33,6 @@
 #include "math.h"
 #include "Interaction.h"
 
-
 using namespace geometrycentral;
 using namespace geometrycentral::surface;
 using namespace std;
@@ -227,7 +226,6 @@ void Save_mesh(std::string basic_name, bool arcsim_remeshing, size_t current_t)
 
     return;
 }
-
 
 int main(int argc, char **argv)
 {
@@ -824,7 +822,7 @@ int main(int argc, char **argv)
     int step_sim = 0;
     Save_mesh("../Results/triangle_flap/", step_sim);
     step_sim += 1;
-    while (step_sim < 20)
+    while (step_sim < 30)
     {
         for (Edge e : mesh->edges())
         {
@@ -842,13 +840,101 @@ int main(int argc, char **argv)
             Grad_dihedral = geometry->gradient_dihedral_angle(Positions_dihedral);
             // So now i need to save this
             disp = Vector3{Grad_dihedral[3 * 3], Grad_dihedral[3 * 3 + 1], Grad_dihedral[3 * 3 + 2]};
-            geometry->inputVertexPositions[Vertices_dihedral[3]] += 0.1 * disp;
+            geometry->inputVertexPositions[Vertices_dihedral[3]] += 0.05 * disp;
             disp = Vector3{Grad_dihedral[3 * 2], Grad_dihedral[3 * 2 + 1], Grad_dihedral[3 * 2 + 2]};
-            geometry->inputVertexPositions[Vertices_dihedral[2]] += 0.1 * disp;
+            geometry->inputVertexPositions[Vertices_dihedral[2]] += 0.05 * disp;
             Save_mesh("../Results/triangle_flap/", step_sim);
             step_sim += 1;
         }
     }
+
+    // Grow and shrink the edge in the middle of the two triangles: its two end vertices
+    // are moved along the gradient of the edge length (+ to lengthen, - to shorten).
+    {
+        std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh(filepath);
+        mesh = mesh_uptr.release();
+        geometry = geometry_uptr.release();
+
+        const int n_steps_half = 20;   // steps to lengthen, and again to shorten
+        const double step_size = 0.05; // displacement of each end vertex per step
+        const std::string edge_dir = "../Results/triangle_flap_edge_length/";
+        mkdir(edge_dir.c_str(), 0777);
+
+        Edge middle_edge;
+        for (Edge e : mesh->edges())
+        {
+            if (!e.isBoundary())
+            {
+                middle_edge = e;
+                break;
+            }
+        }
+        Vertex v_a = middle_edge.halfedge().tailVertex();
+        Vertex v_b = middle_edge.halfedge().tipVertex();
+
+        Eigen::Vector<double, 6> Positions_edge_mid;
+        Eigen::Vector<double, 6> Grad_edge_mid;
+        for (int step = 0; step <= n_steps_half; step++)
+        {
+            Positions_edge_mid << geometry->inputVertexPositions[v_a].x, geometry->inputVertexPositions[v_a].y, geometry->inputVertexPositions[v_a].z,
+                geometry->inputVertexPositions[v_b].x, geometry->inputVertexPositions[v_b].y, geometry->inputVertexPositions[v_b].z;
+            std::cout << "Edge step " << step << ": edge length = " << geometry->Edge_length(Positions_edge_mid) << "\n";
+            Save_mesh(edge_dir, step);
+
+            if (step == 2 * n_steps_half)
+                break;
+
+            Grad_edge_mid = geometry->gradient_edge_length(Positions_edge_mid);
+            double sign = step < n_steps_half ? 1.0 : -1.0;
+            geometry->inputVertexPositions[v_a] += sign * step_size * Vector3{Grad_edge_mid[0], Grad_edge_mid[1], Grad_edge_mid[2]};
+            geometry->inputVertexPositions[v_b] += sign * step_size * Vector3{Grad_edge_mid[3], Grad_edge_mid[4], Grad_edge_mid[5]};
+            geometry->refreshQuantities();
+        }
+    }
+
+    // A mesh with a single triangle, moved along the gradient of its area (ascent, so the
+    // area grows). The gradient of the area of a lone triangle lies in its plane, so the
+    // triangle just inflates.
+    {
+        std::tie(mesh_uptr, geometry_uptr) = readManifoldSurfaceMesh("../../../input/triangle.obj");
+        mesh = mesh_uptr.release();
+        geometry = geometry_uptr.release();
+
+        const int n_steps = 20;        // gradient steps
+        const double step_size = 0.05; // step along the area gradient
+        const std::string area_dir = "../Results/triangle_area/";
+        mkdir(area_dir.c_str(), 0777);
+
+        Face single_face = mesh->face(0);
+        std::array<Vertex, 3> Vertices_area;
+        {
+            size_t i = 0;
+            for (Vertex v : single_face.adjacentVertices())
+                Vertices_area[i++] = v;
+        }
+
+        Eigen::Vector<double, 9> Positions_area;
+        Eigen::Vector<double, 9> Grad_area;
+        for (int step = 0; step <= n_steps; step++)
+        {
+            for (size_t i = 0; i < 3; i++)
+            {
+                Vector3 p = geometry->inputVertexPositions[Vertices_area[i]];
+                Positions_area.segment<3>(3 * i) << p.x, p.y, p.z;
+            }
+            std::cout << "Area step " << step << ": triangle area = " << geometry->Triangle_area(Positions_area) << "\n";
+            Save_mesh(area_dir, step);
+
+            if (step == n_steps)
+                break;
+
+            Grad_area = geometry->gradient_triangle_area(Positions_area);
+            for (size_t i = 0; i < 3; i++)
+                geometry->inputVertexPositions[Vertices_area[i]] += step_size * Vector3{Grad_area[3 * i], Grad_area[3 * i + 1], Grad_area[3 * i + 2]};
+            geometry->refreshQuantities();
+        }
+    }
+
     // Ok i have the mesh, now i need tthe
 
     //
@@ -1831,7 +1917,6 @@ int main(int argc, char **argv)
     M3DG.recentering = false;
     M3DG.boundary = false;
     // std::ofstream Some_ofstream;
-
 
     std::cout << "\t \t The volume is " << geometry->totalVolume() << " \n";
 
