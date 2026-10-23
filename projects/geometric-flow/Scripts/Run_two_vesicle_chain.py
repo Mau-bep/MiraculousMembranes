@@ -6,8 +6,11 @@ usage:  python3 Run_two_vesicle_chain.py CHAIN.json          (CHAIN.json is writ
 1. link 0 (cold start): main_cluster on the config of CHAIN.json (the tangent start of Templates/Wrapping_two_vesicle.txt at the first
    separation); the beads wrap, the run goes on to convergence (the "stopping" block of the config). With "start_run": "<run folder>"
    in CHAIN.json a finished run is the link 0 instead (to reuse a cold start, to extend a chain, or to try another list of separations).
-2. the next links: the two beads are rotated about the volume centre of the vesicle by +-(phi_new - phi_old)/2, i.e. along the arc of
-   the sphere, so that the arc s = R_v phi between them takes the next value of "s_list" (in D_p); the membrane of the previous link
+2. the next links: the two beads are rotated about the volume centre of the vesicle by +-(phi_new - phi_old)/2, so that the distance s between
+   them takes the next value of "s_list" (in D_p). "distance" in CHAIN.json says which distance: "arc" (the old default) = R_v phi, the arc of the
+   sphere; "chord" = the straight distance between the bead centres d/D_p, d^2 = R_0^2 + R_1^2 - 2 R_0 R_1 cos(phi) with R_i the distance of bead i
+   from the volume centre. With "chord" the beads reach contact at s = 1 and every value of "s_list" below 1 is refused (the beads never overlap).
+   The membrane of the previous link
    is the initial mesh (Final_state.obj), the beads stay frozen, the patch axes (if any) point to the vesicle centre again, the
    absolute volume (and area) targets are the same. A link starts close to its minimum and takes minutes, not the hours of a cold
    start, and the meshes of neighbouring separations are related, which removes most of the noise a fresh mesh brings into the
@@ -88,7 +91,7 @@ def arc_s(run, Rv, a, n=2, planar=False):
     return Rv * math.acos(max(-1.0, min(1.0, float(u[0] @ u[1])))) / (2.0 * a)
 
 
-def summary(run, cfg, s_target):
+def summary(run, cfg, s_target, chord=False):
     with open(os.path.join(run, "Output_data.txt")) as f:
         header = f.readline().split()
         rows = [[float(x) for x in l.split()] for l in f if l.strip()]
@@ -98,7 +101,7 @@ def summary(run, cfg, s_target):
     last = rows[-1]
     bend = [e for e in cfg["Energies"] if e["Name"] in ("Bending", "Bending_tan")][0]  # Bending since 2026-10-12, Bending_tan before
     kappa = bend["constants"][0] / 2.0
-    out = {"s_target": s_target, "s_actual": arc_s(run, cfg["Rv"], cfg["Beads"][0]["radius"], planar=bool(cfg.get("boundary"))), "run": os.path.basename(os.path.dirname(run.rstrip("/"))), "step": last[col["step"]],
+    out = {"s_target": s_target, "s_actual": arc_s(run, cfg["Rv"], cfg["Beads"][0]["radius"], planar=bool(cfg.get("boundary")) or chord), "run": os.path.basename(os.path.dirname(run.rstrip("/"))), "step": last[col["step"]],
            "E_bend_kappa": last[col[bend["Name"]]] / kappa, "E_total_kappa": last[col["Total_E"]] / kappa,
            "Volume": last[col["Volume"]], "Area": last[col["Area"]]}
     return out
@@ -161,6 +164,8 @@ def main(chain_path):
     # a flat disk with a clamped edge ("planar": true): no volume centre, the beads are translated along the line joining them; they sink freely in
     # the cold start (state "default") and are frozen at that height from the first link on
     planar = bool(spec.get("planar"))
+    dist_mode = "chord" if (planar or spec.get("distance", "arc") == "chord") else "arc"  # the disk has no volume centre: its s is always the straight distance
+    chord = dist_mode == "chord"
     a = cold["Beads"][0]["radius"]
     Rv = cold["Rv"]
     n_beads = len(cold["Beads"])
@@ -172,7 +177,7 @@ def main(chain_path):
     def write_summary():
         with open(summary_path, "w", newline="") as f:
             w = csv.writer(f)
-            fields = ["link", "s_target", "s_actual", "run", "step", "E_bend_kappa", "E_total_kappa", "Volume", "Area", "seconds"]
+            fields = ["link", "s_target", "s_actual", "run", "step", "E_bend_kappa", "E_total_kappa", "Volume", "Area", "seconds", "distance"]
             w.writerow(fields)
             for r in rows:
                 w.writerow([r.get(k, "") for k in fields])
@@ -223,8 +228,8 @@ def main(chain_path):
         if rc != 0 or why or not os.path.exists(os.path.join(run, "Final_state.obj")):
             say("link 00 failed (return code %d, %s), see link00_cold.log" % (rc, why))
             return 1
-    r = summary(run, cfg, None)
-    r.update({"link": 0, "seconds": round(time.time() - t0)})
+    r = summary(run, cfg, None, chord)
+    r.update({"link": 0, "seconds": round(time.time() - t0), "distance": dist_mode})
     rows.append(r)
     write_summary()
     say("link 00 done: s = %.3f D_p, E_bend = %.4f kappa after %d steps, %d s" % (r["s_actual"], r["E_bend_kappa"], r["step"], r["seconds"]))
@@ -233,6 +238,8 @@ def main(chain_path):
 
     # --- the other links ------------------------------------------------------------------------------------------
     s_list = list(spec["s_list"])
+    if chord and min(s_list) < 1.0 - 1e-9:
+        raise SystemExit("distance chord: the beads would overlap (s = %g D_p < 1), every s of s_list must be >= 1" % min(s_list))
     if spec.get("return", False):
         # back out along the same values (ends at the separation of the cold start)
         s_list = s_list + list(reversed(s_list[:-1])) + [s_cold]
@@ -254,7 +261,15 @@ def main(chain_path):
             vc, vol = volume_centre(V, F)
             u = [(q - vc) / np.linalg.norm(q - vc) for q in p]
             phi_old = math.acos(max(-1.0, min(1.0, float(u[0] @ u[1]))))
-            phi_new = s * 2.0 * a / Rv
+            if chord:
+                # the straight distance d = 2 a s between the centres: d^2 = R0^2 + R1^2 - 2 R0 R1 cos(phi), R_i the distance of bead i from the volume centre
+                R0, R1 = (float(np.linalg.norm(q - vc)) for q in p)
+                cos_phi = (R0 * R0 + R1 * R1 - (s * 2.0 * a) ** 2) / (2.0 * R0 * R1)
+                if abs(cos_phi) > 1.0:
+                    raise RuntimeError("no angle puts the beads %.3f apart (R_0 = %.3f, R_1 = %.3f)" % (s * 2.0 * a, R0, R1))
+                phi_new = math.acos(cos_phi)
+            else:
+                phi_new = s * 2.0 * a / Rv
             axis = np.cross(u[0], u[1])
             axis /= np.linalg.norm(axis)
             dphi = 0.5 * (phi_new - phi_old)
@@ -268,6 +283,8 @@ def main(chain_path):
         cfg.pop("Displacement", None)
         cfg["first_dir"] = fdir
         cfg["theta"] = float(np.linalg.norm(pos[0] - pos[1]))
+        if cfg["theta"] < 2.0 * a * (1.0 - 1e-9):
+            raise RuntimeError("the beads would overlap: distance %.4f < 2 a = %.4f" % (cfg["theta"], 2.0 * a))
         cfg["Switch_times"] = switch
         for i, b in enumerate(cfg["Beads"]):
             b["Pos"] = [float(x) for x in pos[i]]
@@ -279,7 +296,7 @@ def main(chain_path):
                 b["patch_axis"] = [float(x) for x in ax / np.linalg.norm(ax)]
         cfg_path = os.path.join(batch, tag + ".json")
         json.dump(cfg, open(cfg_path, "w"), indent=4)
-        say("link %02d: s = %.3f D_p (phi %.4f -> %.4f rad, bead distance %.3f)" % (k, s, phi_old, phi_new, cfg["theta"]) if not planar else
+        say("link %02d: s = %.3f D_p (%s; phi %.4f -> %.4f rad, bead distance %.3f)" % (k, s, dist_mode, phi_old, phi_new, cfg["theta"]) if not planar else
             "link %02d: s = %.3f D_p (bead distance %.3f, height %.3f)" % (k, s, cfg["theta"], pos[0][0]))
         t0 = time.time()
         rc = run_main_cluster(binary, cfg_path, os.path.join(batch, tag + ".log"), nice)
@@ -288,8 +305,8 @@ def main(chain_path):
         if rc != 0 or why or not os.path.exists(os.path.join(run, "Final_state.obj")):
             say("link %02d failed (return code %d, %s), see %s.log" % (k, rc, why, tag))
             return None
-        r = summary(run, cfg, s)
-        r.update({"link": k, "seconds": round(time.time() - t0)})
+        r = summary(run, cfg, s, chord)
+        r.update({"link": k, "seconds": round(time.time() - t0), "distance": dist_mode})
         rows.append(r)
         write_summary()
         say("link %02d done: s = %.3f D_p, E_bend = %.4f kappa, %d steps, %d s" % (k, r["s_actual"], r["E_bend_kappa"], r["step"], r["seconds"]))

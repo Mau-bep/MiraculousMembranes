@@ -31,12 +31,15 @@ parser.add_argument("--inside", action="store_true",
                          "not outside with the membrane invaginating around them (the experiment, the default). Needs the build with the bead key \"outside\": -1 for Adhesion, "
                          "and --wrap patch or adhesion (the Coverage energy knows beads outside only)")
 parser.add_argument("--s_list", type=str, default=None,
-                    help="arc s = R_v phi between the beads, in D_p, of the links after the cold start, in the order they are run "
+                    help="separation s between the beads (--distance: chord or arc, R_v phi), in D_p, of the links after the cold start, in the order they are run "
                          "(default: the far reference at 5.8, then in to 1.45: 5.8,5.0,4.3,3.8,3.4,3.0,2.7,2.4,2.2,2.05,1.9,1.78,1.66,1.55,1.45; "
                          "the cold start itself is not a point of the curve). Below s ~ 1.8 D_p the beads of a floppy 90 %% wrapped vesicle overlap "
                          "(they sit deep, no excluded volume). With --planar s is the distance between the bead centres in D_p, the default list "
                          "5.0,4.2,3.6,3.2,2.9,2.6,2.4,2.2,2.0,1.8,1.65,1.5,1.4,1.3,1.2,1.1 (the beads touch at 1). With --inside the list goes on to 0.9: the beads sit "
                          "1.3 R_v out from the vesicle centre, d = 2 R_c sin(phi/2), they touch at s ~ 0.8 D_p")
+parser.add_argument("--distance", choices=["chord", "arc"], default="chord",
+                    help="the separation s of --s_list: chord (default) = the straight distance between the bead centres in D_p, the beads touch at s = 1 and never overlap "
+                         "(values below 1 are refused); arc = R_v phi, the arc of the sphere (the older chains; beads in deep pockets overlap at s < 1.8 D_p)")
 parser.add_argument("--max_step", type=number_str, default="0.5", help="largest change of s (D_p) between two relaxations, bigger moves of the list go through waypoints")
 parser.add_argument("--no_return", action="store_true", help="do not walk the list backwards after the last separation (the way back gives the hysteresis, 0.03-0.2 kappa, "
                                                             "and a second value at every s: it doubles the time of the job)")
@@ -136,6 +139,9 @@ Rv = float(args.Rv)
 a = float(args.radius)
 d_cold = float(args.d_cold) if args.d_cold is not None else (10.0 if args.planar else (9.0 if args.inside else 6.0))
 R_disk = float(args.R_disk)
+if args.s_list is None and args.distance == "chord" and not args.planar:
+    # touching beads (s = 1) are the last link; the chord is the straight distance, so the arc list's tail below 1.45 is replaced by a finer approach to contact
+    args.s_list = "5.8,5.0,4.3,3.8,3.4,3.0,2.7,2.4,2.2,2.05,1.9,1.78,1.66,1.55,1.45,1.35,1.25,1.15,1.07,1.0"
 if args.s_list is None:
     args.s_list = ("5.0,4.2,3.6,3.2,2.9,2.6,2.4,2.2,2.0,1.8,1.65,1.5,1.4,1.3,1.2,1.1" if args.planar else
                    "5.8,5.0,4.3,3.8,3.4,3.0,2.7,2.4,2.2,2.05,1.9,1.78,1.66,1.55,1.45,1.3,1.2,1.1,1.0,0.9" if args.inside else
@@ -208,6 +214,10 @@ def create_json():
 
     chain = {"config": Config_path, "binary": BINARY, "batch_dir": Batch_dir, "s_list": [float(x) for x in args.s_list.split(",")],
              "return": not args.no_return, "switch": [int(x) for x in args.switch.split(",")], "nice": 0, "max_step": float(args.max_step)}
+    if not args.planar:
+        chain["distance"] = args.distance
+        if args.distance == "chord" and min(chain["s_list"]) < 1.0:
+            raise SystemExit("--distance chord: the beads would overlap at s = %g D_p < 1" % min(chain["s_list"]))
     if args.inside:
         chain["inside"] = True  # the runner points each patch axis away from the volume centre
     if args.planar:
