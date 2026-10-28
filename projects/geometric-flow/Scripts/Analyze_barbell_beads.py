@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Tube of the barbell with beads of radius 1 (Create_subjob_barbell_beads.py): tube radius, area and energies against KA and KB.
 
-usage:  python3 Analyze_barbell_beads.py [--out PREFIX] RESULTS_DIR [RESULTS_DIR ...]
+usage:  python3 Analyze_barbell_beads.py [--out PREFIX] [--group KB|KA] RESULTS_DIR [RESULTS_DIR ...]
 
 Every folder below a RESULTS_DIR that holds an Input_file.json, an Output_data.txt and a mesh (Final_state.obj, else the last membrane_*.obj) is one run. Per run:
     KA, KB       the Surface_tension and Bending constants of the config; d the distance of the bead centres, a the bead radius
@@ -11,6 +11,7 @@ Every folder below a RESULTS_DIR that holds an Input_file.json, an Output_data.t
     L_tube       length of the tube, the x range where the radius stays below 1.5 R_tube between the beads
     Area, E_bend, E_tension, E_total  from the last row of Output_data.txt; steps = the last step; converged = the run ended before the step limit of the config
 Writes <out>.csv and <out>.png (left: R_tube against R_theory, one marker per KB, the line is y = x; right: R_tube / R_theory against KA).
+--group KA: one series per KA and the right panel against KB (for a scan of KB at fixed surface tension, the Tension batch of Mem_barbell_beads_up.sh).
 Only needs json, csv and numpy (matplotlib for the plot).
 """
 import argparse
@@ -95,7 +96,9 @@ def main():
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     p.add_argument("roots", nargs="+", help="results folders (a batch folder with run folders below it)")
     p.add_argument("--out", default="barbell_beads", help="prefix of the output files (default barbell_beads: .csv and .png in the current folder)")
+    p.add_argument("--group", choices=["KB", "KA"], default="KB", help="series of the plot: one per KB (scan of KA, default) or one per KA (scan of KB)")
     args = p.parse_args()
+    other = "KA" if args.group == "KB" else "KB"
 
     rows = []
     for root in args.roots:
@@ -123,10 +126,10 @@ def main():
         print("matplotlib not found: no plot")
         return
     fig, ax = plt.subplots(1, 2, figsize=(10, 4.2))
-    for KB in sorted({r["KB"] for r in rows}):
-        sel = [r for r in rows if r["KB"] == KB]
-        ax[0].plot([r["R_theory"] for r in sel], [r["R_tube"] for r in sel], "o", label="KB = %g" % KB)
-        ax[1].plot([r["KA"] for r in sel], [r["R_tube"] / r["R_theory"] for r in sel], "o", label="KB = %g" % KB)
+    for g in sorted({r[args.group] for r in rows}):
+        sel = [r for r in rows if r[args.group] == g]
+        ax[0].plot([r["R_theory"] for r in sel], [r["R_tube"] for r in sel], "o", label="%s = %g" % (args.group, g))
+        ax[1].plot([r[other] for r in sel], [r["R_tube"] / r["R_theory"] for r in sel], "o", label="%s = %g" % (args.group, g))
     lim = [0.0, 1.05 * max(max(r["R_theory"], r["R_tube"]) for r in rows)]
     ax[0].plot(lim, lim, "k--", lw=1, label=r"$\sqrt{K_B/4K_A}$")
     ax[0].set_xlabel("R_theory = sqrt(KB / 4 KA)")
@@ -134,7 +137,7 @@ def main():
     ax[0].legend()
     ax[1].axhline(1.0, color="k", lw=1, ls="--")
     ax[1].set_xscale("log")
-    ax[1].set_xlabel("KA")
+    ax[1].set_xlabel(other)
     ax[1].set_ylabel("R_tube / R_theory")
     ax[1].legend()
     fig.tight_layout()
