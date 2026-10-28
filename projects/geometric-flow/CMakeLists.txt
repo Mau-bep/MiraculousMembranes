@@ -10,7 +10,19 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 
-FIND_PACKAGE(Eigen3 REQUIRED)
+# Eigen >= 3.4 is required (geometry-central's additions use Eigen::Vector<>).
+# By default the copy in deps/eigen-3.4.0 is used, so results do not depend on
+# the Eigen of the machine; -DMM_USE_SYSTEM_EIGEN=ON picks the system Eigen3.
+option(MM_USE_SYSTEM_EIGEN "Use the system Eigen3 (>= 3.4) instead of deps/eigen-3.4.0" OFF)
+if(MM_USE_SYSTEM_EIGEN)
+  find_package(Eigen3 3.4 REQUIRED)
+else()
+  set(EIGEN3_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/eigen-3.4.0")
+  # geometry-central reuses an existing Eigen3::Eigen target
+  add_library(Eigen3::Eigen INTERFACE IMPORTED)
+  set_target_properties(Eigen3::Eigen PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${EIGEN3_INCLUDE_DIR}")
+endif()
+message(STATUS "Eigen include directory: ${EIGEN3_INCLUDE_DIR}")
 
 include_directories(${EIGEN3_INCLUDE_DIR})
 # Print the build type
@@ -237,6 +249,11 @@ set(TEST_fan_SRCS
 #   src/test-flow.cpp
 # )
 
+# geometry-central only uses SuiteSparse in its own solver classes
+# (PositiveDefiniteSolver, SquareSolver, QR), which this project never calls
+# (it solves with Eigen directly). Without this it silently links whatever
+# SuiteSparse the machine has.
+set(SUITESPARSE OFF CACHE BOOL "Let geometry-central use SuiteSparse")
 add_subdirectory(../../deps/geometry-central deps/geometry-central)
 add_subdirectory(../../deps/polyscope deps/polyscope)
 add_subdirectory(../../deps/googletest deps/googletest)
