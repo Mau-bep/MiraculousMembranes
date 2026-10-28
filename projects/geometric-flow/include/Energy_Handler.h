@@ -156,6 +156,12 @@ public:
 
     // THis function saves the value of the gradient to current gradient but before saves current gradient to previous gradient
     virtual void Calculate_gradient();
+
+    // The force of energy term i (Energies[i]) at the current positions, as Calculate_gradient adds it to
+    // Current_grad. Returns false, leaving `force` alone, for a term with no force: a constraint switched off
+    // by a zero constant, or a name that is not known. bead_count is the index of the next "Bead" term and
+    // goes up by one for each of them.
+    bool Term_force(size_t i, size_t &bead_count, VertexData<Vector3> &force);
     virtual void Calculate_Jacobian();
     virtual void Calculate_Jacobian_Normal();
 

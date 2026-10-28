@@ -3027,6 +3027,54 @@ void E_Handler::Calculate_Lag_norm_Normal(double *Norm)
     }
 }
 
+bool E_Handler::Term_force(size_t i, size_t &bead_count, VertexData<Vector3> &force)
+{
+    const std::string &name = Energies[i];
+    const std::vector<double> &constants = Energy_constants[i];
+    if (name == "Volume_constraint")
+    {
+        if (constants[0] < 1e-5)
+            return false;
+        force = F_Volume_constraint_2(constants);
+    }
+    else if (name == "Area_constraint")
+    {
+        if (constants[0] < 1e-5)
+            return false;
+        force = F_Area_constraint(constants);
+    }
+    else if (name == "Surface_tension")
+        force = F_SurfaceTension(constants);
+    else if (name == "Membrane_tension")
+        force = F_MembraneTension(constants);
+    else if (name == "Excess_tension")
+        force = F_ExcessTension(constants);
+    else if (name == "Bending")
+        force = F_Bending(constants);
+    else if (name == "Bending_tan")
+        force = F_Bending_tan(constants);
+    else if (name == "Bead")
+    {
+        force = Beads[bead_count]->Bead_I->Gradient();
+        bead_count += 1;
+    }
+    else if (name == "Laplace")
+        force = F_Laplace(constants);
+    else if (name == "Edge_reg")
+        force = F_Edge_reg(constants);
+    else if (name == "Face_reg")
+    {
+        if (Face_reference.size() == 0)
+            update_face_reference();
+        force = F_Face_reg(constants);
+    }
+    else if (name == "Coverage")
+        force = F_Coverage(constants);
+    else
+        return false;
+    return true;
+}
+
 void E_Handler::Calculate_gradient()
 {
     ScopeTimer call_timer(gradient_ms);
@@ -3038,201 +3086,27 @@ void E_Handler::Calculate_gradient()
     Previous_grad = Current_grad;
     Current_grad = VertexData<Vector3>(*mesh, Vector3{0.0, 0.0, 0.0});
     VertexData<Vector3> Force_temp(*mesh, Vector3{0.0, 0.0, 0.0});
-    int bead_count = 0;
+    size_t bead_count = 0;
     double grad_norm = 0;
     // I will do an inspection for vertex 0 ;
     Gradient_norms.resize(Energies.size() + 1, 0.0);
     for (size_t i = 0; i < Energies.size(); i++)
     {
         ScopeTimer term_timer(term_gradient_ms[i]);
-        if (Energies[i] == "Volume_constraint")
+        if (!Term_force(i, bead_count, Force_temp))
         {
-            if (Energy_constants[i][0] < 1e-5)
-            {
-                Gradient_norms[i] = 0.0;
-
-                continue;
-            }
-            Force_temp = F_Volume_constraint_2(Energy_constants[i]);
-            grad_norm = 0.0;
-            for (Vertex v : mesh->vertices())
-            {
-                grad_norm += Force_temp[v].norm2();
-            }
-
-            Gradient_norms[i] = grad_norm;
-
-            Current_grad += Force_temp;
+            Gradient_norms[i] = 0.0;
             continue;
         }
-        if (Energies[i] == "Area_constraint")
+        grad_norm = 0.0;
+        for (Vertex v : mesh->vertices())
         {
-            if (Energy_constants[i][0] < 1e-5)
-            {
-                if (Energy_constants[i][0] < 1e-5)
-                {
-
-                    Gradient_norms[i] = 0.0;
-                }
-                continue;
-            }
-            Force_temp = F_Area_constraint(Energy_constants[i]);
-            grad_norm = 0.0;
-            for (Vertex v : mesh->vertices())
-            {
-                grad_norm += Force_temp[v].norm2();
-            }
-
-            Gradient_norms[i] = grad_norm;
-
-            Current_grad += Force_temp;
-            continue;
+            grad_norm += Force_temp[v].norm2();
         }
 
-        if (Energies[i] == "Surface_tension")
-        {
-            Force_temp = F_SurfaceTension(Energy_constants[i]);
-            grad_norm = 0.0;
-            for (Vertex v : mesh->vertices())
-            {
-                grad_norm += Force_temp[v].norm2();
-            }
+        Gradient_norms[i] = grad_norm;
 
-            Gradient_norms[i] = grad_norm;
-
-            Current_grad += Force_temp;
-            continue;
-        }
-
-        if (Energies[i] == "Membrane_tension")
-        {
-            Force_temp = F_MembraneTension(Energy_constants[i]);
-            grad_norm = 0.0;
-            for (Vertex v : mesh->vertices())
-            {
-                grad_norm += Force_temp[v].norm2();
-            }
-            Gradient_norms[i] = grad_norm;
-            Current_grad += Force_temp;
-            continue;
-        }
-
-        if (Energies[i] == "Excess_tension")
-        {
-            Force_temp = F_ExcessTension(Energy_constants[i]);
-            grad_norm = 0.0;
-            for (Vertex v : mesh->vertices())
-            {
-                grad_norm += Force_temp[v].norm2();
-            }
-            Gradient_norms[i] = grad_norm;
-            Current_grad += Force_temp;
-            continue;
-        }
-
-        if (Energies[i] == "Bending")
-        {
-            Force_temp = F_Bending(Energy_constants[i]);
-            grad_norm = 0.0;
-            for (Vertex v : mesh->vertices())
-            {
-                grad_norm += Force_temp[v].norm2();
-            }
-
-            Gradient_norms[i] = grad_norm;
-
-            Current_grad += Force_temp;
-            continue;
-        }
-        if (Energies[i] == "Bending_tan")
-        {
-            Force_temp = F_Bending_tan(Energy_constants[i]);
-            grad_norm = 0.0;
-            for (Vertex v : mesh->vertices())
-            {
-                grad_norm += Force_temp[v].norm2();
-            }
-
-            Gradient_norms[i] = grad_norm;
-
-            Current_grad += Force_temp;
-            continue;
-        }
-        if (Energies[i] == "Bead")
-        {
-            Force_temp = Beads[bead_count]->Bead_I->Gradient();
-            grad_norm = 0;
-            for (size_t j = 0; j < mesh->nVertices(); j++)
-            {
-                grad_norm += Force_temp[j].norm2();
-            }
-
-            Gradient_norms[i] = grad_norm;
-
-            Current_grad += Force_temp;
-            bead_count += 1;
-            continue;
-        }
-
-        if (Energies[i] == "Laplace")
-        {
-            Force_temp = F_Laplace(Energy_constants[i]);
-            grad_norm = 0.0;
-            for (Vertex v : mesh->vertices())
-            {
-                grad_norm += Force_temp[v].norm2();
-            }
-
-            Gradient_norms[i] = grad_norm;
-
-            Current_grad += Force_temp;
-            continue;
-        }
-        if (Energies[i] == "Edge_reg")
-        {
-            Force_temp = F_Edge_reg(Energy_constants[i]);
-            grad_norm = 0.0;
-            for (Vertex v : mesh->vertices())
-            {
-                grad_norm += Force_temp[v].norm2();
-            }
-
-            Gradient_norms[i] = grad_norm;
-
-            Current_grad += Force_temp;
-            continue;
-        }
-        if (Energies[i] == "Face_reg")
-        {
-            if (Face_reference.size() == 0)
-                update_face_reference();
-
-            Force_temp = F_Face_reg(Energy_constants[i]);
-            grad_norm = 0.0;
-            for (Vertex v : mesh->vertices())
-            {
-                grad_norm += Force_temp[v].norm2();
-            }
-
-            Gradient_norms[i] = grad_norm;
-
-            Current_grad += Force_temp;
-            continue;
-        }
-        if (Energies[i] == "Coverage")
-        {
-            Force_temp = F_Coverage(Energy_constants[i]);
-            grad_norm = 0.0;
-            for (Vertex v : mesh->vertices())
-            {
-                grad_norm += Force_temp[v].norm2();
-            }
-
-            Gradient_norms[i] = grad_norm;
-
-            Current_grad += Force_temp;
-            continue;
-        }
+        Current_grad += Force_temp;
     }
     grad_norm = 0.0;
     for (size_t i = 0; i < mesh->nVertices(); i++)
