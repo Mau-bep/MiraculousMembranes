@@ -3128,6 +3128,35 @@ void E_Handler::Calculate_gradient()
     return;
 }
 
+void E_Handler::Calculate_term_forces(std::vector<VertexData<Vector3>> &forces)
+{
+    FaceCacheScope face_scope(*this);
+    // The bead interactions and the Coverage term write the beads' forces: put them back as they were
+    struct BeadForces
+    {
+        Vector3 prev_total, total, coverage;
+    };
+    std::vector<BeadForces> kept;
+    kept.reserve(Beads.size());
+    for (Bead *bead : Beads)
+    {
+        kept.push_back({bead->Prev_Total_force, bead->Total_force, bead->CoverageForce});
+        bead->CoverageForce = Vector3({0.0, 0.0, 0.0}); // as Calculate_gradient starts
+    }
+
+    forces.assign(Energies.size(), VertexData<Vector3>(*mesh, Vector3{0.0, 0.0, 0.0}));
+    size_t bead_count = 0;
+    for (size_t i = 0; i < Energies.size(); i++)
+        Term_force(i, bead_count, forces[i]);
+
+    for (size_t b = 0; b < Beads.size(); b++)
+    {
+        Beads[b]->Prev_Total_force = kept[b].prev_total;
+        Beads[b]->Total_force = kept[b].total;
+        Beads[b]->CoverageForce = kept[b].coverage;
+    }
+}
+
 void E_Handler::Calculate_Jacobian()
 {
     int N_verts = mesh->nVertices();

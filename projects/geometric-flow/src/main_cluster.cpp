@@ -922,6 +922,8 @@ namespace
         sim.Sim_handler.Calculate_energies(&tot_E);
 
         Save_mesh(sim.mesh, sim.geometry, run.basic_name, step);
+        if (sim.cfg.dump_forces)
+            Save_forces(sim, run.basic_name, step);
         std::ofstream Sim_data(run.output_file, std::ios_base::app);
         M3DG.write_output_row(Sim_data, run.time, sim.geometry->totalVolume(), sim.geometry->totalArea(), tot_E, run.dt_sim);
         M3DG.write_bead_rows(run.Bead_filenames);
@@ -1451,6 +1453,8 @@ int main(int argc, char **argv)
         {
             t0 = clock::now();
             Save_mesh(sim.mesh, sim.geometry, run.basic_name, current_t);
+            if (cfg.dump_forces)
+                Save_forces(sim, run.basic_name, current_t);
             saving_mesh_time += ms_since(t0);
             Sim_data = std::ofstream(run.output_file, std::ios_base::app);
         }

@@ -162,6 +162,11 @@ public:
     // by a zero constant, or a name that is not known. bead_count is the index of the next "Bead" term and
     // goes up by one for each of them.
     bool Term_force(size_t i, size_t &bead_count, VertexData<Vector3> &force);
+
+    // The force of every term at the current positions, in the order of Energies (zeros for a term with none).
+    // Unlike Calculate_gradient it leaves Current_grad, Previous_grad, Gradient_norms and the beads' forces as
+    // they were, so it can be called at any point of a run without changing it.
+    void Calculate_term_forces(std::vector<VertexData<Vector3>> &forces);
     virtual void Calculate_Jacobian();
     virtual void Calculate_Jacobian_Normal();
 

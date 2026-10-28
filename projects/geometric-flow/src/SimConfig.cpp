@@ -341,6 +341,9 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
     else
         std::cout << "The simulation will finish when the timestep decreases\n";
     cfg.saving_states = data.value("saving_states", false);
+    // "dump_forces": with every saved mesh (save_interval) also write the force of each energy term on each
+    // vertex, Forces/<term>_<step>.txt (Save_forces). Costs one extra evaluation of the forces per saved step.
+    cfg.dump_forces = data.value("dump_forces", false);
 
     if (data.contains("remeshing"))
         cfg.remeshing = data["remeshing"].get<bool>();
@@ -1223,5 +1226,42 @@ void Save_mesh(ManifoldSurfaceMesh *mesh, VertexPositionGeometry *geometry, cons
         for (Vertex v : f.adjacentVertices())
             o << " " << v.getIndex() + 1;
         o << "\n";
+    }
+}
+
+void Save_forces(Simulation &sim, const std::string &basic_name, size_t current_t)
+{
+    std::vector<VertexData<Vector3>> forces;
+    sim.Sim_handler.Calculate_term_forces(forces);
+
+    const std::string dir = basic_name + "Forces/";
+    make_dirs(dir);
+    const std::vector<std::string> &names = sim.Energies;
+    const std::string step = std::to_string(current_t);
+    for (size_t i = 0; i < names.size(); i++)
+    {
+        size_t same = 0, before = 0; // terms with this name, and how many come first
+        for (size_t j = 0; j < names.size(); j++)
+        {
+            if (names[j] == names[i])
+            {
+                same++;
+                if (j < i)
+                    before++;
+            }
+        }
+        std::string label = names[i];
+        if (same > 1 || label == "Bead")
+            label += "_" + std::to_string(before);
+
+        std::ofstream o(dir + label + "_" + step + ".txt");
+        o << "# " << label << " force (minus the energy gradient) at step " << step << " on each of the "
+          << sim.mesh->nVertices() << " vertices, x y z, in the vertex order of membrane_" << step << ".obj\n";
+        o << std::setprecision(10);
+        for (Vertex v : sim.mesh->vertices())
+        {
+            const Vector3 &f = forces[i][v];
+            o << f.x << " " << f.y << " " << f.z << "\n";
+        }
     }
 }

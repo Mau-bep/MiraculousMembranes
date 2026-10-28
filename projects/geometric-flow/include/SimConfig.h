@@ -142,6 +142,7 @@ struct SimConfig
     std::string first_dir;
     size_t timesteps = 0;
     int save_interval = 1;
+    bool dump_forces = false; // "dump_forces": Forces/<term>_<step>.txt next to every saved mesh (Save_forces)
     bool finish_sim = false;
     bool saving_states = false;
 
@@ -313,3 +314,10 @@ std::vector<std::string> open_output_files(const Simulation &sim, const std::str
 
 void Save_mesh(ManifoldSurfaceMesh *mesh, VertexPositionGeometry *geometry,
                const std::string &basic_name, size_t current_t);
+
+// "dump_forces": the force (minus the energy gradient) of every energy term on every vertex, one file per
+// term, basic_name/Forces/<term>_<step>.txt, for the state of the membrane_<step>.obj saved at the same step:
+// one "fx fy fz" line per vertex in the vertex order of that .obj, after a "#" header line. <term> is the name
+// in the energy list (as in the Output_data.txt header); the beads, and a name that appears twice, get the
+// number of their occurrence (Bead_0, Bead_1, ...). Evaluates the forces afresh without changing the run.
+void Save_forces(Simulation &sim, const std::string &basic_name, size_t current_t);
