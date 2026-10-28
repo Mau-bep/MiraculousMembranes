@@ -12,12 +12,12 @@ viewer.
 
 ## Requirements
 
-Tested on Ubuntu 22.04 with g++ 11.4 and CMake 3.22.
+Tested on Ubuntu 22.04 with g++ 11.4, with CMake 3.22 and with CMake 4.4.
 
 | What | Version | Used for |
 |---|---|---|
 | C++ compiler with OpenMP (g++ or clang) | C++11 | everything |
-| CMake | >= 3.10 | build |
+| CMake | >= 3.10 (3.x and 4.x work) | build |
 | make, git | | build, clone |
 | X11 and OpenGL development headers | | polyscope (the viewer) |
 

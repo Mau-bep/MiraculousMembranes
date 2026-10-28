@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.10.0)
 
 project(geometric-flow)
 
+# CMake >= 4.0 refuses cmake_minimum_required(VERSION < 3.5), which polyscope
+# and its glfw/glad/imgui/stb/glm still declare. This makes it configure them
+# with the policies of 3.5; older CMake versions do not read the variable.
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+
 
 
 ### Configure output locations
