@@ -59,30 +59,30 @@
 # end
 
 
-# set ListUp = "2.915,2.144,1.577,1.16,0.8536,0.628,0.462,0.3398,0.25,0.1839,0.1353,0.09953,0.07322,0.05386,0.03962,0.02915,0.02144,0.01577,0.0116,0.008536,0.00628,0.00462,0.003398,0.0025"
-# set List = ${ListUp}
+set ListUp = "2.915,2.144,1.577,1.16,0.8536,0.628,0.462,0.3398,0.25,0.1839,0.1353,0.09953,0.07322,0.05386,0.03962,0.02915,0.02144,0.01577,0.0116,0.008536,0.00628,0.00462,0.003398,0.0025"
+set List = ${ListUp}
 
 # foreach KI (0 0.3333 0.6667 1 1.333 1.667 2 2.333 2.667 3 3.333 3.667 4 4.333 4.667 5)
+foreach KB (2.915 2.144 1.577 1.16 0.8536 0.628 0.462 0.3398 0.25 0.1839 0.1353 0.09953 0.07322 0.05386 0.03962 0.02915 0.02144 0.01577 0.0116 0.008536 0.00628 0.00462 0.003398 0.0025)
 
-
-# set Batch_Tag = "Phase_one_vesicle"
-# set Tag = "KI_${KI}"
-# python3 Create_subjob_one_vesicle.py --batch_tag ${Batch_Tag}/${Tag} --wrap adhesion --shell_width 0.2 --W  ${KI} --sigma 1.0 --unique_tag ${Batch_Tag}_${Tag} --scan KB --scan_list ${List} --wrap adhesion --refine_angle 0.20 --area excess --excess 0.0 --size_min 0.01 --size_max 0.6 --time 24:00:00
-# sbatch ../Subjobs/${Batch_Tag}_${Tag}_subjob
-# end
+set Batch_Tag = "Phase_one_vesicle_otherorder"
+set Tag = "KB_${KB}"
+python3 Create_subjob_one_vesicle.py --batch_tag ${Batch_Tag}/${Tag} --wrap adhesion --shell_width 0.2 --sigma 1.0 --unique_tag ${Batch_Tag}_${Tag} --refine_angle 0.20 --area excess --excess 0.0 --size_min 0.01 --size_max 0.6 --time 24:00:00
+sbatch ../Subjobs/${Batch_Tag}_${Tag}_subjob
+end
 
 ######################## Replicating andelas (in)-famous paper
 
 
 
 
-set Batch_Tag =   "Wrapping_one_vesicle"
+# set Batch_Tag =   "Wrapping_one_vesicle"
 
-set ListUp = "2,2.5,3,3.5,4,4.2,4.4,4.3,4.4,4.6,4.62,4.64,4.66,4.68,4.7,4.72,4.74,4.76,4.78,4.8"
+# set ListUp = "2,2.5,3,3.5,4,4.2,4.4,4.3,4.4,4.6,4.62,4.64,4.66,4.68,4.7,4.72,4.74,4.76,4.78,4.8"
 
-set Tag = "Area_constrained_wrap"
-python3 Create_subjob_one_vesicle.py --batch_tag ${Batch_Tag}/${Tag} --shell_width 0.2 --unique_tag ${Batch_Tag}_${Tag} --scan wt --scan_list ${List} --wrap adhesion --KB 42 --Rv 6.25 --refine_angle 0.20 --time 24:00:00 --prewrap_cov 0.3 --area constraint --excess 0.025
-sbatch ../Subjobs/${Batch_Tag}_${Tag}_subjob
+# set Tag = "Area_constrained_wrap"
+# python3 Create_subjob_one_vesicle.py --batch_tag ${Batch_Tag}/${Tag} --shell_width 0.2 --unique_tag ${Batch_Tag}_${Tag} --scan wt --scan_list ${List} --wrap adhesion --KB 42 --Rv 6.25 --refine_angle 0.20 --time 24:00:00 --prewrap_cov 0.3 --area constraint --excess 0.025
+# sbatch ../Subjobs/${Batch_Tag}_${Tag}_subjob
 
 
 
