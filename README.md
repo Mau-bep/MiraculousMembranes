@@ -117,12 +117,14 @@ environment on the cluster; edit or remove it on another machine.
 | `eigen-3.4.0` | Eigen headers | copied from Ubuntu's `libeigen3-dev` 3.4.0-2ubuntu2. The code needs Eigen >= 3.4 (it uses `Eigen::Vector<T, N>`), so Eigen 3.3.x does not compile |
 | `EigenRand-0.5.1` | random numbers for Eigen | header only |
 | `nlohmann_json` | JSON parser for the config files | header only |
-| `googletest` | unit tests | configured but not used by any target |
 
 Not bundled any more: OpenBLAS, alglib, jsoncpp, taucs, Ipopt and HSL. No
 active target uses them. They were only needed by the disabled
 `NormalNLP`/`ShapeNLP` sources (`include/NormalNLP.hpp`, `include/ShapeNLP.hpp`),
 which need Ipopt with HSL (HSL is licensed by STFC and cannot be redistributed).
+
+googletest is gone too: `src/test-flow.cpp` and `src/test_remeshing.cpp` include
+gtest, but no target builds them.
 
 ## Layout
 

@@ -81,7 +81,6 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   SET(CMAKE_CXX_FLAGS "${BASE_CXX_FLAGS} ${DISABLED_WARNINGS}")
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD")
   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd")
-  set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
   # add_definitions(-std=c++17)
   add_definitions(/D "_CRT_SECURE_NO_WARNINGS")
@@ -256,7 +255,6 @@ set(TEST_fan_SRCS
 set(SUITESPARSE OFF CACHE BOOL "Let geometry-central use SuiteSparse")
 add_subdirectory(../../deps/geometry-central deps/geometry-central)
 add_subdirectory(../../deps/polyscope deps/polyscope)
-add_subdirectory(../../deps/googletest deps/googletest)
 
 # nlohmann/json (header only, kept in deps/) reads the input files
 add_library(nlohmann_json INTERFACE)
