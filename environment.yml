@@ -4,6 +4,10 @@ channels:
 dependencies:
   - python
   - numpy
+  - scipy
+  - matplotlib
+  - jinja2
   - pandas
   - ipykernel
+  # optional, rendering scripts only: ovito, opencv
 prefix: /nfs/scistore16/wojtgrp/mrojasve/.conda/envs/mir_membranes
