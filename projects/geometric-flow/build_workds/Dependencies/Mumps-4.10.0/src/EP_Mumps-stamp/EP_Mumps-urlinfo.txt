@@ -1,3 +1,0 @@
-repository='external project URL'
-module='http://mumps.enseeiht.fr/MUMPS_4.10.0.tar.gz'
-tag=''
