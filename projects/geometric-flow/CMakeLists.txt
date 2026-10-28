@@ -122,7 +122,7 @@ set(SRCScluster
   src/Interaction.cpp
   ../../utils/src/colormap.cpp
   src/BeadGeometry.cpp
-  # src/NormalNLP.cpp
+  # src/NormalNLP.cpp   (needs Ipopt + HSL, no longer bundled in deps/)
   # src/ShapeNLP.cpp
 )
 set(SRCSprocessing 
@@ -269,7 +269,7 @@ find_package(OpenMP REQUIRED)
 if(OPENMP_FOUND)
 message("OPENMP FOUND")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -I../../deps/include -I/opt/local/include/")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -I/opt/local/include/")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
@@ -303,15 +303,11 @@ target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../.
 # add the args.hxx project which we use for command line args
 target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
 
-target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include/")
 target_include_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/")
-target_link_directories(main_cluster PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/lib/")
 
 add_library(EigenRand INTERFACE)
 target_include_directories(EigenRand INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/EigenRand-0.5.1/")
 
-link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/lib")
-link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include")
 
 # main_cluster uses no viewer code: without polyscope it builds faster and needs no OpenGL/X11
 target_link_libraries(main_cluster PUBLIC geometry-central EigenRand nlohmann_json)
@@ -328,12 +324,8 @@ target_include_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/..
 # add the args.hxx project which we use for command line args
 target_include_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/polyscope/deps/args")
 
-target_include_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include/")
 target_include_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/")
-target_link_directories(PostProcessing PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/lib/")
 
-link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/lib")
-link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include")
 
 target_link_libraries(PostProcessing PUBLIC geometry-central polyscope EigenRand nlohmann_json)
 
@@ -598,6 +590,6 @@ set(SRCSexactness ${SRCScluster})
 list(REMOVE_ITEM SRCSexactness src/main_cluster.cpp)
 add_executable(Test_exactness src/Test_exactness.cpp ${SRCSexactness})
 target_include_directories(Test_exactness PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include" "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/include/"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include"
   "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/")
 target_link_libraries(Test_exactness geometry-central EigenRand nlohmann_json)
