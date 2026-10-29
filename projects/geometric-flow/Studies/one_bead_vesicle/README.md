@@ -155,3 +155,20 @@ for one leg, `column="cap_cfg"` for another coverage, `kappa_over_KB` and `w_ove
 `Plots.py: phase_one_vesicle_map(batch=...)` is the same data as a `pcolormesh` in the fashion of `contour()` (no theory curves): the points are binned (24 log-spaced bins in x, 16 linear in y) and a bin is coloured by the mean of `CoveredArea` of its points
 (`column=` for another one); x = a sqrt(sigma/KB) as in `contour()` (`kappa_over_KB=0.5` for the a/lambda of `deserno_fig5`), y = w/sigma, `legs="lowest"` by default: every point once, the way in or the way back, whichever has the lower `Total_E` (`Plots.py: coverage_lowest_energy(batch)`, which takes all the `Coverage_data_*.csv` of the folder and does that; `legs=("in",)`, `("out",)`, `("in", "out")` (the mean of the two numbers) are the other choices). The figure is saved
 as `Phase_one_vesicle_coverage.png` in the folder of the csv's.
+
+## 8. Analysis of a whole batch (`Scripts/Analyze_one_chains.py`)
+
+The sister of `Analyze_two_chains.py` for the batches of `Mem_one_vesicle_up.sh` (run it where the run folders are, python3 + numpy + matplotlib):
+
+```
+cd Scripts
+python3 Analyze_one_chains.py ../Results/Phase_one_vesicle                       # all the chains KI_0, KI_0.3333, ... of the batch
+python3 Analyze_one_chains.py ../Results/Phase_one_flat --axes fig2              # the flat disks
+python3 Analyze_one_chains.py ../Results/Phase_one_vesicle --chains KI_1 KI_2 --plots coverage volume
+```
+
+It writes `<batch>/one_bead_analysis/` (download that folder): `phase_space/` (the whole phase space of the batch, scatter in the axes of `deserno_fig5` (w/sigma against a/lambda, log) or, for flat disks, w~ against sigma~, and the binned map in the fashion of `contour()`;
+**for every value of the scanned parameter the way in and the way back are compared and the point with the lower `Total_E` is drawn**; no theory curves), `coverage_vs_adhesion/<Tag>.png` (coverage against w~ = 4 W a^2/KB = 2 w a^2/kappa of each chain, both legs, a ring on the lower-energy
+point) with `all_chains.png`, `volume_difference/<Tag>.png` (V - V_target of the final states, V_target from the `Volume_constraint` of the config) with `all_chains.png`, `final_states_per_chain/<Tag>/<Tag>_Final_link_NNN.obj` (every point of the chain, in the order of the chain),
+`viewer_runs/<Tag>/` (a run folder per chain for `main_visualize <out>/viewer_runs`: the final states are the frames of the slider) and `csv/` (the numbers of every point; `all_points.csv` has the column `lowest`). `--cov` chooses the coverage (union = CoverageUnion, the default; covered = CoveredArea;
+cap; adhesion), `--kappa_over_KB` the kappa/KB of a/lambda (0.5 in the scatter, 1 in the map as `contour()`), `--keep_cold` keeps the cold start. Tested on mock chains of sphere meshes only; the viewer folder has the format that `Analyze_two_chains.py` writes.
