@@ -104,9 +104,14 @@ def run_main_cluster(binary, config_path, log_path, nice):
 
 def run_failed(log_path, run, min_steps=50):
     """The run ended badly: the integrator broke ("Sim broke or timestep very small"), finished after a handful of steps, or the energy blew up.
-    main_cluster still returns 0 and writes a Final_state.obj then, so the log is read."""
+    main_cluster still returns 0 and writes a Final_state.obj then, so the log is read. A "Sim broke" that follows a vanishing gradient is a converged run."""
     text = open(log_path, errors="replace").read()
-    if "Sim broke" in text:
+    # A line search that stops on a vanishing gradient ("The energy diff is quite small and so is the gradient", then the projection) returns -1 like a collapsed one and
+    # main_cluster prints "Sim broke" for both: the run is converged, not broken, and short because it started close to its minimum
+    converged = re.search(r"quite small and so is the gradient\s+The energy diff is\S+\s+The projection is(\S+)\s+Sim broke", text)
+    if converged and float(converged.group(1)) < 1e-4:
+        min_steps = 0
+    elif "Sim broke" in text:
         return "the integrator broke (timestep very small)"
     m = re.search(r"Final state saved as step (\d+), total energy (\S+)", text)
     if not m:
