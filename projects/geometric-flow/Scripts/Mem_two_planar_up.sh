@@ -11,6 +11,8 @@
 # (Run_two_vesicle_chain.py), warm-starting every separation from the previous one.
 # Results: ../Results/WrappingTwoPlanarMembrane/<chain>/link*/ ; afterwards
 #   python3 Analyze_two_chains.py --root ../Results/WrappingTwoPlanarMembrane --pattern 'TwoInteraction_*' --tag SurfaceTension
+# --size_max 0.4 (about 6000 vertices): the planar default of the generator, 1.0 (1600 vertices), leaves 2-3 triangles in the thin Coverage shell of a bead on a flat membrane and
+# at coverage 0.95 the BFGS to BFGS-Normal handoff broke in 4 of 4 local cold starts (2 released, 2 frozen), while 0.4 converged at tension 0 and at tension 1 (49000 and 29000 steps).
 # Needs a build of main_cluster with release_in_normal (the generator checks it). Units: bead radius 0.5, kappa = KB/2 = 21. The disk radius 10 is 20 bead radii: with no tension
 # (sigma = 0) the deformation reaches the clamped edge, tension 0.2 and 1.0 decay over sqrt(kappa/sigma) = 10 and 4.6; a bigger disk is --R_disk 20 (the mesh is rescaled by R_disk / 10).
 
@@ -21,7 +23,7 @@ foreach cov ( 0.3 0.7 0.9 0.95 )
 foreach sigma ( 0.0 0.2 1.0 )
 
 set Tag = "TwoInteraction_r_0.5_coverage_${cov}_tension${sigma}_replica_${rep}_SurfaceTension"
-python3 Create_subjob_two_vesicle.py --batch_tag ${Batch_Tag}/${Tag} --unique_tag ${Batch_Tag}_${Tag} --planar --bead_normal --area tension --sigma ${sigma} --replica ${rep} --switch "100, 25000" --wrap coverage --cov ${cov} --KB 42 --radius 0.5 --Kcov 5000 --R_disk 10 --d_cold 6.0 --s_list 5.8,5.0,4.3,3.8,3.4,3.0,2.7,2.4,2.2,2.05,1.9,1.78,1.66,1.55,1.45,1.35,1.25,1.15,1.07,1.0
+python3 Create_subjob_two_vesicle.py --batch_tag ${Batch_Tag}/${Tag} --unique_tag ${Batch_Tag}_${Tag} --planar --bead_normal --area tension --sigma ${sigma} --replica ${rep} --switch "100, 25000" --wrap coverage --cov ${cov} --KB 42 --radius 0.5 --Kcov 5000 --R_disk 10 --size_max 0.4 --d_cold 6.0 --s_list 5.8,5.0,4.3,3.8,3.4,3.0,2.7,2.4,2.2,2.05,1.9,1.78,1.66,1.55,1.45,1.35,1.25,1.15,1.07,1.0
 sbatch ../Subjobs/${Batch_Tag}_${Tag}_subjob
 end
 end
