@@ -1,0 +1,12 @@
+schema_version = "1.0.0"
+
+id = "bead_trajectories"
+version = "0.1.2"
+name = "Bead Trajectories"
+tagline = "Animated bead spheres and force arrows from Bead_<i>_data.txt"
+maintainer = "Mau"
+type = "add-on"
+
+blender_version_min = "4.2.0"
+
+license = ["SPDX:GPL-3.0-or-later"]

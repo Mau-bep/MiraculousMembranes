@@ -1,0 +1,12 @@
+schema_version = "1.0.0"
+
+id = "render_ready"
+version = "0.1.1"
+name = "RenderReady"
+tagline = "Wireframe and vertex points on top of a mesh, for renders"
+maintainer = "Mau"
+type = "add-on"
+
+blender_version_min = "4.2.0"
+
+license = ["SPDX:GPL-3.0-or-later"]
