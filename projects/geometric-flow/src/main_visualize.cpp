@@ -949,6 +949,10 @@ struct RunFolder
 std::vector<RunFolder> run_folders;
 std::string run_switch_error;
 
+// With --load_chain the folder of a chain (with trailing '/'): its link*/<n> run folders are the runs
+// of the menu, named "link03_s4.30/1". Empty: the runs are the siblings of the current one.
+std::string chain_root;
+
 // "a/b/12/" -> "a/b/"
 std::string run_parent(std::string run_dir)
 {
@@ -958,11 +962,16 @@ std::string run_parent(std::string run_dir)
     return slash == std::string::npos ? "" : run_dir.substr(0, slash + 1);
 }
 
-// "a/b/12/" -> "12"
+// Where the names of the menu start: the chain folder, or the parent of the run
+std::string run_menu_root(const std::string &run_dir)
+{
+    return chain_root.empty() ? run_parent(run_dir) : chain_root;
+}
+
+// "a/b/12/" -> "12" (in a chain "a/chain/link03_s4.30/1/" -> "link03_s4.30/1")
 std::string run_name(const std::string &run_dir)
 {
-    std::string parent = run_parent(run_dir);
-    std::string name = run_dir.substr(parent.size());
+    std::string name = run_dir.substr(run_menu_root(run_dir).size());
     while (!name.empty() && name.back() == '/')
         name.pop_back();
     return name;
@@ -992,12 +1001,31 @@ bool run_name_less(const std::string &a, const std::string &b)
     return a < b;
 }
 
-// The sub-directories of parent (with trailing '/', or empty for the current
-// directory) that hold an Input_file.json
-void scan_run_folders_in(const std::string &parent)
+// The runs of a chain in the order they ran: by link number, a waypoint (link02_s5.00_w1) before the
+// link it leads to, then the runs inside the link
+bool chain_name_less(const std::string &a, const std::string &b)
 {
-    run_folders.clear();
+    auto number_after = [](const std::string &name, const std::string &tag)
+    {
+        const size_t k = name.find(tag);
+        return k == std::string::npos ? std::numeric_limits<int>::max() : atoi(name.c_str() + k + tag.size());
+    };
+    const std::string link_a = a.substr(0, a.find('/')), link_b = b.substr(0, b.find('/'));
+    for (const char *tag : {"link", "_w"})
+    {
+        const int x = number_after(link_a, tag), y = number_after(link_b, tag);
+        if (x != y)
+            return x < y;
+    }
+    if (link_a != link_b)
+        return link_a < link_b;
+    return run_name_less(a.substr(std::min(link_a.size() + 1, a.size())), b.substr(std::min(link_b.size() + 1, b.size())));
+}
 
+// Appends the sub-directories of parent (with trailing '/', or empty for the current
+// directory) that hold an Input_file.json, as prefix + name
+void add_run_folders(const std::string &parent, const std::string &prefix)
+{
     std::map<std::string, std::string> descriptions;
     std::ifstream index(parent + "runs_index.txt");
     std::string line;
@@ -1023,18 +1051,40 @@ void scan_run_folders_in(const std::string &parent)
         struct stat info;
         if (stat((parent + name + "/Input_file.json").c_str(), &info) != 0)
             continue;
-        run_folders.push_back({name, descriptions[name]});
+        run_folders.push_back({prefix + name, descriptions[name]});
     }
     closedir(dir);
-    std::sort(run_folders.begin(), run_folders.end(),
-              [](const RunFolder &a, const RunFolder &b)
-              { return run_name_less(a.name, b.name); });
 }
 
-// The folders next to the run being shown
+// The runs of parent (with trailing '/', or empty for the current directory): its sub-directories that
+// hold an Input_file.json or, for a chain, the ones inside its link folders ("link03_s4.30/1")
+void scan_run_folders_in(const std::string &parent, bool chain = false)
+{
+    run_folders.clear();
+    if (!chain)
+        add_run_folders(parent, "");
+    else if (DIR *dir = opendir(parent.c_str()))
+    {
+        std::vector<std::string> links;
+        while (struct dirent *entry = readdir(dir))
+        {
+            const std::string name = entry->d_name;
+            if (name[0] != '.')
+                links.push_back(name);
+        }
+        closedir(dir);
+        for (const std::string &link : links)
+            add_run_folders(parent + link + "/", link + "/");
+    }
+    std::sort(run_folders.begin(), run_folders.end(),
+              [chain](const RunFolder &a, const RunFolder &b)
+              { return chain ? chain_name_less(a.name, b.name) : run_name_less(a.name, b.name); });
+}
+
+// The folders next to the run being shown (the runs of the chain with --load_chain)
 void scan_run_folders()
 {
-    scan_run_folders_in(run_parent(basic_name));
+    scan_run_folders_in(run_menu_root(basic_name), !chain_root.empty());
 }
 
 // The config of the run in run_dir (with trailing '/'), as load_config gives it
@@ -1044,6 +1094,20 @@ SimConfig run_config(const std::string &run_dir)
     SimConfig cfg = load_config(run_dir + "Input_file.json");
     cfg.loaded_from_subfolder = true;
     cfg.subfolder_dir = run_dir;
+
+    // A run folder that was moved or copied (the viewer_runs of Analyze_*_chains.py, the links of a chain
+    // from the cluster) still names its mesh by the old absolute path: the first frame of the folder, the
+    // state the run started from, stands in for it
+    struct stat info;
+    if (stat(cfg.init_file.c_str(), &info) != 0 || !S_ISREG(info.st_mode))
+    {
+        const std::string local = run_dir + "membrane_0.obj";
+        if (stat(local.c_str(), &info) == 0 && S_ISREG(info.st_mode))
+        {
+            std::cout << "init_file " << cfg.init_file << " is missing, using " << local << "\n";
+            cfg.init_file = local;
+        }
+    }
     return cfg;
 }
 
@@ -1077,7 +1141,7 @@ void open_run(const SimConfig &cfg)
 void switch_run(const std::string &name)
 {
     const std::string previous = basic_name;
-    const std::string target = run_parent(previous) + name + "/";
+    const std::string target = run_menu_root(previous) + name + "/";
     run_switch_error.clear();
 
     SimConfig cfg;
@@ -1138,7 +1202,7 @@ bool run_folder_menu()
     ImGui::AlignTextToFramePadding();
     ImGui::Text("Run folder");
     ImGui::SameLine();
-    ImGui::SetNextItemWidth(ImGui::GetFontSize() * 8.0f);
+    ImGui::SetNextItemWidth(ImGui::GetFontSize() * (chain_root.empty() ? 8.0f : 13.0f)); // "link02_s5.00_w1/1"
     if (ImGui::BeginCombo("##run_folder", current.c_str()))
     {
         for (size_t i = 0; i < run_folders.size(); i++)
@@ -2647,26 +2711,54 @@ void create_run_folder(const std::string &config_path, const std::string &dir)
 
 int main(int argc, char **argv)
 {
+    // --load_chain: the folder is a chain, its link*/<n> run folders are the runs of the menu. The rest
+    // is the command line of the other programs
+    bool load_chain = false;
+    std::vector<char *> kept_args;
+    for (int i = 0; i < argc; i++)
+        if (i > 0 && std::string(argv[i]) == "--load_chain")
+            load_chain = true;
+        else
+            kept_args.push_back(argv[i]);
+    argc = int(kept_args.size());
+    kept_args.push_back(nullptr);
+    argv = kept_args.data();
+
     std::string config_path;
     bool check_only;
     if (!parse_command_line(argc, argv, config_path, check_only))
+    {
+        std::cerr << "       " << argv[0] << " --load_chain <chain folder: link*/<n> run folders>\n";
         return EXIT_FAILURE;
+    }
 
     try
     {
         // A directory instead of an input file: its sub-folders with an
         // Input_file.json are the runs of the menu, and the first one opens
+        // (with --load_chain the ones inside its link folders)
         struct stat path_info;
         const bool is_dir = stat(config_path.c_str(), &path_info) == 0 && S_ISDIR(path_info.st_mode);
+        if (load_chain && !is_dir)
+            throw std::runtime_error("--load_chain needs the folder of the chain, " + config_path + " is not a folder");
         SimConfig cfg;
         if (is_dir)
         {
             std::string root = config_path;
             if (root.back() != '/')
                 root += '/';
-            scan_run_folders_in(root);
+            if (load_chain)
+                chain_root = root;
+            scan_run_folders_in(root, load_chain);
             if (run_folders.empty())
-                throw std::runtime_error("no sub-folder of " + root + " has an Input_file.json");
+            {
+                if (load_chain)
+                    throw std::runtime_error("no link folder of " + root + " has a run folder with an Input_file.json");
+                // The runs are one level further down: a chain
+                scan_run_folders_in(root, true);
+                throw std::runtime_error("no sub-folder of " + root + " has an Input_file.json" +
+                                         (run_folders.empty() ? "" : " (its link folders hold " + std::to_string(run_folders.size()) + " runs: --load_chain opens a chain)"));
+            }
             std::cout << "Found " << run_folders.size() << " runs in " << root << ", opening " << run_folders[0].name << "\n";
             cfg = run_config(root + run_folders[0].name + "/");
         }
