@@ -59,15 +59,15 @@
 # end
 
 
-set ListUp = "2.915,2.144,1.577,1.16,0.8536,0.628,0.462,0.3398,0.25,0.1839,0.1353,0.09953,0.07322,0.05386,0.03962,0.02915,0.02144,0.01577,0.0116,0.008536,0.00628,0.00462,0.003398,0.0025"
-set List = ${ListUp}
+# set ListUp = "2.915,2.144,1.577,1.16,0.8536,0.628,0.462,0.3398,0.25,0.1839,0.1353,0.09953,0.07322,0.05386,0.03962,0.02915,0.02144,0.01577,0.0116,0.008536,0.00628,0.00462,0.003398,0.0025"
+# set List = ${ListUp}
 
 # foreach KI (0 0.3333 0.6667 1 1.333 1.667 2 2.333 2.667 3 3.333 3.667 4 4.333 4.667 5)
 foreach KB (2.915 2.144 1.577 1.16 0.8536 0.628 0.462 0.3398 0.25 0.1839 0.1353 0.09953 0.07322 0.05386 0.03962 0.02915 0.02144 0.01577 0.0116 0.008536 0.00628 0.00462 0.003398 0.0025)
 
-set Batch_Tag = "Phase_one_vesicle_otherorder"
+set Batch_Tag = "Phase_one_vesicle_W"
 set Tag = "KB_${KB}"
-python3 Create_subjob_one_vesicle.py --batch_tag ${Batch_Tag}/${Tag} --wrap adhesion --shell_width 0.2 --sigma 1.0 --unique_tag ${Batch_Tag}_${Tag} --refine_angle 0.20 --area excess --excess 0.0 --size_min 0.01 --size_max 0.6 --time 24:00:00
+python3 Create_subjob_one_vesicle.py --batch_tag ${Batch_Tag}/${Tag} --wrap adhesion --shell_width 0.2 --sigma 1.0 --unique_tag ${Batch_Tag}_${Tag} --refine_angle 0.20 --area excess --excess 0.0 --size_min 0.01 --size_max 0.6 --time 24:00:00 --KB ${KB}
 sbatch ../Subjobs/${Batch_Tag}_${Tag}_subjob
 end
 

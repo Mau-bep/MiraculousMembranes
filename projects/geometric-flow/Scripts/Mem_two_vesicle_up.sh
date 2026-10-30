@@ -13,7 +13,7 @@
 # Units: bead radius 1, kappa = KB/2 = 1 (KB = 2), so u in kappa; u [kBT] = 20.9 u, length [um] = 0.49 length.
 # Physics, choices, results (no attraction found so far) and what to scan next: ../Studies/two_beads_vesicle/README.md
 
-set Batch_Tag = "Wrapping_two_vesicle"
+set Batch_Tag = "WrappingTwoVesicle"
 
 # --- 1. the paper's simulation as far as it can be read from the paper: the beads INSIDE the closed vesicle (Fig. 4b,c), theta_Wr = 165 deg
 #        = 98 percent of the bead (Fig. S5), volume and area fixed with A_t = 1.05 A_sphere (the floppy chain of this geometry has A = 1.0498 A_sphere
@@ -58,15 +58,31 @@ set Batch_Tag = "Wrapping_two_vesicle"
 
 #== 4 . Mau experiment
 
-foreach rep ( 1 )
-foreach cov ( 0.3 0.5 0.6 0.7 0.8 0.9 0.95 0.98 )
-foreach excess ( 0.010 0.015 0.02 0.025 )
+
+# foreach rep ( 0 )
+# foreach cov ( 0.3 0.6 0.8 0.9 0.95 )
+# foreach excess ( 0.010 0.015 0.02 0.025 )
+# # set Tag = "inside_floppy_98_rep${rep}"
+# # python3 Create_subjob_two_vesicle.py --batch_tag ${Batch_Tag}/${Tag} --unique_tag ${Batch_Tag}_${Tag} --inside --sigma 0.02 --patch_angle 165 --replica ${rep}
+# # sbatch ../Subjobs/${Batch_Tag}_${Tag}_subjob
+
+# set Tag = "TwoInteraction_r_0.5_coverage_${cov}_excess${excess}_replica_${rep}_AreaConstraint"
+# python3 Create_subjob_two_vesicle.py --batch_tag ${Batch_Tag}/${Tag} --unique_tag ${Batch_Tag}_${Tag} --area constraint --excess ${excess} --replica ${rep} --prewrap_steps 40000 --switch "100, 25000" --wrap coverage --cov ${cov} --KB 42 --KV 4200000.0 --KA 4200000.0 --radius 0.5 --Kcov 5000 --prewrap coverage --prewrap_cov 0.6 --Rv 6.25 --distance chord 
+# sbatch ../Subjobs/${Batch_Tag}_${Tag}_subjob
+# end
+# end
+# end
+
+
+foreach rep ( 0 )
+foreach cov ( 0.3 0.6 0.8 0.9 0.95 )
+foreach sigma ( 0.02 1.0 0.0 )
 # set Tag = "inside_floppy_98_rep${rep}"
 # python3 Create_subjob_two_vesicle.py --batch_tag ${Batch_Tag}/${Tag} --unique_tag ${Batch_Tag}_${Tag} --inside --sigma 0.02 --patch_angle 165 --replica ${rep}
 # sbatch ../Subjobs/${Batch_Tag}_${Tag}_subjob
 
-set Tag = "coverage_r_0.5_coverage_${cov}_excess${excess}_replica_${rep}_AreaConstraintt"
-python3 Create_subjob_two_vesicle.py --batch_tag ${Batch_Tag}/${Tag} --unique_tag ${Batch_Tag}_${Tag} --area constraint --excess ${excess} --replica ${rep} --prewrap_cov 0.6 --prewrap_steps 40000 --switch "100, 25000" --wrap coverage --cov ${cov} --KB 42 --KV 4200000.0 --KA 4200000.0 --radius 0.5 --Kcov 10000 --prewrap coverage --prewrap_cov 0.6 --Rv 6.25 --distance chord 
+set Tag = "TwoInteraction_r_0.5_coverage_${cov}_tension${sigma}_replica_${rep}_SurfaceTension"
+python3 Create_subjob_two_vesicle.py --batch_tag ${Batch_Tag}/${Tag} --unique_tag ${Batch_Tag}_${Tag} --area tension --sigma ${sigma} --replica ${rep} --prewrap_steps 40000 --switch "100, 25000" --wrap coverage --cov ${cov} --KB 42 --KV 4200000.0 --radius 0.5 --Kcov 5000 --prewrap coverage --prewrap_cov 0.6 --Rv 6.25 --distance chord 
 sbatch ../Subjobs/${Batch_Tag}_${Tag}_subjob
 end
 end

@@ -46,7 +46,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import Analyze_two_vesicle as A2  # noqa: E402  run folders, mesh helpers, energies, the paper's digitized curve
 
-DEFAULT_ROOT = os.path.join(HERE, "..", "Results", "Wrapping_two_vesicle")
+# DEFAULT_ROOT = os.path.join(HERE, "..", "Results", "Wrapping_two_vesicle")
+DEFAULT_ROOT = os.path.join(HERE, "..", "Results", "WrappingTwoVesicle")
+
 LINK_RE = re.compile(r"link(\d+)_s([0-9.]+)(?:_w(\d+))?$")
 
 
@@ -442,7 +444,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("chains", nargs="*", help="chain folders (default: the folders of --root that match --pattern)")
     ap.add_argument("--root", default=DEFAULT_ROOT, help="folder with the chains (default: Results/Wrapping_two_vesicle)")
-    ap.add_argument("--pattern", nargs="+", default=["coverage_r_*_coverage_*_excess*_replica_0_AreaConstraint"],
+    ap.add_argument("--pattern", nargs="+", default=["TwoInteraction_r_*_coverage_*_excess*_replica_0_AreaConstraint"],
                     help="glob(s) of the chain folders inside --root (quote them)")
     ap.add_argument("--r", type=float, nargs="+", default=None, help="only these bead radii (the r of coverage_r_<r>_...)")
     ap.add_argument("--ratio", "--c", type=float, nargs="+", default=None, help="only these coverage targets c (the correctratio_<c> or coverage_<c> of the folder name)")

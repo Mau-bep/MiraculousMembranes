@@ -21,7 +21,7 @@ SCAN = {
            "the Frenkel potential of rc = 1.2, whose contact radius is 1.055 a; 4 for the Adhesion shell), steps of 0.1 from 3.8 to 5.2 (a pilot of the cosine shell at kappa = 21, "
            "sigma~ = 0.02 went from 20 to 94 percent wrapped between 4 and 5; a single 6000-step cold start of the Frenkel potential at 4.5 was 56 percent wrapped and still going), "
            "then a few up to 12"),
-    "W": ("adhesion", "1,2,3,4,5,6,8", None, "adhesion energy per unit area of the bead, in the energy unit of the config (kappa/a^2 when KB = 2)"),
+    "W": ("adhesion", "0.3333,0.6667,1,1.333,1.667,2,2.333,2.667,3,3.333,3.667,4,4.333,4.667,5", None, "adhesion energy per unit area of the bead, in the energy unit of the config (kappa/a^2 when KB = 2)"),
     "st": ("tension", "0.5,0.3,0.2,0.1,0.05,0.02,0.01,0.005", None, "dimensionless tension sigma~ = sigma a^2/kappa = 2 sigma a^2/KB (--area tension or excess)"),
     "sigma": ("tension", "3,1,0.3,0.1,0.03,0.01", None, "tension of the membrane, in the energy unit of the config per a^2 (kappa/a^2 when KB = 2; --area tension or excess)"),
     "excess": ("constraint", "0.2,0.15,0.1,0.07,0.05", 0.02, "relative excess area of the fixed-area vesicle (--area constraint or excess)"),
