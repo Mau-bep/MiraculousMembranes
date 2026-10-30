@@ -207,9 +207,23 @@ namespace
         }
         for (size_t k = 0; k < spec.bonds.size(); k++)
             if (spec.bonds[k] == "Shifted_LJ" &&
-                (spec.bonds_constants[k].size() != 2 || !(spec.bonds_constants[k][0] > 0.0) || !(spec.bonds_constants[k][1] > 0.0)))
+                (spec.bonds_constants[k].size() < 2 || spec.bonds_constants[k].size() > 3 || !(spec.bonds_constants[k][0] > 0.0) ||
+                 !(spec.bonds_constants[k][1] > 0.0)))
                 throw std::runtime_error("Input file: a \"Shifted_LJ\" bond in " + where +
-                                         " needs bonds_constants [epsilon, sigma], both > 0 (cutoff 2^(1/6) sigma)");
+                                         " needs bonds_constants [epsilon, sigma] (both > 0, cutoff 2^(1/6) sigma, repulsive) or "
+                                         "[epsilon, sigma, rc/sigma] (cutoff rc/sigma * sigma, with the attractive tail)");
+        for (size_t k = 0; k < spec.bonds.size(); k++)
+            if (spec.bonds[k] == "Frenkel" &&
+                (spec.bonds_constants[k].size() != 3 || !(spec.bonds_constants[k][0] > 0.0) || !(spec.bonds_constants[k][1] > 0.0) ||
+                 !(spec.bonds_constants[k][2] > spec.bonds_constants[k][1])))
+                throw std::runtime_error("Input file: a \"Frenkel\" bond in " + where +
+                                         " needs bonds_constants [epsilon, sigma, rc] with epsilon > 0 (depth of the well), sigma > 0 (where the "
+                                         "potential crosses zero) and rc > sigma (the cutoff)");
+        for (size_t k = 0; k < spec.bonds.size(); k++)
+            if (spec.bonds[k] == "Shifted_LJ" && spec.bonds_constants[k].size() == 3 &&
+                !(spec.bonds_constants[k][2] >= std::pow(2.0, 1.0 / 6.0)))
+                throw std::runtime_error("Input file: the cutoff rc/sigma of a \"Shifted_LJ\" bond in " + where +
+                                         " must be at least 2^(1/6) = 1.1225, the minimum of the potential");
         if (rigid_bond != (spec.state == "rigid"))
             throw std::runtime_error("Input file: " + where + (rigid_bond ? " has a \"Rigid\" bond but its state is not \"rigid\""
                                                                          : " is \"rigid\" but has no \"Rigid\" bond"));
@@ -593,22 +607,22 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
         }
     }
 
-    // A Shifted_LJ bond is listed by both beads, with the same constants
+    // A Shifted_LJ or Frenkel bond is listed by both beads, with the same constants
     for (size_t k = 0; k < cfg.beads.size(); k++)
     {
         const BeadSpec &b = cfg.beads[k];
         for (size_t j = 0; j < b.bonds.size(); j++)
         {
-            if (b.bonds[j] != "Shifted_LJ")
+            if (b.bonds[j] != "Shifted_LJ" && b.bonds[j] != "Frenkel")
                 continue;
             const BeadSpec &other = cfg.beads[b.partners[j]];
             bool reciprocal = false;
             for (size_t m = 0; m < other.bonds.size(); m++)
-                if (other.bonds[m] == "Shifted_LJ" && size_t(other.partners[m]) == k &&
+                if (other.bonds[m] == b.bonds[j] && size_t(other.partners[m]) == k &&
                     other.bonds_constants[m] == b.bonds_constants[j])
                     reciprocal = true;
             if (!reciprocal)
-                throw std::runtime_error("Input file: the \"Shifted_LJ\" bond of Beads[" + std::to_string(k) + "] to bead " +
+                throw std::runtime_error("Input file: the \"" + b.bonds[j] + "\" bond of Beads[" + std::to_string(k) + "] to bead " +
                                          std::to_string(b.partners[j]) + " must also be listed by that bead, with the same constants");
         }
     }

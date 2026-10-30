@@ -38,28 +38,67 @@ void Interaction::validateSetup() const
     }
 }
 
-// Bond "Shifted_LJ" (bonds_constants [epsilon, sigma]): the repulsive core of a
-// Lennard-Jones potential, cut at its minimum rc = 2^(1/6) sigma and shifted up
-// by epsilon (minus the minimum) so that E = 0 and E' = 0 at the cutoff.
+// Bond "Shifted_LJ" (bonds_constants [epsilon, sigma] or [epsilon, sigma, rc/sigma]).
+// With two constants: the repulsive core of a Lennard-Jones potential, cut at its
+// minimum rc = 2^(1/6) sigma and shifted up by epsilon (minus the minimum) so that
+// E = 0 and E' = 0 at the cutoff.
+// With the third constant the cutoff moves out to rc = (rc/sigma) sigma, at least the
+// minimum 2^(1/6) sigma, and the attractive tail is kept: the LJ potential shifted in
+// energy and in force, E = LJ(r) - LJ(rc) - LJ'(rc) (r - rc), so that E = 0 and E' = 0
+// at the cutoff (2.5 is the usual cutoff of LJ). The well is still deep epsilon (a
+// little less, by the shift). At rc/sigma = 2^(1/6) both forms are the same potential.
 // A bond is listed by both of its beads: each listing carries half the energy
 // and the full force, like "Harmonic".
 namespace
 {
     constexpr const char *SHIFTED_LJ = "Shifted_LJ";
 
-    double shifted_lj_cutoff(const std::vector<double> &c) { return std::pow(2.0, 1.0 / 6.0) * c[1]; }
+    double shifted_lj_cutoff(const std::vector<double> &c) { return c.size() > 2 ? c[2] * c[1] : std::pow(2.0, 1.0 / 6.0) * c[1]; }
 
     // E(r), E'(r), E''(r) of the pair potential (zero from the cutoff on)
     void shifted_lj(double r, const std::vector<double> &c, double &E, double &dE, double &ddE)
     {
         E = dE = ddE = 0.0;
-        if (r >= shifted_lj_cutoff(c))
+        const double rc = shifted_lj_cutoff(c);
+        if (r >= rc)
             return;
         const double eps = c[0];
         const double sr6 = std::pow(c[1] / r, 6);
-        E = 4.0 * eps * (sr6 * sr6 - sr6) + eps;
-        dE = -24.0 * eps * (2.0 * sr6 * sr6 - sr6) / r;
+        if (c.size() < 3)
+        {
+            E = 4.0 * eps * (sr6 * sr6 - sr6) + eps;
+            dE = -24.0 * eps * (2.0 * sr6 * sr6 - sr6) / r;
+            ddE = 24.0 * eps * (26.0 * sr6 * sr6 - 7.0 * sr6) / (r * r);
+            return;
+        }
+        const double cr6 = std::pow(c[1] / rc, 6);
+        const double E_c = 4.0 * eps * (cr6 * cr6 - cr6);
+        const double dE_c = -24.0 * eps * (2.0 * cr6 * cr6 - cr6) / rc;
+        E = 4.0 * eps * (sr6 * sr6 - sr6) - E_c - dE_c * (r - rc);
+        dE = -24.0 * eps * (2.0 * sr6 * sr6 - sr6) / r - dE_c;
         ddE = 24.0 * eps * (26.0 * sr6 * sr6 - 7.0 * sr6) / (r * r);
+    }
+
+    // Bond "Frenkel" (bonds_constants [epsilon, sigma, rc], the constants of the bead-membrane Frenkel
+    // interaction): E = epsilon alpha (sigma^2/r^2 - 1) (rc^2/r^2 - 1)^2, repulsive inside sigma where it
+    // crosses zero, attractive between sigma and rc with the well of depth epsilon at
+    // r^2 = 3 sigma^2 rc^2 / (sigma^2 + 2 rc^2), zero value and slope at rc (only E'' jumps there).
+    // Listed by both beads like "Shifted_LJ".
+    constexpr const char *FRENKEL = "Frenkel";
+
+    bool is_pair_bond(const std::string &type) { return type == SHIFTED_LJ || type == FRENKEL; }
+
+    // E(r), E'(r), E''(r) of the pair potential of a "Shifted_LJ" or "Frenkel" bond
+    void pair_bond(const std::string &type, double r, const std::vector<double> &c, double &E, double &dE, double &ddE)
+    {
+        if (type == FRENKEL)
+        {
+            E = frenkel_potential::E_r(r, c);
+            dE = frenkel_potential::dE_r(r, c);
+            ddE = frenkel_potential::ddE_r(r, c);
+            return;
+        }
+        shifted_lj(r, c, E, dE, ddE);
     }
 } // namespace
 
@@ -90,11 +129,11 @@ double Interaction::Bond_energy()
             r = vec_r.norm();
             E_bond += 0.5 * params[0] * r;
         }
-        if (Bead_1->Bond_type[i] == SHIFTED_LJ)
+        if (is_pair_bond(Bead_1->Bond_type[i]))
         {
             vec_r = Bead_1->Pos - Bead_1->Beads[i]->Pos;
             double E, dE, ddE;
-            shifted_lj(vec_r.norm(), params, E, dE, ddE);
+            pair_bond(Bead_1->Bond_type[i], vec_r.norm(), params, E, dE, ddE);
             E_bond += 0.5 * E;
         }
     }
@@ -135,13 +174,13 @@ std::vector<T> Interaction::Hessian_bonds_triplet()
         if (Bead_1->Bond_type[i] == "Lineal")
             continue;
 
-        if (Bead_1->Bond_type[i] == SHIFTED_LJ)
+        if (is_pair_bond(Bead_1->Bond_type[i]))
         {
             // Half of the pair Hessian E'' r^r^T + E'/r (I - r^r^T), the partner adds the rest
             Vector3 vec_r = Bead_1->Pos - Bead_1->Beads[i]->Pos;
             double r = vec_r.norm();
             double E, dE, ddE;
-            shifted_lj(r, Bead_1->Interaction_constants_vector[i], E, dE, ddE);
+            pair_bond(Bead_1->Bond_type[i], r, Bead_1->Interaction_constants_vector[i], E, dE, ddE);
             if (dE == 0.0 && ddE == 0.0)
                 continue;
             Eigen::Vector3d u(vec_r.x / r, vec_r.y / r, vec_r.z / r);
@@ -271,10 +310,10 @@ Vector3 Interaction::Bond_force()
         {
             Force += -1 * params[0] * r_vec.unit();
         }
-        if (Bead_1->Bond_type[i] == SHIFTED_LJ)
+        if (is_pair_bond(Bead_1->Bond_type[i]))
         {
             double E, dE, ddE;
-            shifted_lj(r, params, E, dE, ddE);
+            pair_bond(Bead_1->Bond_type[i], r, params, E, dE, ddE);
             Force += -dE * r_vec / r;
         }
     }
