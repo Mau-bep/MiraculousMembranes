@@ -27,6 +27,9 @@ parser.add_argument("--free_cold", action="store_true",
                          "retract the lobe left between them; with free beads 5000 steps got further than 60000). The patch axes stay fixed during the cold start. Default for --planar and --inside, "
                          "except with --wrap coverage: its stiff force pulls a free bead through the membrane (a planar cold start broke within 100 steps) and a free bead inside drifts "
                          "0.9 D_p from where it started, so there the beads are frozen as in the outside chain unless you give --free_cold")
+parser.add_argument("--bead_normal", action="store_true",
+                    help="only with --planar: the beads are frozen through gradient descent and BFGS (the distance between them is exactly the one of the chain) and are released along the normal "
+                         "of the disk inside BFGS-Normal (Constraint Normal, release_in_normal), so the depth they sit at is found by the energy instead of being chosen. Needs the build with release_in_normal")
 parser.add_argument("--R_disk", type=number_str, default="20.0", help="radius of the planar disk in length units (--planar; Big_planar_mem.obj has radius 10, the mesh is rescaled by R_disk / 10): bead radii for the default --radius 1; "
                                                      "the deformation of a tension sigma~ = 0.02 decays over sqrt(kappa/sigma) = 7 a")
 parser.add_argument("--inside", action="store_true",
@@ -119,6 +122,19 @@ if args.wrap == "patch" and not args.no_binary_check:
     if has_patch is None:
         print("Warning: {} not found, the patch option of the build was not checked".format(BINARY))
 
+if args.bead_normal and not args.planar:
+    raise SystemExit("--bead_normal needs --planar: the beads move along the normal of the disk")
+if args.bead_normal and (args.free_cold or args.wrap != "coverage"):
+    raise SystemExit("--bead_normal is for the frozen cold start of --wrap coverage (not with --free_cold, not with --wrap adhesion or patch): "
+                     "the beads are released along the normal only inside BFGS-Normal")
+if args.bead_normal and not args.no_binary_check:
+    try:
+        with open(BINARY, 'rb') as f:
+            content = f.read()
+        if b'release_in_normal' not in content:
+            raise SystemExit("{} does not know \"release_in_normal\" (it would refuse the config): build main_cluster from the commit that adds it first".format(BINARY))
+    except IOError:
+        print("Warning: {} not found, the release_in_normal option of the build was not checked".format(BINARY))
 if args.planar:
     if args.inside:
         raise SystemExit("--planar and --inside do not combine")
@@ -192,6 +208,7 @@ def create_json():
                       radius=a, KB=args.KB, KV=args.KV, wrap_mode=args.wrap, area_mode=args.area, outside=-1 if args.inside else 1,
                       bead_state="default" if free_cold else "froze")
     params["bending"] = args.bending
+    params["bead_normal"] = args.bead_normal
     if args.wrap == "coverage":
         params.update(cov=args.cov, Kcov=args.Kcov)
     else:
