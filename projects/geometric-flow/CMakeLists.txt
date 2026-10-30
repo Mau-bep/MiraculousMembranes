@@ -601,3 +601,10 @@ target_include_directories(Test_exactness PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/in
   "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include"
   "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/")
 target_link_libraries(Test_exactness geometry-central EigenRand nlohmann_json)
+
+# The Coverage energy of a bead inside the closed membrane ("outside": -1): selection, mirror symmetry, forces against finite differences
+add_executable(Test_coverage_inside src/Test_coverage_inside.cpp ${SRCSexactness})
+target_include_directories(Test_coverage_inside PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/")
+target_link_libraries(Test_coverage_inside geometry-central EigenRand nlohmann_json)

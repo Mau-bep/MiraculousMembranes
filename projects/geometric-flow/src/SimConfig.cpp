@@ -627,14 +627,6 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
         }
     }
 
-    // The Coverage energy and the face selection of its post-processing know beads outside the membrane only
-    for (const EnergySpec &e : cfg.energies)
-        if (e.name == "Coverage")
-            for (size_t k = 0; k < cfg.beads.size(); k++)
-                if (cfg.beads[k].outside < 0.0)
-                    throw std::runtime_error("Input file: Beads[" + std::to_string(k) + "] has \"outside\": -1 (inside the membrane), "
-                                             "which the Coverage energy does not support: use the Adhesion interaction");
-
     cfg.raw = data;
     return cfg;
 }
@@ -986,6 +978,7 @@ namespace
             bead.Pos = spec.pos;
             bead.strength = params[0];
             bead.sigma = params[1];
+            bead.side = spec.outside < 0.0 ? -1.0 : 1.0;
             bead.rc = params[2];
             bead.interaction = spec.mem_inter;
             bead.Bead_I = sim.Interaction_container.back().get();
@@ -1007,6 +1000,9 @@ namespace
 
             std::cout << "Bead " << i << ": " << spec.mem_inter << " radius " << bead.sigma << " cutoff " << bead.rc
                       << " state " << bead.state << "\n";
+            // (Create_subjob_two_vesicle.py looks for this text in the binary to know that it handles beads inside)
+            if (bead.side < 0.0)
+                std::cout << "Bead " << i << " is inside the membrane: the Adhesion and Coverage energies count the faces whose normal points away from it\n";
         }
 
         // Bonds: bead i is connected to every bead listed in its "Beads" entry

@@ -37,6 +37,9 @@ public:
 namespace
 {
     constexpr double COVERAGE_EPS = 1e-12;
+    // The Coverage energy counts the faces in the default cosine shell, +-25 % of the bead radius
+    constexpr double COVERAGE_SHELL_WIDTH = 0.25;
+    constexpr double COVERAGE_SHELL_POWER = 1.0;
 
     // Adds the wall time of its scope to acc in ms (also when left by continue)
     struct ScopeTimer
@@ -604,7 +607,10 @@ double E_Handler::E_Coverage(const std::vector<double> &Constants) const
                     *geometry,
                     f,
                     bead->Pos,
-                    bead->sigma);
+                    bead->sigma,
+                    COVERAGE_SHELL_WIDTH,
+                    COVERAGE_SHELL_POWER,
+                    bead->side);
 
             if (!faceData.selected)
             {
@@ -708,8 +714,8 @@ void E_Handler::Debug_Coverage(const std::vector<double> &Constants) const
 
             double facingDot = dot(radialDirection, faceNormal);
 
-            // External-bead convention.
-            if (facingDot >= 0.0)
+            // External-bead convention (side = +1); a bead inside the membrane (side = -1) counts the faces that face away from it.
+            if (bead->side * facingDot >= 0.0)
             {
                 continue;
             }
@@ -721,12 +727,16 @@ void E_Handler::Debug_Coverage(const std::vector<double> &Constants) const
                     *geometry,
                     f,
                     bead->Pos,
-                    bead->sigma);
+                    bead->sigma,
+                    COVERAGE_SHELL_WIDTH,
+                    COVERAGE_SHELL_POWER,
+                    bead->side);
 
             if (!faceData.selected)
             {
                 continue;
             }
+            validSolidAngleFaces++; // selected only after the solid angle came out valid
             Omega +=
                 faceData.weight * faceData.omegaUnsigned / (4.0 * bead_geometry::PI_VALUE);
         }
@@ -1532,7 +1542,10 @@ VertexData<Vector3> E_Handler::F_Coverage(
                     *geometry,
                     f,
                     bead->Pos,
-                    bead->sigma);
+                    bead->sigma,
+                    COVERAGE_SHELL_WIDTH,
+                    COVERAGE_SHELL_POWER,
+                    bead->side);
 
             if (!faceData.selected)
             {

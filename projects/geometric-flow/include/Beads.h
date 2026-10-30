@@ -21,6 +21,9 @@ public:
   Vector3 CoverageForce{0.0, 0.0, 0.0};
   double sigma = 0.0;
   double strength = 0.0;
+  // +1 the bead is outside the membrane (default), -1 inside the closed membrane ("outside": -1 in the input file):
+  // the faces that the Coverage energy counts are the ones whose outward normal points to the bead (+1) or away from it (-1)
+  double side = 1.0;
 
   double rc = -1.0;
   double prev_force = 0.0;
