@@ -17,6 +17,9 @@ COLLECTION_PREFIXES = (NORMALS_PREFIX, FORCES_PREFIX)
 
 # Forces/<term>_<step>.txt, as written by the simulation's "dump_forces"
 FORCE_FILE = re.compile(r"^(?P<term>.+)_(?P<step>\d+)\.txt$")
+# Colored arrows below this fraction of the top of the color range are hidden at first ("Hide Below"): a force of
+# zero, like that of a bead that does not touch the membrane, is not worth an arrow
+CUTOFF_FRACTION = 1e-3
 # The .obj files have 6 significant digits: a mesh further off than this (fraction of its size) is another state
 MESH_TOLERANCE = 2e-5
 
@@ -182,6 +185,7 @@ def make_arrows(context, source, kind, name, data, use_modifiers=False, **props)
     lo, hi = compute.default_range(data["magnitude"])
     nodes.set_input(mod, "Range Min", lo)
     nodes.set_input(mod, "Range Max", hi)
+    nodes.set_input(mod, "Hide Below", CUTOFF_FRACTION * hi)
     nodes.set_input(mod, "Normal Material", nodes.ensure_normal_material())
     nodes.set_input(mod, "Colored Material", nodes.ensure_colored_material())
     return obj

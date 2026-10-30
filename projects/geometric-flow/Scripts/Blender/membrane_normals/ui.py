@@ -3,6 +3,7 @@
 import os
 
 import bpy
+import numpy as np
 from bpy.types import Panel
 
 from . import nodes
@@ -58,6 +59,7 @@ class NA_PT_main(Panel):
             row = box.row(align=True)
             nodes.draw_input(row, mod, "Range Min", text="Min")
             nodes.draw_input(row, mod, "Range Max", text="Max")
+            nodes.draw_input(box, mod, "Hide Below")
             row = box.row(align=True)
             row.operator("normal_arrows.fit_range", icon='FULLSCREEN_ENTER')
             mat = bpy.data.materials.get(nodes.COLORED_MAT)
@@ -67,6 +69,13 @@ class NA_PT_main(Panel):
             stats = obj.get("ne_stats")
             if stats is not None:
                 box.label(text=f"Mesh {symbol}: {stats[0]:.3g} to {stats[2]:.3g}")
+                cutoff = nodes.get_input(mod, "Hide Below")
+                if cutoff:
+                    values = np.empty(len(obj.data.vertices))
+                    obj.data.attributes[nodes.MAGNITUDE_ATTR].data.foreach_get("value", values)
+                    hidden = int(np.count_nonzero(values < cutoff))
+                    box.label(text=f"Hidden below the cutoff: {hidden} of {len(values)}",
+                              icon='INFO' if hidden == len(values) else 'NONE')
             view = context.scene.view_settings
             if view.view_transform != 'Standard':
                 box.label(text="Not Standard: colors shift", icon='ERROR')

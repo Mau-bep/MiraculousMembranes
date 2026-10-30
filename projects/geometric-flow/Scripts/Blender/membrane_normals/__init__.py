@@ -3,7 +3,7 @@
 bl_info = {
     "name": "Membrane Normals",
     "author": "Mau",
-    "version": (0, 2, 0),
+    "version": (0, 2, 1),
     "blender": (4, 2, 0),
     "location": "3D Viewport > Sidebar > Normals",
     "description": "Arrows for the normals, the mean curvature normals or the dumped simulation forces of a mesh, colour coded by magnitude",

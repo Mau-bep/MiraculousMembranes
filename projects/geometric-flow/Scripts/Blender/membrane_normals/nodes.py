@@ -22,7 +22,7 @@ ARROWS_GROUP = "Normal Arrows"
 ARROWS_MOD = "Normal Arrows"
 NORMAL_MAT = "Normal Arrows"
 COLORED_MAT = "Magnitude Arrows"
-VERSION = 2
+VERSION = 3
 
 NORMAL_ATTR = "ne_normal"
 DIRECTION_ATTR = "ne_direction"
@@ -271,23 +271,17 @@ class _Builder:
         return n.outputs[0]
 
 
-def _clear(ng):
-    ng.nodes.clear()
-    ng.interface.clear()
-
-
 # ---------------------------------------------------------------------------
 # Normal Arrows  (modifier on every arrow set)
 # ---------------------------------------------------------------------------
 
 def ensure_arrows_group():
-    ng = bpy.data.node_groups.get(ARROWS_GROUP)
-    if ng is not None and ng.get("na_version") == VERSION:
-        return ng
-    if ng is None:
-        ng = bpy.data.node_groups.new(ARROWS_GROUP, "GeometryNodeTree")
-    else:
-        _clear(ng)
+    # Never edit a group of an older version in place (the arrow sets using it would lose their settings):
+    # a new version is a new group next to it
+    for ng in bpy.data.node_groups:
+        if ng.get("na_role") == "arrows" and ng.get("na_version") == VERSION:
+            return ng
+    ng = bpy.data.node_groups.new(ARROWS_GROUP, "GeometryNodeTree")
     ng["na_version"] = VERSION
     ng["na_role"] = "arrows"
 
@@ -317,6 +311,8 @@ def ensure_arrows_group():
            desc="Magnitude that gets the first colour of the colormap")
     _iface(ng, "Range Max", "NodeSocketFloat", default=1.0, parent=p,
            desc="Magnitude that gets the last colour of the colormap")
+    _iface(ng, "Hide Below", "NodeSocketFloat", default=0.0, mn=0.0, parent=p,
+           desc="Colored arrows whose magnitude is below this are not drawn (a force that is practically zero)")
     p = ng.interface.new_panel("Materials", default_closed=True)
     _iface(ng, "Normal Material", "NodeSocketMaterial", parent=p)
     _iface(ng, "Colored Material", "NodeSocketMaterial", parent=p)
@@ -369,9 +365,20 @@ def ensure_arrows_group():
     b.link(move.outputs["Geometry"], store.inputs["Geometry"])
     b.link(result, _sock(store.inputs, "Value"))
 
+    # a point goes when the random thinning drops it, or (colored sets only) its magnitude is below the cutoff
+    weak = b.node("FunctionNodeCompare", 4, -2, data_type='FLOAT', operation='LESS_THAN')
+    b.link(magnitude, _sock(weak.inputs, "A"))
+    b.link(gi.outputs["Hide Below"], _sock(weak.inputs, "B"))
+    weak_colored = b.node("FunctionNodeBooleanMath", 5, -2, operation='AND')
+    b.link(weak.outputs["Result"], weak_colored.inputs[0])
+    b.link(gi.outputs["Color by Magnitude"], weak_colored.inputs[1])
+    unwanted = b.node("FunctionNodeBooleanMath", 6, -1, operation='OR')
+    b.link(drop.outputs["Result"], unwanted.inputs[0])
+    b.link(weak_colored.outputs[0], unwanted.inputs[1])
+
     thin = b.node("GeometryNodeDeleteGeometry", 7, 0, domain='POINT', mode='ALL')
     b.link(store.outputs["Geometry"], thin.inputs["Geometry"])
-    b.link(drop.outputs["Result"], thin.inputs["Selection"])
+    b.link(unwanted.outputs[0], thin.inputs["Selection"])
 
     # --- the arrow: shaft + head along +Z, base at the origin ------------------
     head = b.math('MULTIPLY', gi.outputs["Length"], gi.outputs["Head Length"], 2, -4)

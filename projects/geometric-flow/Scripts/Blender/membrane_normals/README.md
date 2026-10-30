@@ -15,10 +15,10 @@ Blender 5.2 (also written for 4.2+, only tested on 5.2.2):
     cd projects/geometric-flow/Scripts/Blender
     blender --command extension build --source-dir membrane_normals --output-dir .
 
-then Preferences > Get Extensions > (v) > Install from Disk > `membrane_normals-0.2.0.zip`.
+then Preferences > Get Extensions > (v) > Install from Disk > `membrane_normals-0.2.1.zip`.
 
 0.2.0 changed how arrow sets are stored (direction and magnitude per point). Arrow sets made with 0.1.0 do not
-work with it: delete them and add them again.
+work with it: delete them and add them again. Sets made with 0.2.0 keep working in 0.2.1, without Hide Below.
 
 ## Use
 
@@ -37,6 +37,9 @@ work with it: delete them and add them again.
      (values outside are clamped). **Fit Range** sets 0 to the 98th percentile of the magnitudes, so a few spiky
      vertices do not wash out the rest. The **colormap** menu offers Viridis, Plasma, Inferno, Turbo, Cool to Warm.
      The panel also shows the magnitude range found on the mesh.
+   * **Hide Below** (colored sets): arrows whose magnitude is under this value are not drawn, so a force of zero
+     (a bead that does not touch the membrane) leaves no arrow. It starts at 1e-3 of the top of the color range;
+     raise it to drop more, set it to 0 to draw everything. The panel says how many arrows it hides.
    * **Update from Mesh** measures the mesh again (see Limits); on a force set it is **Reload File**.
      The trash button deletes the arrow set.
 3. Colors show in Material Preview, Rendered and the renders. Set the scene's View Transform to **Standard**
