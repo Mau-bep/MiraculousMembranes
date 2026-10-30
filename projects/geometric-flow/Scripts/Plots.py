@@ -1404,6 +1404,7 @@ def SoftHourPlots():
 
 
 def SoftHourCov():
+    
     """Zero-tension theory and the Morse / Frenkel / LJ potentials against w~ = 4 KI, drawn like Shell_test_comparison
     (5.5 x 4 figure, grid, markers, same axis labels, legend without frame). Solid lines: full start, dashed lines: flat start.
     All four figures share the x window; the two coverage figures share their y window and so do the two energy figures."""
@@ -1473,8 +1474,40 @@ def SoftHourCov():
     # Good now we add the other potentials.
 
 
+def ZeroTensionCov(filepath="../Results/Wrapping_planar_excess/Coverage_data.txt", save="../Results/Wrapping_planar_excess/ZeroTension"):
+    """Zero-tension theory and the KA = 0 runs of a planar Coverage_data.txt of PostProcessing against w~ = 4 KI r^2/KB, drawn like
+    SoftHourCov (5.5 x 4 figure, grid, markers, same axis labels, legend without frame). One figure for the coverage and one for the
+    total energy, saved as <save>_Cov.png and <save>_E.png. The runs start flat (dashed, as in SoftHourCov)."""
+    w, sigma, d = _deserno_axes_data(filepath, ["CoverageUnion", "Total_E"])
+    zero = sigma == 0
+    order = np.argsort(w[zero])
+    w, cov, E = w[zero][order], d["CoverageUnion"][zero][order], d["Total_E"][zero][order]
 
-        
+    xmax = w.max()
+    kd = np.array([0.0, 4.0, 4.0, xmax])
+    yCov = [0, 0, 1, 1]
+    yEnergy = [0, 0, 0, -np.pi * (xmax - 4.0)]              # the slope of SoftHourCov: -4 pi 1.6 over 6.4
+    xlabel = r"Adhesion strength $\tilde w = 4 K_I r^2/K_B$"
+    theory = r"Deserno, $\tilde\sigma = 0$"
+    xlim = (w.min() - 0.2, xmax + 0.2)
+    style = dict(lw=1.6, ms=4)
+
+    for ylabel, y_theory, y_data, ylim, tag in (("Bead coverage", yCov, cov, (-0.05, 1.05), "Cov"),
+                                                (r"Total energy $E$", yEnergy, E, (1.05 * min(E.min(), yEnergy[-1]), 0.6), "E")):
+        fig, ax = plt.subplots(figsize=(5.5, 4))
+        ax.plot(kd, y_theory, color="gray", lw=1.5, label=theory)
+        ax.plot(w, y_data, color="magenta", marker='o', ls='dashed', label="Simulation", **style)
+        ax.set_xlim(*xlim)
+        ax.set_ylim(*ylim)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.grid(alpha=0.3)
+        ax.legend(frameon=False)
+        fig.tight_layout()
+        fig.savefig(save + "_" + tag + ".png", dpi=200, bbox_inches="tight")
+        plt.show()
+
+
 def shell_curve(p, s, filepath="../Results/CoverageShellSum/CoverageSum.txt"):
     """x, Cov(x), Total_E(x) of one cosine shell (power p, half width s) of the shell test, like potential_curve (flat start only).
 
@@ -1570,10 +1603,11 @@ def Plot_data_foce(directory):
 # load_pretty_figure_setup()
 # SoftHourPlots()
 # SoftHourCov()
+ZeroTensionCov()
 # CosPotentialsPlots()
 # Plot_data_foce("../Results/Pulling_and_relaxing_2/")
 # phase_one_vesicle(batch="../Results/Phase_one_vesicle/",legs="out",as_z=False)
-phase_one_vesicle_map(batch="../Results/Phase_one_vesicle/")
+# phase_one_vesicle_map(batch="../Results/Phase_one_vesicle/")
 
 # Shell_test_comparison(filepath="../Results/CoverageShellSum/CoverageSum.txt",save="../Results/CoverageShellSum/CoverageSum2",quantities="total")
 

@@ -293,6 +293,164 @@ def plot_chain_data(files, x="x", y="F", color="leg", labels=None, kinds=("point
     return fig, ax, series
 
 
+# ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Tube radius of the barbell with beads of radius 1 (Create_subjob_barbell_beads.py, Mem_barbell_beads_up.sh, Analyze_barbell_beads.py -> Bending.csv, Tension.csv)
+BENDING_ICONS = [(4, 4, "*"), (1, 50, "s"), (2, 11.5, "^")]      # (KB, sigma, marker) of the Bending runs marked on the plots: star (KB = 4, sigma = 4), square (KB = 1, sigma = 50), triangle (KB = 2, sigma = 11.5)
+SERIES_COLORS = ["magenta", "pink", "black"]          # the colours of Plots.py: one per series (KB in the Bending batch, sigma = KA in the Tension batch)
+
+
+def load_radius_csv(path):
+    """The rows of a csv of Analyze_barbell_beads.py as a list of dicts of floats (the run column and the True/False column are dropped)."""
+    with open(path, newline="") as f:
+        return [{k: float(v) for k, v in r.items() if k != "run" and v not in ("True", "False", "")} for r in csv.DictReader(f)]
+
+
+def plot_tube_radius(path, group, out=None, colors=None, loglog=True, fontsize=22, size=7, pretty=True, title=None, ax=None, show=False, legend_loc=None,
+                     lines=False, slope_line=False, slope_color="skyblue", theory=True, highlight=None):
+    """Tube radius against the scanned constant, one series per value of the fixed one, the theory r_0 = sqrt(KB / (4 sigma)) dashed in the colour of its series (KA is the surface tension sigma).
+
+    path        the csv of one batch (Bending.csv: KB fixed per series, KA scanned; Tension.csv: KA fixed per series, KB scanned)
+    group       "KB" (a series per KB, x = sigma: the Bending batch) or "KA" (a series per sigma, x = KB: the Tension batch)
+    out         file to write (a bare name goes next to the csv); colors the colour of each series in the order of the fixed values (default magenta, pink, black)
+    loglog      log axes (default: the theory is then a straight line of slope -1/2 against sigma, +1/2 against KB); False: linear
+    legend_loc  where the legend goes inside the axes (default: the empty corner)
+    lines       a thin solid line through the points of each series (default: points only, the dashed theory is then not hidden)
+    theory      draw the dashed theory r_0 (and its legend entries); False: only the points (and the slope line)
+    highlight   points drawn again with a distinct, larger marker: a list of (fixed value, scanned value, marker), e.g. (4, 4, "*"): the point of the series group == fixed value
+                nearest to the scanned value (within 3 percent, else an error); the marker takes the colour of its series
+    slope_line  an extra line (slope_color, light blue) with the slope of the power law on the log-log plot, -1/2 against sigma (Bending) or +1/2 against KB (Tension), above the data:
+                only its slope counts, it is not the theory
+    Returns (fig, ax)."""
+    import matplotlib
+    if out and not show:
+        matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    if pretty:
+        load_pretty_figure_setup()
+    rows = load_radius_csv(path)
+    other = "KA" if group == "KB" else "KB"
+    legend_loc = legend_loc or ("lower left" if group == "KB" else "lower right")      # the empty corner: the Bending lines fall to the right, the Tension lines rise to the right
+    fixed = sorted({r[group] for r in rows})
+    colors = list(colors or SERIES_COLORS)
+    if len(fixed) > len(colors):
+        colors += plt.rcParams["axes.prop_cycle"].by_key()["color"]
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(8.2, 5.8))
+    else:
+        fig = ax.figure
+    for g, c in zip(fixed, colors):
+        sel = sorted((r for r in rows if r[group] == g), key=lambda r: r[other])
+        xs = np.array([r[other] for r in sel])
+        name = r"\sigma = %g" % g if group == "KA" else r"K_B = %g" % g          # KA is the surface tension sigma
+        if lines:
+            ax.plot(xs, [r["R_tube"] for r in sel], "-", color=c, lw=1.0, zorder=1)
+        ax.scatter(xs, [r["R_tube"] for r in sel], s=size ** 2, color=c, edgecolors=c, label="$%s$" % name, zorder=2)
+        if theory:
+            xt = np.geomspace(xs.min(), xs.max(), 200) if loglog else np.linspace(xs.min(), xs.max(), 200)
+            KB, KA = (g, xt) if group == "KB" else (xt, g)
+            ax.plot(xt, np.sqrt(KB / (4.0 * KA)), "--", color=c, lw=1.8, label=r"$r_0(%s)$" % name, zorder=3)
+    for g, xv, mk in (highlight or []):
+        if g not in fixed:
+            raise SystemExit("highlight: no series with %s = %g in %s (have %s)" % (group, g, path, fixed))
+        sel = [r for r in rows if r[group] == g]
+        pt = min(sel, key=lambda r: abs(r[other] - xv))
+        if abs(pt[other] - xv) > 0.03 * xv:
+            raise SystemExit("highlight: no run near %s = %g with %s = %g in %s (nearest %g)" % (other, xv, group, g, path, pt[other]))
+        if pt[other] != xv:
+            print("highlight: %s = %g, %s = %g: the run is at %s = %g" % (group, g, other, xv, other, pt[other]))
+        ax.scatter([pt[other]], [pt["R_tube"]], s=(1.9 * size) ** 2, marker=mk, color=colors[fixed.index(g)], edgecolors=colors[fixed.index(g)], zorder=4)
+    if slope_line:
+        # a reference line, 1.7 times above the theory of the top series: over x from 4 times the smallest sigma to the largest (Bending), from the smallest KB to a quarter of the largest (Tension)
+        allx = np.array([r[other] for r in rows])
+        slope = -0.5 if group == "KB" else 0.5
+        xa, xb = (allx.min() * 4.0, allx.max()) if group == "KB" else (allx.min(), allx.max() / 4.0)
+        top = max(fixed) if group == "KB" else min(fixed)
+        r_top_a = math.sqrt(top / (4.0 * xa)) if group == "KB" else math.sqrt(xa / (4.0 * top))
+        xg = np.geomspace(xa, xb, 50)
+        ax.plot(xg, 1.7 * r_top_a * (xg / xa) ** slope, "-", color=slope_color, lw=2.8, zorder=1, label=r"slope $%s1/2$" % ("-" if slope < 0 else "+"))
+    if loglog:
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        from matplotlib.ticker import FuncFormatter
+
+        def tick_label(v, _pos):          # plain numbers (0.2, 3, 50) at 1, 2, 3, 5 of every decade instead of 2e-01
+            m = v / 10.0 ** math.floor(math.log10(v) + 1e-9)
+            return ("$%g$" % v) if round(m, 6) in (1.0, 2.0, 3.0, 5.0) else ""      # maths mode: the Latin Modern numbers of the other plots
+        for axis in (ax.xaxis, ax.yaxis):
+            axis.set_major_formatter(FuncFormatter(tick_label))
+            axis.set_minor_formatter(FuncFormatter(tick_label))
+    ax.set_xlabel(r"$\sigma$" if other == "KA" else r"$K_B$", fontsize=fontsize)
+    ax.set_ylabel(r"$r$", fontsize=fontsize)
+    ax.tick_params(labelsize=fontsize - 4, which="both")
+    ax.grid(alpha=0.25, lw=0.5, which="both")
+    # the legend: the simulation entries together in the first column, then the theory lines, then the slope line
+    handles, names = ax.get_legend_handles_labels()
+    sim_i = [i for i, n in enumerate(names) if n.startswith("$") and not n.startswith("$r")]
+    rest_i = [i for i in range(len(names)) if i not in sim_i]
+    hs, ns = [handles[i] for i in sim_i], [names[i] for i in sim_i]
+    while len(hs) < len(rest_i) and len(rest_i) > len(sim_i):        # an empty entry keeps the simulation entries in the first column when the second one is longer
+        hs.append(plt.Line2D([], [], lw=0))
+        ns.append("")
+    ax.legend(hs + [handles[i] for i in rest_i], ns + [names[i] for i in rest_i], fontsize=fontsize - 6, ncol=2 if theory else 1, loc=legend_loc, markerscale=0.9, columnspacing=1.2, handletextpad=0.4)
+    if title is not None:
+        ax.set_title(tex_safe(title), fontsize=fontsize)
+    if not plt.rcParams["figure.constrained_layout.use"]:
+        fig.tight_layout()
+    out = resolve_out(out, [path]) if out else None
+    if out:
+        fig.savefig(out, dpi=150)
+        print("wrote %s" % out)
+    if show:
+        plt.show()
+    return fig, ax
+
+
+def save_bending_icons(out_dir="../Results/Tube_beads/icons", size_px=400, bending_icons=None):
+    """One transparent png per icon of BENDING_ICONS (the marker and colour of the highlighted runs of the Bending plots): star_black.png, square_magenta.png, triangle_pink.png."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    names = {"*": "star", "s": "square", "^": "triangle", "o": "circle", "v": "triangle_down", "D": "diamond"}
+    os.makedirs(out_dir, exist_ok=True)
+    paths = []
+    for KB, sigma, mk in (bending_icons or BENDING_ICONS):
+        colour = SERIES_COLORS[sorted({g for g, _, _ in (bending_icons or BENDING_ICONS)}).index(KB)]
+        fig = plt.figure(figsize=(1, 1), dpi=size_px)
+        ax = fig.add_axes([0, 0, 1, 1])
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 1)
+        ax.axis("off")
+        ax.scatter([0.5], [0.5], s=(0.8 * 72) ** 2, marker=mk, color=colour, edgecolors=colour)
+        path = os.path.join(out_dir, "%s_%s.png" % (names.get(mk, mk), colour))
+        fig.savefig(path, transparent=True)
+        plt.close(fig)
+        paths.append(path)
+        print("wrote %s (KB = %g, sigma = %g)" % (path, KB, sigma))
+    return paths
+
+
+def plot_tube_radius_bending(path="../Results/Tube_beads/Bending.csv", out="Bending_radius.png", **kw):
+    """Bending batch: one series per KB (magenta, pink, black), the radius against sigma, the theory dashed; three runs marked with a distinct icon (BENDING_ICONS)."""
+    kw.setdefault("highlight", BENDING_ICONS)
+    return plot_tube_radius(path, "KB", out=out, **kw)
+
+
+def plot_tube_radius_tension(path="../Results/Tube_beads/Tension.csv", out="Tension_radius.png", **kw):
+    """Tension batch: one series per sigma (magenta, pink, black), the radius against KB, the theory dashed."""
+    return plot_tube_radius(path, "KA", out=out, **kw)
+
+
+def plot_tube_radius_bending_lines(path="../Results/Tube_beads/Bending.csv", out="Bending_radius_lines.png", **kw):
+    """The Bending plot with a line through the points of each series (no theory curves) and a light blue reference line of slope -1/2."""
+    kw.setdefault("highlight", BENDING_ICONS)
+    return plot_tube_radius(path, "KB", out=out, lines=True, slope_line=True, theory=False, **kw)
+
+
+def plot_tube_radius_tension_lines(path="../Results/Tube_beads/Tension.csv", out="Tension_radius_lines.png", **kw):
+    """The Tension plot with a line through the points of each series (no theory curves) and a light blue reference line of slope +1/2."""
+    return plot_tube_radius(path, "KA", out=out, lines=True, slope_line=True, theory=False, **kw)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("files", nargs="*", help="[label=]chain_summary.csv (wildcards are expanded; default: ../Results/Tube_material/Chain_data_KA_*.csv)")
@@ -353,4 +511,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # main()    # the scatter plots of the chain summaries of the tube chains (everything this script did before the barbell radius plots): uncomment to use the command line again
+    plot_tube_radius_bending()
+    plot_tube_radius_tension()
+    plot_tube_radius_bending_lines()
+    plot_tube_radius_tension_lines()
