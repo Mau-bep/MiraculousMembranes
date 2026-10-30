@@ -25,7 +25,8 @@
    They differ by a factor 1 + theta^2/12 per edge (1.4 percent at the largest angle of these meshes, 0.4 rad; the tan version diverges for a fold, theta -> pi,
    which these meshes do not reach): on the stored planar chains the two energies of the same shape differ by 0.09 kappa (98 percent) and 0.08 kappa (90 percent),
    constant in s to 0.01 kappa, so the switch is not expected to change u(s)
-   outside: 1 (default) the beads are outside the vesicle, -1 inside (needs the build with "outside": -1 for Adhesion; the Coverage energy does not know it)
+   outside: 1 (default) the beads are outside the vesicle, -1 inside (needs the build with "outside": -1: Adhesion, and the Coverage energy, which then counts the faces
+   that face away from the bead)
    planar: true (generator: --planar) a flat disk with a clamped edge (input/Big_planar_mem.obj, radius 10 * rescale, normal along x) instead of the closed vesicle:
    no volume constraint, "boundary": true, the beads above the disk (x > 0) pushing into it; the large-vesicle limit of the experiment (D_v/D_p >= 14) #}
 {

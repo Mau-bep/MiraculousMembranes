@@ -85,16 +85,18 @@ The beads are frozen, the vesicle finds its position; each patch axis points to 
 
 **The C++ change** is in main (merge 68af27c6 of the branch `bead-patch-adhesion`; two commits, the patch with the free axis and, separately, the beads inside, which can be reverted on its own; new target `Test_patch_adhesion`: forces vs finite differences 3e-9, area fraction of the patch vs quadrature, free axis stationary; `Test_exactness` dumps of the six configs of `regression/` byte-identical to the build before). It adds the bead keys `patch_angle`, `patch_width`, `patch_axis`, `patch_free` to the `Adhesion` interaction; without them nothing changes. An old build **ignores the keys silently** and runs a full-sphere adhesion, so `Create_subjob_two_vesicle.py` refuses to write the job unless `../build/bin/main_cluster` contains "patch_angle": rebuild with `make main_cluster` in `build/` after the merge.
 
-**Beads inside the vesicle** (`--inside`, bead key `"outside": -1`): the Adhesion (and the Coverage energy) select the faces whose outward normal points to the bead
+**Beads inside the vesicle** (`--inside`, bead key `"outside": -1`): the Adhesion and the Coverage energy select the faces whose outward normal points to the bead
 (the external-bead convention), so a bead on the inner side of the closed membrane would see nothing. `Adhesion::side` = -1 (set from `"outside": -1` of the bead) selects the
 faces whose normal points away from the bead instead; `Test_patch_adhesion` checks that the outward-oriented sphere with side -1 gives bit for bit the energy and forces of the
-reversed sphere with side +1 and that the wrong side selects nothing; the default path is unchanged (benchmark byte-identical). The Coverage energy does not support it (SimConfig refuses the
-combination), so an inside chain has no pre-wrap: the cold start from the tangent contact takes 30000-60000 steps. The template then puts the beads tangent from the inside
+reversed sphere with side +1 and that the wrong side selects nothing; the default path is unchanged (benchmark byte-identical). The Coverage energy knows it too (2026-10-30, `Bead::side`,
+set from the same key and passed by `E_Coverage`, `F_Coverage` and `Debug_Coverage` to `evaluateFaceCoverage`; SimConfig no longer refuses the combination; new target `Test_coverage_inside`: the energy of a
+bead inside is K (Omega - target)^2 with the inside selection, the reversed sphere with side +1 gives the same energy and forces to 3e-13, the forces match finite differences to 1e-10, and the
+`Test_exactness` dumps of the seven configs of `regression/` are byte-identical to the build before). An inside chain with Adhesion has no pre-wrap (it is not made for beads inside): the cold start from the tangent contact takes 30000-60000 steps. The template then puts the beads tangent from the inside
 (centres R_v - a from the vesicle centre) with the patch axes pointing outwards; the runner points them away from the volume centre at every link.
 
 **Protocol** (`Run_two_vesicle_chain.py`, all in one sbatch job):
 1. pre-wrap (beads outside): the stiff `Coverage` energy (K = 2e4, target 0.5) wraps the beads from the tangent contact in 8000 steps (forcing 0.8 crumples the membrane);
-   not available for `--inside` (the Coverage energy knows beads outside only) and not used on the flat disk;
+   not made for `--inside` and not used on the flat disk;
 2. cold start: the patch ensemble from that mesh, to convergence (~ 8000-30000 steps; from the tangent contact alone the patch needs > 30000 steps just to wrap).
    **`--inside` and `--planar` use free beads in the cold start** (`--free_cold`): the beads move with the membrane that wraps them to the depth they like (inside: 2.3 a
    outwards, the buds end up beyond the main sphere; planar: they sink 1.5 a) and are frozen there from the first link on. With frozen beads the inside cold start needed

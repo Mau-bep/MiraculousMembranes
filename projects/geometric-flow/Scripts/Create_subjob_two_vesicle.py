@@ -24,12 +24,15 @@ parser.add_argument("--planar", action="store_true",
 parser.add_argument("--free_cold", action="store_true",
                     help="the beads are free (state default) in the cold start and frozen from the first link on: the beads follow the membrane that wraps them instead of the whole vesicle "
                          "having to move relative to them (an inside cold start with frozen beads needs 60000-100000 steps because the vesicle has to slide away from the beads and "
-                         "retract the lobe left between them; with free beads 5000 steps got further than 60000). The patch axes stay fixed during the cold start. Default for --planar and --inside")
-parser.add_argument("--R_disk", type=number_str, default="20.0", help="radius of the planar disk in bead radii (--planar); the deformation of a tension sigma~ = 0.02 decays over sqrt(kappa/sigma) = 7 a")
+                         "retract the lobe left between them; with free beads 5000 steps got further than 60000). The patch axes stay fixed during the cold start. Default for --planar and --inside, "
+                         "except with --wrap coverage: its stiff force pulls a free bead through the membrane (a planar cold start broke within 100 steps) and a free bead inside drifts "
+                         "0.9 D_p from where it started, so there the beads are frozen as in the outside chain unless you give --free_cold")
+parser.add_argument("--R_disk", type=number_str, default="20.0", help="radius of the planar disk in length units (--planar; Big_planar_mem.obj has radius 10, the mesh is rescaled by R_disk / 10): bead radii for the default --radius 1; "
+                                                     "the deformation of a tension sigma~ = 0.02 decays over sqrt(kappa/sigma) = 7 a")
 parser.add_argument("--inside", action="store_true",
                     help="the beads are INSIDE the vesicle, adhered to its inner surface and wrapped by outward bulges (the snapshots of the paper's Fig. 4b,c look like that), "
-                         "not outside with the membrane invaginating around them (the experiment, the default). Needs the build with the bead key \"outside\": -1 for Adhesion, "
-                         "and --wrap patch or adhesion (the Coverage energy knows beads outside only)")
+                         "not outside with the membrane invaginating around them (the experiment, the default). Needs the build with the bead key \"outside\": -1 "
+                         "(Adhesion; for --wrap coverage the Coverage energy counts the faces that face away from the bead, any build that loads the config has it)")
 parser.add_argument("--s_list", type=str, default=None,
                     help="separation s between the beads (--distance: chord or arc, R_v phi), in D_p, of the links after the cold start, in the order they are run "
                          "(default: the far reference at 5.8, then in to 1.45: 5.8,5.0,4.3,3.8,3.4,3.0,2.7,2.4,2.2,2.05,1.9,1.78,1.66,1.55,1.45; "
@@ -82,7 +85,7 @@ parser.add_argument("--prewrap", choices=["coverage", "none"], default="coverage
                          "target --prewrap_cov), then the patch run starts from that mesh. A patch run started from the tangent contact needs "
                          "30000 steps just to wrap; the pre-wrapped state is already close to its minimum. none: start from the tangent contact "
                          "(the patch axes then point where the vesicle centre is expected, which is only right for shallow pockets). With --inside there is no pre-wrap "
-                         "(the Coverage energy knows beads outside only): the patch run starts from the tangent contact, 30000-60000 steps (about half an hour) just to wrap")
+                         "(not made for beads inside): the patch run starts from the tangent contact, 30000-60000 steps (about half an hour) just to wrap")
 parser.add_argument("--prewrap_cov", type=number_str, default=None, help="Coverage target of the pre-wrap (default: 0.5 or the area fraction of the patch minus 0.2, whichever is smaller: forcing 0.8 from the tangent contact crumples the membrane)")
 parser.add_argument("--prewrap_steps", type=number_str, default="30000", help="steps of the pre-wrap run")
 parser.add_argument("--batch_tag", type=str, required=True, help="tag of the batch (also the results folder name)")
@@ -119,14 +122,11 @@ if args.wrap == "patch" and not args.no_binary_check:
 if args.planar:
     if args.inside:
         raise SystemExit("--planar and --inside do not combine")
-    if args.wrap == "coverage":
-        raise SystemExit("--planar needs --wrap patch or adhesion")
     if args.area in ("constraint", "excess"):
         raise SystemExit("--planar has no volume to fix: use --area tension or none")
 if args.inside:
-    if args.wrap == "coverage":
-        raise SystemExit("--inside needs --wrap patch or adhesion: the Coverage energy knows beads outside only")
-    if not args.no_binary_check:
+    # --wrap coverage needs no check: a build that does not know beads inside refuses the config when it loads ("outside": -1 with Coverage)
+    if args.wrap != "coverage" and not args.no_binary_check:
         try:
             with open(BINARY, 'rb') as f:
                 content = f.read()
@@ -134,6 +134,9 @@ if args.inside:
                 raise SystemExit("{} does not know beads inside the membrane (\"outside\": -1 of the Adhesion interaction): build main from the merge of bead-patch-adhesion (68af27c6) or later first".format(BINARY))
         except IOError:
             print("Warning: {} not found, the inside option of the build was not checked".format(BINARY))
+
+# the beads move in the cold start (state "default") for --free_cold and, with Adhesion, for --planar and --inside; with the Coverage energy they are frozen unless --free_cold
+free_cold = args.free_cold or ((args.planar or args.inside) and args.wrap != "coverage")
 
 Rv = float(args.Rv)
 a = float(args.radius)
@@ -178,7 +181,7 @@ def create_json():
         for y in (d_cold / 2.0, -d_cold / 2.0):
             beads.append({"pos": [a, y, 0.003 * args.replica], "axis": [-1.0, 0.0, 0.0]})
         params = dict(first_dir=Batch_dir, dist=d_cold, beads=beads, displacement=None, Rv=R_disk, rescale=R_disk / 10.0, init_file="../../../input/Big_planar_mem.obj",
-                      planar=True, bead_state="default", radius=a, KB=args.KB, wrap_mode=args.wrap, area_mode=args.area, outside=1,
+                      planar=True, bead_state="default" if free_cold else "froze", radius=a, KB=args.KB, wrap_mode=args.wrap, area_mode=args.area, outside=1,
                       size_max=1.0)  # the beads are free in the cold start of a planar run (they sink to their height)
     else:
         for x in (d_cold / 2.0, -d_cold / 2.0):
@@ -187,7 +190,7 @@ def create_json():
             beads.append({"pos": [x, 0.0, 0.0], "axis": [axis[0] / n, axis[1] / n, 0.0]})
         params = dict(first_dir=Batch_dir, dist=d_cold, beads=beads, displacement=[0.0, yc, 0.003 * args.replica], Vbar=V_bar, Rv=Rv, rescale=Rv,
                       radius=a, KB=args.KB, KV=args.KV, wrap_mode=args.wrap, area_mode=args.area, outside=-1 if args.inside else 1,
-                      bead_state="default" if (args.free_cold or args.inside) else "froze")
+                      bead_state="default" if free_cold else "froze")
     params["bending"] = args.bending
     if args.wrap == "coverage":
         params.update(cov=args.cov, Kcov=args.Kcov)
