@@ -48,7 +48,18 @@ namespace
         if (b.contains("Constraint"))
         {
             spec.constraint = b["Constraint"].get<std::string>();
-            spec.constraint_constants = require(b, "Constraint_constants", where).get<std::vector<double>>();
+            if (spec.constraint == "Normal")
+            {
+                // The axis is optional: without it the mean normal of the interior vertices is used
+                if (b.contains("Constraint_constants") && !b["Constraint_constants"].is_null())
+                    spec.constraint_constants = b["Constraint_constants"].get<std::vector<double>>();
+                const std::vector<double> &c = spec.constraint_constants;
+                if (!c.empty() && (c.size() != 3 || !(c[0] * c[0] + c[1] * c[1] + c[2] * c[2] > 0.0)))
+                    throw std::runtime_error("Input file: \"Constraint_constants\" in " + where + " is the axis of the \"Normal\" "
+                                             "constraint: [nx, ny, nz], not all zero, or [] for the mean normal of the membrane");
+            }
+            else
+                spec.constraint_constants = require(b, "Constraint_constants", where).get<std::vector<double>>();
         }
 
         spec.pos = to_vector3(b, "Pos", where);
@@ -204,6 +215,8 @@ namespace
                                                                          : " is \"rigid\" but has no \"Rigid\" bond"));
         if (spec.state == "rigid" && spec.constraint != "None")
             throw std::runtime_error("Input file: " + where + " is \"rigid\"; it cannot also have a Constraint");
+        if (spec.state == "manual" && spec.constraint == "Normal")
+            throw std::runtime_error("Input file: " + where + " is \"manual\" (driven along its Velocity); it cannot also have the \"Normal\" Constraint");
 
         if (spec.state == "manual")
         {
@@ -901,6 +914,41 @@ namespace
         }
     }
 
+    // The unit axis of a "Normal" constrained bead: Constraint_constants, or (empty)
+    // the mean normal of the interior vertices of the mesh as it is loaded
+    Vector3 normal_constraint_axis(const BeadSpec &spec, size_t index, Simulation &sim)
+    {
+        Vector3 axis{0.0, 0.0, 0.0};
+        const std::vector<double> &c = spec.constraint_constants;
+        if (!c.empty())
+            axis = Vector3({c[0], c[1], c[2]});
+        else
+        {
+            // Area weighted: the sum of the (vector) areas of the faces around each interior vertex
+            const VertexData<Vector3> &pos = sim.geometry->inputVertexPositions;
+            for (Vertex v : sim.mesh->vertices())
+            {
+                if (v.isBoundary())
+                    continue;
+                for (Face f : v.adjacentFaces())
+                {
+                    Halfedge he = f.halfedge();
+                    const Vector3 p0 = pos[he.vertex()];
+                    const Vector3 p1 = pos[he.next().vertex()];
+                    const Vector3 p2 = pos[he.next().next().vertex()];
+                    axis += 0.5 * cross(p1 - p0, p2 - p0);
+                }
+            }
+            if (!(axis.norm() > 0.0))
+                throw std::runtime_error("Input file: Beads[" + std::to_string(index) + "] has the \"Normal\" Constraint without an axis, "
+                                         "and the normals of the interior vertices of the mesh cancel; give \"Constraint_constants\": [nx, ny, nz]");
+        }
+        axis = axis.unit();
+        std::cout << "Bead " << index << " moves only along its normal axis (" << axis.x << ", " << axis.y << ", " << axis.z << ")"
+                  << (c.empty() ? ", the mean normal of the interior vertices" : "") << " in BFGS-Normal\n";
+        return axis;
+    }
+
     void setup_beads(Simulation &sim)
     {
         const std::vector<BeadSpec> &specs = sim.cfg.beads;
@@ -935,6 +983,8 @@ namespace
             bead.state = spec.state;
             bead.Constraint = spec.constraint;
             bead.Constraint_constants = spec.constraint_constants;
+            if (spec.constraint == "Normal")
+                bead.Constraint_axis = normal_constraint_axis(spec, i, sim);
             if (spec.has_velocity)
                 bead.Velocity = spec.velocity;
             if (spec.has_final_pos)

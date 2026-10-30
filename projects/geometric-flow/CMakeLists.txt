@@ -577,6 +577,11 @@ add_executable(Test_shell_power src/Test_shell_power.cpp src/Interaction.cpp src
 target_include_directories(Test_shell_power PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
 target_link_libraries(Test_shell_power geometry-central)
 
+# Checks for the Normal constraint of a bead (planar membranes): projected force and moves
+add_executable(Test_bead_normal src/Test_bead_normal.cpp src/Interaction.cpp src/Beads.cpp src/BeadGeometry.cpp)
+target_include_directories(Test_bead_normal PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+target_link_libraries(Test_bead_normal geometry-central)
+
 # Weight and finite-difference checks of the Frenkel, LJ and Morse profiles of the Adhesion weight (shell_profile)
 add_executable(Test_shell_profile src/Test_shell_profile.cpp src/Interaction.cpp src/Beads.cpp src/BeadGeometry.cpp)
 target_include_directories(Test_shell_profile PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")

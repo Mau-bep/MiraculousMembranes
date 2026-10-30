@@ -103,9 +103,13 @@ void Bead::Move_bead(double dt, Vector3 center)
 {
     if (state == "default")
     {
-        if (Constraint == "None")
+        if (Constraint == "None" || (Constraint == "Normal" && !Axis_active))
         {
             this->Pos = this->Pos + Total_force * dt - center;
+        }
+        if (Constraint == "Normal" && Axis_active)
+        {
+            this->Pos = this->Pos + Constraint_axis * (dot(Total_force, Constraint_axis) * dt) - center;
         }
         if (Constraint == "Radial")
         {
@@ -148,9 +152,13 @@ void Bead::Move_bead(double dt, Vector3 center, Vector3 Force)
 {
     if (state == "default")
     {
-        if (Constraint == "None")
+        if (Constraint == "None" || (Constraint == "Normal" && !Axis_active))
         {
             this->Pos = this->Pos + Force * dt - center;
+        }
+        if (Constraint == "Normal" && Axis_active)
+        {
+            this->Pos = this->Pos + Constraint_axis * (dot(Force, Constraint_axis) * dt) - center;
         }
         if (Constraint == "Radial")
         {
@@ -198,9 +206,13 @@ bool Bead::Has_rigid_bond() const
 
 // The part of Force a rigid bead follows: the components along its rigid bonds
 // are removed, so a step keeps those lengths to first order (the second-order
-// drift is removed by Enforce_rigid_bonds). Other states get Force unchanged.
+// drift is removed by Enforce_rigid_bonds). A free bead with Constraint "Normal"
+// inside BFGS-Normal keeps only the component along its axis. Other beads get
+// Force unchanged.
 Vector3 Bead::Free_force(Vector3 Force) const
 {
+    if (Moves_along_axis())
+        return Constraint_axis * dot(Force, Constraint_axis);
     if (state != "rigid")
         return Force;
     std::vector<Vector3> axes; // orthonormal basis of the bond directions

@@ -71,6 +71,10 @@
             "shell_alpha": {{ shell_alpha }},
 {% endif %}
             "inter_str": {{interaction}},
+{% if bead_normal %}
+            "Constraint": "Normal",
+            "Constraint_constants": [1.0, 0.0, 0.0],
+{% endif %}
             "bonds": [],
             "bonds_constants": [],
             "Beads": []

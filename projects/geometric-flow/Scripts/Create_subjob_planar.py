@@ -41,6 +41,9 @@ parser.add_argument("--switch_normal", type=number_str, default=None,
                     help="step of the BFGS -> BFGS-Normal switch, Switch_times[1] (template 40000; the shell study used 60000, the stopping block also switches on a plateau)")
 parser.add_argument("--tension", choices=["surface", "excess"], default="surface",
                     help="surface: KA * area, excess: KA * (area - initial area) only while the area is above the initial one")
+parser.add_argument("--bead_normal", action="store_true",
+                    help="in BFGS-Normal the bead moves too, only along the normal of the plane (x), instead of staying frozen at the switch; "
+                         "the other integrators move it freely. Constraint \"Normal\" with the axis [1, 0, 0]")
 parser.add_argument("--batch_tag", type=str, required=True, help="tag of the batch (also the results folder name)")
 parser.add_argument("--unique_tag", type=str, required=True, help="unique tag of this run (prefix of the config, subjob and output files)")
 parser.add_argument("--time", type=str, default="12:00:00", help="time limit for the sbatch job (default 12:00:00)")
@@ -53,7 +56,7 @@ KB = args.KB
 Excess = args.tension == "excess"
 Init = args.init
 # Optional template overrides, left out of the render (so the template defaults apply) when not given
-Overrides = {k: v for k, v in (("shell_width", args.shell_width), ("shell_power", args.shell_power), ("shell_profile", args.shell_profile), ("shell_alpha", args.shell_alpha), ("rescale", args.rescale), ("refine_angle", args.refine_angle), ("saved_states", args.saved_states), ("switch_normal", args.switch_normal), ("size_min", args.size_min), ("size_max", args.size_max)) if v is not None}
+Overrides = {k: v for k, v in (("shell_width", args.shell_width), ("shell_power", args.shell_power), ("shell_profile", args.shell_profile), ("shell_alpha", args.shell_alpha), ("rescale", args.rescale), ("refine_angle", args.refine_angle), ("saved_states", args.saved_states), ("switch_normal", args.switch_normal), ("size_min", args.size_min), ("size_max", args.size_max), ("bead_normal", True if args.bead_normal else None)) if v is not None}
 Batch_tag = args.batch_tag
 Unique_tag = args.unique_tag
 time = args.time

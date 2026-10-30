@@ -1181,6 +1181,35 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
 
   start = chrono::steady_clock::now();
   std::vector<Vector3> Bead_forces(Beads.size());
+  // The "Normal" constraint holds only inside this integrator (the line searches
+  // below move the beads through Move_bead and Free_force)
+  struct Axis_scope
+  {
+    const std::vector<Bead *> &beads;
+    explicit Axis_scope(const std::vector<Bead *> &b) : beads(b)
+    {
+      for (Bead *bead : beads)
+        if (bead->Constraint == "Normal")
+          bead->Axis_active = true;
+    }
+    ~Axis_scope()
+    {
+      for (Bead *bead : beads)
+        bead->Axis_active = false;
+    }
+  } axis_scope(Beads);
+  // The free beads with Constraint "Normal" are variables of this integrator
+  // like the vertices: one coordinate each, along their axis, after the
+  // vertices. Any other bead keeps its position.
+  std::vector<size_t> axis_beads;
+  for (size_t bi = 0; bi < Beads.size(); bi++)
+    if (Beads[bi]->Moves_along_axis())
+      axis_beads.push_back(bi);
+  const size_t N_vert = mesh->nVertices();
+  const size_t n_dof = N_vert + axis_beads.size();
+  // A bead frozen or freed since the last step changes the vector: the stored pairs no longer fit
+  if (BFGS_iter > 0 && !s_list.empty() && size_t(s_list[0].size()) != n_dof)
+    BFGS_iter = 0;
   if (BFGS_iter == 0)
   {
     lbfgs_restarts++;
@@ -1200,15 +1229,24 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
     {
       Bead_forces[bi] = Vector3{0.0, 0.0, 0.0};
     }
+    std::vector<double> bead_g(axis_beads.size());
+    for (size_t k = 0; k < axis_beads.size(); k++)
+    {
+      const Bead *bead = Beads[axis_beads[k]];
+      bead_g[k] = dot(bead->Total_force, bead->Constraint_axis);
+      Bead_forces[axis_beads[k]] = bead_g[k] * bead->Constraint_axis;
+    }
 
     backtrackstep = Backtracking_BFGS(Force, Bead_forces);
 
-    Eigen::VectorXd Aux_vector = Eigen::VectorXd::Zero((mesh->nVertices()));
+    Eigen::VectorXd Aux_vector = Eigen::VectorXd::Zero(n_dof);
 
     for (Vertex v : mesh->vertices())
     {
       Aux_vector[v.getIndex()] = backtrackstep * Grad_E[v];
     }
+    for (size_t k = 0; k < axis_beads.size(); k++)
+      Aux_vector[N_vert + k] = backtrackstep * bead_g[k];
 
     s_list.resize(0);
     y_list.resize(0);
@@ -1224,6 +1262,11 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
     for (Vertex v : mesh->vertices())
     {
       Aux_vector[v.getIndex()] = dot(Sim_handler->Current_grad[v], Sim_handler->Vertex_normals[v]) - dot(Sim_handler->Previous_grad[v], Sim_handler->Vertex_normals[v]);
+    }
+    for (size_t k = 0; k < axis_beads.size(); k++)
+    {
+      const Bead *bead = Beads[axis_beads[k]];
+      Aux_vector[N_vert + k] = dot(bead->Total_force - bead->Prev_Total_force, bead->Constraint_axis);
     }
     if (lbfgs.gradient_y)
       Aux_vector = -Aux_vector;
@@ -1241,11 +1284,16 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
   else
   {
     // FOr some reason i am not calculating the gradient here?
-    Eigen::VectorXd Grad_E = Eigen::VectorXd::Zero(mesh->nVertices());
+    Eigen::VectorXd Grad_E = Eigen::VectorXd::Zero(n_dof);
 
     for (Vertex v : mesh->vertices())
     {
       Grad_E[v.getIndex()] = dot(Sim_handler->Current_grad[v], Sim_handler->Vertex_normals[v]);
+    }
+    for (size_t k = 0; k < axis_beads.size(); k++)
+    {
+      const Bead *bead = Beads[axis_beads[k]];
+      Grad_E[N_vert + k] = dot(bead->Total_force, bead->Constraint_axis);
     }
 
     Eigen::VectorXd r = lbfgs_direction(Grad_E);
@@ -1265,6 +1313,8 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
     {
       Bead_forces[bi] = Vector3{0.0, 0.0, 0.0};
     }
+    for (size_t k = 0; k < axis_beads.size(); k++)
+      Bead_forces[axis_beads[k]] = r[N_vert + k] * Beads[axis_beads[k]]->Constraint_axis;
 
     backtrackstep = Backtracking_BFGS(Force, Bead_forces);
     if (uphill)
@@ -1280,6 +1330,11 @@ double Mem3DG::integrate_BFGS_Normal(std::ofstream &Sim_data, double time, std::
     for (Vertex v : mesh->vertices())
     {
       Grad_E[v.getIndex()] = dot((Sim_handler->Current_grad[v] - Sim_handler->Previous_grad[v]), Sim_handler->Vertex_normals[v]);
+    }
+    for (size_t k = 0; k < axis_beads.size(); k++)
+    {
+      const Bead *bead = Beads[axis_beads[k]];
+      Grad_E[N_vert + k] = dot(bead->Total_force - bead->Prev_Total_force, bead->Constraint_axis);
     }
     if (lbfgs.gradient_y)
       Grad_E = -Grad_E;

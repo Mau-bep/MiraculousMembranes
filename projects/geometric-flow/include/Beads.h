@@ -42,6 +42,13 @@ public:
 
   std::string Constraint = "None";
   std::vector<double> Constraint_constants;
+  // Constraint "Normal" (planar membrane): in BFGS-Normal the bead only moves
+  // along this unit vector, the normal of the plane. Set from Constraint_constants
+  // [nx, ny, nz], or from the mean normal of the interior vertices when they are
+  // empty. The constraint holds only while Axis_active, which integrate_BFGS_Normal
+  // sets for its step: every other integrator moves the bead freely.
+  Vector3 Constraint_axis{0.0, 0.0, 0.0};
+  bool Axis_active = false;
 
   Interaction *Bead_I = nullptr;
 
@@ -62,6 +69,8 @@ public:
   // State "rigid": the bead keeps the length of each of its "Rigid" bonds
   // (bonds_constants [L]) and only moves perpendicular to them
   bool Has_rigid_bond() const;
+  // A free bead with Constraint "Normal" inside BFGS-Normal: one coordinate along Constraint_axis, a variable of the integrator
+  bool Moves_along_axis() const { return Axis_active && state == "default" && Constraint == "Normal"; }
   Vector3 Free_force(Vector3 Force) const;
   double Enforce_rigid_bonds();
 

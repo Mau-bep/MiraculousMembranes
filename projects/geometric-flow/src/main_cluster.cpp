@@ -352,6 +352,15 @@ namespace
         log << std::setprecision(12) << current_t << " " << run.n_polish << " " << event << " " << E << "\n";
     }
 
+    // The "Normal" constraint of the beads holds in BFGS-Normal, and so in the
+    // gradient descent steps of its polish (integrate_BFGS_Normal sets it for its own steps)
+    void set_axis_constraint(Simulation &sim, bool on)
+    {
+        for (Bead &bead : sim.Beads)
+            if (bead.Constraint == "Normal")
+                bead.Axis_active = on;
+    }
+
     // Slivers in BFGS-Normal: remesh (the caller does it) and relax with
     // gradient descent before going back (PolishParams). Returns true if started.
     bool start_polish(Simulation &sim, RunState &run, size_t current_t)
@@ -364,6 +373,7 @@ namespace
         run.Integration = "Gradient_descent";
         run.polish_left = p.gd_steps;
         run.remesh_every = sim.cfg.remesh_every;
+        set_axis_constraint(sim, true);
         return true;
     }
 
@@ -375,10 +385,12 @@ namespace
         if (run.Integration != "Gradient_descent")
         {
             run.polish_left = 0; // a switch changed the integrator
+            set_axis_constraint(sim, false);
             return;
         }
         if (--run.polish_left > 0)
             return;
+        set_axis_constraint(sim, false);
         log_polish(sim, run, current_t, "relaxed");
         run.Integration = sim.cfg.polish.then;
         sim.M3DG.BFGS_iter = 0;
