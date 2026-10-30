@@ -10,10 +10,15 @@ usage:  python3 Analyze_two_chains.py                                  # every c
 Needs numpy + matplotlib (micromamba env mir_mem: ~/micromamba/envs/mir_mem/bin/python).
 
 A chain is one folder with link*/<n>/ run folders (the cold start link00_cold and the Coverage pre-wrap are skipped, as in Analyze_two_vesicle.py).
-Per chain it writes, below --out (default two_beads_analysis/):
+Only the runs of chain_summary.csv are points: the chain runner gives a run a row when it passed its failure check ("the integrator broke" and the like do not). A link
+whose last step failed is run again as link<NN>_s<s>_mid (half way) and link<NN>_s<s>_retry (the target): the retry stands for the link, the failed first try is left out
+(--keep_failed keeps the failed runs, e.g. to look at the blobs). A chain without chain_summary.csv keeps every run.
+The output goes next to the chains (the --root folder, or the folder of the chain folders you name) as two_beads_analysis_<tag>/: --tag gives the tag of the batch, without
+it the script asks for one (an empty answer gives two_beads_analysis/); --out chooses another folder. Per chain it writes, below that folder:
     final_states_per_chain/<chain>/<link>.png     slice of every final state (plane through the two bead centres and the volume centre)
     final_states_per_chain/<chain>_sheet.png      all the slices of the chain on one sheet, in chain order
-    energy_vs_distance/<chain>.png                bending energy u(s) = E_bend(s) - E_bend(far) in kappa against the distance (--paper adds Fig. 4a of van der Wel et al.)
+    energy_vs_distance/<chain>.png                bending energy u(s) = E_bend(s) - E_bend(far) in kappa against the distance (--paper adds Fig. 4a of van der Wel et al.), both legs
+    energy_vs_distance/way_in/<chain>.png         the same with the way in only, and way_out/ with the way back only (with --legs both, the default; same zero of u)
     coverage_scatter/<chain>.png                  coverage of bead 1 (y) against bead 0 (x), one point per simulation, grey dashed line x = y
     area_difference/<chain>.png                   final area minus the target area of the Area_constraint (A - A_target, and in percent of A_target) against the distance
     coverage_scatter/<chain>_cap.png              the same with the plain solid-angle fraction in the shell of the config (cap_cfg0, cap_cfg1)
@@ -49,7 +54,7 @@ import Analyze_two_vesicle as A2  # noqa: E402  run folders, mesh helpers, energ
 # DEFAULT_ROOT = os.path.join(HERE, "..", "Results", "Wrapping_two_vesicle")
 DEFAULT_ROOT = os.path.join(HERE, "..", "Results", "WrappingTwoVesicle")
 
-LINK_RE = re.compile(r"link(\d+)_s([0-9.]+)(?:_w(\d+))?$")
+LINK_RE = re.compile(r"link(\d+)_s([0-9.]+)(?:_w(\d+))?(?:_(mid|retry))?$")
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -76,6 +81,23 @@ def pick_chains(args):
     return out
 
 
+def choose_out(args, chains):
+    """--out, else two_beads_analysis_<tag> next to the chains: --tag, or asked for (an empty tag gives two_beads_analysis)."""
+    if args.out:
+        return args.out
+    base = os.path.dirname(os.path.normpath(chains[0]))
+    if args.show:
+        return os.path.join(base, "two_beads_analysis")  # nothing is written with --show
+    where = os.path.join(base, "two_beads_analysis_<tag>")
+    tag = args.tag
+    if tag is None:
+        if not sys.stdin.isatty():
+            raise SystemExit("give --tag <tag> (the output goes to %s) or --out" % where)
+        tag = input("Tag of this batch, the output goes to %s: " % where)
+    tag = re.sub(r"[^A-Za-z0-9._-]+", "_", tag.strip()).strip("_")
+    return os.path.join(base, "two_beads_analysis_" + tag if tag else "two_beads_analysis")
+
+
 def last_row(run):
     """(column index of every 'Bead' column, last data row) of Output_data.txt without parsing the whole file."""
     last = None
@@ -97,7 +119,9 @@ def analyze(run, link_name, cov_mode):
     V, F = A2.read_obj(mesh)
     pos = A2.read_bead_positions(run)
     m = LINK_RE.match(link_name)
+    # s_target is the label of the folder: of a _mid run it is the target of the link, the measured s is in s_over_Dp and s_chord
     p["link"], p["s_target"], p["warm"] = int(m.group(1)), float(m.group(2)), int(m.group(3) or 0)
+    p["retry"] = m.group(4) or ""  # "mid": the half step of a retry, "retry": the retry of a link that failed
     p["link_name"] = link_name
     for i, b in enumerate(cfg["Beads"][:2]):
         a, W = b["radius"], b.get("inter_str", 0.0)
@@ -122,6 +146,7 @@ def analyze(run, link_name, cov_mode):
     cov_e = [e["constants"] for e in cfg["Energies"] if e["Name"] == "Coverage"]
     p["target0"], p["target1"] = (cov_e[0][1], cov_e[0][2]) if cov_e and len(cov_e[0]) >= 3 else (float("nan"), float("nan"))
     p["pos0"], p["pos1"] = pos[0], pos[1]
+    p["planar"] = bool(cfg.get("boundary"))  # a disk with a clamped edge: no volume centre
     p["mesh"] = (V, F)
     return p
 
@@ -137,12 +162,25 @@ def chain_xaxis(chain, wanted):
     return "arc"
 
 
+def accepted_runs(chain):
+    """The link names of chain_summary.csv: the chain runner writes a row only for a run that passed its failure check (a link that
+    failed has a folder but no row). None for a chain without the file."""
+    path = os.path.join(chain, "chain_summary.csv")
+    if not os.path.exists(path):
+        return None
+    return {row["run"] for row in csv.DictReader(open(path))}
+
+
 def collect(chain, args):
     points = []
+    accepted = accepted_runs(chain)
     for run in A2.find_runs(chain):
         link_name = os.path.basename(os.path.dirname(os.path.normpath(run)))
         if not LINK_RE.match(link_name):
             continue  # not a link of a chain
+        if accepted is not None and link_name not in accepted and not args.keep_failed:
+            print("  skipped %s: it failed, it is not in chain_summary.csv (--keep_failed keeps it)" % link_name, file=sys.stderr)
+            continue
         try:
             p = analyze(run, link_name, args.cov)
         except Exception as exc:
@@ -153,16 +191,25 @@ def collect(chain, args):
         points.append(p)
     if not points:
         return points
-    points.sort(key=lambda p: (p["link"], p["warm"] or 99))  # w1, w2, then the target itself
+    # w1, w2, the half step of a retry, then the target itself (or its retry)
+    points.sort(key=lambda p: (p["link"], p["warm"] or (90 if p["retry"] == "mid" else 99)))
     # way in until the smallest target separation, way back after it
     link_min = min(points, key=lambda p: (p["s_target"], -p["link"]))["link"]
     for p in points:
         p["leg"] = "in" if p["link"] <= link_min else "out"
     pts_s = [p for p in points if p["s_over_Dp"] > args.s_far]
     key = "s_over_Dp" if args.xaxis_chain == "arc" else "s_chord"
-    ref_pts = [p for p in points if p[key] > args.s_far] or [max(points, key=lambda p: p[key])]
+    # the zero of u: the far runs of the way in, the vesicle before any contact (the way back can come out on another branch, e.g. the
+    # 0.95 / 0.02 chain returns 17 kappa higher); --ref_leg both takes the far runs of both legs, and so does a chain without a far run on the way in
+    far = [p for p in points if p[key] > args.s_far]
+    ref_pts = [p for p in far if p["leg"] == "in"] if args.ref_leg == "in" else far
+    ref_pts = ref_pts or far or [max(points, key=lambda p: p[key])]
     e0 = float(np.mean([p["Ebend_kappa"] for p in ref_pts]))
     e0_tot = float(np.mean([p["Etot_kappa"] for p in ref_pts]))
+    spread = max(p["Ebend_kappa"] for p in ref_pts) - min(p["Ebend_kappa"] for p in ref_pts)
+    if spread > 0.5:  # the far runs agree to 0.1 kappa
+        print("  WARNING: the %d runs of the zero of u differ by %.2f kappa (E_bend %.2f to %.2f), look at them: the zero may be off" % (
+            len(ref_pts), spread, min(p["Ebend_kappa"] for p in ref_pts), max(p["Ebend_kappa"] for p in ref_pts)), file=sys.stderr)
     for p in points:
         p["u_kappa"] = p["Ebend_kappa"] - e0
         p["u_tot_kappa"] = p["Etot_kappa"] - e0_tot
@@ -181,16 +228,24 @@ def finish(fig, args, plt, folder, filename, dpi=150):
     plt.close(fig)
 
 
-def slice_segments(V, F, pos, args):
-    """(segments (n,2,2) in the (u, w) plane, bead centres in that plane, origin) of the plane through both beads and the volume centre."""
-    _, _, vc = A2.mesh_geometry(V, F)
-    u = pos[0] - pos[1]
-    u = u / np.linalg.norm(u)
-    w = vc - 0.5 * (pos[0] + pos[1])
-    w -= u * (w @ u)
-    if np.linalg.norm(w) < 1e-9:
-        w = np.cross(u, [0.0, 0.0, 1.0])
-    w /= np.linalg.norm(w)
+def slice_segments(V, F, pos, args, planar=False):
+    """(segments (n,2,2) in the (u, w) plane, bead centres in that plane, origin) of the plane through both beads and the volume centre;
+    for a planar disk (no volume) the plane through both beads normal to the disk (x is the normal), the origin the midpoint of the beads."""
+    if planar:
+        vc = 0.5 * (pos[0] + pos[1])
+        u = pos[0] - pos[1]
+        u[0] = 0.0
+        u = u / np.linalg.norm(u)
+        w = np.array([1.0, 0.0, 0.0])
+    else:
+        _, _, vc = A2.mesh_geometry(V, F)
+        u = pos[0] - pos[1]
+        u = u / np.linalg.norm(u)
+        w = vc - 0.5 * (pos[0] + pos[1])
+        w -= u * (w @ u)
+        if np.linalg.norm(w) < 1e-9:
+            w = np.cross(u, [0.0, 0.0, 1.0])
+        w /= np.linalg.norm(w)
     n = np.cross(u, w)
     P = V - vc
     z = P @ n
@@ -217,7 +272,7 @@ def draw_slice(ax, p, half, shell_arg, show_shell, title_size=8):
     V, F = p["mesh"]
     a = p["a"]
     shell_w = shell_arg if shell_arg is not None else p["shell_w"]
-    seg, centres = slice_segments(V, F, [p["pos0"], p["pos1"]], None)
+    seg, centres = slice_segments(V, F, [p["pos0"], p["pos1"]], None, planar=p["planar"])
     ax.add_collection(LineCollection(seg, colors="k", linewidths=0.7))
     for c in centres:
         ax.add_patch(plt.Circle(c, a, fill=False, color="tab:red", lw=1.1))
@@ -278,7 +333,7 @@ def plot_slices(chain_name, points, args, plt):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def plot_energy(chain_name, points, args, plt):
+def plot_energy(chain_name, points, args, plt, folder="energy_vs_distance"):
     fig, ax = plt.subplots(figsize=(6.4, 5.4))
     if args.paper:
         paper = A2.load_paper()
@@ -315,7 +370,7 @@ def plot_energy(chain_name, points, args, plt):
     ax.legend(fontsize=7, frameon=False)
     ax.grid(alpha=0.25, lw=0.5)
     fig.tight_layout()
-    finish(fig, args, plt, "energy_vs_distance", chain_name + ".png")
+    finish(fig, args, plt, folder, chain_name + ".png")
 
 
 def plot_coverage(chain_name, points, args, plt, key="frac", suffix=""):
@@ -444,14 +499,15 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("chains", nargs="*", help="chain folders (default: the folders of --root that match --pattern)")
     ap.add_argument("--root", default=DEFAULT_ROOT, help="folder with the chains (default: Results/Wrapping_two_vesicle)")
-    ap.add_argument("--pattern", nargs="+", default=["TwoInteraction_r_*_coverage_*_excess*_replica_0_AreaConstraint"],
+    ap.add_argument("--pattern", nargs="+", default=["TwoInteraction_r_*_coverage_*_tension*_replica_0_SurfaceTension"],
                     help="glob(s) of the chain folders inside --root (quote them)")
     ap.add_argument("--r", type=float, nargs="+", default=None, help="only these bead radii (the r of coverage_r_<r>_...)")
     ap.add_argument("--ratio", "--c", type=float, nargs="+", default=None, help="only these coverage targets c (the correctratio_<c> or coverage_<c> of the folder name)")
     ap.add_argument("--excess", type=float, nargs="+", default=None, help="only these area excesses")
     ap.add_argument("--KI", type=float, nargs="+", default=None, help="only these adhesion strengths (shell_KI<KI> folders)")
     ap.add_argument("--rep", type=float, nargs="+", default=None, help="only these replicas (shell_..._rep<n> folders)")
-    ap.add_argument("--out", default="two_beads_analysis", help="output folder")
+    ap.add_argument("--tag", default=None, help="tag of the batch: the output goes to <folder of the chains>/two_beads_analysis_<tag> (default: the script asks)")
+    ap.add_argument("--out", default=None, help="output folder instead of <folder of the chains>/two_beads_analysis_<tag>")
     ap.add_argument("--plots", nargs="+", choices=["energy", "coverage", "cap", "area", "slices", "csv", "export"],
                     default=["energy", "coverage", "cap", "area", "slices", "csv", "export"], help="what to save (default all; slices are the slow part)")
     ap.add_argument("--energy", action="store_true", help="plot type: bending energy against the distance")
@@ -463,7 +519,7 @@ def main():
                     help="display the plots in windows instead of saving them (nothing is written; csv and export are skipped). Without plot-type flags: "
                          "energy, coverage, cap and area_diff")
     ap.add_argument("--legs", choices=["in", "out", "both"], default="both",
-                    help="which leg of the chain the plots show: in (way in), out (way back) or both (default). The zero of u still comes from the whole chain")
+                    help="which leg of the chain the plots show: in (way in), out (way back) or both (default). The zero of u does not depend on it, see --ref_leg")
     ap.add_argument("--cov", choices=["auto", "coverage", "adhesion", "cap"], default="auto", help="coverage definition, see above (default auto)")
     ap.add_argument("--cov_lim", type=float, nargs=2, default=None, metavar=("LO", "HI"), help="axis range of the coverage scatter (default 0..1)")
     ap.add_argument("--paper", action="store_true", help="overlay the digitized Fig. 4a of van der Wel et al. on the energy plot")
@@ -471,10 +527,14 @@ def main():
     ap.add_argument("--xaxis", choices=["auto", "arc", "chord"], default="auto",
                     help="auto (default): what the chain was run with (the distance column of chain_summary.csv; chains without it: arc); arc: s = R_v phi; chord: d/D_p")
     ap.add_argument("--s_far", type=float, default=4.0, help="runs with s above this (D_p) give the zero of u (default 4.0)")
+    ap.add_argument("--ref_leg", choices=["in", "both"], default="in",
+                    help="which legs give the zero of u: in (default, the far runs of the way in, before any contact) or both (the far runs of the way back too)")
     ap.add_argument("--xlim", type=float, nargs=2, default=None, metavar=("LO", "HI"))
     ap.add_argument("--ylim", type=float, nargs=2, default=None, metavar=("LO", "HI"))
     ap.add_argument("--kappa_kbt", type=float, default=20.9)
     ap.add_argument("--only_finished", action="store_true")
+    ap.add_argument("--keep_failed", action="store_true",
+                    help="also use the runs that failed (a folder without a row in chain_summary.csv): the first try of a retried link, the waypoint where a chain gave up")
     ap.add_argument("--half", type=float, default=8.0, help="half width of a slice panel in bead radii")
     ap.add_argument("--shell", action="store_true", help="draw the adhesion shell (radius a(1 +- shell_width)) around the beads in the slices")
     ap.add_argument("--shell_width", type=float, default=None, help="shell half width drawn by --shell (default: that of the run: shell_width of the beads, else 0.25)")
@@ -488,6 +548,7 @@ def main():
     if not chains:
         raise SystemExit("no chain folders found (root %s, patterns %s)" % (args.root, args.pattern))
     print("chains:\n  " + "\n  ".join(chains))
+    args.out = choose_out(args, chains)
 
     import matplotlib
     if not args.show:
@@ -513,7 +574,7 @@ def main():
         if not points:
             print("  no runs")
             continue
-        print("  %d runs; reference E_bend from s > %g D_p" % (len(points), args.s_far))
+        print("  %d runs; reference E_bend from s > %g D_p (%s)" % (len(points), args.s_far, "way in" if args.ref_leg == "in" else "both legs"))
         print("   link             leg   s/Dp    u/k    cov0   cov1   (cov1-cov0)")
         for p in points:
             print("   %-16s %-4s %6.2f %7.3f  %5.3f  %5.3f   %+6.3f%s" % (p["link_name"], p["leg"], p["s_over_Dp"], p["u_kappa"], p["frac0"], p["frac1"],
@@ -528,6 +589,11 @@ def main():
         else:
             if "energy" in types:
                 plot_energy(name, shown, args, plt)
+                if args.legs == "both" and not args.show:  # one plot per leg too, below energy_vs_distance/way_in and way_out
+                    for leg in ("in", "out"):
+                        leg_points = [p for p in shown if p["leg"] == leg]
+                        if leg_points:
+                            plot_energy(name, leg_points, args, plt, folder="energy_vs_distance/way_" + leg)
             if "coverage" in types:
                 plot_coverage(name, shown, args, plt)
             if "cap" in types:
