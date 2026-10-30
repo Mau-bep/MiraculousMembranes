@@ -226,8 +226,6 @@ float Tx = 0.0;
 float Ty = 0.0;
 float Tz = 0.0;
 
-VertexData<Vector3> NewtonStepSaved;
-float NewtonTs = 1.0;
 
 std::string basic_name;
 int Save_slot = 0;
@@ -1056,7 +1054,6 @@ void open_run(const SimConfig &cfg)
     // Whatever holds MeshData of the mesh goes before the mesh
     ORIG_VPOS = VertexData<Vector3>();
     Saved_vertex_positions = VertexData<Vector3>();
-    NewtonStepSaved = VertexData<Vector3>();
     Vert_sizings = VertexData<double>();
     Face_sizings = FaceData<double>();
     Edge_sizings = EdgeData<double>();
@@ -1277,6 +1274,19 @@ void applyMenuStyle()
     c[ImGuiCol_SliderGrabActive] = accentActive;
 }
 
+// ---- Background -------------------------------------------------------------
+// Dark by default; the checkbox at the top of the right panel switches it.
+bool darkBackground = true;
+
+void applyBackground()
+{
+    if (darkBackground)
+        polyscope::view::bgColor = {0.08f, 0.08f, 0.10f, 0.0f};
+    else
+        polyscope::view::bgColor = {1.0f, 1.0f, 1.0f, 0.0f};
+    polyscope::requestRedraw();
+}
+
 // A main menu: a full-width blue header bar with an outline. Like TreeNodeEx:
 // call ImGui::TreePop() if it returns true.
 bool menuSection(const char *label)
@@ -1303,6 +1313,8 @@ void Callback_qts()
     if (frame_counter >= 60)
         frame_counter = frame_counter % 60;
     ImGui::Text("The current frame is %i", frame_counter);
+    if (ImGui::Checkbox("Dark background", &darkBackground))
+        applyBackground();
 
     bool updateFrameData = false;
     bool currframeUpdated = run_folder_menu();
@@ -1450,28 +1462,6 @@ void Callback_qts()
             }
             ImGui::TreePop();
         }
-        if (subSection("Newton funoptions"))
-        {
-            // 3 THINGS
-            // 1. Calculate the newton step
-            // 2. stepsize
-            // 3. step that amount
-
-            if (ImGui::Button("Calculate Newton step"))
-            {
-                NewtonStepSaved = NewtonStep();
-                psMesh->addVertexVectorQuantity("Newton step", NewtonStepSaved);
-            }
-
-            ImGui::InputFloat("Step size", &NewtonTs, 1.0, 1.0, 4);
-            if (ImGui::Button("Take Newton step"))
-            {
-                geometry->vertexPositions += NewtonTs * NewtonStepSaved;
-                psMesh->updateVertexPositions(geometry->vertexPositions);
-            }
-            ImGui::TreePop();
-        }
-
         ImGui::TreePop();
     }
     // How often do we check the small angle? every 10?
@@ -2714,6 +2704,7 @@ int main(int argc, char **argv)
     polyscope::options::groundPlaneMode = polyscope::GroundPlaneMode::None; // no floor, for the figures
     polyscope::init();
     applyMenuStyle();
+    applyBackground();
 
     std::cout << "Im here happy\n";
 
