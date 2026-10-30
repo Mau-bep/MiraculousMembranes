@@ -231,6 +231,10 @@ namespace
             throw std::runtime_error("Input file: " + where + " is \"rigid\"; it cannot also have a Constraint");
         if (spec.state == "manual" && spec.constraint == "Normal")
             throw std::runtime_error("Input file: " + where + " is \"manual\" (driven along its Velocity); it cannot also have the \"Normal\" Constraint");
+        spec.release_in_normal = b.value("release_in_normal", false);
+        if (spec.release_in_normal && !(spec.state == "froze" && spec.constraint == "Normal"))
+            throw std::runtime_error("Input file: " + where + " has \"release_in_normal\", which needs \"state\": \"froze\" and \"Constraint\": \"Normal\" "
+                                     "(the bead stays frozen except along its axis inside BFGS-Normal)");
 
         if (spec.state == "manual")
         {
@@ -979,6 +983,7 @@ namespace
             bead.strength = params[0];
             bead.sigma = params[1];
             bead.side = spec.outside < 0.0 ? -1.0 : 1.0;
+            bead.Release_in_normal = spec.release_in_normal;
             bead.rc = params[2];
             bead.interaction = spec.mem_inter;
             bead.Bead_I = sim.Interaction_container.back().get();

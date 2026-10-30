@@ -77,6 +77,38 @@ int main()
     ok &= check(!frozen.Moves_along_axis() && same(frozen.Free_force(F), F) && same(frozen.Pos, Vector3{1.0, 1.0, 1.0}),
                 "a frozen bead is not a variable and does not move");
 
+    // A frozen bead released along its axis (Release_in_normal): frozen outside BFGS-Normal, a variable along the axis inside it
+    Bead released = frozen;
+    released.Release_in_normal = true;
+    released.Axis_active = false;
+    released.Pos = Vector3{1.0, 1.0, 1.0};
+    released.Total_force = F;
+    released.Move_bead(1.0, Vector3{0.0, 0.0, 0.0}, F);
+    released.Move_bead(1.0, Vector3{0.0, 0.0, 0.0});
+    ok &= check(!released.Moves_along_axis() && same(released.Free_force(F), F) && same(released.Pos, Vector3{1.0, 1.0, 1.0}),
+                "released, outside BFGS-Normal: frozen (not a variable, does not move)");
+    released.Axis_active = true;
+    ok &= check(released.Moves_along_axis() && same(released.Free_force(F), kept), "released, inside BFGS-Normal: a variable along the axis, Free_force keeps F.n n");
+    released.Move_bead(0.5, Vector3{0.0, 0.0, 0.0}, F);
+    const Vector3 after_force = released.Pos;
+    released.Pos = Vector3{1.0, 1.0, 1.0};
+    released.Move_bead(0.5, Vector3{0.0, 0.0, 0.0});
+    ok &= check(same(after_force, Vector3{1.0, 1.0, 1.0} + 0.5 * kept) && same(released.Pos, Vector3{1.0, 1.0, 1.0} + 0.5 * kept),
+                "released, inside BFGS-Normal: both Move_bead overloads move by dt F.n n and nothing else");
+    // its coordinates across the axis never change: the in-plane distance to a bead frozen beside it stays
+    released.Pos = Vector3{1.0, 1.0, 1.0};
+    const Vector3 across = Vector3{0.0, 1.0, 0.0}; // perpendicular to the axis (0.6, 0, 0.8)
+    for (int step = 0; step < 50; step++)
+        released.Move_bead(0.1, Vector3{0.0, 0.0, 0.0}, F + (step % 2 ? 1.0 : -1.0) * across);
+    ok &= check(std::abs((released.Pos - Vector3{1.0, 1.0, 1.0}).y) < 1e-14 && std::abs(dot(released.Pos - Vector3{1.0, 1.0, 1.0}, across)) < 1e-14,
+                "released: 50 steps with forces across the axis leave the coordinate across the axis unchanged");
+    Bead no_flag = frozen;
+    no_flag.Axis_active = true;
+    ok &= check(!no_flag.Moves_along_axis(), "a frozen bead with the Normal constraint but without the flag stays frozen");
+    Bead no_constraint = released;
+    no_constraint.Constraint = "None";
+    ok &= check(!no_constraint.Moves_along_axis(), "the flag does nothing without the Normal constraint");
+
     Bead free_bead;
     free_bead.state = "default";
     free_bead.Pos = Vector3{1.0, 1.0, 1.0};

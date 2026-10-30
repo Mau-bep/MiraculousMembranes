@@ -52,6 +52,11 @@ public:
   // sets for its step: every other integrator moves the bead freely.
   Vector3 Constraint_axis{0.0, 0.0, 0.0};
   bool Axis_active = false;
+  // A frozen bead ("froze") with Constraint "Normal" and this flag stays where it is in every integrator
+  // except BFGS-Normal (and the gradient descent steps of its polish): there it moves along Constraint_axis
+  // like a free one. Its other coordinates never change, so its distance to a bead frozen beside it is
+  // the one the run was started with
+  bool Release_in_normal = false;
 
   Interaction *Bead_I = nullptr;
 
@@ -72,8 +77,12 @@ public:
   // State "rigid": the bead keeps the length of each of its "Rigid" bonds
   // (bonds_constants [L]) and only moves perpendicular to them
   bool Has_rigid_bond() const;
-  // A free bead with Constraint "Normal" inside BFGS-Normal: one coordinate along Constraint_axis, a variable of the integrator
-  bool Moves_along_axis() const { return Axis_active && state == "default" && Constraint == "Normal"; }
+  // A bead with Constraint "Normal" inside BFGS-Normal: one coordinate along Constraint_axis, a variable of the integrator.
+  // Free (state "default"), or frozen and released along the axis (Release_in_normal)
+  bool Moves_along_axis() const
+  {
+    return Axis_active && Constraint == "Normal" && (state == "default" || (state == "froze" && Release_in_normal));
+  }
   Vector3 Free_force(Vector3 Force) const;
   double Enforce_rigid_bonds();
 

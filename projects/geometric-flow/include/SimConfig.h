@@ -40,6 +40,7 @@ struct BeadSpec
     std::string gradient_order = "Bead"; // name used in the energy list
     std::string constraint = "None";
     std::vector<double> constraint_constants;
+    bool release_in_normal = false; // state "froze" + Constraint "Normal": the bead moves along the axis inside BFGS-Normal (Bead::Release_in_normal)
 
     Vector3 pos{0.0, 0.0, 0.0};
     double radius = 0.0;

@@ -125,7 +125,12 @@ void Bead::Move_bead(double dt, Vector3 center)
     if (state == "rigid")
         this->Pos = this->Pos + Free_force(Total_force) * dt - center;
     if (state == "froze")
+    {
+        // frozen, except along its axis for a bead released inside BFGS-Normal
+        if (Moves_along_axis())
+            this->Pos = this->Pos + Constraint_axis * (dot(Total_force, Constraint_axis) * dt) - center;
         return;
+    }
 
     if (state == "manual")
     {
@@ -174,7 +179,12 @@ void Bead::Move_bead(double dt, Vector3 center, Vector3 Force)
     if (state == "rigid")
         this->Pos = this->Pos + Free_force(Force) * dt - center;
     if (state == "froze")
+    {
+        // frozen, except along its axis for a bead released inside BFGS-Normal
+        if (Moves_along_axis())
+            this->Pos = this->Pos + Constraint_axis * (dot(Force, Constraint_axis) * dt) - center;
         return;
+    }
 
     if (state == "manual")
     {
