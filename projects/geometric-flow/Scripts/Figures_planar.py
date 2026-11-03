@@ -45,7 +45,7 @@ def edges(c):
     return np.concatenate(([c[0] - (mid[0] - c[0])], mid, [c[-1] + (c[-1] - mid[-1])]))
 
 
-def fig_phase_space(cols=COLS, height_cm=None, theory=True, xlim=(2.0, 10.0), ylim=(0.0, 2.0), flat=FLAT, full=FULL):
+def fig_phase_space(cols=COLS, height_cm=None, theory=True, cbar_location="top", xlim=(2.0, 10.0), ylim=(0.0, 2.0), flat=FLAT, full=FULL):
     """Coverage over the (wbar, sigmabar) plane, the lower-energy run of the flat and the full start at every point, with the lines of Deserno's Fig. 2."""
     wa, sa, ca, Ea = load_phase(flat)
     wb, sb, cb, Eb = load_phase(full)
@@ -63,7 +63,7 @@ def fig_phase_space(cols=COLS, height_cm=None, theory=True, xlim=(2.0, 10.0), yl
     figstyle.use()
     fig, ax = figstyle.figure(cols=cols, aspect=0.8, height_cm=height_cm)
     mesh = ax.pcolormesh(edges(ws), edges(ss), Z, cmap="viridis", shading="flat", rasterized=True)
-    cbar = fig.colorbar(mesh, ax=ax, pad=0.02, aspect=22)
+    cbar = fig.colorbar(mesh, ax=ax, location=cbar_location, pad=0.02, aspect=22 if cbar_location in ("left", "right") else 30)      # on top: horizontal, its label above it
     cbar.set_label("Coverage")
     cbar.outline.set_linewidth(figstyle.AXES_LW)
     cbar.ax.tick_params(width=figstyle.AXES_LW, direction="out")
@@ -142,13 +142,14 @@ def main():
     ap.add_argument("which", nargs="*", choices=list(FIGURES), default=[], help="the figures to make (default: both)")
     ap.add_argument("--cols", type=float, default=COLS, help="width in columns (default 1)")
     ap.add_argument("--height_cm", type=float, default=None, help="height in cm (default: 0.8 of the width)")
+    ap.add_argument("--cbar", choices=["top", "right"], default="top", help="where the colour bar of the phase space goes (default top)")
     ap.add_argument("--no_theory", action="store_true", help="without the lines of Deserno's Fig. 2")
     args = ap.parse_args()
     import matplotlib
     matplotlib.use("Agg")
     for key in args.which or list(FIGURES):
         name, make = FIGURES[key]
-        kw = {"theory": not args.no_theory} if key == "phase" else {}
+        kw = {"theory": not args.no_theory, "cbar_location": args.cbar} if key == "phase" else {}
         figstyle.save_figure(make(cols=args.cols, height_cm=args.height_cm, **kw), name)
 
 
