@@ -28,6 +28,8 @@ SERIES_COLORS = ["#1b4fb8", "#9a66e0", "#e0559c"]  # blue, purple, pink (colour-
 RADIUS_COLORS = ["magenta", "#7a7a7a", "black"]    # KB = 1, 2, 4 (Plot_tube_data used magenta, pink, black; pink is too pale at this size, a grey keeps the three apart in print)
 
 
+LEGEND_FONT = 6.0            # pt: the legend entries "Bending rigidity K_B = 1" of the radius figures are 3.4 cm at 9 pt, smaller than the 8.8 pt minimum so that they fit (Mau asked)
+
 # the three runs marked on the radius figures (the BENDING_ICONS of Plot_tube_data): KB -> (index of the point of the series, sorted by sigma, marker, size in pt)
 HIGHLIGHT = {1: (-1, "s", 6.5),      # the last point of KB = 1 (sigma = 50): square
              4: (4, "*", 10.0),      # the 5th point of KB = 4 (sigma = 4): star
@@ -68,7 +70,7 @@ def fig_pulling(cols=COLS, height_cm=None, files=None, full_legend=True, size=1.
     return fig
 
 
-def fig_radius(cols=COLS, height_cm=None, path=None):
+def fig_radius(cols=COLS, height_cm=None, path=None, legend_font=LEGEND_FONT):
     """The tube radius r against the surface tension sigma (= KA) of the barbell with beads of radius 1, one series per KB, log-log; the dashed lines are r0 = sqrt(KB / (4 sigma))."""
     path = path or os.path.join(RESULTS, "Tube_beads", "Bending.csv")
     rows = P.load_radius_csv(path)
@@ -78,7 +80,7 @@ def fig_radius(cols=COLS, height_cm=None, path=None):
         sel = sorted((r for r in rows if r["KB"] == kb), key=lambda r: r["KA"])
         xs = np.array([r["KA"] for r in sel])
         ax.plot(xs, np.sqrt(kb / (4.0 * xs)), "--", color=c, lw=figstyle.LW, zorder=1)
-        ax.plot(xs, [r["R_tube"] for r in sel], "o", color=c, ms=figstyle.MARKER, label=r"$K_B = %g$" % kb, zorder=2)
+        ax.plot(xs, [r["R_tube"] for r in sel], "o", color=c, ms=figstyle.MARKER, label=r"Bending rigidity $K_B = %g$" % kb, zorder=2)
         mark_runs(ax, kb, c, xs, [r["R_tube"] for r in sel])
     ax.set_xscale("log")
     ax.set_yscale("log")
@@ -90,11 +92,11 @@ def fig_radius(cols=COLS, height_cm=None, path=None):
         axis.set_major_formatter(FuncFormatter(lambda v, _p: "$%g$" % v))
     ax.set_xlabel(figstyle.label("Surface tension", r"\sigma"))
     ax.set_ylabel(figstyle.label("Tube radius", "r"))
-    ax.legend(loc="lower left")
+    ax.legend(loc="lower left", fontsize=legend_font, handletextpad=0.1, borderaxespad=0.2)
     return fig
 
 
-def fig_radius_ratio(cols=COLS, height_cm=None, path=None):
+def fig_radius_ratio(cols=COLS, height_cm=None, path=None, legend_font=LEGEND_FONT):
     """r / r0 against the surface tension sigma (= KA), r0 = sqrt(KB / (4 sigma)) the theoretical radius: the three series of fig_radius fall on 1 (dashed line)."""
     path = path or os.path.join(RESULTS, "Tube_beads", "Bending.csv")
     rows = P.load_radius_csv(path)
@@ -105,7 +107,7 @@ def fig_radius_ratio(cols=COLS, height_cm=None, path=None):
         sel = sorted((r for r in rows if r["KB"] == kb), key=lambda r: r["KA"])
         xs = np.array([r["KA"] for r in sel])
         ratio = np.array([r["R_tube"] for r in sel]) / np.sqrt(kb / (4.0 * xs))
-        ax.plot(xs, ratio, "o", color=c, ms=figstyle.MARKER, label=r"$K_B = %g$" % kb, zorder=2)
+        ax.plot(xs, ratio, "o", color=c, ms=figstyle.MARKER, label=r"Bending rigidity $K_B = %g$" % kb, zorder=2)
         mark_runs(ax, kb, c, xs, ratio)
     ax.set_xscale("log")
     from matplotlib.ticker import FixedLocator, FuncFormatter, NullLocator
@@ -117,7 +119,7 @@ def fig_radius_ratio(cols=COLS, height_cm=None, path=None):
     ax.set_ylim(0.98, 1.005)
     ax.yaxis.set_major_locator(figstyle.mpl.ticker.MultipleLocator(0.01))
     ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _p: "$%.2f$" % v))
-    ax.legend(loc="lower right")                          # the empty corner: the points of the three series lie within 1 percent of 1
+    ax.legend(loc="lower right", fontsize=legend_font, handletextpad=0.1, borderaxespad=0.2)          # the empty corner: the points of the three series lie within 1 percent of 1
     return fig
 
 
