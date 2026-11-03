@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The two tube figures of the manuscript, each 1/3 of a column wide (figstyle.py: 9 pt Latin Modern, lines and markers over the minima), written as png and eps to
+"""The two tube figures of the manuscript, each 2/3 of a column wide (5.7 cm) (figstyle.py: 9 pt Latin Modern, lines and markers over the minima), written as png and eps to
 Results/Paper_figures/<name>_vNN.* (a new iteration each run, the earlier ones are kept).
 
 usage:  python3 Figures_tube.py                 both figures
@@ -22,7 +22,7 @@ import figstyle                                    # noqa: E402  the style of th
 import Plot_tube_data as P                         # noqa: E402  the readers of the csv's (chain_summary.csv, Bending.csv)
 
 RESULTS = os.path.join(os.path.dirname(HERE), "Results")
-COLS = 1.0 / 3.0                                   # width of both figures, in columns
+COLS = 2.0 / 3.0                                   # width of both figures, in columns (5.7 cm: 1/3 column, 2.8 cm, cannot hold the 3.2 cm legend entry "Surface tension sigma = 16")
 SERIES_COLORS = ["#1b4fb8", "#9a66e0", "#e0559c"]  # blue, purple, pink (colour-blind safe, as Plot_tube_data FILE_COLORS)
 RADIUS_COLORS = ["magenta", "#7a7a7a", "black"]    # KB = 1, 2, 4 (Plot_tube_data used magenta, pink, black; pink is too pale at this size, a grey keeps the three apart in print)
 
@@ -85,7 +85,7 @@ FIGURES = {"pulling": ("tube_pulling_relaxation", fig_pulling), "radius": ("tube
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("which", nargs="*", choices=list(FIGURES) + [[]], default=[], help="the figures to make (default: both)")
-    ap.add_argument("--cols", type=float, default=COLS, help="width in columns (default 1/3)")
+    ap.add_argument("--cols", type=float, default=COLS, help="width in columns (default 2/3)")
     ap.add_argument("--short_legend", action="store_true", help="pulling figure: the legend entries read sigma = 16 only (the full Surface tension sigma = 16 is 3.2 cm wide)")
     ap.add_argument("--height_cm", type=float, default=None, help="height in cm (default: square)")
     args = ap.parse_args()
