@@ -18,7 +18,10 @@ The rules of the journal, and where they are enforced
 
 Text is LaTeX (Latin Modern, the set-up that was in Plots.py) when latex, dvipng and ghostscript are installed, mathtext with Computer Modern otherwise; use(usetex=False) forces the second.
 """
+import glob
 import math
+import os
+import re
 import shutil
 import warnings
 
@@ -38,6 +41,7 @@ MARKER = 4.0                          # default marker diameter, pt (1.41 mm)
 MARKER_MIN_PT = 1.0 * MM_PT           # 2.84 pt
 SCATTER_S = MARKER ** 2               # scatter's s is the area in pt^2 (a square of side = diameter)
 DPI = 600
+FIG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Results", "Paper_figures")     # where the scripts dump the figure iterations
 
 _PREAMBLE = R"""
 \usepackage{lmodern}
@@ -183,3 +187,25 @@ def save(fig, path, dpi=None, check_rules=True, **kw):
             warnings.warn("figstyle: " + msg)
     fig.savefig(path, dpi=dpi or DPI, **kw)
     return path
+
+
+def save_figure(fig, name, folder=None, formats=("png", "eps"), version=True, **kw):
+    """Write the figure to the figure folder (FIG_DIR = Results/Paper_figures) in every format of `formats` (png and eps by default), at its printed size, and report violations of the rules.
+    version=True numbers the iterations: name_v01.png/.eps, name_v02.png/.eps, ... (the next number after the highest in the folder), so an earlier iteration is never overwritten;
+    version=False overwrites name.png/.eps. Returns the list of the files written."""
+    folder = folder or FIG_DIR
+    os.makedirs(folder, exist_ok=True)
+    stem = name
+    if version:
+        used = [int(m.group(1)) for f in glob.glob(os.path.join(folder, name + "_v*.*")) for m in [re.search(r"_v(\d+)\.[a-z]+$", f)] if m]
+        stem = "%s_v%02d" % (name, max(used, default=0) + 1)
+    if kw.pop("check_rules", True):
+        for msg in check(fig):
+            warnings.warn("figstyle: " + msg)
+    out = []
+    for fmt in formats:
+        path = os.path.join(folder, "%s.%s" % (stem, fmt))
+        fig.savefig(path, dpi=DPI, **kw)
+        out.append(path)
+    print("wrote " + ", ".join(out))
+    return out
