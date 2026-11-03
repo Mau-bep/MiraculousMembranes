@@ -61,9 +61,11 @@ def fig_phase_space(cols=COLS, height_cm=None, theory=True, cbar_location="top",
     Z = np.where(full_wins, grid(wb, sb, cb), grid(wa, sa, ca))
 
     figstyle.use()
-    fig, ax = figstyle.figure(cols=cols, aspect=0.8, height_cm=height_cm)
+    # the colour bar on top takes about 1.2 cm of height: the figure is taller than 0.8 of the width (Mau: the plot keeps the size it had with the bar at its side, the height convention is waived)
+    fig, ax = figstyle.figure(cols=cols, aspect=0.8 if cbar_location != "top" else 0.93, height_cm=height_cm)
     mesh = ax.pcolormesh(edges(ws), edges(ss), Z, cmap="viridis", shading="flat", rasterized=True)
-    cbar = fig.colorbar(mesh, ax=ax, location=cbar_location, pad=0.02, aspect=22 if cbar_location in ("left", "right") else 30)      # on top: horizontal, its label above it
+    # on top: horizontal, 70 % of the width and thin, its label above it
+    cbar = fig.colorbar(mesh, ax=ax, location=cbar_location, pad=0.02, **({"aspect": 22} if cbar_location in ("left", "right") else {"aspect": 45, "shrink": 0.7}))
     cbar.set_label("Coverage")
     cbar.outline.set_linewidth(figstyle.AXES_LW)
     cbar.ax.tick_params(width=figstyle.AXES_LW, direction="out")
@@ -80,6 +82,9 @@ def fig_phase_space(cols=COLS, height_cm=None, theory=True, cbar_location="top",
     ax.xaxis.set_major_locator(figstyle.mpl.ticker.MultipleLocator(2))
     ax.yaxis.set_major_locator(figstyle.mpl.ticker.MultipleLocator(0.5))
     ax.set_aspect("auto")
+    fig.canvas.draw()
+    print("phase space: %.1f x %.1f cm, plot %.2f x %.2f cm" % (fig.get_size_inches()[0] * 2.54, fig.get_size_inches()[1] * 2.54, ax.get_position().width * fig.get_size_inches()[0] * 2.54,
+                                                              ax.get_position().height * fig.get_size_inches()[1] * 2.54))
     return fig
 
 
