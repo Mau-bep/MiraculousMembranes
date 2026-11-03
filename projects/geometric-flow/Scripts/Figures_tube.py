@@ -5,6 +5,7 @@ Results/Paper_figures/<name>_vNN.* (a new iteration each run, the earlier ones a
 usage:  python3 Figures_tube.py                 both figures
         python3 Figures_tube.py pulling         tube_pulling_relaxation: f / f0 against the length dL of the tube, one colour per surface tension
         python3 Figures_tube.py radius          tube_radius_vs_tension: the tube radius r against the surface tension sigma, one series per bending rigidity
+        python3 Figures_tube.py radius_ratio    r / r0 against sigma (r0 = sqrt(KB / (4 sigma)) the theory): the points fall on 1
         python3 Figures_tube.py --cols 0.5      another width (columns); --height_cm 5 another height
 """
 import argparse
@@ -79,7 +80,32 @@ def fig_radius(cols=COLS, height_cm=None, path=None):
     return fig
 
 
-FIGURES = {"pulling": ("tube_pulling_relaxation", fig_pulling), "radius": ("tube_radius_vs_tension", fig_radius)}
+def fig_radius_ratio(cols=COLS, height_cm=None, path=None):
+    """r / r0 against the surface tension sigma (= KA), r0 = sqrt(KB / (4 sigma)) the theoretical radius: the three series of fig_radius fall on 1 (dashed line)."""
+    path = path or os.path.join(RESULTS, "Tube_beads", "Bending.csv")
+    rows = P.load_radius_csv(path)
+    figstyle.use()
+    fig, ax = figstyle.figure(cols=cols, aspect=1.0, height_cm=height_cm)
+    ax.axhline(1.0, color="black", ls="--", lw=figstyle.AXES_LW, zorder=1)
+    for kb, c in zip(sorted({r["KB"] for r in rows}), RADIUS_COLORS):
+        sel = sorted((r for r in rows if r["KB"] == kb), key=lambda r: r["KA"])
+        xs = np.array([r["KA"] for r in sel])
+        ax.plot(xs, np.array([r["R_tube"] for r in sel]) / np.sqrt(kb / (4.0 * xs)), "o", color=c, ms=figstyle.MARKER, label=r"$K_B = %g$" % kb, zorder=2)
+    ax.set_xscale("log")
+    from matplotlib.ticker import FixedLocator, FuncFormatter, NullLocator
+    ax.xaxis.set_major_locator(FixedLocator([2, 5, 10, 50]))
+    ax.xaxis.set_minor_locator(NullLocator())
+    ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _p: "$%g$" % v))
+    ax.set_xlabel(figstyle.label("Surface tension", r"\sigma"))
+    ax.set_ylabel(figstyle.label("Tube radius", "r/r_0"))
+    ax.set_ylim(0.98, 1.005)
+    ax.yaxis.set_major_locator(figstyle.mpl.ticker.MultipleLocator(0.01))
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _p: "$%.2f$" % v))
+    ax.legend(loc="lower right")                          # the empty corner: the points of the three series lie within 1 percent of 1
+    return fig
+
+
+FIGURES = {"pulling": ("tube_pulling_relaxation", fig_pulling), "radius": ("tube_radius_vs_tension", fig_radius), "radius_ratio": ("tube_radius_ratio_vs_tension", fig_radius_ratio)}
 
 
 def main():
