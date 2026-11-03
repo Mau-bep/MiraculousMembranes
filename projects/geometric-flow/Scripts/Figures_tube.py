@@ -27,9 +27,9 @@ SERIES_COLORS = ["#1b4fb8", "#9a66e0", "#e0559c"]  # blue, purple, pink (colour-
 RADIUS_COLORS = ["magenta", "#7a7a7a", "black"]    # KB = 1, 2, 4 (Plot_tube_data used magenta, pink, black; pink is too pale at this size, a grey keeps the three apart in print)
 
 
-def fig_pulling(cols=COLS, height_cm=None, files=None, full_legend=True, size=2.6):
+def fig_pulling(cols=COLS, height_cm=None, files=None, full_legend=True, size=1.3):
     """f / f0 against the length ΔL of the tube (x_tip of chain_summary.csv), the way out and the way back of the chain (a relaxation at every position), one colour per surface tension
-    sigma = KA, f0 = 2 pi sqrt(KB KA) the force of the infinite tube (KB = 4), a dot per relaxation (a scatter plot, dots 2.6 pt = 0.92 mm across: Mau asked for them smaller than the 1 mm minimum (the check warns)), the dashed line at f / f0 = 1 (the figure of Plot_tube_data --color same --theory --y F_over_f0 --x x_tip).
+    sigma = KA, f0 = 2 pi sqrt(KB KA) the force of the infinite tube (KB = 4), a dot per relaxation (a scatter plot, dots 1.3 pt = 0.46 mm across: Mau asked for them much smaller than the 1 mm minimum for this figure (the check warns)), the dashed line at f / f0 = 1 (the figure of Plot_tube_data --color same --theory --y F_over_f0 --x x_tip).
     full_legend  the entries read "Surface tension sigma = 16" (3.2 cm wide, about 0.6 of a column of axes); False: "sigma = 16"."""
     files = files or sorted(glob.glob(os.path.join(RESULTS, "Tube_material", "Chain_data_KA_*.csv")), key=lambda f: float(re.search(r"KA_([0-9.]+)", f).group(1)))
     figstyle.use()
@@ -50,7 +50,7 @@ def fig_pulling(cols=COLS, height_cm=None, files=None, full_legend=True, size=2.
     ax.xaxis.set_major_locator(figstyle.mpl.ticker.MultipleLocator(2))
     ax.set_ylim(0, 1.5)
     ax.yaxis.set_major_locator(figstyle.mpl.ticker.MultipleLocator(0.5))
-    ax.legend(loc="lower right", handletextpad=0.1)          # the empty corner: below the plateau, right of the rise
+    ax.legend(loc="lower right", handletextpad=0.1, markerscale=2.2)          # the legend dots stay about 1 mm so the colours can be told apart          # the empty corner: below the plateau, right of the rise
     return fig
 
 
