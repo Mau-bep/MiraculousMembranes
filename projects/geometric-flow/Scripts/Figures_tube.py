@@ -70,6 +70,21 @@ def fig_pulling(cols=COLS, height_cm=None, files=None, full_legend=True, size=1.
     return fig
 
 
+SLOPE_COLOR = "#2c8fd0"      # the full line of slope -1/2 of the radius figure (light blue, as the slope line of Plot_tube_data)
+
+
+def slope_line(ax, rows, a=1.5, s0=6.0):
+    """A full line of slope -1/2 (r = a sigma^-1/2, a above the theory of the largest KB: a = 1.5 against r0 = sqrt(KB/4) sigma^-1/2, KB = 4 -> 1) from sigma = s0 to the largest sigma, labelled
+    Slope = -1/2 along the line (rotated to its angle on the log-log axes): only its slope counts, it is a guide to the eye for the scaling."""
+    xs = np.geomspace(s0, max(r["KA"] for r in rows), 50)
+    ax.plot(xs, a * xs ** -0.5, "-", color=SLOPE_COLOR, lw=1.6, zorder=1)
+    ax.figure.canvas.draw()                                   # the axes size is final: the angle of the line on the screen
+    (x0, y0), (x1, y1) = ax.transData.transform([(xs[0], a * xs[0] ** -0.5), (xs[-1], a * xs[-1] ** -0.5)])
+    angle = math.degrees(math.atan2(y1 - y0, x1 - x0))
+    xm = math.sqrt(xs[0] * xs[-1])
+    ax.annotate(r"Slope $= -1/2$", xy=(xm, a * xm ** -0.5), xytext=(0, 4), textcoords="offset points", rotation=angle, rotation_mode="anchor", ha="center", va="bottom", color=SLOPE_COLOR)
+
+
 def fig_radius(cols=COLS, height_cm=None, path=None, legend_font=LEGEND_FONT):
     """The tube radius r against the surface tension sigma (= KA) of the barbell with beads of radius 1, one series per KB, log-log; the dashed lines are r0 = sqrt(KB / (4 sigma))."""
     path = path or os.path.join(RESULTS, "Tube_beads", "Bending.csv")
@@ -92,6 +107,7 @@ def fig_radius(cols=COLS, height_cm=None, path=None, legend_font=LEGEND_FONT):
         axis.set_major_formatter(FuncFormatter(lambda v, _p: "$%g$" % v))
     ax.set_xlabel(figstyle.label("Surface tension", r"\sigma"))
     ax.set_ylabel(figstyle.label("Tube radius", "r"))
+    slope_line(ax, rows)
     ax.legend(loc="lower left", fontsize=legend_font, handletextpad=0.1, borderaxespad=0.2)
     return fig
 
