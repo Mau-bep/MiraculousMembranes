@@ -28,6 +28,19 @@ SERIES_COLORS = ["#1b4fb8", "#9a66e0", "#e0559c"]  # blue, purple, pink (colour-
 RADIUS_COLORS = ["magenta", "#7a7a7a", "black"]    # KB = 1, 2, 4 (Plot_tube_data used magenta, pink, black; pink is too pale at this size, a grey keeps the three apart in print)
 
 
+# the three runs marked on the radius figures (the BENDING_ICONS of Plot_tube_data): KB -> (index of the point of the series, sorted by sigma, marker, size in pt)
+HIGHLIGHT = {1: (-1, "s", 6.5),      # the last point of KB = 1 (sigma = 50): square
+             4: (4, "*", 10.0),      # the 5th point of KB = 4 (sigma = 4): star
+             2: (8, "^", 7.5)}       # the 9th point of KB = 2 (sigma = 11.5): triangle
+
+
+def mark_runs(ax, kb, color, xs, ys):
+    """Draw the marked run of the series KB over its dot, in the colour of the series."""
+    if kb in HIGHLIGHT:
+        i, mk, ms = HIGHLIGHT[kb]
+        ax.plot([xs[i]], [ys[i]], mk, color=color, ms=ms, mew=0, zorder=4)
+
+
 def fig_pulling(cols=COLS, height_cm=None, files=None, full_legend=True, size=1.3):
     """f / f0 against the length ΔL of the tube (x_tip of chain_summary.csv), the way out and the way back of the chain (a relaxation at every position), one colour per surface tension
     sigma = KA, f0 = 2 pi sqrt(KB KA) the force of the infinite tube (KB = 4), a dot per relaxation (a scatter plot, dots 1.3 pt = 0.46 mm across: Mau asked for them much smaller than the 1 mm minimum for this figure (the check warns)), the dashed line at f / f0 = 1 (the figure of Plot_tube_data --color same --theory --y F_over_f0 --x x_tip).
@@ -66,6 +79,7 @@ def fig_radius(cols=COLS, height_cm=None, path=None):
         xs = np.array([r["KA"] for r in sel])
         ax.plot(xs, np.sqrt(kb / (4.0 * xs)), "--", color=c, lw=figstyle.LW, zorder=1)
         ax.plot(xs, [r["R_tube"] for r in sel], "o", color=c, ms=figstyle.MARKER, label=r"$K_B = %g$" % kb, zorder=2)
+        mark_runs(ax, kb, c, xs, [r["R_tube"] for r in sel])
     ax.set_xscale("log")
     ax.set_yscale("log")
     from matplotlib.ticker import FixedLocator, FuncFormatter, NullLocator
@@ -90,7 +104,9 @@ def fig_radius_ratio(cols=COLS, height_cm=None, path=None):
     for kb, c in zip(sorted({r["KB"] for r in rows}), RADIUS_COLORS):
         sel = sorted((r for r in rows if r["KB"] == kb), key=lambda r: r["KA"])
         xs = np.array([r["KA"] for r in sel])
-        ax.plot(xs, np.array([r["R_tube"] for r in sel]) / np.sqrt(kb / (4.0 * xs)), "o", color=c, ms=figstyle.MARKER, label=r"$K_B = %g$" % kb, zorder=2)
+        ratio = np.array([r["R_tube"] for r in sel]) / np.sqrt(kb / (4.0 * xs))
+        ax.plot(xs, ratio, "o", color=c, ms=figstyle.MARKER, label=r"$K_B = %g$" % kb, zorder=2)
+        mark_runs(ax, kb, c, xs, ratio)
     ax.set_xscale("log")
     from matplotlib.ticker import FixedLocator, FuncFormatter, NullLocator
     ax.xaxis.set_major_locator(FixedLocator([2, 5, 10, 50]))
