@@ -27,9 +27,9 @@ SERIES_COLORS = ["#1b4fb8", "#9a66e0", "#e0559c"]  # blue, purple, pink (colour-
 RADIUS_COLORS = ["magenta", "#7a7a7a", "black"]    # KB = 1, 2, 4 (Plot_tube_data used magenta, pink, black; pink is too pale at this size, a grey keeps the three apart in print)
 
 
-def fig_pulling(cols=COLS, height_cm=None, files=None, full_legend=True, size=figstyle.MARKER):
+def fig_pulling(cols=COLS, height_cm=None, files=None, full_legend=True, size=3.0):
     """f / f0 against the length ΔL of the tube (x_tip of chain_summary.csv), the way out and the way back of the chain (a relaxation at every position), one colour per surface tension
-    sigma = KA, f0 = 2 pi sqrt(KB KA) the force of the infinite tube (KB = 4), lines (a dot per relaxation would be 120 overlapping dots at this size), the dashed line at f / f0 = 1 (the figure of Plot_tube_data --color same --theory --y F_over_f0 --x x_tip).
+    sigma = KA, f0 = 2 pi sqrt(KB KA) the force of the infinite tube (KB = 4), a dot per relaxation (a scatter plot, dots 3 pt = 1.06 mm across, just over the 1 mm minimum), the dashed line at f / f0 = 1 (the figure of Plot_tube_data --color same --theory --y F_over_f0 --x x_tip).
     full_legend  the entries read "Surface tension sigma = 16" (3.2 cm wide, about 0.6 of a column of axes); False: "sigma = 16"."""
     files = files or sorted(glob.glob(os.path.join(RESULTS, "Tube_material", "Chain_data_KA_*.csv")), key=lambda f: float(re.search(r"KA_([0-9.]+)", f).group(1)))
     figstyle.use()
@@ -42,7 +42,7 @@ def fig_pulling(cols=COLS, height_cm=None, files=None, full_legend=True, size=fi
         for leg in ("out", "in"):                  # the way back first, the way out on top; the two lie on each other (no hysteresis)
             sel = d["leg"] == leg
             order = np.argsort(d["link"][sel])
-            ax.plot(d["x_tip"][sel][order], (d["F"] / f0)[sel][order], "-", color=c, lw=figstyle.LW, zorder=2,
+            ax.plot(d["x_tip"][sel][order], (d["F"] / f0)[sel][order], "o", color=c, ms=size, mew=0, zorder=2,
                     label=((r"Surface tension $\sigma = %g$" if full_legend else r"$\sigma = %g$") % sigma) if leg == "in" else None)
     ax.set_xlabel(figstyle.label(symbol=r"\Delta L"))
     ax.set_ylabel(figstyle.label(symbol="f/f_0"))
@@ -50,7 +50,7 @@ def fig_pulling(cols=COLS, height_cm=None, files=None, full_legend=True, size=fi
     ax.xaxis.set_major_locator(figstyle.mpl.ticker.MultipleLocator(2))
     ax.set_ylim(0, 1.5)
     ax.yaxis.set_major_locator(figstyle.mpl.ticker.MultipleLocator(0.5))
-    ax.legend(loc="lower right", handlelength=1.0, handletextpad=0.4)          # the empty corner: below the plateau, right of the rise
+    ax.legend(loc="lower right", handletextpad=0.1)          # the empty corner: below the plateau, right of the rise
     return fig
 
 
