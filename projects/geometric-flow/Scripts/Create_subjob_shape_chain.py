@@ -17,7 +17,7 @@ PRESETS = {
     (2.4, "prolate2"): dict(seed={"capsule": {"nu": 0.55}}, nu0=0.60, up=(0.72, 0.01), down=None, up_stop={"skew_above": 0.03}, down_stop={}),
     (2.4, "pear"): dict(seed={"spheres": {"q": 1.3, "neck": 0.2}}, nu0=0.72, up=(0.85, 0.01), down=(0.70, 0.005), up_stop={}, down_stop={"skew_below": 0.02}),
     (3.0, "prolate1"): dict(seed={"capsule": {"nu": 0.70}}, nu0=0.85, up=(0.99, 0.01), down=(0.60, 0.01), up_stop={}, down_stop={}),
-    (3.0, "prolate2"): dict(seed={"capsule": {"nu": 0.40}}, nu0=0.50, up=(0.72, 0.005), down=None, up_stop={"skew_above": 0.03}, down_stop={}),
+    (3.0, "prolate2"): dict(seed={"capsule": {"nu": 0.40}}, nu0=0.50, up=(0.72, 0.01), down=None, up_stop={"skew_above": 0.03}, down_stop={}),
     (3.0, "pear"): dict(seed={"spheres": {"q": 2.0, "neck": 0.3}}, nu0=0.78, up=(0.92, 0.01), down=(0.70, 0.005), up_stop={}, down_stop={"skew_below": 0.02}),
 }
 
@@ -25,8 +25,8 @@ parser = argparse.ArgumentParser(description="Writes the config, the chain file 
 parser.add_argument("--c0", type=number_str, required=True, help="reduced spontaneous curvature c0 = C0 R0 of Seifert et al. (H0 of the config is c0 / (2 R0) with R0 = sqrt(A / 4 pi), it changes from link to link)")
 parser.add_argument("--branch", type=str, required=True, choices=["prolate1", "prolate2", "pear"], help="the branch: the preset of the seed and the ranges for c0 = 2.4 and 3 (Figs. 11 and 13)")
 parser.add_argument("--nu0", type=number_str, default=None, help="reduced volume of the first link (the seed is relaxed there); preset")
-parser.add_argument("--nu_up", type=number_str, default=None, help="end of the leg that goes up in nu from nu0 (the area shrinks: the stable direction of the flow); preset. 'none' drops the leg")
-parser.add_argument("--nu_down", type=number_str, default=None, help="end of the leg that goes down in nu from nu0 (the area grows); preset. 'none' drops the leg")
+parser.add_argument("--nu_up", type=str, default=None, help="end of the leg that goes up in nu from nu0 (the area shrinks: the stable direction of the flow); preset. 'none' drops the leg")
+parser.add_argument("--nu_down", type=str, default=None, help="end of the leg that goes down in nu from nu0 (the area grows); preset. 'none' drops the leg")
 parser.add_argument("--step", type=number_str, default=None, help="nu step of both legs (preset: 0.01, 0.005 for the pear's way down); a step is halved (down to a eighth) at a jump or a failure")
 parser.add_argument("--seed_capsule", type=number_str, default=None, help="seed: a capsule (cylinder with hemispherical caps) of this reduced volume")
 parser.add_argument("--seed_spheres", type=str, default=None, help="seed: two overlapping spheres, 'q,neck': radii ratio q >= 1 and the radius of the circle of intersection in units of the small radius (q = 1 a dumbbell, q > 1 a pear)")
@@ -36,14 +36,14 @@ parser.add_argument("--V0", type=number_str, default="0.5035", help="volume of e
 parser.add_argument("--KB", type=number_str, default="1.0", help="bending constant (the energies of the curves are F_b / (8 pi kappa) = E_bend / (4 pi KB), independent of it)")
 parser.add_argument("--dA", type=number_str, default="0.0004", help="the target area moves this much per step towards the area of the target nu (a large jump of the target makes the flow unstable)")
 # --- mesh (the remesher) and how long a link is
-parser.add_argument("--size_min", type=number_str, default=None, help="smallest edge length of the remesher (template 0.001)")
+parser.add_argument("--size_min", type=number_str, default=None, help="smallest edge length of the remesher (template 0.005; 0.001 and below makes the remesh blow up at the thin necks of the pear and prolate-2 branches)")
 parser.add_argument("--size_max", type=number_str, default=None, help="largest edge length of the remesher (template 0.15)")
 parser.add_argument("--refine_angle", type=number_str, default=None, help="remesher refine_angle: an edge turns the surface normal by about this angle, so the edge length is refine_angle / (the largest principal curvature) between size_min and size_max (template 0.2)")
 parser.add_argument("--aspect_min", type=number_str, default=None, help="remesher aspect_min (template 0.2)")
 parser.add_argument("--timesteps", type=number_str, default="60000", help="largest number of steps of a link (the stopping block ends a link long before on a smooth branch; a link that reaches the cap is marked capped in chain_summary.csv)")
 parser.add_argument("--switch", type=str, default="1000,4000", help="Switch_times of a link (BFGS, BFGS-Normal): two numbers; BFGS is delayed while the area target is still moving")
 parser.add_argument("--normal_tol", type=number_str, default=None, help="stopping: relative net energy change of a window below which BFGS-Normal ends a link (template 1e-8)")
-parser.add_argument("--nu_tol", type=number_str, default="0.01", help="a link whose reduced volume is further than this from its target is a failure")
+parser.add_argument("--nu_tol", type=number_str, default="0.006", help="a link whose reduced volume is further than this from its target is a failure (the penalty constraints are off by 0.0005 to 0.005)")
 parser.add_argument("--jump_neck", type=number_str, default="0.15", help="a change of the neck ratio between two links larger than this is a jump of the branch")
 parser.add_argument("--jump_lobes", type=number_str, default="0.08", help="a change of the lobe ratio larger than this is a jump")
 parser.add_argument("--jump_skew", type=number_str, default="0.08", help="a change of the skewness larger than this is a jump")

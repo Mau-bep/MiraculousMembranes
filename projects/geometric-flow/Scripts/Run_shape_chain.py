@@ -24,7 +24,7 @@ chain records nu and c0_eff = 2 H0 sqrt(A / 4 pi) of the final mesh and the curv
      {"mesh": "path.obj"}                        any closed triangle mesh (scaled to the volume V0)
 1. link 0: the seed relaxed at nu0 ("nu0"). Every further link starts from the final mesh of the one before.
 2. the LEGS ("legs": name, nu_to, step, stop_when): each starts from link 0 and walks nu to nu_to in steps of step (the sign of nu_to - nu0 sets the direction). A link is checked (the run
-   finished, finite energies, the volume and nu close to their targets) and compared with the one before: when the SHAPE changed class (the neck ratio, the lobe ratio or the skewness
+   converged or reached the step cap, it did not end early, finite energies, the volume within 0.5 percent and nu within 0.006 of the targets) and compared with the one before: when the SHAPE changed class (the neck ratio, the lobe ratio or the skewness
    jumped) the branch has ended there, so the step is halved and the link repeated from the last good one, down to min_step; the link that still jumps at min_step is the landing of the
    branch's end, saved with kind "jump" (the state it fell to), and the leg stops. A leg also stops after the first link that satisfies "stop_when": {"skew_below": s} (a pear that
    became symmetric: the continuous bifurcation C^pear) or {"skew_above": s} (a symmetric branch that became asymmetric). A relaxation that fails is repeated with half the step.
@@ -268,6 +268,35 @@ def meridian_outline(V, F):
     return np.array(segs)
 
 
+def waist_radius(V, F, bins=600):
+    """Radius of the narrowest part of the profile between the outer lobes, from the meridian cut (exact surface points; the two sides are interpolated on 600 levels and the radius is half the
+    distance between them), the largest radius of the shape and their ratio, in the length unit of the mesh (the neck is the largest radius when there is a single lobe). The 60 slab profile of
+    shape_numbers is for telling branches apart: its slabs are as wide as a thin neck and overestimate it."""
+    segs = meridian_outline(V, F)
+    t = np.linspace(0.0, 1.0, 12)[None, :, None]
+    P = (segs[:, 0:1, :] * (1.0 - t) + segs[:, 1:2, :] * t).reshape(-1, 2)
+    w, s = P[:, 0], P[:, 1]
+    wc = 0.5 * (w.max() + w.min())
+    grid = np.linspace(s.min(), s.max(), bins)
+    sides = []
+    for sel in (w > wc, w <= wc):
+        o = np.argsort(s[sel])
+        sides.append(np.interp(grid, s[sel][o], w[sel][o]))
+    r = 0.5 * np.abs(sides[0] - sides[1])
+    rs = np.convolve(np.pad(r, 2, mode="edge"), np.ones(5) / 5.0, mode="valid")
+    peaks = [i for i in range(1, bins - 1) if rs[i] >= rs[i - 1] and rs[i] > rs[i + 1] and rs[i] > 0.3 * rs.max()]
+    changed = True
+    while changed and len(peaks) > 1:
+        changed = False
+        for p, q in zip(peaks[:-1], peaks[1:]):
+            if r[p:q + 1].min() > 0.97 * min(rs[p], rs[q]):
+                peaks.remove(p if rs[p] < rs[q] else q)
+                changed = True
+                break
+    neck = float(r[peaks[0]:peaks[-1] + 1].min()) if len(peaks) >= 2 else float(r.max())
+    return neck, float(r.max()), neck / float(r.max())
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 # main_cluster
 def run_main_cluster(binary, config_path, log_path, threads, nice):
@@ -284,11 +313,16 @@ def find_run_folder(first_dir):
     return os.path.join(first_dir, str(nums[-1])) + "/" if nums else None
 
 
-def read_last_row(run):
+def read_first_last_rows(run):
+    """The first and the last line of Output_data.txt as dicts (the energies of the initial mesh at the new parameters and of the final state)."""
     with open(os.path.join(run, "Output_data.txt")) as f:
         header = f.readline().split()
         rows = [l.split() for l in f if l.strip()]
-    return dict(zip(header, [float(x) for x in rows[-1]]))
+    return dict(zip(header, [float(x) for x in rows[0]])), dict(zip(header, [float(x) for x in rows[-1]]))
+
+
+def read_last_row(run):
+    return read_first_last_rows(run)[1]
 
 
 def run_problem(rc, text, run):
@@ -324,7 +358,7 @@ class Chain:
         self.switch = spec.get("switch", [1000, 4000])
         self.timesteps = int(spec.get("timesteps", 60000))
         self.threads, self.nice = int(spec.get("threads", 1)), int(spec.get("nice", 0))
-        self.nu_tol = float(spec.get("nu_tol", 0.01))
+        self.nu_tol = float(spec.get("nu_tol", 0.006))
         self.jump = dict({"neck_ratio": 0.15, "lobe_ratio": 0.08, "skew": 0.08}, **spec.get("jump", {}))
         self.log = open(os.path.join(self.batch, "chain.log"), "a")
         self.summary_path = os.path.join(self.batch, "chain_summary.csv")
@@ -405,7 +439,7 @@ class Chain:
         problem = run_problem(rc, text, run)
         if problem is None:
             try:
-                last = read_last_row(run)
+                first, last = read_first_last_rows(run)
                 V, F = read_obj(run + "Final_state.obj")
                 vol, area = volume_area(V, F)
                 nums = shape_numbers(V, F)
@@ -416,6 +450,14 @@ class Chain:
                             "status": "converged" if converged else ("capped" if steps >= self.timesteps else "ended"), "mesh": run + "Final_state.obj"})
                 if not all(math.isfinite(row[k]) for k in ("F", "E_total", "nu")):
                     problem = "non-finite energy or reduced volume"
+                elif row["status"] == "ended":
+                    # neither "converged" nor the step cap: the integrator quit (Sim broke or timestep very small). At a neck that is closing this happens with the shape stuck at a v that is not the target
+                    # (all 27 such links of the first chains were neck closures at c0 = 3, none a legitimate end)
+                    problem = "the run ended before it converged or reached the step cap (%s)" % ("Sim broke or timestep very small" if "Sim broke or timestep very small" in text else "no message")
+                elif last["Total_E"] > 4.0 * first["Total_E"] + 0.5:
+                    # a safety net, not a test of the physics: the energy of the final state is more than four times that of the previous mesh at the new parameters (F(v) is steep near the wing of the
+                    # c0 = 3 prolate-2 branch, +30 percent per 0.01 in v, so a tighter limit rejects legitimate links)
+                    problem = "the total energy rose from %.4g to %.4g (the run broke)" % (first["Total_E"], last["Total_E"])
                 elif abs(vol - self.V0) > 5e-3 * self.V0:
                     problem = "the volume %.5g is not the target %.5g" % (vol, self.V0)
                 elif abs(nums["nu"] - nu) > self.nu_tol:
