@@ -389,11 +389,13 @@ def main():
             pl = next(((a, b) for (n, a, b) in paper if n == match.get(label)), ("", ""))
             f.write("| %s | %.4f | %.4f | %s | %s |\n" % (label, nu, F, pl[0] if pl[0] == "" else "%.3f" % pl[0], pl[1] if pl[1] == "" else "%.3f" % pl[1]))
         for label, nu, F in anchors(args.c0):
-            near = [min((r for r in curve(rows) if True), key=lambda r: abs(r["nu"] - nu)) for rows in chains.values() if curve(rows)]
-            ours_near = min(near, key=lambda r: abs(r["nu"] - nu)) if near else None
+            branch = {"sphere": "prolate1", "L^pear": "pear"}.get(label)          # the branch that ends in that exact point
+            pts = curve(chains[branch]) if branch in chains else []
             f.write("| exact: %s | %.4f | %.4f | | |\n" % (label, nu, F))
-            if ours_near is not None and abs(ours_near["nu"] - nu) < 0.01:
-                f.write("| ... our nearest point (%s) | %.4f | %.4f | | |\n" % (ours_near["tag"], ours_near["nu"], ours_near["F"]))
+            if pts:
+                near = min(pts, key=lambda r: abs(r["nu"] - nu))
+                if abs(near["nu"] - nu) < 0.01:
+                    f.write("| ... nearest point of the %s branch (%s) | %.4f | %.4f | | |\n" % (LABELS.get(branch, branch), near["tag"], near["nu"], near["F"]))
     print(open(args.out + "_landmarks.md").read())
 
     # every shape of every branch in order of nu
