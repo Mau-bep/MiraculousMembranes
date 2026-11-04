@@ -7,6 +7,7 @@ c0 = 3: points of the curves (ours) next to the paper's figure read off the plot
 | prolate-2 minimum | 0.5616 | 0.0337 | 0.565 | 0.033 |
 | prolate-2 lowest v | 0.5009 | 0.0865 |  |  |
 | prolate-2 highest v reached | 0.7039 | 0.0110 |  |  |
+| prolate-2 maximum | 0.6040 | 0.0703 | 0.600 | 0.070 |
 | pear, lowest v | 0.7503 | 0.0994 |  |  |
 | pear, highest v (M^pear) | 0.8887 | 0.4560 | 0.890 | 0.450 |
 | D^pear (pear = prolate-1) | 0.8223 | 0.2705 | 0.823 | 0.270 |

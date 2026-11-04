@@ -51,8 +51,8 @@ Walking *up* shrinks the target area, the stable direction of the flow; walking 
 | chain (folder) | seed | walks |
 |---|---|---|
 | `prolate1` | capsule (cylinder with caps) of reduced volume 0.70, relaxed at `v0` = 0.74 (c0 2.4) / 0.85 (c0 3) | up to 0.99 and down until the branch ends |
-| `prolate2` | long capsule (0.55 / 0.40) relaxed at 0.60 / 0.50 | up (c0 2.4: to 0.72; c0 3: to 0.62) until it loses its symmetry |
-| `prolate2b` (c0 3) | capsule 0.55 relaxed at 0.62 | up to 0.72, where the neck closes |
+| `prolate2` | long capsule (0.55 / 0.40) relaxed at 0.60 / 0.50 | up (c0 2.4: to 0.72, until it loses its symmetry; c0 3: to 0.58, where its three-lobed shapes stop, section 3) |
+| `prolate2b` (c0 3) | capsule 0.55 relaxed at 0.62 | **up** to 0.72, where the neck closes, and **down** to 0.585, next to the turning point of this branch at 0.581 |
 | `pear` | two spheres joined by a rolling-ball fillet (radii 1.3 and neck 0.2 at c0 2.4; 2 and 0.3 at c0 3), relaxed at 0.72 / 0.78 | **up** to M^pear |
 | `pearb` | the same seed | **down** (0.005) until the pear becomes symmetric (c0 2.4) or its neck closes (c0 3) |
 
@@ -82,6 +82,7 @@ Points of the curves next to the points of the paper's figures *read off the plo
 | prolate-1 maximum | 0.894 | 0.2878 | 0.890 | 0.287 |
 | D^pear | 0.822 | 0.2705 | 0.823 | 0.270 |
 | prolate-2 minimum | 0.562 | 0.0337 | 0.565 | 0.033 |
+| prolate-2 maximum (the shoulder) | 0.604 | 0.0703 | 0.600 | 0.070 |
 | M^pear | 0.889 | 0.4560 | 0.890 | 0.450 |
 | sphere, exact | 1 | 0.2500 | | (ours at v = 0.9948: 0.2511) |
 | budding limit L^pear, exact | 0.7458 | 0.0877 | | (the pear branch gets to 0.7503, 0.0994) |
@@ -91,9 +92,14 @@ Points of the curves next to the points of the paper's figures *read off the plo
 **What each branch does**
 * **prolate-1** is a peanut that rounds off into the sphere. At c0 = 2.4 it is followed down to `v` = 0.711 (F = 0.0798); it falls to the pear between 0.7137 and 0.7125 (the paper puts the bifurcation C1^pear at 0.718, where the symmetric
   shape becomes a saddle: the symmetric flow keeps it a little longer, noise decides). At c0 = 3 it ends between 0.7425 and 0.7412, next to the budding limit v = 0.7458.
-* **prolate-2** (two lobes and a neck) at c0 = 2.4 runs from 0.60 to 0.7053 (F = 0.0409), where it becomes a pear (the paper's C^pear is at 0.705). At c0 = 3 it comes in two pieces: from 0.50 to 0.5763 (minimum 0.0337 at 0.562)
-  and from 0.62 to 0.7039 (F = 0.0110 against the exact two-spheres limit 0.0074 at 0.7071), where the neck closes. Between 0.577 and 0.62 the symmetric branch is unstable (the paper's wing and its instabilities): for targets 0.58
-  to 0.595 the `v` reached stays at 0.577 and the volume constraint is not met, so a minimiser cannot follow it there.
+* **prolate-2** (two lobes and a neck) at c0 = 2.4 runs from 0.60 to 0.7053 (F = 0.0409), where it becomes a pear (the paper's C^pear is at 0.705). At c0 = 3 the curve of the paper has two parts that no minimisation joins
+  (a gap of 0.007 in `v`, 1.4 percent of the axis, between 0.577 and 0.584): **three lobes** (a long capsule with two necks, `prolate2`) from 0.50 to 0.577, minimum 0.0337 at 0.562, the necks keep narrowing (0.083 R0
+  at 0.569, 0.065 R0 at 0.576) and the flow stalls at 0.577 whatever the target (0.58 to 0.595 were tried; the 1D solver loses it at 0.576), and the **dumbbell** (two lobes with a long, wide middle, `prolate2b`) from 0.5843
+  to 0.7039, where the neck closes (F = 0.0110 against the exact two-spheres limit 0.0074 at 0.7071). The dumbbell has the maximum of the paper's figure, 0.0703 at 0.604 (paper: 0.070 at 0.600). `prolate2b` was first
+  walked only upwards from 0.62, and the figure had no points between 0.577 and 0.62; its down leg (0.61, 0.60, 0.59, 0.585) fills that range. The 1D solver follows the dumbbell down to 0.5810 and loses it at 0.5805: the
+  neck radius approaches 0.195 R0 as a square root of the distance to v = 0.5807, which is what a turning point of a branch looks like (F = 0.063 there); the paper's wing (from about 0.583, 0.062 to 0.595, 0.088) is
+  probably the unstable continuation after that point, which a minimiser cannot follow. The relaxations of the mesh at 0.5815 and at 0.58 do not settle (the shape leaves the branch, the remesh is undone again and again).
+  No minimisation reaches the states between 0.577 and 0.584, the steep rise of the paper's curve.
 * **pear** at c0 = 2.4 starts at the continuous bifurcation from prolate-2 (`v` = 0.704 to 0.706, the skewness goes to zero) and rises along a nearly straight line to M^pear (0.800, 0.198), where it falls onto prolate-1. At c0 = 3 it runs
   from 0.7503 (close to L^pear) to M^pear (0.889, 0.456); below 0.75 the neck closes (the links "end" with the shape stuck at 0.7503 whatever the target) and the mesh cannot follow.
 
@@ -188,7 +194,7 @@ folder deleted. On this machine one chain took about an hour (prolate1) to two h
 ## 7. Caveats
 
 * The paper's values are read off its plots (+-0.003 in F, +-0.005 in v); the exact values are not.
-* Unstable segments are not followed: the wing of prolate-2 at c0 = 3 (0.577 to 0.62), the part of prolate-1 below C1^pear, the upper part of the pear branch beyond M^pear. They would need a constraint on the asymmetry.
+* Unstable segments are not followed: the steep rise and the wing of prolate-2 at c0 = 3 (0.577 to 0.595: the three-lobed part and the dumbbell do not join), the part of prolate-1 below C1^pear, the upper part of the pear branch beyond M^pear. They would need a constraint on the asymmetry, or continuation along the arclength of the branch instead of in `v`.
 * The c0 = 3 pear down to L^pear and prolate-2 up to L^dumb end where the neck closes; the exact limit shapes are marked, the topology change is not simulated.
 * Some links reached the step cap (open dots): the energy is flat but not formally converged (relative change per 100 steps below 1e-5).
 * The links of prolate-1 (both c0), of prolate-2 at c0 = 2.4 up to v = 0.70 and of the c0 = 3 prolate-2 chain from 0.50 to 0.577 used `size_min` 0.001 (the first template); all pear links, `prolate2b` and the last links of the
