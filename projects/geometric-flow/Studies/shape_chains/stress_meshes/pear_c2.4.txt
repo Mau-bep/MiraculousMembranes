@@ -1,0 +1,1 @@
+c0 2.4, v 0.72: pear at c0 = 2.4, v = 0.72 after BFGS-Normal (the end state of link 0 of the pear chain: its neck mesh has corners down to 12 deg)

@@ -1,0 +1,1 @@
+c0 3, v 0.78: pear at c0 = 3, v = 0.78 in BFGS-Normal, the last saved mesh before the first sliver guard (step 8305)

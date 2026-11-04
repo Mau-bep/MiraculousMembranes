@@ -1,0 +1,1 @@
+c0 2.4, v 0.7: control: prolate-2 at c0 = 2.4, v = 0.70 (neck ratio 0.17), a healthy neck mesh
