@@ -10,8 +10,11 @@
 #
 #   chain (folder in ../Results/Shape_chains/c0_<c0>/)  what it walks
 #   prolate1   a capsule relaxed at v = 0.74 (c0 2.4) or 0.85 (c0 3), up to 0.99 and down to where the symmetric dumbbell becomes a pear
-#   prolate2   a long capsule (v 0.55 / 0.40) relaxed at v = 0.60 (c0 2.4) or 0.50 (c0 3) and walked up until it loses its symmetry (c0 2.4: 0.60 to 0.72; c0 3: 0.50 to 0.62)
-#   prolate2b  (c0 3 only) the rest of the prolate-2 branch, from a capsule of v 0.55 relaxed at 0.62 and walked up to 0.72, where the neck closes
+#   prolate2   a long capsule (v 0.55 / 0.40) relaxed at v = 0.60 (c0 2.4) or 0.50 (c0 3) and walked up until it loses its symmetry (c0 2.4: 0.60 to 0.72); at c0 3 the capsule has three lobes
+#              and the chain walks 0.50 to 0.58: its two necks keep narrowing and the flow stalls at v = 0.577 whatever the target (0.58 to 0.595 were tried), so nothing above is reached
+#   prolate2b  (c0 3 only) the dumbbell (two lobes, one neck) part of the prolate-2 branch, from a capsule of v 0.55 relaxed at 0.62: up to 0.72, where the neck closes (L^dumb, 0.707), and
+#              down to 0.585, just above the turn of the branch at v = 0.581 (the relaxations at 0.5815 and 0.58 did not settle: the shape left the branch and
+#              the remesh was undone again and again; the paper's wing is the unstable part after the turn)
 #   pear       two spheres joined by a smooth throat (c0 2.4: radii 1.3, neck 0.2; c0 3: radii 2, neck 0.3) relaxed at v = 0.72 / 0.78 and walked UP to 0.85 / 0.92 (M^pear)
 #   pearb      the same seed, walked DOWN in steps of 0.005 until the pear becomes symmetric (c0 2.4: C^pear near 0.706) or its neck closes (c0 3: near the budding limit v = 0.7458)
 #
@@ -64,11 +67,11 @@ $Make --c0 3.0 --branch prolate1 --batch_tag ${Batch_Tag}/c0_3.0/prolate1 --uniq
 if ( $status != 0 ) exit 1
 $Submit ../Subjobs/${Prefix}_c0_3.0_prolate1_subjob
 
-$Make --c0 3.0 --branch prolate2 --nu_up 0.62 --step 0.01 --batch_tag ${Batch_Tag}/c0_3.0/prolate2 --unique_tag ${Prefix}_c0_3.0_prolate2
+$Make --c0 3.0 --branch prolate2 --nu_up 0.58 --step 0.01 --batch_tag ${Batch_Tag}/c0_3.0/prolate2 --unique_tag ${Prefix}_c0_3.0_prolate2
 if ( $status != 0 ) exit 1
 $Submit ../Subjobs/${Prefix}_c0_3.0_prolate2_subjob
 
-$Make --c0 3.0 --branch prolate2 --seed_capsule 0.55 --nu0 0.62 --nu_up 0.72 --step 0.01 --batch_tag ${Batch_Tag}/c0_3.0/prolate2b --unique_tag ${Prefix}_c0_3.0_prolate2b
+$Make --c0 3.0 --branch prolate2 --seed_capsule 0.55 --nu0 0.62 --nu_up 0.72 --nu_down 0.585 --step 0.01 --batch_tag ${Batch_Tag}/c0_3.0/prolate2b --unique_tag ${Prefix}_c0_3.0_prolate2b
 if ( $status != 0 ) exit 1
 $Submit ../Subjobs/${Prefix}_c0_3.0_prolate2b_subjob
 
