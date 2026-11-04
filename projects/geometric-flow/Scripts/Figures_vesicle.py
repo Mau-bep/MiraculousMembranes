@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """The phase space of the vesicle in the style of the manuscript (figstyle.py), written as png and eps to Results/Paper_figures/vesicle_phase_space_vNN.*.
 
-usage:  python3 Figures_vesicle.py                 one column wide, the colour bar on top
+usage:  python3 Figures_vesicle.py                 one column wide, the colour bar on top, the data of WrappingPhaseSpaceNewFast
         python3 Figures_vesicle.py --cols 1.5      another width (columns); --height_cm 8 another height
         python3 Figures_vesicle.py --cbar right    the colour bar at the side
-        python3 Figures_vesicle.py --legs in       only the way along the KB list ("in"), only the way back ("out"), "lowest" (default: the lower Total_E of the two)
+        python3 Figures_vesicle.py --source chains the chains of Phase_one_vesicle instead (--legs in / out / lowest: the way along the KB list, the way back, the lower Total_E of the two)
 
-The data are the chains of Phase_one_vesicle (Mem_one_vesicle_up.sh: KB scanned at fixed KI, KA = 1; Coverage_data_*.csv of Collect_chain_results.sh), the map of Plots.py phase_one_vesicle_map:
-the points are binned (24 bins log-spaced in x, 16 linear in y), the colour of a bin is the mean coverage (CoveredArea) of its points, bins without points are left empty.
+The data (default) are the runs of WrappingPhaseSpaceNewFast (Coverage_data.txt of PostProcessing, the file of Plots.py contour()): the map of contour(): the points are binned (24 bins
+log-spaced in x, 16 linear in y), the colour of a bin is the mean coverage (CoveredArea) of its points, bins without points are left empty.
 x = a sqrt(sigma / K_B),   y = w / sigma = K_I / K_A    (a the bead radius; points with K_A = 0 are left out).
+--source chains: the chains of Phase_one_vesicle (Mem_one_vesicle_up.sh: KB scanned at fixed KI, KA = 1; Coverage_data_*.csv of Collect_chain_results.sh), the map of phase_one_vesicle_map.
 """
 import argparse
 import csv
@@ -25,6 +26,21 @@ import figstyle                                    # noqa: E402  the style of th
 RESULTS = os.path.join(os.path.dirname(HERE), "Results")
 COLS = 1.0                                         # width in columns
 BATCH = os.path.join(RESULTS, "Phase_one_vesicle")
+NEWFAST = os.path.join(RESULTS, "WrappingPhaseSpaceNewFast", "Coverage_data.txt")
+
+
+def load_newfast(path=NEWFAST, column="CoveredArea"):
+    """x = a sqrt(KA/KB), y = KI/KA and the coloured column of a Coverage_data.txt of PostProcessing (columns by the names of the header; the DIR column is a string)."""
+    with open(path) as f:
+        names = f.readline().lstrip("#").split()
+    col = {n: i for i, n in enumerate(names[1:])}
+    data = np.loadtxt(path, comments="#", usecols=range(1, len(names)), ndmin=2)
+    KA, KB, KI, r0, C = (data[:, col[n]] for n in ("KA", "KB", "KI", "BeadRadius", column))
+    keep = KA > 0                                                   # w / sigma = KI / KA is undefined at zero tension
+    X, Y, C = (r0 * np.sqrt(KA / KB))[keep], (KI / KA)[keep], C[keep]
+    good = np.isfinite(X) & np.isfinite(Y) & np.isfinite(C) & (X > 0)
+    print("%d points from %s" % (good.sum(), os.path.basename(path)))
+    return X[good], Y[good], C[good]
 
 
 def load_points(batch=BATCH, legs="lowest", column="CoveredArea"):
@@ -55,9 +71,9 @@ def load_points(batch=BATCH, legs="lowest", column="CoveredArea"):
     return X[good], Y[good], C[good]
 
 
-def fig_phase_space(cols=COLS, height_cm=None, cbar_location="top", legs="lowest", nx=24, ny=16, batch=BATCH):
+def fig_phase_space(cols=COLS, height_cm=None, cbar_location="top", source="newfast", legs="lowest", nx=24, ny=16, batch=BATCH):
     """Coverage over the (a sqrt(sigma/KB), w/sigma) plane: the mean coverage of the points in every bin (log-spaced in x), empty bins blank."""
-    X, Y, C = load_points(batch, legs)
+    X, Y, C = load_newfast() if source == "newfast" else load_points(batch, legs)
     x_edges = np.logspace(np.log10(X.min()), np.log10(X.max()), nx + 1)
     y_edges = np.linspace(Y.min(), Y.max(), ny + 1)
     sums, _, _ = np.histogram2d(X, Y, bins=[x_edges, y_edges], weights=C)
@@ -92,12 +108,13 @@ def main():
     ap.add_argument("--cols", type=float, default=COLS, help="width in columns (default 1)")
     ap.add_argument("--height_cm", type=float, default=None, help="height in cm (default: 0.93 of the width with the bar on top, 0.8 at the side)")
     ap.add_argument("--cbar", choices=["top", "right"], default="top", help="where the colour bar goes (default top)")
-    ap.add_argument("--legs", default="lowest", help="lowest (default), or a comma list of in, out, cold")
+    ap.add_argument("--source", choices=["newfast", "chains"], default="newfast", help="newfast (default): WrappingPhaseSpaceNewFast; chains: Phase_one_vesicle")
+    ap.add_argument("--legs", default="lowest", help="with --source chains: lowest (default), or a comma list of in, out, cold")
     args = ap.parse_args()
     import matplotlib
     matplotlib.use("Agg")
     legs = args.legs if args.legs == "lowest" else tuple(args.legs.split(","))
-    figstyle.save_figure(fig_phase_space(cols=args.cols, height_cm=args.height_cm, cbar_location=args.cbar, legs=legs), "vesicle_phase_space")
+    figstyle.save_figure(fig_phase_space(cols=args.cols, height_cm=args.height_cm, cbar_location=args.cbar, source=args.source, legs=legs), "vesicle_phase_space")
 
 
 if __name__ == "__main__":
