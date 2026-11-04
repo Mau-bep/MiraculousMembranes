@@ -1,0 +1,65 @@
+{# One relaxation of a vesicle at a fixed reduced volume nu and reduced spontaneous curvature c0, the config every link of a shape chain is built from
+   (Scripts/Create_subjob_shape_chain.py writes it, Scripts/Run_shape_chain.py walks it and overrides init_file, first_dir, Energies, the target nu and the switch times of
+   every link). The physics of Mem_shape.json: Bending K_B (H - H0)^2 (H = (C1 + C2)/2, so kappa = K_B/2 and C0 = 2 H0, H0 = c0 / (2 R0)), a volume constraint and an area
+   constraint whose target is moved by dA per step towards the area of the reduced volume nu (Area_constraint constants: K_A, A_bar (-1: the current area), nu, dA). The numerics
+   of Mem_shape_SoftHour: gradient descent, BFGS, BFGS-Normal, quality remeshing, and the "stopping" block ends the run (timesteps is only the cap). Only the final mesh is
+   saved (save_interval above the cap): the chain needs Final_state.obj and Output_data.txt, not a movie. #}
+{
+    "init_file": "{{ init_file | default('../../../input/Asym_cil_regular.obj') }}",
+    "save_interval": {{ save_interval | default(1000000) }},
+    "timesteps": {{ timesteps | default(60000) }},
+    "Integration": "Gradient_descent",
+    "BFGS_saved_states": 10,
+    "continue_sim": false,
+    "resize_vol": false,
+    "remeshing": true,
+    "remesh_every": {{ remesh_every | default(5) }},
+    "adapt_remesh": "quality",
+    "Count_remesh": true,
+    "first_dir": "{{ first_dir | default('../Results/Shape_chains/') }}",
+    "boundary": false,
+    "recentering": false,
+    "finish_sim": false,
+    "Switches": [
+        "BFGS",
+        "Save_all",
+        "Newton-Normal",
+        "BFGS-Normal",
+        "No_remesh",
+        "Remesh_always"
+    ],
+    "Switch_times": [
+        {{ switch_bfgs | default(1000) }},
+        -2500,
+        -1,
+        {{ switch_normal | default(4000) }},
+        -1,
+        -1
+    ],
+    "saving_states": false,
+    "rescale": 1,
+    "Energies": [
+        {"Name": "Bending", "constants": [{{ KB | default(1.0) }}, {{ H0 | default(0.0) }}]},
+        {"Name": "Volume_constraint", "constants": [{{ KV | default(10000.0) }}, -1.0]},
+        {"Name": "Area_constraint", "constants": [{{ KA | default(10000.0) }}, -1.0, {{ nu | default(1.0) }}, {{ dA | default(0.0004) }}]}
+    ],
+    "remesher": {
+        "aspect_min": {{ aspect_min | default(0.2) }},
+        "refine_angle": {{ refine_angle | default(0.2) }},
+        "refine_compression": 0.0001,
+        "refine_velocity": 1.0,
+        "size_max": {{ size_max | default(0.15) }},
+        "size_min": {{ size_min | default(0.001) }}
+    },
+    "stopping": {
+        "window": {{ stop_window | default(100) }},
+        "patience": {{ stop_patience | default(3) }},
+        "bfgs_tol_E": {{ bfgs_tol | default(1e-05) }},
+        "normal_tol_E": {{ normal_tol | default(1e-08) }},
+        "normal_tol_g": 0.0,
+        "E_floor": 1.0,
+        "bfgs_switch": true,
+        "normal_stop": true,
+        "stall_steps": 10
+    }
+}
