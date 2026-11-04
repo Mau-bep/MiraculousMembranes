@@ -39,7 +39,7 @@ PAPER = {
     2.4: [("prolate-1 maximum", 0.822, 0.124), ("D^pear", 0.749, 0.108), ("C1^pear", 0.718, 0.086), ("M^pro", 0.705, 0.068), ("prolate-2 at 0.6", 0.600, 0.125),
           ("prolate-2 minimum", 0.700, 0.037), ("C^pear", 0.705, 0.041), ("M^pear", 0.800, 0.200)],
     3.0: [("prolate-1 maximum", 0.890, 0.287), ("D^pear", 0.823, 0.270), ("C1^pear", 0.750, 0.210), ("prolate-1 end", 0.707, 0.100), ("prolate-2 at 0.5", 0.500, 0.090),
-          ("prolate-2 minimum", 0.565, 0.033), ("prolate-2 wing", 0.600, 0.070), ("M^pear", 0.890, 0.450)],
+          ("prolate-2 minimum", 0.565, 0.033), ("prolate-2 maximum", 0.600, 0.070), ("M^pear", 0.890, 0.450)],
 }
 # snapshots: per c0 and branch, (nu of the link, side of the point: above, below, left or right, shift in inches along the side)
 SNAPSHOTS = {
@@ -106,6 +106,11 @@ def landmarks(chains, c0):
             out.append(("prolate-2 minimum",) + parabola_extremum(nu, F, "min"))
         out.append(("prolate-2 lowest v", float(nu[0]), float(F[0])))
         out.append(("prolate-2 highest v reached", float(nu[-1]), float(F[-1])))
+        if c0 > 2.8:
+            # c0 = 3: the energy of the dumbbell part of the branch (two lobes, one neck) has a maximum near v = 0.6, before it falls to the fold at v = 0.58; below it the branch is the three-lobed one
+            sel = (nu > 0.585) & (nu < 0.66)
+            if sel.sum() >= 3:
+                out.append(("prolate-2 maximum",) + parabola_extremum(nu[sel], F[sel], "max"))
     if "pear" in arr:
         nu, F = arr["pear"]
         out.append(("pear, lowest v", float(nu[0]), float(F[0])))
@@ -384,7 +389,8 @@ def main():
     with open(args.out + "_landmarks.md", "w") as f:
         f.write("c0 = %g: points of the curves (ours) next to the paper's figure read off the plot (+-0.003 in F, +-0.005 in v) and the exact points of the theory\n\n" % args.c0)
         f.write("| point | v (ours) | F (ours) | v (paper) | F (paper) |\n|---|---|---|---|---|\n")
-        match = {"prolate-1 maximum": "prolate-1 maximum", "prolate-2 minimum": "prolate-2 minimum", "D^pear (pear = prolate-1)": "D^pear", "pear, highest v (M^pear)": "M^pear"}
+        match = {"prolate-1 maximum": "prolate-1 maximum", "prolate-2 minimum": "prolate-2 minimum", "prolate-2 maximum": "prolate-2 maximum", "D^pear (pear = prolate-1)": "D^pear",
+                 "pear, highest v (M^pear)": "M^pear"}
         for label, nu, F in ours:
             pl = next(((a, b) for (n, a, b) in paper if n == match.get(label)), ("", ""))
             f.write("| %s | %.4f | %.4f | %s | %s |\n" % (label, nu, F, pl[0] if pl[0] == "" else "%.3f" % pl[0], pl[1] if pl[1] == "" else "%.3f" % pl[1]))
