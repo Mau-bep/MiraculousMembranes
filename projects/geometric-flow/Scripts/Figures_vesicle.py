@@ -8,7 +8,7 @@ usage:  python3 Figures_vesicle.py                 one column wide, the colour b
 
 The data (default) are the runs of WrappingPhaseSpaceNewFast (Coverage_data.txt of PostProcessing, the file of Plots.py contour()): the map of contour(): the points are binned (24 bins
 log-spaced in x, 16 linear in y), the colour of a bin is the mean coverage (CoveredArea) of its points, bins without points are left empty.
-x = r sqrt(K_A / K_B),   y = K_I / K_A    (r the bead radius, the axes written with the constants of the simulation: = a sqrt(sigma / K_B) and w / sigma; points with K_A = 0 are left out).
+x = r sqrt(K_A / K_B),   y = K_I / K_A    (r the bead radius, sigma = K_A the surface tension; the axes are written r sqrt(sigma / K_B) and K_I / sigma; points with K_A = 0 are left out).
 --source chains: the chains of Phase_one_vesicle (Mem_one_vesicle_up.sh: KB scanned at fixed KI, KA = 1; Coverage_data_*.csv of Collect_chain_results.sh), the map of phase_one_vesicle_map.
 """
 import argparse
@@ -98,8 +98,8 @@ def fig_phase_space(cols=COLS, height_cm=None, cbar_location="top", source="newf
     ax.xaxis.set_minor_locator(NullLocator())
     ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _p: "$%g$" % v))
     ax.yaxis.set_major_locator(figstyle.mpl.ticker.MultipleLocator(1))
-    ax.set_xlabel(figstyle.label(symbol=r"r\sqrt{K_A/K_B}"))
-    ax.set_ylabel(figstyle.label(symbol=r"K_I/K_A"))
+    ax.set_xlabel(figstyle.label(symbol=r"r\sqrt{\sigma/K_B}"))
+    ax.set_ylabel(figstyle.label(symbol=r"K_I/\sigma"))
     return fig
 
 
