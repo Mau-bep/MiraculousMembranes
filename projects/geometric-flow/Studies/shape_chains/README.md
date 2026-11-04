@@ -149,7 +149,34 @@ still lets them be resolved, and the remesh no longer blows up: the pear links r
 mesh still breaks, raise `size_min` (0.01, 0.02) before touching anything else. What `size_min` cannot do is represent a neck smaller than itself: the c0 = 3 pears have `r_n` 0.002 to 0.004, the mesh has edges of at least 0.005,
 and what is drawn there is the discrete neck (the energy of such a neck is almost independent of its radius: the energy matches the continuum to 1.5 percent).
 
-**5.5 Energy against resolution** (`refine_angle`, `size_min`, `size_max`, `aspect_min`, BFGS against BFGS-Normal for the same states): `Study_shape_mesh.py run` / `plot`, running at the time of writing.
+**5.5 Energy against resolution** (`Study_shape_mesh.py run` / `plot`; `mesh_angle.png`, `mesh_settings.png`, `mesh_robustness.png`, `mesh_table.md`, the runs in `Results/Shape_mesh_study/`). 49 runs, each one link from the same seed at a
+fixed `v` and c0 with other remesher settings (base: `refine_angle` 0.2, `size_max` 0.15, `size_min` 0.005, `aspect_min` 0.2; step cap 30000, which the thin-neck runs reach: the energy is flat, the neck still creeps).
+
+![energy against refine_angle](mesh_angle.png)
+
+`F_ref` is the exact value for the sphere (0.0400) and, for the others, `F0 + c refine_angle^2` through the three finest angles (it agrees with the continuum solver: prolate-1 0.1230 against 0.1230, the c0 = 3 pear 0.1530 against
+0.1523 to 0.1529, the c0 = 2.4 pear 0.0567 against 0.0573, and with the paper's pear line, 0.0565 at v = 0.716). Error of the energy of the mesh relative to `F_ref`, with the cost:
+
+| case | 0.15 | **0.2** | 0.3 | 0.4 | vertices and seconds at 0.2 |
+|---|---|---|---|---|---|
+| sphere (c0 2.4, v = 1) | -0.2 % | **-0.3 %** | -0.7 % | -1.0 % | 925, 21 s |
+| prolate-1 (c0 2.4, v = 0.80) | +0.2 % | **+0.3 %** | +0.6 % | +1.3 % | 1750, 34 s |
+| prolate-2 (c0 2.4, v = 0.69, neck about 0.085) | 0.0 % | **-0.1 %** | -0.1 % | -0.2 % | 2783, 149 s |
+| pear (c0 2.4, v = 0.72, neck radius 0.023) | +1.5 % | **+2.9 %** | +6.2 % | +9.9 % | 2501, 193 s (cap) |
+| pear (c0 3, v = 0.78) | +0.6 % | **+1.1 %** | +2.5 % | +4.1 % | 2018, 184 s (cap) |
+
+* **The error goes as `refine_angle^2`** (`F = F0 + c refine_angle^2`, `c` = 0.009 for prolate-1, 0.039 and 0.042 for the pears, about 0 for prolate-2): 0.3 percent or less for the smooth shapes at 0.2, 3 and 1 percent for the pears, whose neck is where the
+  curvature is. Vertices and time grow like `refine_angle^-2` to `^-3` (prolate-1: 1750 vertices and 34 s at 0.2, 9031 and 461 s at 0.1). For the energy of the c0 = 2.4 pear to 1 percent, `refine_angle` 0.1 to 0.15 or an extrapolation
+  in `refine_angle^2` from two angles; the chains use 0.2.
+* **`size_min` between 0.002 and 0.01 does not change the energy** (prolate-2 0.03877 / 0.03870 / 0.03876, pear 0.05833 / 0.05828 / 0.05829, c0 = 3 pear 0.15476 / 0.15462 / 0.15435 for 0.002 / 0.005 / 0.01); 0.05 under-resolves the neck:
+  the c0 = 3 pear drops 2 percent (0.15125) with 258 sliver polishes, prolate-2 rises 0.9 percent with 26.
+* **`size_max` (0.07 against 0.15) and `aspect_min` (0.1 to 0.4) do not matter** (0.3 percent for the c0 = 3 pear, none for prolate-1; 0.1 percent): the edges are set by the curvature, far below `size_max`.
+* **Staying in BFGS with the remesher on instead of finishing in BFGS-Normal costs energy**: +0.7 percent for prolate-2 (0.03897, 24428 steps against 10228), +4.2 percent for the c0 = 2.4 pear (0.06074), +3.0 percent for the c0 = 3 pear
+  (0.15922), the same with a remesh every step or every fifth: every remesh adds energy (the "kick") that the integrator has to take out again. Finish on the fixed mesh.
+* **Robustness** (`mesh_robustness.png`): with `size_min` 0.005 no run failed and there was no undone remesh in the 42 runs of prolate-1, prolate-2 and the pears; they have 0 to 6 sliver polishes, except `size_min` 0.05 (26 and 258).
+  (The sphere shows 6 to 37 undone remeshes of its coarse start, harmless.)
+
+
 
 ## 6. Running on the cluster
 

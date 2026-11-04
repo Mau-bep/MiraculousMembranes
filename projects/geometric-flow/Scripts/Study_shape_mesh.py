@@ -62,8 +62,9 @@ GROUPS = {
 }
 GROUP_CASES = {"angle": ["sphere", "prolate1", "prolate2", "pear", "pear3"], "size_max": ["prolate1", "pear3"], "size_min": ["prolate2", "pear", "pear3"], "aspect": ["pear3"],
                "integrator": ["prolate2", "pear", "pear3"]}
-# the finest angle is only run for the cheap cases (the neck meshes have 4 times the vertices at half the angle)
-EXPENSIVE_MIN_ANGLE = {"prolate2": 0.1, "pear": 0.1, "pear3": 0.1}
+# the finest angle is only run for the cheap cases (a mesh has 4 times the vertices at half the angle, and the thin-neck cases need 30000 steps): the sphere goes to 0.07, prolate-1 to 0.1,
+# the thin necks to 0.15
+EXPENSIVE_MIN_ANGLE = {"prolate1": 0.1, "prolate2": 0.15, "pear": 0.15, "pear3": 0.15}
 SPECIAL = ("name", "bfgs_normal", "stopping", "config_overrides")
 
 
@@ -341,7 +342,7 @@ def plot(args):
     import matplotlib.pyplot as plt
     rows = load()
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
-    colors = {"sphere": "k", "prolate1": "#1f77b4", "prolate2": "#2ca02c", "pear": "#d62728"}
+    colors = {"sphere": "k", "prolate1": "#1f77b4", "prolate2": "#2ca02c", "pear": "#d62728", "pear3": "#ff7f0e"}
     ok = lambda r: r["kind"] != "failed" and not math.isnan(r["F"])
 
     # 1. the energy against the resolution (angle group)
@@ -398,7 +399,7 @@ def plot(args):
             for r in bad:
                 axs[0, j].plot([r[key]], [0], "x", color=colors[case], ms=9)
         axs[0, j].set_xlabel(key)
-        axs[0, j].set_ylabel("(F - F_ref) / F_ref  [%] (x: the run failed)")
+        axs[0, j].set_ylabel("(F - F_ref) / F_ref  [%]")
         axs[1, j].set_xlabel(key)
         axs[1, j].set_ylabel("neck radius")
         if group == "size_min":
