@@ -3,7 +3,8 @@
    every link). The physics of Mem_shape.json: Bending K_B (H - H0)^2 (H = (C1 + C2)/2, so kappa = K_B/2 and C0 = 2 H0, H0 = c0 / (2 R0)), a volume constraint and an area
    constraint whose target is moved by dA per step towards the area of the reduced volume nu (Area_constraint constants: K_A, A_bar (-1: the current area), nu, dA). The numerics
    of Mem_shape_SoftHour: gradient descent, BFGS, BFGS-Normal, quality remeshing, and the "stopping" block ends the run (timesteps is only the cap). Only the final mesh is
-   saved (save_interval above the cap): the chain needs Final_state.obj and Output_data.txt, not a movie. #}
+   saved (save_interval above the cap): the chain needs Final_state.obj and Output_data.txt, not a movie. size_min is 0.005, not the 0.001 of Mem_shape_SoftHour: at a thin neck the
+   sizing asks for edges of a thousandth of the neck radius, the split of a needle triangle makes the Bending explode and every remesh is rolled back (Studies/shape_chains/README.md). #}
 {
     "init_file": "{{ init_file | default('../../../input/Asym_cil_regular.obj') }}",
     "save_interval": {{ save_interval | default(1000000) }},
@@ -49,7 +50,7 @@
         "refine_compression": 0.0001,
         "refine_velocity": 1.0,
         "size_max": {{ size_max | default(0.15) }},
-        "size_min": {{ size_min | default(0.001) }}
+        "size_min": {{ size_min | default(0.005) }}
     },
     "stopping": {
         "window": {{ stop_window | default(100) }},
