@@ -10,5 +10,7 @@ c0 = 2.4: points of the curves (ours) next to the paper's figure read off the pl
 | pear, lowest v | 0.7038 | 0.0390 |  |  |
 | pear, highest v (M^pear) | 0.8004 | 0.1977 | 0.800 | 0.200 |
 | D^pear (pear = prolate-1) | 0.7476 | 0.1082 | 0.749 | 0.108 |
+| C1^pear (1D solver: the symmetric prolate-1 becomes a saddle) | 0.7149 | 0.0833 | 0.718 | 0.086 |
+| prolate-1 minimal volume (1D solver, unstable) | 0.7045 | 0.0675 | 0.705 | 0.068 |
 | exact: sphere | 1.0000 | 0.0400 | | |
 | ... nearest point of the prolate-1 branch (up_025_nu0.9900) | 0.9947 | 0.0437 | | |

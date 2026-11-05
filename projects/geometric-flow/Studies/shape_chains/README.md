@@ -15,7 +15,7 @@ the lowest one. This study computes those curves with chains: **one chain per br
 | `Scripts/Create_subjob_shape_chain.py` | writes the config, the chain file and the sbatch job of one chain; presets of seeds and ranges for c0 = 2.4 and 3 |
 | `Scripts/Mem_shape_study.sh` | **the launcher of all chains on the cluster** (tcsh); optionally also the mesh study |
 | `Scripts/Analyze_shape_chains.py` | the figures with the shapes on the curves, the tables, the exported numbers and meshes, the check against the continuum solver |
-| `Scripts/Shape_axisym.py` | the 1D axisymmetric continuum solver (reference energies) |
+| `Scripts/Shape_axisym.py` | the 1D axisymmetric continuum solver (reference energies; `saddle`: the unstable symmetric part of prolate-1, the dashed lines of the figures) |
 | `Scripts/Render_shape_obj.py` | shaded pictures of the meshes, matplotlib only |
 | `Scripts/Study_shape_mesh.py`, `Create_subjob_shape_study.py` | the study of the remesher settings and the remesh stress test (section 5) |
 
@@ -63,7 +63,7 @@ joined by a toroidal throat tangent to both.
 and the shape is compared with the link before: the neck ratio (smallest radius of the profile over the smaller outer lobe), the lobe ratio (smaller over larger of the two largest lobes) and the skewness of the
 area along the axis (0 for an up-down symmetric shape). **When one of them jumps the branch has ended**: the step is halved and the link repeated from the last good one, down to an eighth; the link that
 still jumps is saved as the landing (kind `jump`: the state the branch fell to; the `x` of the figures) and the leg stops. A leg also stops when a pear becomes symmetric. A failing link is repeated with half the
-step, and a leg whose relaxation keeps failing stops (a neck that is closing). Unstable segments of the branches are not followed.
+step, and a leg whose relaxation keeps failing stops (a neck that is closing). Unstable segments of the branches are not followed by the meshes (the dashed lines of the figures are 1D-solver curves, section 3).
 
 ## 3. Results
 
@@ -73,6 +73,8 @@ Points of the curves next to the points of the paper's figures *read off the plo
 |---|---|---|---|---|
 | prolate-1 maximum | 0.820 | 0.1245 | 0.822 | 0.124 |
 | D^pear (pear = prolate-1) | 0.748 | 0.1082 | 0.749 | 0.108 |
+| C1^pear (1D solver: the symmetric prolate-1 becomes a saddle) | 0.7149 | 0.0833 | 0.718 | 0.086 |
+| M^pro (end of the unstable part of prolate-1, 1D solver) | 0.7045 | 0.0675 | 0.705 | 0.068 |
 | prolate-2 minimum | 0.697 | 0.0365 | 0.700 | 0.037 |
 | M^pear (pear branch ends, falls onto prolate-1) | 0.800 | 0.1977 | 0.800 | 0.200 |
 | sphere, exact | 1 | 0.0400 | | (ours at v = 0.9947: 0.0437) |
@@ -81,6 +83,8 @@ Points of the curves next to the points of the paper's figures *read off the plo
 |---|---|---|---|---|
 | prolate-1 maximum | 0.894 | 0.2878 | 0.890 | 0.287 |
 | D^pear | 0.822 | 0.2705 | 0.823 | 0.270 |
+| C1^pear (1D solver) | 0.7525 | 0.2121 | 0.750 | 0.210 |
+| M^pro, end of the unstable part of prolate-1 (1D solver) | 0.7075 | 0.1076 | 0.707 | 0.100 |
 | prolate-2 minimum | 0.562 | 0.0337 | 0.565 | 0.033 |
 | prolate-2 maximum (the shoulder) | 0.604 | 0.0703 | 0.600 | 0.070 |
 | M^pear | 0.889 | 0.4560 | 0.890 | 0.450 |
@@ -90,8 +94,14 @@ Points of the curves next to the points of the paper's figures *read off the plo
 (`fig11_landmarks.md`, `fig13_landmarks.md`; the exact values: `F = (1 - c0/2)^2` for the sphere, and L^pear from `1/R1 + 1/R2 = C0`, `R1^2 + R2^2 = R0^2`, `R1^3 + R2^3 = v R0^3`, eq. 5.4.)
 
 **What each branch does**
-* **prolate-1** is a peanut that rounds off into the sphere. At c0 = 2.4 it is followed down to `v` = 0.711 (F = 0.0798); it falls to the pear between 0.7137 and 0.7125 (the paper puts the bifurcation C1^pear at 0.718, where the symmetric
-  shape becomes a saddle: the symmetric flow keeps it a little longer, noise decides). At c0 = 3 it ends between 0.7425 and 0.7412, next to the budding limit v = 0.7458.
+* **prolate-1** is a peanut that rounds off into the sphere. At c0 = 2.4 the meshes follow it down to `v` = 0.711 (F = 0.0798) and the next target lands on a pear (F = 0.047); at c0 = 3 they follow it to 0.7397 (F = 0.196)
+  and fall to a pear (F = 0.075) between 0.7425 and 0.7412, next to the budding limit v = 0.7458. Below the bifurcation C1^pear (the paper: 0.718 and 0.750) the symmetric shape is a saddle, unstable against becoming a pear:
+  a minimiser leaves it, and the chains got 0.007 to 0.010 below C1^pear only because the unstable mode grows slowly there (noise decides). The paper keeps drawing that part down to the minimal volume M^pro.
+  **The dashed lines of the figures** are that part from the 1D solver with the up-down mirror symmetry imposed at every step (`Shape_axisym.py saddle`, from the lowest link of the chain on). The lowest eigenvalue of the
+  second variation (with the multipliers of the area, volume and closure constraints) against asymmetric deformations changes sign at v = 0.7149 (c0 = 2.4; paper 0.718) and 0.7525 (c0 = 3; paper 0.750), so below it the shapes
+  are saddles; the one against symmetric deformations stays positive (and falls towards zero at the end for c0 = 2.4). The branch ends at M^pro = 0.7045 (F = 0.0675; paper 0.705, 0.068) and 0.7075 (F = 0.108; the paper's
+  curve ends near 0.707, 0.10), where the solver cannot go lower: a turning point of the branch. The paper's upper part of prolate-1 beyond it (the energy goes up again) is not followed. These are continuum energies,
+  about 1 percent below the mesh energy at the same `v`: the small step between the last dot and the dashed line.
 * **prolate-2** (two lobes and a neck) at c0 = 2.4 runs from 0.60 to 0.7053 (F = 0.0409), where it becomes a pear (the paper's C^pear is at 0.705). At c0 = 3 the curve of the paper has two parts that no minimisation joins
   (a gap of 0.007 in `v`, 1.4 percent of the axis, between 0.577 and 0.584): **three lobes** (a long capsule with two necks, `prolate2`) from 0.50 to 0.577, minimum 0.0337 at 0.562, the necks keep narrowing (0.083 R0
   at 0.569, 0.065 R0 at 0.576) and the flow stalls at 0.577 whatever the target (0.58 to 0.595 were tried; the 1D solver loses it at 0.576), and the **dumbbell** (two lobes with a long, wide middle, `prolate2b`) from 0.5843
@@ -120,6 +130,7 @@ E_total, c0_eff, H0, steps, status, seconds, nV, the shape numbers, mesh), one f
 * `points.csv`: every point of every curve: branch, chain, leg, tag, kind, nu_target, **nu**, **F**, c0_eff, H0, status, steps, vertices, length and largest radius of the shape, **neck_radius** (meridian cut), neck_over_rmax,
   the 60-slab neck ratio, lobe_ratio, skew, and the mesh;
 * `snapshots.csv` + `snapshots/*.obj`: the shapes drawn on the curves with their anchor `(nu, F)`, side (above / below / left / right of the point), shift and size in inches, to replace the outlines by renders;
+* `saddles.csv` (from `Shape_axisym.py saddle`, drawn dashed): nu, F, c0, length, waist and largest radius of the contour (units R0 = 1), the lowest eigenvalue of the second variation against asymmetric and against symmetric deformations, and a note (start, last link of the 3D chain, end); the rows above the lowest link of the 3D chain overlap the solid curve and are not drawn;
 * with `--all_meshes` every mesh as `meshes/<branch>/<branch>_nu<nu>_F<F>.obj` (`Results/Shape_chains_export/c0_<c0>/` here: 9 MB per c0, not in git).
 
 Links whose run *ended* early are in `chain_summary.csv` but not in the curves; the two original `pear` chains also ran a down leg (a duplicate of `pearb`, partly from before the checks above): moved to `Results/Shape_chains_discarded/`.
@@ -194,7 +205,7 @@ folder deleted. On this machine one chain took about an hour (prolate1) to two h
 ## 7. Caveats
 
 * The paper's values are read off its plots (+-0.003 in F, +-0.005 in v); the exact values are not.
-* Unstable segments are not followed: the steep rise and the wing of prolate-2 at c0 = 3 (0.577 to 0.595: the three-lobed part and the dumbbell do not join), the part of prolate-1 below C1^pear, the upper part of the pear branch beyond M^pear. They would need a constraint on the asymmetry, or continuation along the arclength of the branch instead of in `v`.
+* Unstable segments are not followed by the meshes: the steep rise and the wing of prolate-2 at c0 = 3 (0.577 to 0.595: the three-lobed part and the dumbbell do not join), the upper part of the pear branch beyond M^pear (the paper's dash-dotted line back to C1^pear) and prolate-1 beyond M^pro (the paper's upper part, where the energy goes up again). Only the part of prolate-1 between the last link and M^pro is drawn, dashed, from the 1D solver (symmetric shapes only); the others would need the stationary shapes followed along the arclength of the branch (a root finder, not a minimiser), or a constraint on the asymmetry.
 * The c0 = 3 pear down to L^pear and prolate-2 up to L^dumb end where the neck closes; the exact limit shapes are marked, the topology change is not simulated.
 * Some links reached the step cap (open dots): the energy is flat but not formally converged (relative change per 100 steps below 1e-5).
 * The links of prolate-1 (both c0), of prolate-2 at c0 = 2.4 up to v = 0.70 and of the c0 = 3 prolate-2 chain from 0.50 to 0.577 used `size_min` 0.001 (the first template); all pear links, `prolate2b` and the last links of the
