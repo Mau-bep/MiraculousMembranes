@@ -138,6 +138,22 @@ def load_chain(folder):
     return rows
 
 
+def load_parts(root=None, explicit=()):
+    """{branch: [rows of every chain folder of the branch]}: the folders of --root (prolate1, prolate2, pear; a branch may be walked by several chains over different ranges of v: folders prolate2,
+    prolate2b, ...: their points make one curve each, drawn in the same colour) and the `branch=folder,folder` pairs of `explicit`."""
+    folders = {}
+    if root:
+        for b in BRANCHES:
+            found = [os.path.join(root, b + suffix) for suffix in ("", "b", "c") if os.path.isdir(os.path.join(root, b + suffix))]
+            if found:
+                folders[b] = found
+    for item in explicit:
+        name, _, path = item.partition("=")
+        folders[name] = path.split(",")
+    parts = {b: [r for r in (load_chain(p) for p in paths) if r] for b, paths in folders.items()}
+    return {b: pr for b, pr in parts.items() if pr}
+
+
 def curve(rows):
     """The accepted links of a branch (the seed and the points) sorted by the reduced volume that was reached. A link whose run 'ended' (the integrator quit before converging or reaching the step cap:
     the neck was closing and the shape stuck at a v that is not the target) is left out, also in old chains that accepted it."""
@@ -173,8 +189,9 @@ def draw_outline(ax, segs, color, lw=0.8):
     ax.add_collection(LineCollection(segs, colors=color, linewidths=lw, capstyle="round"))
 
 
-def add_snapshot(fig, ax, row, xy, side, shift_in, color, scale_in, gap_in=0.10):
-    """An outline of the shape of `row` next to the data point xy, on the given side of the curve, with a thin line to the point. scale_in: inches per unit of length of the shape."""
+def add_snapshot(fig, ax, row, xy, side, shift_in, color, scale_in, gap_in=0.10, outline_lw=0.8, line_lw=0.5, line_alpha=0.8):
+    """An outline of the shape of `row` next to the data point xy, on the given side of the curve, with a thin line to the point. scale_in: inches per unit of length of the shape.
+    line_alpha 1 for a format without transparency (eps)."""
     segs = outline(row)
     if len(segs) == 0:
         return None
@@ -195,11 +212,11 @@ def add_snapshot(fig, ax, row, xy, side, shift_in, color, scale_in, gap_in=0.10)
     box.set_ylim(s_lo, s_hi)
     box.axis("off")
     box.patch.set_alpha(0.0)
-    draw_outline(box, segs, color)
+    draw_outline(box, segs, color, lw=outline_lw)
     # the line from the point to the nearest point of the outline's box
     qx = min(max(px, cx - w_in / 2.0 / fw), cx + w_in / 2.0 / fw)
     qy = min(max(py, cy - h_in / 2.0 / fh), cy + h_in / 2.0 / fh)
-    fig.add_artist(Line2D([px, qx], [py, qy], transform=fig.transFigure, color=color, lw=0.5, alpha=0.8))
+    fig.add_artist(Line2D([px, qx], [py, qy], transform=fig.transFigure, color=color, lw=line_lw, alpha=line_alpha))
     return {"nu": xy[0], "F": xy[1], "side": side, "shift_in": shift_in, "scale_in": scale_in, "width_in": w_in, "height_in": h_in}
 
 
@@ -325,18 +342,7 @@ def main():
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    folders = {}
-    if args.root:
-        for b in BRANCHES:
-            # a branch may be walked by several chains over different ranges of v (folders prolate2, prolate2b, ...): their points make one curve each, drawn in the same colour
-            found = [os.path.join(args.root, b + suffix) for suffix in ("", "b", "c") if os.path.isdir(os.path.join(args.root, b + suffix))]
-            if found:
-                folders[b] = found
-    for item in args.folders:
-        name, _, path = item.partition("=")
-        folders[name] = path.split(",")
-    parts = {b: [r for r in (load_chain(p) for p in paths) if r] for b, paths in folders.items()}
-    parts = {b: pr for b, pr in parts.items() if pr}
+    parts = load_parts(args.root, args.folders)
     chains = {b: [row for r in pr for row in r] for b, pr in parts.items()}
     if not chains:
         raise SystemExit("no chain_summary.csv found")
