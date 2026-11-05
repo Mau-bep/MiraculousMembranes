@@ -3,6 +3,7 @@
 
 usage:  micromamba run -n mir_mem python3 Shape_axisym.py check --c0 2.4 --chain ../Results/Shape_chains/c0_2.4/prolate1 [--out table.csv]
         micromamba run -n mir_mem python3 Shape_axisym.py mesh  --c0 2.4 --mesh Final_state.obj
+        micromamba run -n mir_mem python3 Shape_axisym.py saddle --c0 2.4 --chain ../Results/Shape_chains/c0_2.4/prolate1 --out fig11_saddles.csv
 
 The functional of Seifert, Berndl and Lipowsky (Phys. Rev. A 44, 1182, eq. 3.2), in the units R0 = sqrt(A / 4 pi) = 1: the contour of the vesicle from the north pole to the south pole is
 given by its tilt angle psi(s) against the arclength s (dX/ds = cos psi, dZ/ds = -sin psi, X the distance to the axis),
@@ -167,6 +168,132 @@ def from_mesh(path, c0, nu=None, N=240):
     return out + (nu_mesh,)
 
 
+def symmetrise(psi):
+    """The mean of a contour and its up-down mirror image (psi(L - s) = pi - psi(s)): a shape that equals its image has the up-down symmetry of the prolates."""
+    return 0.5 * (psi + (math.pi - psi[::-1]))
+
+
+def shape_numbers(psi, L):
+    """(waist, largest radius, asymmetry): the smallest radius between a quarter and three quarters of the arclength, the largest radius, and max |psi - mirror image of psi|."""
+    h, pm, c, s, X, Xm, dpsi = forward(psi, L)
+    N = len(psi) - 1
+    waist = float(Xm[N // 4:3 * N // 4].min())
+    return waist, float(Xm.max()), float(np.abs(psi - (math.pi - psi[::-1])).max())
+
+
+def stability(psi, L, nu, c0, eps=1e-6):
+    """(lowest eigenvalue against asymmetric deformations, lowest eigenvalue against symmetric ones, how much the two sectors are coupled) of the second variation of the energy at a symmetric
+    stationary shape, with the multipliers of the area, volume and closure constraints: the Hessian of the Lagrangian by central differences of the analytic gradient, in the two sectors of the up-down
+    mirror (psi_k -> pi - psi_{N-k}); the symmetric one is restricted to the deformations that keep the constraints. A negative value means a saddle: the first is negative where the symmetric shape
+    is unstable against becoming a pear (the paper's C1^pear is where it changes sign), the second where it is unstable within the symmetric shapes (beyond the minimal volume M^pro)."""
+    from scipy.linalg import null_space
+    N = len(psi) - 1
+    x = np.concatenate([psi[1:-1], [L]])
+    gE = objective(x, c0, N)[1]
+    g, J = constraints(x, nu, N)
+    lam = np.linalg.lstsq(J.T, gE, rcond=None)[0]
+
+    def grad_lagrangian(y):
+        return objective(y, c0, N)[1] - constraints(y, nu, N)[1].T @ lam
+
+    H = np.empty((N, N))
+    for j in range(N):
+        h = eps * max(1.0, abs(x[j]))
+        xp, xm = x.copy(), x.copy()
+        xp[j] += h
+        xm[j] -= h
+        H[:, j] = (grad_lagrangian(xp) - grad_lagrangian(xm)) / (2.0 * h)
+    H = 0.5 * (H + H.T)
+    # index i of x is the node k = i + 1 of psi, whose mirror image is the node N - k, index N - 2 - i; the last entry of x is L (it does not change under the mirror)
+    pairs = [(i, N - 2 - i) for i in range(N // 2 - 1)]
+    middle = N // 2 - 1
+    BA = np.zeros((N, len(pairs) + 1))
+    BS = np.zeros((N, len(pairs) + 1))
+    for c, (i, p) in enumerate(pairs):
+        BA[i, c] = BA[p, c] = BS[i, c] = 1.0 / math.sqrt(2.0)
+        BS[p, c] = -1.0 / math.sqrt(2.0)
+    BA[middle, -1] = 1.0
+    BS[N - 1, -1] = 1.0
+    lam_asym = float(np.linalg.eigvalsh(BA.T @ H @ BA).min())
+    Z = null_space(J @ BS)
+    lam_sym = float(np.linalg.eigvalsh(Z.T @ BS.T @ H @ BS @ Z).min())
+    coupling = float(np.abs(BA.T @ H @ BS).max() / np.abs(H).max())
+    return lam_asym, lam_sym, coupling
+
+
+def saddle(c0, psi, L, nu, nu_to, step=0.0025, min_step=1.5e-4, waypoints=(), log=None):
+    """The up-down symmetric branch of the shape (psi, L) at the reduced volume nu followed DOWN to nu_to, with the symmetry enforced at every step. Below the bifurcation C1^pear the symmetric prolate-1
+    shapes are saddles (a minimiser, like the relaxation of the 3D meshes, leaves them for the pear), but the stationary shapes are still there and the constrained minimiser stays on them when the mirror
+    symmetry is imposed. The step is halved (down to min_step) where the minimisation fails or the branch jumps (the energy or the waist changes by more than 20 or 25 percent in one step); the point that is
+    still not reached is the end of the branch, the minimal volume M^pro where it turns back. Returns the rows (nu, F, length, waist, largest radius, the two lowest eigenvalues) and the reason it stopped."""
+    F, psi, L, ok, res = solve(psi, L, nu, c0, maxiter=800)
+    psi = symmetrise(psi)
+    F, psi, L, ok, res = solve(psi, L, nu, c0, maxiter=800)
+    waist, rmax, _ = shape_numbers(psi, L)
+    la, ls, _ = stability(psi, L, nu, c0)
+    rows = [(nu, F, L, waist, rmax, la, ls)]
+    pending = sorted([w for w in waypoints if nu_to < w < nu - 1e-9], reverse=True)
+    step_now, reason = step, "reached nu_to = %g" % nu_to
+    while nu > nu_to + 1e-9:
+        target = max(nu - step_now, nu_to)
+        if pending and pending[0] >= target - 1e-12:
+            target = pending[0]
+        with np.errstate(all="ignore"):                       # a trial step that fails can overflow before it is rejected
+            Fn, psin, Ln, ok, res = solve(psi, L, target, c0, maxiter=800)
+            psin = symmetrise(psin)
+            Fn, psin, Ln, ok, res = solve(psin, Ln, target, c0, maxiter=800)
+            wn, rn, _ = shape_numbers(psin, Ln)
+        good = np.isfinite(Fn) and 0.0 < Fn < 5.0 and res < 1e-7 and abs(Fn - F) < 0.20 * F and abs(wn - waist) < 0.25 * waist
+        if not good:
+            step_now = 0.5 * (nu - target)
+            if step_now < min_step:
+                reason = "the branch cannot be followed below nu = %.4f (minimal volume M^pro, or a jump to another branch)" % nu
+                break
+            continue
+        la, ls, _ = stability(psin, Ln, target, c0)
+        F, psi, L, nu, waist = Fn, psin, Ln, target, wn
+        rows.append((nu, F, L, waist, rn, la, ls))
+        if pending and abs(pending[0] - nu) < 1e-9:
+            pending.pop(0)
+        step_now = min(step, 1.5 * step_now)
+        if log:
+            log("nu %.4f  F %.5f  waist %.4f  lowest eigenvalue: asymmetric %+.3e, symmetric %+.3e" % (nu, F, waist, la, ls))
+    return rows, reason
+
+
+def chain_start(chain, c0):
+    """(psi, L, nu, lowest nu of the chain, tag) for `saddle`: the lowest link of the chain at which the 1D solver converges from the profile of the mesh (the lowest links are the ones next to the
+    bifurcation, where the profile is hardest to fit), and the lowest reduced volume that the chain reached."""
+    rows = []
+    for r in csv.DictReader(open(os.path.join(chain, "chain_summary.csv"))):
+        if r["kind"] in ("seed", "point") and r["F"] != "" and r["status"] != "ended":
+            if not os.path.isabs(r["mesh"]):
+                r["mesh"] = os.path.join(chain, r["mesh"])
+            rows.append(r)
+    rows.sort(key=lambda r: float(r["nu"]))
+    for r in rows:
+        F, psi, L, ok, res, nu_mesh = from_mesh(r["mesh"], c0, float(r["nu"]))
+        if ok and res < 1e-8 and F > 0.0:
+            return psi, L, float(r["nu"]), float(rows[0]["nu"]), r["tag"]
+    raise SystemExit("the 1D solver does not converge from any mesh of %s" % chain)
+
+
+def run_saddle(args):
+    psi, L, nu, nu_last, tag = chain_start(args.chain, args.c0)
+    print("start: link %s at nu %.4f; the chain's lowest nu is %.4f" % (tag, nu, nu_last), flush=True)
+    rows, reason = saddle(args.c0, psi, L, nu, args.nu_to, step=args.step, waypoints=[nu_last], log=lambda s: print(s, flush=True))
+    print("stop:", reason)
+    if args.out:
+        os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
+        with open(args.out, "w", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(["nu", "F", "c0", "length", "waist", "rmax", "lowest_eigenvalue_asymmetric", "lowest_eigenvalue_symmetric", "note"])
+            for k, (nu_k, F_k, L_k, waist_k, rmax_k, la_k, ls_k) in enumerate(rows):
+                note = "start (profile of link %s)" % tag if k == 0 else ("the last link of the 3D chain" if abs(nu_k - nu_last) < 1e-9 else ("end: " + reason if k == len(rows) - 1 else ""))
+                w.writerow(["%.6f" % nu_k, "%.6g" % F_k, "%g" % args.c0, "%.6g" % L_k, "%.6g" % waist_k, "%.6g" % rmax_k, "%.4g" % la_k, "%.4g" % ls_k, note])
+        print("wrote", args.out)
+
+
 def check(args):
     rows = list(csv.DictReader(open(os.path.join(args.chain, "chain_summary.csv"))))
     out = []
@@ -195,11 +322,19 @@ def main():
     m = sub.add_parser("mesh")
     m.add_argument("--c0", type=float, required=True)
     m.add_argument("--mesh", required=True)
+    sd = sub.add_parser("saddle", help="the up-down symmetric part of a branch below the last link of its 3D chain, where the symmetric shapes are saddles")
+    sd.add_argument("--c0", type=float, required=True)
+    sd.add_argument("--chain", required=True, help="folder of the chain (chain_summary.csv) of the branch: prolate1")
+    sd.add_argument("--out", default=None, help="csv of the points (nu, F, ...)")
+    sd.add_argument("--nu_to", type=float, default=0.68, help="where to stop if the branch does not end before (default 0.68)")
+    sd.add_argument("--step", type=float, default=0.0025, help="step in nu (halved where the minimisation fails)")
     args = ap.parse_args()
     if args.cmd == "test":
         print("relative error of the gradient of the energy %.2e, of the Jacobian of the constraints %.2e" % check_gradients())
     elif args.cmd == "check":
         check(args)
+    elif args.cmd == "saddle":
+        run_saddle(args)
     else:
         F, psi, L, ok, res, nu = from_mesh(args.mesh, args.c0)
         print("nu %.4f  F continuum %.6f  (L %.4f, converged %s, constraint residual %.1e)" % (nu, F, L, ok, res))
