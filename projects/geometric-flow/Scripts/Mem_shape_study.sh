@@ -34,7 +34,7 @@
 #   python3 Analyze_shape_chains.py --c0 3.0 --root ../Results/Shape_chains/c0_3.0 --out ../Studies/shape_chains/fig13 --data_dir ../Studies/shape_chains/fig13_data --all_meshes --paper --continuum --saddles ../Studies/shape_chains/fig13_data/saddles.csv
 # (<out>.png/.svg the figure, <out>_table.csv and <out>_landmarks.md; <data_dir>/points.csv every point of every curve, snapshots.csv the shapes on the curves with their place, snapshots/ and meshes/
 #  the OBJ files, to redraw the snapshots as renders, saddles.csv the dashed lines; --continuum the check against the 1D axisymmetric solver, Shape_axisym.py)
-# The same figures in the style of the manuscript (9 pt Latin Modern, 1.5 columns; png and eps in ../Results/Paper_figures/shape_branches_c0_<c0>_vNN.*): python3 Figures_shape_chains.py
+# The same figures in the style of the manuscript (9 pt Latin Modern, 1/3 column each, with the shapes; png and eps in ../Results/Paper_figures/shape_branches_c0_<c0>_vNN.*): python3 Figures_shape_chains.py
 # On this machine one chain takes 20 minutes (prolate1) to 2 hours (pear); locally without sbatch: python3 Run_shape_chain.py ../Config_files/<Prefix>_c0_<c0>_<chain>_chain.json
 # Your own c0, seeds, ranges and mesh settings: python3 Create_subjob_shape_chain.py --help
 #
