@@ -15,6 +15,7 @@ the lowest one. This study computes those curves with chains: **one chain per br
 | `Scripts/Create_subjob_shape_chain.py` | writes the config, the chain file and the sbatch job of one chain; presets of seeds and ranges for c0 = 2.4 and 3 |
 | `Scripts/Mem_shape_study.sh` | **the launcher of all chains on the cluster** (tcsh); optionally also the mesh study |
 | `Scripts/Analyze_shape_chains.py` | the figures with the shapes on the curves, the tables, the exported numbers and meshes, the check against the continuum solver |
+| `Scripts/Figures_shape_chains.py` | the same two figures in the style of the manuscript (`figstyle.py`: 9 pt Latin Modern, 1.5 columns, filled markers, no transparency): png and **eps** in `Results/Paper_figures/` |
 | `Scripts/Shape_axisym.py` | the 1D axisymmetric continuum solver (reference energies; `saddle`: the unstable symmetric part of prolate-1, the dashed lines of the figures) |
 | `Scripts/Render_shape_obj.py` | shaded pictures of the meshes, matplotlib only |
 | `Scripts/Study_shape_mesh.py`, `Create_subjob_shape_study.py` | the study of the remesher settings and the remesh stress test (section 5) |
@@ -132,6 +133,12 @@ E_total, c0_eff, H0, steps, status, seconds, nV, the shape numbers, mesh), one f
 * `snapshots.csv` + `snapshots/*.obj`: the shapes drawn on the curves with their anchor `(nu, F)`, side (above / below / left / right of the point), shift and size in inches, to replace the outlines by renders;
 * `saddles.csv` (from `Shape_axisym.py saddle`, drawn dashed): nu, F, c0, length, waist and largest radius of the contour (units R0 = 1), the lowest eigenvalue of the second variation against asymmetric and against symmetric deformations, and a note (start, last link of the 3D chain, end); the rows above the lowest link of the 3D chain overlap the solid curve and are not drawn;
 * with `--all_meshes` every mesh as `meshes/<branch>/<branch>_nu<nu>_F<F>.obj` (`Results/Shape_chains_export/c0_<c0>/` here: 9 MB per c0, not in git).
+
+**Manuscript versions (eps).** `python3 Scripts/Figures_shape_chains.py [2.4|3.0] [--cols 2] [--height_cm 9] [--no_paper] [--no_snapshots]` draws the same data in the style of the manuscript (`figstyle.py`: 9 pt Latin Modern,
+lines over 0.5 pt, markers over 1 mm, no transparency) and writes `Results/Paper_figures/shape_branches_c0_2p4_vNN.{png,eps}` and `shape_branches_c0_3p0_vNN.{png,eps}`, a new iteration at every run. They are 1.5 columns
+wide (12.75 cm): at one column the 9 pt legend and the snapshots collide. Differences from the png files of this folder: the links that reached the step cap are filled like the others (the rules allow no open symbols; `status`
+is in `points.csv`), the branch ends are filled squares, the legend is shorter (`branch end`, `unstable (1D solver)`, `Seifert et al.` for the grey diamonds), the lines to the snapshots have no transparency (eps has none)
+and the shapes are scaled with the width. The text is LaTeX when `latex`, `dvipng` and `gs` are installed, mathtext otherwise.
 
 Links whose run *ended* early are in `chain_summary.csv` but not in the curves; the two original `pear` chains also ran a down leg (a duplicate of `pearb`, partly from before the checks above): moved to `Results/Shape_chains_discarded/`.
 
