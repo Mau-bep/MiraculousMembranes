@@ -26,11 +26,14 @@
 #   ../Results/Shape_chains/c0_<c0>/<chain>/<tag>_output.output  the slurm output (copied there when the job ends); the configs of the jobs are ../Config_files/<Prefix>_c0_<c0>_<chain>_{chain,ConfigFile}.json
 # Results/, Config_files/, Subjobs/ and Outputs/ are not in git: copy ../Results/Shape_chains/ back from the cluster (rsync -av cluster:<path>/Results/Shape_chains/ ../Results/Shape_chains/).
 #
-# AFTER THE JOBS RAN, on your machine (matplotlib, scipy: micromamba run -n mir_mem), one figure per c0 with the shapes on the curves and the numbers behind it:
-#   python3 Analyze_shape_chains.py --c0 2.4 --root ../Results/Shape_chains/c0_2.4 --out ../Studies/shape_chains/fig11 --data_dir ../Studies/shape_chains/fig11_data --all_meshes --paper --continuum
-#   python3 Analyze_shape_chains.py --c0 3.0 --root ../Results/Shape_chains/c0_3.0 --out ../Studies/shape_chains/fig13 --data_dir ../Studies/shape_chains/fig13_data --all_meshes --paper --continuum
+# AFTER THE JOBS RAN, on your machine (matplotlib, scipy: micromamba run -n mir_mem), one figure per c0 with the shapes on the curves and the numbers behind it. First the dashed part of prolate-1 (the up-down
+# symmetric shapes below the last link of its chain, where they are saddles; the 1D solver, about a minute), then the figures:
+#   python3 Shape_axisym.py saddle --c0 2.4 --chain ../Results/Shape_chains/c0_2.4/prolate1 --out ../Studies/shape_chains/fig11_data/saddles.csv
+#   python3 Shape_axisym.py saddle --c0 3.0 --chain ../Results/Shape_chains/c0_3.0/prolate1 --out ../Studies/shape_chains/fig13_data/saddles.csv
+#   python3 Analyze_shape_chains.py --c0 2.4 --root ../Results/Shape_chains/c0_2.4 --out ../Studies/shape_chains/fig11 --data_dir ../Studies/shape_chains/fig11_data --all_meshes --paper --continuum --saddles ../Studies/shape_chains/fig11_data/saddles.csv
+#   python3 Analyze_shape_chains.py --c0 3.0 --root ../Results/Shape_chains/c0_3.0 --out ../Studies/shape_chains/fig13 --data_dir ../Studies/shape_chains/fig13_data --all_meshes --paper --continuum --saddles ../Studies/shape_chains/fig13_data/saddles.csv
 # (<out>.png/.svg the figure, <out>_table.csv and <out>_landmarks.md; <data_dir>/points.csv every point of every curve, snapshots.csv the shapes on the curves with their place, snapshots/ and meshes/
-#  the OBJ files, to redraw the snapshots as renders; --continuum the check against the 1D axisymmetric solver, Shape_axisym.py)
+#  the OBJ files, to redraw the snapshots as renders, saddles.csv the dashed lines; --continuum the check against the 1D axisymmetric solver, Shape_axisym.py)
 # On this machine one chain takes 20 minutes (prolate1) to 2 hours (pear); locally without sbatch: python3 Run_shape_chain.py ../Config_files/<Prefix>_c0_<c0>_<chain>_chain.json
 # Your own c0, seeds, ranges and mesh settings: python3 Create_subjob_shape_chain.py --help
 #

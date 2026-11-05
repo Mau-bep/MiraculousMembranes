@@ -11,7 +11,9 @@ the branches next to the paper's values).
 
 The energy is F_b / (8 pi kappa) = Bending / (4 pi K_B) at the reduced volume nu that was REACHED (the constraints are penalties, so it is a little off the target; the energy of a penalty
 minimum is the constrained one at the nu and c0 reached). Marked on the curves: filled dots are converged links, open dots links that reached the step cap, crosses the state a branch fell to
-where it ended (kind "jump": a state of another branch, not a point of the curve). Black diamonds are exact values of the theory that need no figure: the sphere F = (1 - c0/2)^2 at nu = 1
+where it ended (kind "jump": a state of another branch, not a point of the curve). Dashed lines (--saddles, from Shape_axisym.py saddle) are the up-down symmetric part of prolate-1 below the last link of
+its chain: there the symmetric shapes are saddles (unstable against becoming a pear), a minimiser leaves them, and the 1D solver follows them with the symmetry imposed, down to the minimal volume M^pro.
+Black diamonds are exact values of the theory that need no figure: the sphere F = (1 - c0/2)^2 at nu = 1
 and, for c0 > 2 sqrt 2, the budding limit L^pear (two spheres of different radii with 1/R1 + 1/R2 = C0, F = 2 - c0 s + c0^2/4 with s = R1 + R2). Grey open diamonds (--paper) are the points of the paper's figure read off the plot (about +-0.003 in F, +-0.005 in nu).
 """
 import argparse
@@ -44,7 +46,7 @@ PAPER = {
 # snapshots: per c0 and branch, (nu of the link, side of the point: above, below, left or right, shift in inches along the side)
 SNAPSHOTS = {
     2.4: {"prolate1": [(0.97, "above", 0.12), (0.90, "below", 0.0), (0.82, "below", 0.0), (0.745, "above", -0.30)],
-          "prolate2": [(0.61, "above", 0.0), (0.66, "above", 0.0), (0.695, "below", -0.15)],
+          "prolate2": [(0.62, "above", 0.0), (0.66, "above", 0.0), (0.695, "below", -0.15)],
           "pear": [(0.716, "right", -0.10), (0.746, "right", -0.05), (0.786, "right", 0.05)]},
     3.0: {"prolate1": [(0.97, "above", 0.12), (0.90, "above", 0.0), (0.82, "above", 0.0), (0.76, "above", -0.15)],
           "prolate2": [(0.52, "above", 0.0), (0.66, "above", 0.0), (0.70, "above", 0.15)],
@@ -143,6 +145,25 @@ def curve(rows):
     return sorted(pts, key=lambda r: r["nu"])
 
 
+def load_saddles(path):
+    """The up-down symmetric (unstable) part of prolate-1 from Shape_axisym.py saddle, sorted by decreasing nu: nu, F, the lowest eigenvalue against asymmetric deformations."""
+    with open(path) as f:
+        rows = [{"nu": float(r["nu"]), "F": float(r["F"]), "lam_asym": float(r["lowest_eigenvalue_asymmetric"])} for r in csv.DictReader(f)]
+    return sorted(rows, key=lambda r: -r["nu"])
+
+
+def saddle_landmarks(rows):
+    """C1^pear (where the lowest eigenvalue against asymmetric deformations changes sign, linear interpolation: below it the symmetric shape is a saddle) and the end of the branch (M^pro)."""
+    out = []
+    for a, b in zip(rows[:-1], rows[1:]):
+        if a["lam_asym"] > 0.0 >= b["lam_asym"]:
+            t = a["lam_asym"] / (a["lam_asym"] - b["lam_asym"])
+            out.append(("C1^pear (1D solver: the symmetric prolate-1 becomes a saddle)", a["nu"] + t * (b["nu"] - a["nu"]), a["F"] + t * (b["F"] - a["F"])))
+            break
+    out.append(("prolate-1 minimal volume (1D solver, unstable)", rows[-1]["nu"], rows[-1]["F"]))
+    return out
+
+
 def outline(row):
     V, F = read_obj(row["mesh"])
     return meridian_outline(V, F)
@@ -218,7 +239,9 @@ def export_data(args, parts, drawn):
             shutil.copy(r["mesh"], os.path.join(args.data_dir, dest))
             w.writerow([b, "%.6g" % r["nu"], "%.6g" % r["F"], "%.6g" % r["c0_eff"], r["tag"], dest, "%.6g" % info["nu"], "%.6g" % info["F"], info["side"], info["shift_in"], info["scale_in"],
                         "%.4g" % info["width_in"], "%.4g" % info["height_in"]])
-    print("wrote %s/points.csv, snapshots.csv and %d snapshot meshes%s" % (args.data_dir, len(drawn), " and every mesh" if args.all_meshes else ""))
+    if args.saddles and os.path.abspath(args.saddles) != os.path.abspath(os.path.join(args.data_dir, "saddles.csv")):
+        shutil.copy(args.saddles, os.path.join(args.data_dir, "saddles.csv"))
+    print("wrote %s/points.csv, snapshots.csv%s and %d snapshot meshes%s" % (args.data_dir, ", saddles.csv" if args.saddles else "", len(drawn), " and every mesh" if args.all_meshes else ""))
 
 
 def continuum_figure(args, parts):
@@ -289,6 +312,7 @@ def main():
     ap.add_argument("--data_dir", type=str, default=None, help="write the numbers behind the figure here: points.csv (every point of every curve: branch, chain, nu, F, c0_eff, shape numbers, neck radius, mesh), "
                                                                 "snapshots.csv (the shapes drawn on the curves with their place in the plot) and snapshots/*.obj, so the snapshots can be replaced by renders")
     ap.add_argument("--all_meshes", action="store_true", help="with --data_dir also copy the mesh of every point to <data_dir>/meshes/<branch>/")
+    ap.add_argument("--saddles", type=str, default=None, help="csv of Shape_axisym.py saddle: the up-down symmetric part of prolate-1 below its chain, drawn dashed (also exported and in the landmarks)")
     ap.add_argument("--continuum", action="store_true", help="also solve the 1D axisymmetric problem (Shape_axisym.py) from the shape of every point: <out>_continuum.png and .csv (needs scipy; a few seconds a point)")
     ap.add_argument("--scale", type=float, default=0.30, help="inches per unit length of the snapshots (a sphere of this problem is 1.1 long)")
     ap.add_argument("--xlim", type=float, nargs=2, default=None)
@@ -316,6 +340,7 @@ def main():
     chains = {b: [row for r in pr for row in r] for b, pr in parts.items()}
     if not chains:
         raise SystemExit("no chain_summary.csv found")
+    saddles = load_saddles(args.saddles) if args.saddles else []
     view = VIEW.get(round(args.c0, 6), {})
     xlim = tuple(args.xlim) if args.xlim else view.get("xlim")
     ylim = tuple(args.ylim) if args.ylim else view.get("ylim")
@@ -343,6 +368,11 @@ def main():
                 table.append((b, r["leg"], r["nu_target"], r["nu"], r["F"], r["c0_eff"], r["status"], r["neck_ratio"], r["lobe_ratio"], r["skew"], r["steps"], r["tag"]))
     if any(r["kind"] == "jump" and r["F"] != "" for rows in chains.values() for r in rows):
         ax.plot([], [], "x", color="0.3", ms=5, mew=1.0, label="where a branch ends (the state it falls to)")
+    if saddles and "prolate1" in chains:
+        nu_last = curve(chains["prolate1"])[0]["nu"]                 # the dashed line goes on from the lowest link of the 3D chain
+        low = [r for r in saddles if r["nu"] <= nu_last + 1e-6]
+        ax.plot([r["nu"] for r in low], [r["F"] for r in low], "--", color=COLORS["prolate1"], lw=1.2, zorder=2)
+        ax.plot([], [], "--", color="0.35", lw=1.2, label="unstable symmetric part (1D solver)")
     for label, nu, F in anchors(args.c0):
         ax.plot([nu], [F], "D", mfc="black", mec="black", ms=4, zorder=4)
         right = xlim is not None and nu > xlim[0] + 0.85 * (xlim[1] - xlim[0])
@@ -385,12 +415,15 @@ def main():
         continuum_figure(args, parts)
 
     ours = landmarks(chains, args.c0)
+    if saddles:
+        ours += saddle_landmarks(saddles)
     paper = PAPER.get(round(args.c0, 6), [])
     with open(args.out + "_landmarks.md", "w") as f:
         f.write("c0 = %g: points of the curves (ours) next to the paper's figure read off the plot (+-0.003 in F, +-0.005 in v) and the exact points of the theory\n\n" % args.c0)
         f.write("| point | v (ours) | F (ours) | v (paper) | F (paper) |\n|---|---|---|---|---|\n")
         match = {"prolate-1 maximum": "prolate-1 maximum", "prolate-2 minimum": "prolate-2 minimum", "prolate-2 maximum": "prolate-2 maximum", "D^pear (pear = prolate-1)": "D^pear",
-                 "pear, highest v (M^pear)": "M^pear"}
+                 "pear, highest v (M^pear)": "M^pear", "C1^pear (1D solver: the symmetric prolate-1 becomes a saddle)": "C1^pear",
+                 "prolate-1 minimal volume (1D solver, unstable)": "M^pro" if any(n == "M^pro" for (n, a, b) in paper) else "prolate-1 end"}
         for label, nu, F in ours:
             pl = next(((a, b) for (n, a, b) in paper if n == match.get(label)), ("", ""))
             f.write("| %s | %.4f | %.4f | %s | %s |\n" % (label, nu, F, pl[0] if pl[0] == "" else "%.3f" % pl[0], pl[1] if pl[1] == "" else "%.3f" % pl[1]))
