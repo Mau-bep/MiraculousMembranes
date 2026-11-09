@@ -11,7 +11,7 @@
 #   python3 Analyze_barbell_beads.py --out ../Results/Barbell_beads/bending ../Results/Barbell_beads/Bending_*
 #   python3 Analyze_barbell_beads.py --group KA --out ../Results/Barbell_beads/tension ../Results/Barbell_beads/Tension_*
 # (tube radius, measured against sqrt(KB/(4 KA)), area and energies for every run: barbell.csv and barbell.png).
-# Start mesh: --init mesh (default) = a barbell of revolution, relaxes in minutes; --init shrink = a sphere around both beads that shrinks onto them (slow, add --time 48:00:00).
+# Start mesh: --init mesh (default) = a barbell of revolution with the SAME intermediate tube (radius 0.3, --tube) for every run, relaxes in minutes; --init shrink = a sphere around both beads that shrinks onto them (slow, add --time 48:00:00).
 # Beads at x = +-d/2, d = 10 by default (--d). The tube is thinner than a bead (R_t < 1) for KA > KB/4; mesh resolution: size_min is set from R_t by the generator.
 # Smoke test of the mechanics on one run first: python3 Create_subjob_barbell_beads.py --KA 5 --KB 2 --batch_tag Barbell_beads_test, then run the config by hand.
 

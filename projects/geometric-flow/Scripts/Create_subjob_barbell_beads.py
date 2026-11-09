@@ -12,7 +12,9 @@ from Create_barbell_obj import barbell_mesh, check, write_obj
 # Writes the config (from ../Templates/Barbell_beads.txt), the start mesh if needed, and the sbatch subjob of ONE run (KA, KB). Loop over KA and KB in Mem_barbell_beads_up.sh.
 # The tube of the relaxed barbell has radius R_t = sqrt(KB / (4 KA)) (KA = the Surface_tension constant, kappa = KB/2); measured 0.349 / 0.224 for KA 4 / 10 at KB 2.
 #
-# --init mesh   (default) start from a barbell mesh of revolution (Create_barbell_obj.py): caps around the beads, a tube of the expected radius between them. Relaxes in minutes.
+# --init mesh   (default) start from a barbell mesh of revolution (Create_barbell_obj.py): caps around the beads, a tube between them. Relaxes in minutes.
+#               The start mesh is the SAME for every (KA, KB): a tube of an intermediate radius (--tube, default 0.3: the scans cover R_t from 0.07 to 1, so thinner
+#               tubes are thickened and thicker ones thinned by the relaxation, each run finds its own radius). One shared file per (d, radius, tube).
 # --init shrink start from a sphere of radius R0 around both beads, placed at their final positions: the surface tension shrinks the membrane onto the beads and pulls the
 #               tube out; slower (tens of thousands of steps) and the tube is only as good as the run gets, but it is the "no volume, let it shrink" protocol.
 
@@ -25,7 +27,7 @@ parser.add_argument("--radius", type=number_str, default="1.0", help="bead radiu
 parser.add_argument("--inter_str", type=number_str, default="10.0", help="strength of the repulsive core (Shifted-LJ) between beads and membrane")
 parser.add_argument("--init", choices=["mesh", "shrink"], default="mesh", help="start mesh: mesh = barbell of revolution (default), shrink = sphere around both beads that shrinks")
 parser.add_argument("--R0", type=number_str, default=None, help="--init shrink: radius of the start sphere (default d/2 + 1.5 radii)")
-parser.add_argument("--tube", type=number_str, default=None, help="--init mesh: radius of the tube of the start mesh (default sqrt(KB/(4 KA)), at most one bead radius)")
+parser.add_argument("--tube", type=number_str, default="0.3", help="--init mesh: radius of the tube of the start mesh, the same for all runs (default 0.3, an intermediate value of the scans)")
 parser.add_argument("--timesteps", type=int, default=None, help="step limit (default 100000 for mesh, 200000 for shrink; the run stops earlier when it converges)")
 parser.add_argument("--size_min", type=number_str, default=None, help="smallest edge length of the remesher (default min(0.02, R_t/10))")
 parser.add_argument("--size_max", type=number_str, default=None, help="largest edge length of the remesher (template 0.5)")
@@ -60,9 +62,8 @@ for key in ("size_max", "refine_angle"):
         params[key] = getattr(args, key)
 
 if args.init == "mesh":
-    tube = float(args.tube) if args.tube is not None else min(Rt, a)
-    tube = max(tube, 0.1)
-    Mesh_path = '../Config_files/{}_init.obj'.format(args.unique_tag)
+    tube = float(args.tube)
+    Mesh_path = '../Config_files/Barbell_beads_d{}_radius{}_tube{}_init.obj'.format(args.d, args.radius, args.tube)
     V, F = barbell_mesh(d, a=a, gap=0.15 * a, rt=tube, edge=min(0.15, max(0.6 * tube, 0.05)))
     bad, chi, vol, area = check(V, F)
     if bad or chi != 2 or vol <= 0:
@@ -82,7 +83,7 @@ Config_path = '../Config_files/{}_ConfigFile.json'.format(args.unique_tag)
 with open(Config_path, 'w') as file:
     json.dump(data, file, indent=4)
 
-print("{}: init {}, beads at +-{:g}, expected tube radius {:.3f}".format(args.unique_tag, args.init, d / 2.0, Rt))
+print("{}: init {}, beads at +-{:g}, expected tube radius {:.3f}{}".format(args.unique_tag, args.init, d / 2.0, Rt, ", start tube radius {:g}".format(tube) if args.init == "mesh" else ""))
 
 write_subjob('{}_subjob'.format(args.unique_tag),
              '{}_output.output'.format(args.unique_tag),
