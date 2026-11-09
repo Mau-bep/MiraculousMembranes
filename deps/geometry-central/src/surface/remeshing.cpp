@@ -8,6 +8,27 @@ namespace surface {
 const RemeshOptions defaultRemeshOptions;
 
 
+// Tangential smoothing after the connectivity changes (the geometry quantities are refreshed)
+static void smoothTangentially(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm) {
+  // Tangential smoothing until the mean vertex movement is below 1e-4
+  // (17-47 passes on average in the regression runs, at most 73). The cap
+  // only guards against a smoothing that never settles.
+  // The passes move vertexPositions (MutationManager::repositionVertex) and the
+  // normals come from inputVertexPositions, so the normals are the same in
+  // every pass and are computed once.
+  const VertexData<Vector3> normals = smoothingVertexNormals(mesh, geom, RemeshBoundaryCondition::Fixed);
+  const int maxSmoothingPasses = 100;
+  double smoothing = smoothByLaplacian(mesh, geom, mm, normals);
+  int smoothingPasses = 1;
+  while (smoothing > 1e-4 && smoothingPasses < maxSmoothingPasses) {
+    smoothing = smoothByLaplacian(mesh, geom, mm, normals);
+    smoothingPasses++;
+  }
+  if (smoothing > 1e-4)
+    std::cout << "remesh: smoothing stopped after " << maxSmoothingPasses << " passes (mean movement " << smoothing
+              << ")\n";
+}
+
 int remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOptions options) {
   MutationManager mm(mesh, geom);
   return remesh(mesh, geom, mm, options);
@@ -15,6 +36,7 @@ int remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOption
 
 int remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm, RemeshOptions options) {
 
+  if (options.isotropic) return isotropic_remesh(mesh, geom, mm, options);
 
   geom.requireFaceSizing();
   for (Face f : mesh.faces()) {
@@ -57,23 +79,7 @@ int remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationMana
     geom.unrequireFaceSizing();
     geom.unrequireVertexSizing();
     geom.refreshQuantities();
-    // Tangential smoothing until the mean vertex movement is below 1e-4
-    // (17-47 passes on average in the regression runs, at most 73). The cap
-    // only guards against a smoothing that never settles.
-    // The passes move vertexPositions (MutationManager::repositionVertex) and the
-    // normals come from inputVertexPositions, so the normals are the same in
-    // every pass and are computed once.
-    const VertexData<Vector3> normals = smoothingVertexNormals(mesh, geom, RemeshBoundaryCondition::Fixed);
-    const int maxSmoothingPasses = 100;
-    double smoothing = smoothByLaplacian(mesh, geom, mm, normals);
-    int smoothingPasses = 1;
-    while (smoothing > 1e-4 && smoothingPasses < maxSmoothingPasses) {
-      smoothing = smoothByLaplacian(mesh, geom, mm, normals);
-      smoothingPasses++;
-    }
-    if (smoothing > 1e-4)
-      std::cout << "remesh: smoothing stopped after " << maxSmoothingPasses << " passes (mean movement " << smoothing
-                << ")\n";
+    smoothTangentially(mesh, geom, mm);
   }
   geom.inputVertexPositions = geom.vertexPositions;
   geom.purgeQuantities();
@@ -1618,6 +1624,139 @@ EdgeData<int> DelaunayEdge(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& ge
   }
   return Delaunay;
 }
+
+// ======================================================
+// ======== Isotropic remeshing
+// ======================================================
+
+namespace {
+
+// Collapsing e to its midpoint: no triangle around it may fold over or degenerate (the tests of shouldCollapse) and no
+// edge from the merged vertex may become longer than max_absolute_length, so the collapse never makes a long edge that
+// the next split undoes. `link` is a buffer for the halfedges opposite the two endpoints.
+bool shouldCollapseIsotropic(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Edge e,
+                             const RemeshOptions& options, std::vector<Halfedge>& link) {
+  link.clear();
+  Vertex v1 = e.halfedge().vertex();
+  Vertex v2 = e.halfedge().twin().vertex();
+  for (Halfedge he : v1.outgoingHalfedges()) {
+    if (he.next().tailVertex() != v2 && he.next().tipVertex() != v2) link.push_back(he.next());
+  }
+  for (Halfedge he : v2.outgoingHalfedges()) {
+    if (he.next().tailVertex() != v1 && he.next().tipVertex() != v1) link.push_back(he.next());
+  }
+
+  const Vector3 midpoint = edgeMidpoint(mesh, geom, e);
+  for (Halfedge he0 : link) {
+    // fold over the face on the other side of the link edge
+    Halfedge heT = he0.twin();
+    Vector3 a = geom.vertexPositions[heT.tailVertex()];
+    Vector3 b = geom.vertexPositions[heT.tipVertex()];
+    Vector3 c = geom.vertexPositions[heT.next().tipVertex()];
+    if (checkFoldover(a, b, c, midpoint, 2)) return false;
+
+    // the new triangle (midpoint, tail, tip) of the link edge
+    b = geom.vertexPositions[he0.tailVertex()];
+    c = geom.vertexPositions[he0.tipVertex()];
+    double area0 = currentFaceArea(geom, he0.face());
+    double area = 0.5 * norm(cross(b - midpoint, c - midpoint));
+    double perimeter = norm(b - midpoint) + norm(c - midpoint) + norm(c - b);
+    double aspect = 12 * sqrt(3) * area / (perimeter * perimeter);
+    if ((area < area0 && area < 0.1 * options.min_absolute_length * options.min_absolute_length) ||
+        aspect < options.aspect_min)
+      return false;
+
+    if (norm(b - midpoint) > options.max_absolute_length || norm(c - midpoint) > options.max_absolute_length)
+      return false;
+  }
+  return true;
+}
+
+// Splits the edges longer than max_absolute_length at their midpoint, longest first. Returns the number of splits.
+int splitLongEdges(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
+                   const RemeshOptions& options) {
+  std::vector<std::pair<double, Edge>> toSplit;
+  for (Edge e : mesh.edges()) {
+    if (options.no_remesh_list && options.No_remesh_list[e] != 0) continue;
+    double length = currentEdgeLength(geom, e);
+    if (length > options.max_absolute_length) toSplit.emplace_back(length, e);
+  }
+  // longest first, ties by index (the order does not depend on the sort)
+  std::sort(toSplit.begin(), toSplit.end(), [](const std::pair<double, Edge>& l, const std::pair<double, Edge>& r) {
+    return l.first != r.first ? l.first > r.first : l.second.getIndex() < r.second.getIndex();
+  });
+
+  // Splitting one edge does not touch the others of the list
+  int nSplit = 0;
+  for (const auto& entry : toSplit) {
+    Edge e = entry.second;
+    if (mm.splitEdge(e, edgeMidpoint(mesh, geom, e)) != Halfedge()) nSplit++;
+  }
+  return nSplit;
+}
+
+// Collapses the edges shorter than min_absolute_length to their midpoint, shortest first, where
+// shouldCollapseIsotropic allows it. Boundary vertices stay. Returns the number of collapses.
+int collapseShortEdges(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
+                       const RemeshOptions& options) {
+  std::vector<std::pair<double, Edge>> toCollapse;
+  for (Edge e : mesh.edges()) {
+    if (options.no_remesh_list && options.No_remesh_list[e] != 0) continue;
+    double length = currentEdgeLength(geom, e);
+    if (length < options.min_absolute_length) toCollapse.emplace_back(length, e);
+  }
+  std::sort(toCollapse.begin(), toCollapse.end(),
+            [](const std::pair<double, Edge>& l, const std::pair<double, Edge>& r) {
+              return l.first != r.first ? l.first < r.first : l.second.getIndex() < r.second.getIndex();
+            });
+
+  int nCollapse = 0;
+  std::vector<Halfedge> link;
+  for (const auto& entry : toCollapse) {
+    Edge e = entry.second;
+    if (e == Edge() || e.isDead()) continue; // an earlier collapse removed it
+    if (e.halfedge().vertex().isBoundary() || e.halfedge().twin().vertex().isBoundary()) continue;
+    // the neighbouring collapses changed its length
+    if (currentEdgeLength(geom, e) >= options.min_absolute_length) continue;
+    if (!shouldCollapseIsotropic(mesh, geom, e, options, link)) continue;
+    if (mm.collapseEdge(e, edgeMidpoint(mesh, geom, e)) != Vertex()) nCollapse++;
+  }
+  return nCollapse;
+}
+
+} // namespace
+
+int isotropic_remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOptions options) {
+  MutationManager mm(mesh, geom);
+  return isotropic_remesh(mesh, geom, mm, options);
+}
+
+int isotropic_remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
+                     RemeshOptions options) {
+  geom.requireVertexPositions();
+
+  // A flip can make an edge out of range, so the rounds repeat until a round has no split and no collapse. The
+  // Delaunay flips come last in every round: the mesh that is smoothed is Delaunay.
+  const size_t maxRounds = std::max<size_t>(options.maxIterations, 1);
+  for (size_t round = 0; round < maxRounds; round++) {
+    int nSplit = splitLongEdges(mesh, geom, mm, options);
+    int nCollapse = collapseShortEdges(mesh, geom, mm, options);
+    size_t nFlips = fixDelaunay(mesh, geom, mm);
+    options.numberOp += nSplit + nCollapse + int(nFlips);
+    if (nSplit == 0 && nCollapse == 0) break;
+  }
+
+  geom.inputVertexPositions = geom.vertexPositions;
+  mesh.compress();
+  geom.unrequireVertexPositions();
+  geom.refreshQuantities();
+  smoothTangentially(mesh, geom, mm);
+  geom.inputVertexPositions = geom.vertexPositions;
+  geom.purgeQuantities();
+
+  return options.numberOp;
+}
+
 
 } // namespace surface
 } // namespace geometrycentral

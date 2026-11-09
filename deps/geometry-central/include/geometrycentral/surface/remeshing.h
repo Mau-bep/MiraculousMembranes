@@ -30,6 +30,10 @@ struct RemeshOptions {
   double refine_angle = 0.7; // THe maximum dihedral angle allowed in the output mesh, in radians
   double aspect_min = 0.2;
   bool no_remesh_list = false;
+  // Isotropic remeshing (isotropic_remesh): remesh() keeps every edge in [min_absolute_length, max_absolute_length]
+  // and Delaunay, without any curvature sizing (refine_angle is not used). maxIterations is the cap of the
+  // split / collapse / flip rounds.
+  bool isotropic = false;
   int numberOp = 0;
   float angleThresh = 0.15;
 
@@ -53,6 +57,15 @@ int remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationMana
            RemeshOptions options = defaultRemeshOptions);
 void remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOptions options,
             std::vector<Face> activeFaces);
+
+// Isotropic remeshing (what remesh() runs when options.isotropic is set). Rounds of: split the edges longer than
+// max_absolute_length (longest first), collapse the ones shorter than min_absolute_length (shortest first, only when
+// no edge around the merged vertex gets longer than max_absolute_length and no triangle folds over or degenerates),
+// flip the edges that are not Delaunay. Then tangential Laplacian smoothing. Needs max_absolute_length >=
+// 2 * min_absolute_length, otherwise the halves of a split edge are collapsible. Returns the number of operations.
+int isotropic_remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOptions options);
+int isotropic_remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
+                     RemeshOptions options);
 
 void dynamic_remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom,
                     const RemeshOptions& options = defaultRemeshOptions);

@@ -562,6 +562,11 @@ add_executable(Test_remesh_monitor src/Test_remesh_monitor.cpp src/RemeshMonitor
 target_include_directories(Test_remesh_monitor PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
 target_link_libraries(Test_remesh_monitor geometry-central)
 
+# Checks for the isotropic remesher (edge lengths in [size_min, size_max], Delaunay)
+add_executable(Test_isotropic_remesh src/Test_isotropic_remesh.cpp src/RemeshMonitor.cpp)
+target_include_directories(Test_isotropic_remesh PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+target_link_libraries(Test_isotropic_remesh geometry-central)
+
 # Finite-difference and exactness checks of the Plane_adhesion interaction
 add_executable(Test_plane_adhesion src/Test_plane_adhesion.cpp src/Interaction.cpp src/Beads.cpp src/BeadGeometry.cpp)
 target_include_directories(Test_plane_adhesion PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")

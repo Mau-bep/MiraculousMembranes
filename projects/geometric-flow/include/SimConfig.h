@@ -82,6 +82,11 @@ struct RemeshParams
     double size_min = 0.0;
     double refine_angle = 0.0;
     double aspect_min = 0.0;
+    // "mode": "curvature" (default, sizing from the curvature and refine_angle) or
+    // "isotropic" (every edge in [size_min, size_max] and Delaunay, no refine_angle).
+    // "max_iterations": the cap of its split / collapse / flip rounds.
+    bool isotropic = false;
+    int max_iterations = 5;
 };
 
 // "adapt_remesh": "quality" (see RemeshMonitor.h): remesh when the fraction

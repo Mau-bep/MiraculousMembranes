@@ -16,6 +16,9 @@
 // remesh() does (curvature sizing / refine_angle^2, clamped to
 // [1/size_max^2, 1/size_min^2], area averaged to the vertices).
 //
+// With options.isotropic the sizing field is not used: long is L > size_max,
+// short is L < size_min on an edge with no boundary vertex, flip as above.
+//
 // Everything is computed from inputVertexPositions with local buffers: no
 // geometry quantity is required or refreshed, so calling it does not change
 // the simulation.

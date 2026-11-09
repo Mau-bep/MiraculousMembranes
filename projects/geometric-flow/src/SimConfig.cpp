@@ -451,8 +451,27 @@ SimConfig load_config(const std::string &path, bool resolve_subfolder)
         cfg.remesher.present = true;
         cfg.remesher.size_max = require(r, "size_max", "remesher").get<double>();
         cfg.remesher.size_min = require(r, "size_min", "remesher").get<double>();
-        cfg.remesher.refine_angle = require(r, "refine_angle", "remesher").get<double>();
-        cfg.remesher.aspect_min = require(r, "aspect_min", "remesher").get<double>();
+        const std::string mode = r.value("mode", std::string("curvature"));
+        if (mode != "curvature" && mode != "isotropic")
+            throw std::runtime_error("Input file: remesher.mode must be \"curvature\" or \"isotropic\", got \"" + mode +
+                                     "\"");
+        cfg.remesher.isotropic = mode == "isotropic";
+        if (cfg.remesher.isotropic)
+        {
+            // refine_angle (the curvature sizing) is not used
+            cfg.remesher.aspect_min = r.value("aspect_min", cfg.remesher.aspect_min);
+            cfg.remesher.max_iterations = r.value("max_iterations", cfg.remesher.max_iterations);
+            if (!(cfg.remesher.size_min > 0.0) || cfg.remesher.size_max < 2.0 * cfg.remesher.size_min)
+                throw std::runtime_error("Input file: the isotropic remesher needs 0 < size_min and size_max >= 2 * size_min "
+                                         "(the halves of a split edge must not be collapsible)");
+            if (cfg.remesher.max_iterations < 1)
+                throw std::runtime_error("Input file: remesher.max_iterations must be at least 1");
+        }
+        else
+        {
+            cfg.remesher.refine_angle = require(r, "refine_angle", "remesher").get<double>();
+            cfg.remesher.aspect_min = require(r, "aspect_min", "remesher").get<double>();
+        }
     }
 
     if (data.contains("Integration"))
@@ -1104,9 +1123,20 @@ void build_simulation(const SimConfig &cfg, Simulation &sim, const std::string &
     {
         sim.Options.max_absolute_length = cfg.remesher.size_max;
         sim.Options.min_absolute_length = cfg.remesher.size_min;
-        sim.Options.refine_angle = cfg.remesher.refine_angle;
-        sim.Options.aspect_min = cfg.remesher.aspect_min;
-        sim.Options.maxIterations = 1;
+        sim.Options.isotropic = cfg.remesher.isotropic;
+        if (cfg.remesher.isotropic)
+        {
+            // refine_angle keeps the RemeshOptions default (not used)
+            if (cfg.remesher.aspect_min > 0.0)
+                sim.Options.aspect_min = cfg.remesher.aspect_min;
+            sim.Options.maxIterations = cfg.remesher.max_iterations;
+        }
+        else
+        {
+            sim.Options.refine_angle = cfg.remesher.refine_angle;
+            sim.Options.aspect_min = cfg.remesher.aspect_min;
+            sim.Options.maxIterations = 1;
+        }
     }
 
     std::cout << "The energy elements are ";

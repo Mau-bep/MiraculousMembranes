@@ -119,6 +119,28 @@ MeshQuality measure_mesh_quality(ManifoldSurfaceMesh &mesh, const VertexPosition
                                  const RemeshOptions &options)
 {
     const VertexData<Vector3> &P = geometry.inputVertexPositions;
+
+    // Isotropic remesher: the edges outside [size_min, size_max] (the collapse
+    // vetoes are left out, as above) and the ones that are not Delaunay
+    if (options.isotropic)
+    {
+        MeshQuality q;
+        q.n_edges = mesh.nEdges();
+        for (Edge e : mesh.edges())
+        {
+            double L = geometry.edgeLength(e);
+            bool is_long = L > options.max_absolute_length;
+            bool is_short = L < options.min_absolute_length && !e.isBoundary() &&
+                            !e.halfedge().vertex().isBoundary() && !e.halfedge().twin().vertex().isBoundary();
+            bool is_flip = !e.isBoundary() && !is_delaunay(P, e);
+            q.n_long += is_long;
+            q.n_short += is_short;
+            q.n_flip += is_flip;
+            q.n_bad += is_long || is_short || is_flip;
+        }
+        return q;
+    }
+
     VertexData<double> sizing = remesh_vertex_sizing(mesh, geometry, options);
 
     MeshQuality q;
