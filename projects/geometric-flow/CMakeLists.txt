@@ -234,6 +234,7 @@ set(TEST_Grad_th_SRCS
 
 set(TEST_fan_SRCS 
   src/Test_fan_basic.cpp
+  src/Energy_Handler.cpp
   src/Mem-3dg.cpp
   src/Beads.cpp
   src/Interaction.cpp
