@@ -614,3 +614,10 @@ target_include_directories(Test_coverage_inside PUBLIC "${CMAKE_CURRENT_SOURCE_D
   "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include"
   "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/")
 target_link_libraries(Test_coverage_inside geometry-central EigenRand nlohmann_json)
+
+# The Bilayer energy (reduced area difference of the bilayer-coupling model): da of spheroids, forces against finite differences
+add_executable(Test_bilayer src/Test_bilayer.cpp ${SRCSexactness})
+target_include_directories(Test_bilayer PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../utils/include"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/")
+target_link_libraries(Test_bilayer geometry-central EigenRand nlohmann_json)

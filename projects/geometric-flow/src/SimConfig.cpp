@@ -300,8 +300,9 @@ namespace
             required = 2;           // KA, A_bar
             defaults = {-1.0, 0.0}; // nu (<= 0: no reduced volume target), dA
         }
-        else if (e.name == "Volume_constraint" || e.name == "Membrane_tension" || e.name == "Excess_tension")
-            required = 2;
+        else if (e.name == "Volume_constraint" || e.name == "Membrane_tension" || e.name == "Excess_tension" ||
+                 e.name == "Bilayer")
+            required = 2; // Bilayer: K, da0
         if (e.constants.size() < required)
             throw std::runtime_error("Input file: " + where + " (\"" + e.name + "\") needs at least " +
                                      std::to_string(required) + " constants");
@@ -1274,7 +1275,10 @@ std::vector<std::string> open_output_files(const Simulation &sim, const std::str
         Sim_data << "time step Volume Area ";
         for (const std::string &name : sim.Energies)
             Sim_data << name << " ";
-        Sim_data << " Total_E grad_norm backtrackstep\n";
+        Sim_data << " Total_E grad_norm backtrackstep";
+        if (std::find(sim.Energies.begin(), sim.Energies.end(), "Bilayer") != sim.Energies.end())
+            Sim_data << " Delta_a"; // the last column of every row
+        Sim_data << "\n";
     }
     Sim_data.close();
 

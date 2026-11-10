@@ -111,6 +111,13 @@ public:
     virtual double V_Bending_tan(const std::vector<double> &Constants, Vertex v) const;
     virtual double E_Coverage(const std::vector<double> &Constants) const;
 
+    // Bilayer coupling (Seifert, Berndl, Lipowsky, PRA 44, 1182): E = K/2 (da - da0)^2 with the reduced area difference
+    // da = M / (4 pi R0), M = integral of H dA = 1/2 sum_e l_e theta_e the integrated mean curvature and R0 = sqrt(A/4 pi).
+    // Constants: K, da0. da = 1 for a sphere. Closed membranes only (boundary edges and vertices are left out).
+    double Reduced_area_difference() const;
+    virtual double E_Bilayer(const std::vector<double> &Constants) const;
+    virtual VertexData<Vector3> F_Bilayer(const std::vector<double> &Constants) const;
+
     // We do the precomputed ones now
     // virtual double E_Area_constraint_precomp(const std::vector<double> &Constants) const;
     // virtual double E_SurfaceTension_precomp(const std::vector<double> &Constants) const;

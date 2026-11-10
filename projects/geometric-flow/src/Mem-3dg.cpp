@@ -2,6 +2,7 @@
 #include "Mem-3dg.h"
 
 #include "Energy_Handler.h"
+#include <algorithm>
 #include "Beads.h"
 #include "Interaction.h"
 
@@ -1025,7 +1026,8 @@ double Mem3DG::Backtracking_BFGS(VertexData<Vector3> Force, std::vector<Vector3>
 }
 
 // One row of Output_data.txt:
-// time step Volume Area <energy values> Total_E <gradient norms> backtrackstep
+// time step Volume Area <energy values> Total_E <gradient norms> backtrackstep [Delta_a]
+// Delta_a, the reduced area difference, is the last column and only there when there is a Bilayer energy
 void Mem3DG::write_output_row(std::ofstream &Sim_data, double t, double Volume, double Area, double tot_E, double step) const
 {
   Sim_data << t << " " << discreteTs << " " << Volume << " " << Area << " ";
@@ -1034,7 +1036,10 @@ void Mem3DG::write_output_row(std::ofstream &Sim_data, double t, double Volume, 
   Sim_data << tot_E << " ";
   for (size_t i = 0; i < Sim_handler->Gradient_norms.size(); i++)
     Sim_data << Sim_handler->Gradient_norms[i] << " ";
-  Sim_data << step << " \n";
+  Sim_data << step << " ";
+  if (std::find(Sim_handler->Energies.begin(), Sim_handler->Energies.end(), "Bilayer") != Sim_handler->Energies.end())
+    Sim_data << Sim_handler->Reduced_area_difference() << " ";
+  Sim_data << "\n";
 }
 
 // One row per bead in Bead_<i>_data.txt: step position force
