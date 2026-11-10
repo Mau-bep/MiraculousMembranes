@@ -185,6 +185,7 @@ set(SRCSmainpreserv
 
 set(SRCSprocessingtube 
   src/Processing_tube.cpp  
+  src/Energy_Handler.cpp
   src/Mem-3dg.cpp
   src/Beads.cpp
   src/Interaction.cpp
