@@ -23,8 +23,12 @@ class NA_PT_main(Panel):
 
         col = layout.column(align=True)
         row = col.row(align=True)
-        row.operator("normal_arrows.add", text="Normals", icon='ORIENTATION_NORMAL').mean_curvature = False
-        row.operator("normal_arrows.add", text="Mean Curvature", icon='FORCE_FORCE').mean_curvature = True
+        row.operator("normal_arrows.add", text="Normals", icon='ORIENTATION_NORMAL').kind = 'NORMALS'
+        row.operator("normal_arrows.add", text="Mean Curvature", icon='FORCE_FORCE').kind = 'CURVATURE'
+        row = col.row(align=True)
+        row.operator("normal_arrows.add", text="Gaussian").kind = 'GAUSSIAN'
+        row.operator("normal_arrows.add", text="Min k").kind = 'K_MIN'
+        row.operator("normal_arrows.add", text="Max k").kind = 'K_MAX'
         col.operator("normal_arrows.load_forces", text="Load Forces", icon='IMPORT')
         if mod is None:
             layout.label(text="Select membrane meshes, then add arrows", icon='INFO')
@@ -53,7 +57,7 @@ class NA_PT_main(Panel):
             nodes.draw_input(col, mod, "Seed")
 
         if colored:
-            symbol = "|F|" if kind == 'FORCE' else "|H|"
+            symbol = {'FORCE': "|F|", 'GAUSSIAN': "K", 'K_MIN': "k min", 'K_MAX': "k max"}.get(kind, "|H|")
             box = layout.box()
             box.label(text=f"Color by {symbol}")
             row = box.row(align=True)
@@ -62,7 +66,7 @@ class NA_PT_main(Panel):
             nodes.draw_input(box, mod, "Hide Below")
             row = box.row(align=True)
             row.operator("normal_arrows.fit_range", icon='FULLSCREEN_ENTER')
-            mat = bpy.data.materials.get(nodes.COLORED_MAT)
+            mat = nodes.get_input(mod, "Colored Material")
             key = mat.get("na_colormap") if mat is not None else None
             row.operator_menu_enum("normal_arrows.colormap", "colormap",
                                    text=nodes.COLORMAPS[key][0] if key in nodes.COLORMAPS else "Colormap")
@@ -73,7 +77,7 @@ class NA_PT_main(Panel):
                 if cutoff:
                     values = np.empty(len(obj.data.vertices))
                     obj.data.attributes[nodes.MAGNITUDE_ATTR].data.foreach_get("value", values)
-                    hidden = int(np.count_nonzero(values < cutoff))
+                    hidden = int(np.count_nonzero(np.abs(values) < cutoff))
                     box.label(text=f"Hidden below the cutoff: {hidden} of {len(values)}",
                               icon='INFO' if hidden == len(values) else 'NONE')
             view = context.scene.view_settings

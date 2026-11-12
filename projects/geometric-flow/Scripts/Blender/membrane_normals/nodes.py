@@ -22,7 +22,8 @@ ARROWS_GROUP = "Normal Arrows"
 ARROWS_MOD = "Normal Arrows"
 NORMAL_MAT = "Normal Arrows"
 COLORED_MAT = "Magnitude Arrows"
-VERSION = 3
+SIGNED_MAT = "Signed Arrows"
+VERSION = 4
 
 NORMAL_ATTR = "ne_normal"
 DIRECTION_ATTR = "ne_direction"
@@ -51,6 +52,7 @@ COLORMAPS = {
                                   (0.9567, 0.598, 0.4773), (0.8654, 0.3711, 0.2958), (0.7057, 0.0156, 0.1502)]),
 }
 DEFAULT_COLORMAP = "VIRIDIS"
+DEFAULT_SIGNED_COLORMAP = "COOLWARM"   # diverging: zero in the middle
 
 
 # ---------------------------------------------------------------------------
@@ -179,11 +181,12 @@ def set_colormap(mat, key):
     mat.diffuse_color = (*stops[n // 2], 1.0)
 
 
-def ensure_colored_material():
-    mat = bpy.data.materials.get(COLORED_MAT)
+def _colormap_material(name, key):
+    """A material whose colour is the colormap applied to the per-arrow `ne_value` (0..1)."""
+    mat = bpy.data.materials.get(name)
     if mat is not None:
         return mat
-    mat = _new_material(COLORED_MAT)
+    mat = _new_material(name)
     nt = mat.node_tree
     bsdf = _principled(mat, 400)
     attr = nt.nodes.new("ShaderNodeAttribute")
@@ -195,8 +198,19 @@ def ensure_colored_material():
     ramp.location = (150, 0)
     nt.links.new(attr.outputs["Fac"], ramp.inputs["Fac"])
     nt.links.new(ramp.outputs["Color"], bsdf.inputs["Base Color"])
-    set_colormap(mat, DEFAULT_COLORMAP)
+    set_colormap(mat, key)
     return mat
+
+
+def ensure_colored_material():
+    """For values from 0 up (|H|, |F|): sequential colormap."""
+    return _colormap_material(COLORED_MAT, DEFAULT_COLORMAP)
+
+
+def ensure_signed_material():
+    """For values of both signs (K, principal curvatures): diverging colormap, kept apart from the other so that
+    changing the colormap of one kind of set does not change the other."""
+    return _colormap_material(SIGNED_MAT, DEFAULT_SIGNED_COLORMAP)
 
 
 # ---------------------------------------------------------------------------
@@ -288,7 +302,7 @@ def ensure_arrows_group():
     _iface(ng, "Geometry", "NodeSocketGeometry", io='OUTPUT')
     _iface(ng, "Geometry", "NodeSocketGeometry")
     _iface(ng, "Color by Magnitude", "NodeSocketBool", default=False,
-           desc="Colour the arrows by their magnitude (|H| or |F|) with the colormap. Off: one colour")
+           desc="Colour the arrows by their value (|H|, |F|, K, a principal curvature) with the colormap. Off: one colour")
     p = ng.interface.new_panel("Arrow")
     _iface(ng, "Offset", "NodeSocketFloat", default=0.0, subtype='DISTANCE', parent=p,
            desc="Distance of the arrow base from the membrane, along the vertex normal. 0 touches the mesh")
@@ -301,18 +315,19 @@ def ensure_arrows_group():
     _iface(ng, "Flip", "NodeSocketBool", default=False, parent=p,
            desc="Reverse the arrows (the offset still goes along the normal)")
     _iface(ng, "Size by Magnitude", "NodeSocketBool", default=False, parent=p,
-           desc="Scale each arrow by its magnitude on the colour range: Length is the arrow at Range Max")
+           desc="Scale each arrow by its absolute value relative to the colour range: Length is the arrow at "
+                "the larger of |Range Min| and |Range Max|")
     _iface(ng, "Density", "NodeSocketFloat", default=1.0, mn=0.0, mx=1.0, subtype='FACTOR', parent=p,
            desc="Fraction of the vertices that get an arrow")
     _iface(ng, "Seed", "NodeSocketInt", default=0, parent=p,
            desc="Which vertices stay when Density is below 1")
     p = ng.interface.new_panel("Color")
     _iface(ng, "Range Min", "NodeSocketFloat", default=0.0, parent=p,
-           desc="Magnitude that gets the first colour of the colormap")
+           desc="Value that gets the first colour of the colormap (negative for curvatures of both signs)")
     _iface(ng, "Range Max", "NodeSocketFloat", default=1.0, parent=p,
-           desc="Magnitude that gets the last colour of the colormap")
+           desc="Value that gets the last colour of the colormap")
     _iface(ng, "Hide Below", "NodeSocketFloat", default=0.0, mn=0.0, parent=p,
-           desc="Colored arrows whose magnitude is below this are not drawn (a force that is practically zero)")
+           desc="Colored arrows whose value is below this in absolute value are not drawn (a force that is practically zero)")
     p = ng.interface.new_panel("Materials", default_closed=True)
     _iface(ng, "Normal Material", "NodeSocketMaterial", parent=p)
     _iface(ng, "Colored Material", "NodeSocketMaterial", parent=p)
@@ -324,7 +339,8 @@ def ensure_arrows_group():
     # --- per-point fields -------------------------------------------------
     normal = b.attribute(NORMAL_ATTR, 'FLOAT_VECTOR', 1, 6)
     along = b.attribute(DIRECTION_ATTR, 'FLOAT_VECTOR', 1, 5)
-    magnitude = b.attribute(MAGNITUDE_ATTR, 'FLOAT', 1, 4)
+    magnitude = b.attribute(MAGNITUDE_ATTR, 'FLOAT', 1, 4)       # signed for the curvatures
+    absolute = b.math('ABSOLUTE', magnitude, None, 2, 3)
 
     sign_flip = b.switch('FLOAT', gi.outputs["Flip"], 1.0, -1.0, 4, 3)
     direction = b.node("ShaderNodeVectorMath", 6, 5, operation='SCALE')
@@ -341,8 +357,11 @@ def ensure_arrows_group():
     b.link(gi.outputs["Range Max"], _sock(value.inputs, "From Max"))
     result = _sock(value.outputs, "Result")
 
-    # an arrow of zero size is not worth drawing, but keep it findable
-    size = b.switch('FLOAT', gi.outputs["Size by Magnitude"], 1.0, b.math('MAXIMUM', result, 0.02, 4, 1), 5, 1)
+    # size by |value| over the larger end of the colour range; an arrow of zero size is not worth drawing, but keep it findable
+    reach = b.math('MAXIMUM', b.math('ABSOLUTE', gi.outputs["Range Min"], None, 2, 1),
+                   b.math('ABSOLUTE', gi.outputs["Range Max"], None, 2, 0), 3, 1)
+    share = b.math('MINIMUM', b.math('DIVIDE', absolute, reach, 4, 2), 1.0, 5, 2)   # x / 0 is 0 in Blender
+    size = b.switch('FLOAT', gi.outputs["Size by Magnitude"], 1.0, b.math('MAXIMUM', share, 0.02, 6, 2), 6, 1)
     scale = b.node("ShaderNodeCombineXYZ", 6, 1)
     for axis in ("X", "Y", "Z"):
         b.link(size, scale.inputs[axis])
@@ -365,9 +384,9 @@ def ensure_arrows_group():
     b.link(move.outputs["Geometry"], store.inputs["Geometry"])
     b.link(result, _sock(store.inputs, "Value"))
 
-    # a point goes when the random thinning drops it, or (colored sets only) its magnitude is below the cutoff
+    # a point goes when the random thinning drops it, or (colored sets only) its |value| is below the cutoff
     weak = b.node("FunctionNodeCompare", 4, -2, data_type='FLOAT', operation='LESS_THAN')
-    b.link(magnitude, _sock(weak.inputs, "A"))
+    b.link(absolute, _sock(weak.inputs, "A"))
     b.link(gi.outputs["Hide Below"], _sock(weak.inputs, "B"))
     weak_colored = b.node("FunctionNodeBooleanMath", 5, -2, operation='AND')
     b.link(weak.outputs["Result"], weak_colored.inputs[0])

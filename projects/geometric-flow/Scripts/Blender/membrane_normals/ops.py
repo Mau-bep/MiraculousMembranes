@@ -15,6 +15,11 @@ NORMALS_PREFIX = "Normals - "
 FORCES_PREFIX = "Forces - "
 COLLECTION_PREFIXES = (NORMALS_PREFIX, FORCES_PREFIX)
 
+# Arrow sets of values of both signs: Gaussian curvature and the principal curvatures
+SIGNED_KINDS = ('GAUSSIAN', 'K_MIN', 'K_MAX')
+KIND_LABELS = {'NORMALS': "Normals", 'CURVATURE': "Mean Curvature", 'GAUSSIAN': "Gaussian Curvature",
+               'K_MIN': "Min Curvature", 'K_MAX': "Max Curvature"}
+
 # Forces/<term>_<step>.txt, as written by the simulation's "dump_forces"
 FORCE_FILE = re.compile(r"^(?P<term>.+)_(?P<step>\d+)\.txt$")
 # Colored arrows below this fraction of the top of the color range are hidden at first ("Hide Below"): a force of
@@ -71,13 +76,22 @@ def read_mesh(context, source, use_modifiers):
 
 
 def measure(context, source, kind, use_modifiers):
-    """Arrow data for plain normals ('NORMALS') or mean curvature normals ('CURVATURE')."""
+    """Arrow data for the vertex normals ('NORMALS'), the mean curvature normals ('CURVATURE') or a curvature
+    of both signs ('GAUSSIAN', 'K_MIN', 'K_MAX': the arrow is along the normal and the value colours it)."""
     V, N, T = read_mesh(context, source, use_modifiers)
     if kind == 'CURVATURE':
         h = compute.signed_mean_curvature(V, T, N)
         # the arrow follows the area gradient: along the normal where H > 0, against it where H < 0
         direction = N * np.where(h >= 0.0, 1.0, -1.0)[:, None]
         magnitude = np.abs(h)
+    elif kind in SIGNED_KINDS:
+        k = compute.gaussian_curvature(V, T)
+        if kind == 'GAUSSIAN':
+            magnitude = k
+        else:
+            k_min, k_max = compute.principal_curvatures(compute.signed_mean_curvature(V, T, N), k)
+            magnitude = k_min if kind == 'K_MIN' else k_max
+        direction = N
     else:
         direction, magnitude = N, np.zeros(len(V))
     return {"co": V, "normal": N, "direction": direction, "magnitude": magnitude,
@@ -141,7 +155,7 @@ def fill_mesh(mesh, data):
 
 
 def store_stats(obj, data):
-    """min, mean, max of the magnitude, and the top of the default colour range."""
+    """min, mean, max of the value, and the top of the default colour range (of |value|)."""
     m = data["magnitude"]
     _, fit = compute.default_range(m)
     lo, mean, hi = (float(m.min()), float(m.mean()), float(m.max())) if m.size else (0.0, 0.0, 0.0)
@@ -183,11 +197,14 @@ def make_arrows(context, source, kind, name, data, use_modifiers=False, **props)
     nodes.set_input(mod, "Color by Magnitude", kind != 'NORMALS')
     nodes.set_input(mod, "Length", 1.5 * data["edge"])
     lo, hi = compute.default_range(data["magnitude"])
-    nodes.set_input(mod, "Range Min", lo)
+    signed = kind in SIGNED_KINDS
+    nodes.set_input(mod, "Range Min", -hi if signed else lo)     # symmetric: zero is the middle of the colormap
     nodes.set_input(mod, "Range Max", hi)
-    nodes.set_input(mod, "Hide Below", CUTOFF_FRACTION * hi)
+    # a curvature of zero is a result, not a missing force: nothing is hidden at first
+    nodes.set_input(mod, "Hide Below", 0.0 if signed else CUTOFF_FRACTION * hi)
     nodes.set_input(mod, "Normal Material", nodes.ensure_normal_material())
-    nodes.set_input(mod, "Colored Material", nodes.ensure_colored_material())
+    nodes.set_input(mod, "Colored Material",
+                    nodes.ensure_signed_material() if signed else nodes.ensure_colored_material())
     return obj
 
 
@@ -211,14 +228,18 @@ def _select_only(context, obj):
 
 
 class NA_OT_add(Operator):
-    """Add normal arrows to the selected membrane meshes, in their own collection"""
+    """Add arrows for the normals or a curvature of the selected membrane meshes, in their own collection"""
     bl_idname = "normal_arrows.add"
     bl_label = "Add Arrows"
     bl_options = {'REGISTER', 'UNDO'}
 
-    mean_curvature: BoolProperty(
-        name="Mean Curvature Normals", default=False,
-        description="Arrows follow the area gradient and are coloured by the mean curvature magnitude")
+    kind: EnumProperty(
+        name="Kind", default='NORMALS',
+        items=[('NORMALS', "Normals", "Vertex normals, one length and one color"),
+               ('CURVATURE', "Mean Curvature", "Mean curvature normals (area gradient), colored by |H|"),
+               ('GAUSSIAN', "Gaussian Curvature", "Arrows along the normals colored by the Gaussian curvature K"),
+               ('K_MIN', "Min Curvature", "Arrows along the normals colored by the smaller principal curvature"),
+               ('K_MAX', "Max Curvature", "Arrows along the normals colored by the larger principal curvature")])
     use_modifiers: BoolProperty(
         name="Use Modifiers", default=True,
         description="Take the mesh as evaluated (a slicer cut, subdivision, ...) instead of the base mesh")
@@ -233,18 +254,16 @@ class NA_OT_add(Operator):
             self.report({'ERROR'}, "Select a membrane mesh first")
             return {'CANCELLED'}
 
-        kind = 'CURVATURE' if self.mean_curvature else 'NORMALS'
         made = None
         for source in sources:
-            existing = [o for o in nodes.arrow_sets_of(source) if o.get("ne_kind") == kind]
+            existing = [o for o in nodes.arrow_sets_of(source) if o.get("ne_kind") == self.kind]
             if existing:
                 made = existing[0]
                 self.report({'INFO'}, f"{made.name} already exists: updated it")
                 refresh(context, made)
             else:
-                label = "Mean Curvature" if self.mean_curvature else "Normals"
-                data = measure(context, source, kind, self.use_modifiers)
-                made = make_arrows(context, source, kind, f"{source.name} {label}", data,
+                data = measure(context, source, self.kind, self.use_modifiers)
+                made = make_arrows(context, source, self.kind, f"{source.name} {KIND_LABELS[self.kind]}", data,
                                    use_modifiers=self.use_modifiers)
         _select_only(context, made)
         return {'FINISHED'}
@@ -350,7 +369,7 @@ class NA_OT_update(_ArrowOp):
 
 
 class NA_OT_fit_range(_ArrowOp):
-    """Set the colour range from the magnitudes of this arrow set (0 to their 98th percentile)"""
+    """Set the colour range from the values of this arrow set: 0 to the 98th percentile of |value|, or minus that to plus it for curvatures of both signs"""
     bl_idname = "normal_arrows.fit_range"
     bl_label = "Fit Range"
     bl_options = {'REGISTER', 'UNDO'}
@@ -359,13 +378,14 @@ class NA_OT_fit_range(_ArrowOp):
         stats = context.active_object.get("ne_stats")
         if stats is None:
             return {'CANCELLED'}
-        nodes.set_input(self.modifier(context), "Range Min", 0.0)
+        signed = context.active_object.get("ne_kind") in SIGNED_KINDS
+        nodes.set_input(self.modifier(context), "Range Min", -stats[3] if signed else 0.0)
         nodes.set_input(self.modifier(context), "Range Max", stats[3])
         return {'FINISHED'}
 
 
 class NA_OT_colormap(Operator):
-    """Choose the colormap of the colored arrows (shared by all arrow sets)"""
+    """Choose the colormap of this arrow set (shared by the sets that use the same material)"""
     bl_idname = "normal_arrows.colormap"
     bl_label = "Colormap"
     bl_options = {'REGISTER', 'UNDO'}
@@ -374,7 +394,9 @@ class NA_OT_colormap(Operator):
                            items=[(k, v[0], "") for k, v in nodes.COLORMAPS.items()])
 
     def execute(self, context):
-        nodes.set_colormap(nodes.ensure_colored_material(), self.colormap)
+        mod = nodes.arrow_modifier(context.active_object)
+        mat = nodes.get_input(mod, "Colored Material") if mod is not None else None
+        nodes.set_colormap(mat if mat is not None else nodes.ensure_colored_material(), self.colormap)
         return {'FINISHED'}
 
 
