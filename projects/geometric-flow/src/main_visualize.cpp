@@ -1844,6 +1844,36 @@ void Callback_qts()
             psMesh->addVertexScalarQuantity("H", H);
         }
 
+        // Gaussian curvature K = angle defect / dual area (1/r^2 on a sphere of radius r), the K the
+        // library's principal curvatures below are made from; 0 on the boundary. The field goes on the
+        // mesh and its range next to the button.
+        static double gaussian_min = 0.0, gaussian_max = 0.0;
+        static bool have_gaussian = false;
+        if (ImGui::Button("Gaussian Curvature"))
+        {
+            geometry->refreshQuantities(); // the positions moved since the last request
+            geometry->requireVertexGaussianCurvatures();
+            geometry->requireVertexDualAreas();
+            VertexData<double> K(*mesh, 0.0);
+            gaussian_min = std::numeric_limits<double>::infinity();
+            gaussian_max = -std::numeric_limits<double>::infinity();
+            for (Vertex v : mesh->vertices())
+            {
+                K[v] = geometry->vertexGaussianCurvatures[v] / geometry->vertexDualAreas[v];
+                gaussian_min = std::min(gaussian_min, K[v]);
+                gaussian_max = std::max(gaussian_max, K[v]);
+            }
+            geometry->unrequireVertexGaussianCurvatures();
+            geometry->unrequireVertexDualAreas();
+            have_gaussian = true;
+            psMesh->addVertexScalarQuantity("Gaussian curvature", K);
+        }
+        if (have_gaussian)
+        {
+            ImGui::SameLine();
+            ImGui::Text("min = %.4f  max = %.4f", gaussian_min, gaussian_max);
+        }
+
         // Principal curvatures k_max >= k_min of the current shape (library values,
         // 1/r on a sphere of radius r). The field goes on the mesh and the extreme
         // value next to the button.
