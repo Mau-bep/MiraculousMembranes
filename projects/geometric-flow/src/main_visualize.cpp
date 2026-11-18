@@ -1688,68 +1688,44 @@ void Callback_qts()
 
     if (menuSection("Remeshing"))
     {
-        if (ImGui::IsItemClicked())
+        // The two remeshers of geometry-central (remesh() switches on Options.isotropic): "Isotropic remeshing" keeps every
+        // edge in [Min size, Max size] and Delaunay, "Curvature remeshing" sizes the edges by the curvature (Refine Angle).
+        // The values are the ones of RemeshingOptions below.
+        auto run_remesh = [&](bool isotropic)
         {
-        }
-        if (ImGui::SmallButton("remesh"))
-        {
-            // I WANT TO REMESH
             polyscope::state::subset.vertices.clear();
             polyscope::state::subset.edges.clear();
             polyscope::state::subset.faces.clear();
-            int n_op;
-            n_op = remesh(*mesh, *geometry, Options);
+            RemeshOptions run_options = Options;
+            run_options.isotropic = isotropic;
+            if (isotropic && run_options.max_absolute_length < 2.0 * run_options.min_absolute_length)
+            {
+                std::cout << "Isotropic remeshing needs Max size >= 2 * Min size (now " << run_options.max_absolute_length
+                          << " and " << run_options.min_absolute_length << "), not remeshing\n";
+                return;
+            }
+            int n_op = remesh(*mesh, *geometry, run_options);
+            std::cout << (isotropic ? "Isotropic" : "Curvature") << " remeshing: " << n_op << " operations, "
+                      << mesh->nVertices() << " vertices\n";
             mesh->compress();
             geometry->refreshQuantities();
-            // M3DG.mesh = mesh;
-            // M3DG.geometry = geometry;
             psMesh = registerMembrane();
             polyscope::state::facePickIndStart = mesh->nVertices();
             polyscope::state::edgePickIndStart = polyscope::state::facePickIndStart + mesh->nFaces();
             polyscope::state::halfedgePickIndStart = polyscope::state::edgePickIndStart + mesh->nEdges();
-        }
-        ImGui::SameLine(100);
-        if (ImGui::SmallButton("Smoothing"))
+        };
+        if (ImGui::Button("Isotropic remeshing"))
+            run_remesh(true);
+        ImGui::SameLine();
+        if (ImGui::Button("Curvature remeshing"))
+            run_remesh(false);
+
+        if (ImGui::Button("Smoothing"))
         {
             double move = smoothByLaplacian(*mesh, *geometry);
             std::cout << "The movement is " << move << " \n";
             psMesh->updateVertexPositions(geometry->vertexPositions);
         }
-        // I want to add a button for triangle quality.
-        if (ImGui::Button("^Qual"))
-        {
-            geometry->requireCornerAngles();
-            FaceData<double> min_angle(*mesh, 0.0);
-            double minAngle;
-            for (Face f : mesh->faces())
-            {
-                //
-                minAngle = 3.0;
-                for (Corner c : f.adjacentCorners())
-                {
-                    if (geometry->cornerAngles[c] < minAngle)
-                        minAngle = geometry->cornerAngles[c];
-                }
-                if (minAngle > angleThresh)
-                    minAngle = 1.0;
-                min_angle[f] = minAngle;
-            }
-            psMesh->addFaceScalarQuantity("Min angle", min_angle);
-            geometry->unrequireCornerAngles();
-        }
-        ImGui::SameLine(100);
-        if (ImGui::Button("Remesh Small"))
-        {
-            Options.angleThresh = angleThresh;
-            remeshSmallAngles(*mesh, *geometry, Options);
-            geometry->refreshQuantities();
-            psMesh = registerMembrane();
-            polyscope::state::facePickIndStart = mesh->nVertices();
-            polyscope::state::edgePickIndStart = polyscope::state::facePickIndStart + mesh->nFaces();
-            polyscope::state::halfedgePickIndStart = polyscope::state::edgePickIndStart + mesh->nEdges();
-        }
-        ImGui::SameLine(200);
-        ImGui::DragFloat("Min Angle", &angleThresh, 0.05f, 0.05f, 0.5f, "%.2f");
 
         if (subSection("RemeshingOptions"))
         {
@@ -1799,13 +1775,48 @@ void Callback_qts()
             // This is where we will add the different options to change
             ImGui::TreePop();
         }
-        if (ImGui::Button("Display normals"))
-        {
-            M3DG.Sim_handler->update_vertex_normals();
-            psMesh->addVertexVectorQuantity("Normals", M3DG.Sim_handler->Vertex_normals);
-        }
         if (subSection("Inspection"))
         {
+            if (ImGui::Button("Display normals"))
+            {
+                M3DG.Sim_handler->update_vertex_normals();
+                psMesh->addVertexVectorQuantity("Normals", M3DG.Sim_handler->Vertex_normals);
+            }
+            // I want to add a button for triangle quality.
+            if (ImGui::Button("^Qual"))
+            {
+                geometry->requireCornerAngles();
+                FaceData<double> min_angle(*mesh, 0.0);
+                double minAngle;
+                for (Face f : mesh->faces())
+                {
+                    //
+                    minAngle = 3.0;
+                    for (Corner c : f.adjacentCorners())
+                    {
+                        if (geometry->cornerAngles[c] < minAngle)
+                            minAngle = geometry->cornerAngles[c];
+                    }
+                    if (minAngle > angleThresh)
+                        minAngle = 1.0;
+                    min_angle[f] = minAngle;
+                }
+                psMesh->addFaceScalarQuantity("Min angle", min_angle);
+                geometry->unrequireCornerAngles();
+            }
+            ImGui::SameLine(100);
+            if (ImGui::Button("Remesh Small"))
+            {
+                Options.angleThresh = angleThresh;
+                remeshSmallAngles(*mesh, *geometry, Options);
+                geometry->refreshQuantities();
+                psMesh = registerMembrane();
+                polyscope::state::facePickIndStart = mesh->nVertices();
+                polyscope::state::edgePickIndStart = polyscope::state::facePickIndStart + mesh->nFaces();
+                polyscope::state::halfedgePickIndStart = polyscope::state::edgePickIndStart + mesh->nEdges();
+            }
+            ImGui::SameLine(200);
+            ImGui::DragFloat("Min Angle", &angleThresh, 0.05f, 0.05f, 0.5f, "%.2f");
 
             if (ImGui::Button("Bending Energy"))
             {
